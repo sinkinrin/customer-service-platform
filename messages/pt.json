@@ -1,0 +1,217 @@
+{
+  "common": {
+    "appName": "Plataforma de Atendimento ao Cliente",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "search": "Pesquisar",
+    "filter": "Filtrar",
+    "clear": "Limpar",
+    "submit": "Enviar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "close": "Fechar",
+    "confirm": "Confirmar",
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "conversations": "Conversas",
+    "faq": "Perguntas frequentes",
+    "tickets": "Tickets",
+    "knowledgeBase": "Base de conhecimento",
+    "users": "Usuários",
+    "settings": "Configurações",
+    "logout": "Sair",
+    "profile": "Perfil"
+  },
+  "auth": {
+    "login": "Entrar",
+    "register": "Registrar",
+    "email": "E-mail",
+    "password": "Senha",
+    "confirmPassword": "Confirmar senha",
+    "fullName": "Nome completo",
+    "forgotPassword": "Esqueceu a senha?",
+    "noAccount": "Não tem uma conta?",
+    "hasAccount": "Já tem uma conta?",
+    "loginButton": "Entrar",
+    "registerButton": "Registrar",
+    "loggingIn": "Entrando...",
+    "registering": "Registrando...",
+    "loginSuccess": "Login bem-sucedido!",
+    "registerSuccess": "Registro bem-sucedido! Por favor, verifique seu e-mail.",
+    "loginError": "E-mail ou senha inválidos",
+    "registerError": "Falha no registro. Por favor, tente novamente.",
+    "emailRequired": "E-mail é obrigatório",
+    "emailInvalid": "Endereço de e-mail inválido",
+    "passwordRequired": "Senha é obrigatória",
+    "passwordMinLength": "A senha deve ter pelo menos 6 caracteres",
+    "passwordMismatch": "As senhas não coincidem",
+    "fullNameRequired": "Nome completo é obrigatório"
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo de volta",
+    "overview": "Visão geral",
+    "statistics": "Estatísticas",
+    "recentActivity": "Atividade recente",
+    "totalConversations": "Total de conversas",
+    "activeConversations": "Conversas ativas",
+    "waitingConversations": "Aguardando",
+    "closedConversations": "Fechadas",
+    "viewAll": "Ver tudo"
+  },
+  "conversations": {
+    "title": "Conversas",
+    "newConversation": "Nova conversa",
+    "searchPlaceholder": "Pesquisar conversas...",
+    "noConversations": "Nenhuma conversa encontrada",
+    "status": {
+      "waiting": "Aguardando",
+      "active": "Ativa",
+      "closed": "Fechada"
+    },
+    "businessType": {
+      "presales": "Pré-venda",
+      "aftersales": "Pós-venda"
+    },
+    "messageInput": "Digite sua mensagem...",
+    "send": "Enviar",
+    "attachFile": "Anexar arquivo",
+    "lastMessage": "Última mensagem",
+    "messages": "Mensagens",
+    "noMessages": "Sem mensagens",
+    "startConversation": "Iniciar conversa"
+  },
+  "faq": {
+    "title": "Perguntas frequentes",
+    "searchPlaceholder": "Pesquisar respostas...",
+    "categories": "Categorias",
+    "allCategories": "Todas as categorias",
+    "popularArticles": "Artigos populares",
+    "relatedArticles": "Artigos relacionados",
+    "helpful": "Este artigo foi útil?",
+    "yes": "Sim",
+    "no": "Não",
+    "thankYou": "Obrigado pelo seu feedback!",
+    "noResults": "Nenhum artigo encontrado",
+    "browseByCategory": "Navegar por categoria",
+    "searchResults": "Resultados da pesquisa",
+    "viewCount": "visualizações"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "newTicket": "Novo ticket",
+    "searchPlaceholder": "Pesquisar tickets...",
+    "noTickets": "Nenhum ticket encontrado",
+    "ticketNumber": "Ticket #",
+    "subject": "Assunto",
+    "status": "Status",
+    "priority": "Prioridade",
+    "assignedTo": "Atribuído a",
+    "createdAt": "Criado em",
+    "updatedAt": "Atualizado em",
+    "statusOptions": {
+      "new": "Novo",
+      "open": "Aberto",
+      "pending": "Pendente",
+      "closed": "Fechado"
+    },
+    "priorityOptions": {
+      "low": "Baixa",
+      "normal": "Normal",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "details": "Detalhes do ticket",
+    "articles": "Artigos",
+    "addArticle": "Adicionar artigo",
+    "internalNote": "Nota interna",
+    "publicReply": "Resposta pública"
+  },
+  "admin": {
+    "users": {
+      "title": "Gerenciamento de usuários",
+      "newUser": "Novo usuário",
+      "searchPlaceholder": "Pesquisar usuários...",
+      "noUsers": "Nenhum usuário encontrado",
+      "role": "Função",
+      "status": "Status",
+      "createdAt": "Criado em",
+      "actions": "Ações",
+      "editUser": "Editar usuário",
+      "deleteUser": "Excluir usuário",
+      "confirmDelete": "Tem certeza de que deseja excluir este usuário?",
+      "roles": {
+        "customer": "Cliente",
+        "staff": "Equipe",
+        "admin": "Administrador"
+      },
+      "statusOptions": {
+        "active": "Ativo",
+        "inactive": "Inativo"
+      }
+    },
+    "faq": {
+      "title": "Gerenciamento de FAQ",
+      "newArticle": "Novo artigo",
+      "editArticle": "Editar artigo",
+      "deleteArticle": "Excluir artigo",
+      "confirmDelete": "Tem certeza de que deseja excluir este artigo?",
+      "category": "Categoria",
+      "translations": "Traduções",
+      "addTranslation": "Adicionar tradução",
+      "language": "Idioma",
+      "title_field": "Título",
+      "content": "Conteúdo",
+      "keywords": "Palavras-chave",
+      "published": "Publicado",
+      "draft": "Rascunho"
+    },
+    "settings": {
+      "title": "Configurações do sistema",
+      "general": "Geral",
+      "businessTypes": "Tipos de negócio",
+      "notifications": "Notificações",
+      "saveSuccess": "Configurações salvas com sucesso",
+      "saveError": "Falha ao salvar configurações"
+    }
+  },
+  "settings": {
+    "title": "Configurações",
+    "profile": "Perfil",
+    "notifications": "Notificações",
+    "language": "Idioma",
+    "security": "Segurança",
+    "updateProfile": "Atualizar perfil",
+    "changePassword": "Alterar senha",
+    "currentPassword": "Senha atual",
+    "newPassword": "Nova senha",
+    "emailNotifications": "Notificações por e-mail",
+    "pushNotifications": "Notificações push",
+    "selectLanguage": "Selecionar idioma"
+  },
+  "errors": {
+    "unauthorized": "Não autorizado. Por favor, faça login.",
+    "forbidden": "Você não tem permissão para acessar este recurso.",
+    "notFound": "Recurso não encontrado.",
+    "serverError": "Erro do servidor. Por favor, tente novamente mais tarde.",
+    "networkError": "Erro de rede. Por favor, verifique sua conexão.",
+    "validationError": "Por favor, verifique sua entrada e tente novamente."
+  },
+  "validation": {
+    "required": "Este campo é obrigatório",
+    "emailInvalid": "Endereço de e-mail inválido",
+    "minLength": "Deve ter pelo menos {min} caracteres",
+    "maxLength": "Deve ter no máximo {max} caracteres",
+    "passwordMismatch": "As senhas não coincidem"
+  }
+}
+

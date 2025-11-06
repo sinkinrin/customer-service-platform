@@ -1,0 +1,217 @@
+{
+  "common": {
+    "appName": "Платформа обслуживания клиентов",
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "create": "Создать",
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "clear": "Очистить",
+    "submit": "Отправить",
+    "back": "Назад",
+    "next": "Далее",
+    "previous": "Предыдущий",
+    "close": "Закрыть",
+    "confirm": "Подтвердить",
+    "yes": "Да",
+    "no": "Нет"
+  },
+  "nav": {
+    "dashboard": "Панель управления",
+    "conversations": "Беседы",
+    "faq": "Часто задаваемые вопросы",
+    "tickets": "Заявки",
+    "knowledgeBase": "База знаний",
+    "users": "Пользователи",
+    "settings": "Настройки",
+    "logout": "Выход",
+    "profile": "Профиль"
+  },
+  "auth": {
+    "login": "Вход",
+    "register": "Регистрация",
+    "email": "Электронная почта",
+    "password": "Пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "fullName": "Полное имя",
+    "forgotPassword": "Забыли пароль?",
+    "noAccount": "Нет аккаунта?",
+    "hasAccount": "Уже есть аккаунт?",
+    "loginButton": "Войти",
+    "registerButton": "Зарегистрироваться",
+    "loggingIn": "Вход...",
+    "registering": "Регистрация...",
+    "loginSuccess": "Вход выполнен успешно!",
+    "registerSuccess": "Регистрация успешна! Пожалуйста, проверьте вашу электронную почту.",
+    "loginError": "Неверный email или пароль",
+    "registerError": "Ошибка регистрации. Пожалуйста, попробуйте снова.",
+    "emailRequired": "Email обязателен",
+    "emailInvalid": "Неверный адрес электронной почты",
+    "passwordRequired": "Пароль обязателен",
+    "passwordMinLength": "Пароль должен содержать не менее 6 символов",
+    "passwordMismatch": "Пароли не совпадают",
+    "fullNameRequired": "Полное имя обязательно"
+  },
+  "dashboard": {
+    "welcome": "Добро пожаловать",
+    "overview": "Обзор",
+    "statistics": "Статистика",
+    "recentActivity": "Недавняя активность",
+    "totalConversations": "Всего бесед",
+    "activeConversations": "Активные беседы",
+    "waitingConversations": "Ожидание",
+    "closedConversations": "Закрытые",
+    "viewAll": "Посмотреть все"
+  },
+  "conversations": {
+    "title": "Беседы",
+    "newConversation": "Новая беседа",
+    "searchPlaceholder": "Поиск бесед...",
+    "noConversations": "Беседы не найдены",
+    "status": {
+      "waiting": "Ожидание",
+      "active": "Активная",
+      "closed": "Закрыта"
+    },
+    "businessType": {
+      "presales": "Предпродажа",
+      "aftersales": "Послепродажное обслуживание"
+    },
+    "messageInput": "Введите ваше сообщение...",
+    "send": "Отправить",
+    "attachFile": "Прикрепить файл",
+    "lastMessage": "Последнее сообщение",
+    "messages": "Сообщения",
+    "noMessages": "Нет сообщений",
+    "startConversation": "Начать беседу"
+  },
+  "faq": {
+    "title": "Часто задаваемые вопросы",
+    "searchPlaceholder": "Поиск ответов...",
+    "categories": "Категории",
+    "allCategories": "Все категории",
+    "popularArticles": "Популярные статьи",
+    "relatedArticles": "Связанные статьи",
+    "helpful": "Была ли эта статья полезной?",
+    "yes": "Да",
+    "no": "Нет",
+    "thankYou": "Спасибо за ваш отзыв!",
+    "noResults": "Статьи не найдены",
+    "browseByCategory": "Просмотр по категориям",
+    "searchResults": "Результаты поиска",
+    "viewCount": "просмотров"
+  },
+  "tickets": {
+    "title": "Заявки",
+    "newTicket": "Новая заявка",
+    "searchPlaceholder": "Поиск заявок...",
+    "noTickets": "Заявки не найдены",
+    "ticketNumber": "Заявка #",
+    "subject": "Тема",
+    "status": "Статус",
+    "priority": "Приоритет",
+    "assignedTo": "Назначено",
+    "createdAt": "Создано",
+    "updatedAt": "Обновлено",
+    "statusOptions": {
+      "new": "Новая",
+      "open": "Открыта",
+      "pending": "В ожидании",
+      "closed": "Закрыта"
+    },
+    "priorityOptions": {
+      "low": "Низкий",
+      "normal": "Обычный",
+      "high": "Высокий",
+      "urgent": "Срочный"
+    },
+    "details": "Детали заявки",
+    "articles": "Статьи",
+    "addArticle": "Добавить статью",
+    "internalNote": "Внутренняя заметка",
+    "publicReply": "Публичный ответ"
+  },
+  "admin": {
+    "users": {
+      "title": "Управление пользователями",
+      "newUser": "Новый пользователь",
+      "searchPlaceholder": "Поиск пользователей...",
+      "noUsers": "Пользователи не найдены",
+      "role": "Роль",
+      "status": "Статус",
+      "createdAt": "Создано",
+      "actions": "Действия",
+      "editUser": "Редактировать пользователя",
+      "deleteUser": "Удалить пользователя",
+      "confirmDelete": "Вы уверены, что хотите удалить этого пользователя?",
+      "roles": {
+        "customer": "Клиент",
+        "staff": "Сотрудник",
+        "admin": "Администратор"
+      },
+      "statusOptions": {
+        "active": "Активный",
+        "inactive": "Неактивный"
+      }
+    },
+    "faq": {
+      "title": "Управление FAQ",
+      "newArticle": "Новая статья",
+      "editArticle": "Редактировать статью",
+      "deleteArticle": "Удалить статью",
+      "confirmDelete": "Вы уверены, что хотите удалить эту статью?",
+      "category": "Категория",
+      "translations": "Переводы",
+      "addTranslation": "Добавить перевод",
+      "language": "Язык",
+      "title_field": "Заголовок",
+      "content": "Содержание",
+      "keywords": "Ключевые слова",
+      "published": "Опубликовано",
+      "draft": "Черновик"
+    },
+    "settings": {
+      "title": "Системные настройки",
+      "general": "Общие",
+      "businessTypes": "Типы бизнеса",
+      "notifications": "Уведомления",
+      "saveSuccess": "Настройки успешно сохранены",
+      "saveError": "Не удалось сохранить настройки"
+    }
+  },
+  "settings": {
+    "title": "Настройки",
+    "profile": "Профиль",
+    "notifications": "Уведомления",
+    "language": "Язык",
+    "security": "Безопасность",
+    "updateProfile": "Обновить профиль",
+    "changePassword": "Изменить пароль",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль",
+    "emailNotifications": "Email уведомления",
+    "pushNotifications": "Push уведомления",
+    "selectLanguage": "Выбрать язык"
+  },
+  "errors": {
+    "unauthorized": "Не авторизован. Пожалуйста, войдите.",
+    "forbidden": "У вас нет доступа к этому ресурсу.",
+    "notFound": "Ресурс не найден.",
+    "serverError": "Ошибка сервера. Пожалуйста, попробуйте позже.",
+    "networkError": "Ошибка сети. Пожалуйста, проверьте ваше соединение.",
+    "validationError": "Пожалуйста, проверьте ваш ввод и попробуйте снова."
+  },
+  "validation": {
+    "required": "Это поле обязательно",
+    "emailInvalid": "Неверный адрес электронной почты",
+    "minLength": "Должно быть не менее {min} символов",
+    "maxLength": "Должно быть не более {max} символов",
+    "passwordMismatch": "Пароли не совпадают"
+  }
+}
+

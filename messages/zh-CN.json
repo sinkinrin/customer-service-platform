@@ -1,0 +1,217 @@
+{
+  "common": {
+    "appName": "客户服务平台",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "search": "搜索",
+    "filter": "筛选",
+    "clear": "清除",
+    "submit": "提交",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "close": "关闭",
+    "confirm": "确认",
+    "yes": "是",
+    "no": "否"
+  },
+  "nav": {
+    "dashboard": "仪表板",
+    "conversations": "对话",
+    "faq": "常见问题",
+    "tickets": "工单",
+    "knowledgeBase": "知识库",
+    "users": "用户管理",
+    "settings": "设置",
+    "logout": "退出登录",
+    "profile": "个人资料"
+  },
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "email": "邮箱",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "fullName": "姓名",
+    "forgotPassword": "忘记密码？",
+    "noAccount": "还没有账号？",
+    "hasAccount": "已有账号？",
+    "loginButton": "登录",
+    "registerButton": "注册",
+    "loggingIn": "登录中...",
+    "registering": "注册中...",
+    "loginSuccess": "登录成功！",
+    "registerSuccess": "注册成功！请检查您的邮箱以验证账号。",
+    "loginError": "邮箱或密码错误",
+    "registerError": "注册失败，请重试。",
+    "emailRequired": "邮箱为必填项",
+    "emailInvalid": "邮箱格式不正确",
+    "passwordRequired": "密码为必填项",
+    "passwordMinLength": "密码至少需要6个字符",
+    "passwordMismatch": "两次输入的密码不一致",
+    "fullNameRequired": "姓名为必填项"
+  },
+  "dashboard": {
+    "welcome": "欢迎回来",
+    "overview": "概览",
+    "statistics": "统计",
+    "recentActivity": "最近活动",
+    "totalConversations": "总对话数",
+    "activeConversations": "活跃对话",
+    "waitingConversations": "等待中",
+    "closedConversations": "已关闭",
+    "viewAll": "查看全部"
+  },
+  "conversations": {
+    "title": "对话",
+    "newConversation": "新建对话",
+    "searchPlaceholder": "搜索对话...",
+    "noConversations": "未找到对话",
+    "status": {
+      "waiting": "等待中",
+      "active": "活跃",
+      "closed": "已关闭"
+    },
+    "businessType": {
+      "presales": "售前咨询",
+      "aftersales": "售后支持"
+    },
+    "messageInput": "输入您的消息...",
+    "send": "发送",
+    "attachFile": "附加文件",
+    "lastMessage": "最后消息",
+    "messages": "消息",
+    "noMessages": "暂无消息",
+    "startConversation": "开始对话"
+  },
+  "faq": {
+    "title": "常见问题",
+    "searchPlaceholder": "搜索答案...",
+    "categories": "分类",
+    "allCategories": "所有分类",
+    "popularArticles": "热门文章",
+    "relatedArticles": "相关文章",
+    "helpful": "这篇文章有帮助吗？",
+    "yes": "有帮助",
+    "no": "没帮助",
+    "thankYou": "感谢您的反馈！",
+    "noResults": "未找到文章",
+    "browseByCategory": "按分类浏览",
+    "searchResults": "搜索结果",
+    "viewCount": "次浏览"
+  },
+  "tickets": {
+    "title": "工单",
+    "newTicket": "新建工单",
+    "searchPlaceholder": "搜索工单...",
+    "noTickets": "未找到工单",
+    "ticketNumber": "工单号 #",
+    "subject": "主题",
+    "status": "状态",
+    "priority": "优先级",
+    "assignedTo": "分配给",
+    "createdAt": "创建时间",
+    "updatedAt": "更新时间",
+    "statusOptions": {
+      "new": "新建",
+      "open": "处理中",
+      "pending": "待处理",
+      "closed": "已关闭"
+    },
+    "priorityOptions": {
+      "low": "低",
+      "normal": "普通",
+      "high": "高",
+      "urgent": "紧急"
+    },
+    "details": "工单详情",
+    "articles": "文章",
+    "addArticle": "添加文章",
+    "internalNote": "内部备注",
+    "publicReply": "公开回复"
+  },
+  "admin": {
+    "users": {
+      "title": "用户管理",
+      "newUser": "新建用户",
+      "searchPlaceholder": "搜索用户...",
+      "noUsers": "未找到用户",
+      "role": "角色",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "actions": "操作",
+      "editUser": "编辑用户",
+      "deleteUser": "删除用户",
+      "confirmDelete": "确定要删除此用户吗？",
+      "roles": {
+        "customer": "客户",
+        "staff": "员工",
+        "admin": "管理员"
+      },
+      "statusOptions": {
+        "active": "活跃",
+        "inactive": "停用"
+      }
+    },
+    "faq": {
+      "title": "FAQ 管理",
+      "newArticle": "新建文章",
+      "editArticle": "编辑文章",
+      "deleteArticle": "删除文章",
+      "confirmDelete": "确定要删除此文章吗？",
+      "category": "分类",
+      "translations": "翻译",
+      "addTranslation": "添加翻译",
+      "language": "语言",
+      "title_field": "标题",
+      "content": "内容",
+      "keywords": "关键词",
+      "published": "已发布",
+      "draft": "草稿"
+    },
+    "settings": {
+      "title": "系统设置",
+      "general": "通用",
+      "businessTypes": "业务类型",
+      "notifications": "通知",
+      "saveSuccess": "设置保存成功",
+      "saveError": "设置保存失败"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "profile": "个人资料",
+    "notifications": "通知",
+    "language": "语言",
+    "security": "安全",
+    "updateProfile": "更新资料",
+    "changePassword": "修改密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "emailNotifications": "邮件通知",
+    "pushNotifications": "推送通知",
+    "selectLanguage": "选择语言"
+  },
+  "errors": {
+    "unauthorized": "未授权，请登录。",
+    "forbidden": "您没有权限访问此资源。",
+    "notFound": "未找到资源。",
+    "serverError": "服务器错误，请稍后重试。",
+    "networkError": "网络错误，请检查您的连接。",
+    "validationError": "请检查您的输入并重试。"
+  },
+  "validation": {
+    "required": "此字段为必填项",
+    "emailInvalid": "邮箱格式不正确",
+    "minLength": "至少需要 {min} 个字符",
+    "maxLength": "最多 {max} 个字符",
+    "passwordMismatch": "两次输入的密码不一致"
+  }
+}
+

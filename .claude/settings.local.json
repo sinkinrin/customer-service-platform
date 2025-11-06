@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash($PSVersionTable)",
+      "Bash(powershell.exe:*)",
+      "Bash(xargs ls:*)",
+      "Bash(find:*)",
+      "Bash(while read component)",
+      "Bash(do echo \"=== $component ===\")",
+      "Bash(done)",
+      "Bash(for file in src/components/ui/*.tsx)",
+      "Bash(do basename \"$file\" .tsx)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

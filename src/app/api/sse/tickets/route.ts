@@ -1,0 +1,146 @@
+/**
+ * Server-Sent Events (SSE) API for Real-time Ticket Updates
+ * 
+ * GET /api/sse/tickets - Establish SSE connection for ticket updates
+ */
+
+import { NextRequest } from 'next/server'
+import { mockGetUser } from '@/lib/mock-auth'
+
+// Store active connections
+const connections = new Map<string, ReadableStreamDefaultController>()
+
+// Heartbeat interval (30 seconds)
+const HEARTBEAT_INTERVAL = 30000
+
+// Connection timeout (5 minutes of inactivity)
+const CONNECTION_TIMEOUT = 5 * 60 * 1000
+
+export const dynamic = 'force-dynamic'
+
+export async function GET(request: NextRequest) {
+  // Verify authentication
+  const user = await mockGetUser()
+
+  if (!user) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  const userId = user.id
+  const userRole = user.role
+
+  // Create a readable stream for SSE
+  const stream = new ReadableStream({
+    start(controller) {
+      // Store the connection
+      connections.set(userId, controller)
+
+      // Send initial connection message
+      const encoder = new TextEncoder()
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ type: 'connected', userId, role: userRole })}\n\n`)
+      )
+
+      // Set up heartbeat
+      const heartbeatInterval = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(': heartbeat\n\n'))
+        } catch (error) {
+          console.error('Heartbeat error:', error)
+          clearInterval(heartbeatInterval)
+          connections.delete(userId)
+        }
+      }, HEARTBEAT_INTERVAL)
+
+      // Set up connection timeout
+      const timeoutId = setTimeout(() => {
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: 'timeout' })}\n\n`)
+          )
+          controller.close()
+        } catch (error) {
+          console.error('Timeout error:', error)
+        }
+        clearInterval(heartbeatInterval)
+        connections.delete(userId)
+      }, CONNECTION_TIMEOUT)
+
+      // Clean up on connection close
+      request.signal.addEventListener('abort', () => {
+        clearInterval(heartbeatInterval)
+        clearTimeout(timeoutId)
+        connections.delete(userId)
+        try {
+          controller.close()
+        } catch {
+          // Connection already closed
+        }
+      })
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // Disable buffering in nginx
+    },
+  })
+}
+
+/**
+ * Broadcast an event to specific users or all users
+ */
+export function broadcastEvent(
+  event: {
+    type: string
+    data: any
+  },
+  targetUserIds?: string[]
+) {
+  const encoder = new TextEncoder()
+  const message = `data: ${JSON.stringify(event)}\n\n`
+  const encodedMessage = encoder.encode(message)
+
+  if (targetUserIds) {
+    // Send to specific users
+    targetUserIds.forEach((userId) => {
+      const controller = connections.get(userId)
+      if (controller) {
+        try {
+          controller.enqueue(encodedMessage)
+        } catch (error) {
+          console.error(`Failed to send event to user ${userId}:`, error)
+          connections.delete(userId)
+        }
+      }
+    })
+  } else {
+    // Broadcast to all connected users
+    connections.forEach((controller, userId) => {
+      try {
+        controller.enqueue(encodedMessage)
+      } catch (error) {
+        console.error(`Failed to broadcast event to user ${userId}:`, error)
+        connections.delete(userId)
+      }
+    })
+  }
+}
+
+/**
+ * Get count of active connections
+ */
+export function getActiveConnectionsCount(): number {
+  return connections.size
+}
+
+/**
+ * Get list of connected user IDs
+ */
+export function getConnectedUserIds(): string[] {
+  return Array.from(connections.keys())
+}
+

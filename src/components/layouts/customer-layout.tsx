@@ -1,0 +1,265 @@
+"use client"
+
+import { ReactNode, useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import {
+  HelpCircle,
+  MessageSquare,
+  FileText,
+  MessageCircle,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
+import { LanguageSelector } from "@/components/language-selector"
+
+interface CustomerLayoutProps {
+  children: ReactNode
+  user?: {
+    id: string
+    email: string
+    name?: string
+    avatar?: string
+    role?: string
+  }
+  onLogout?: () => void
+}
+
+interface NavItem {
+  name: string
+  href?: string
+  icon: React.ComponentType<{ className?: string }>
+  children?: NavItem[]
+}
+
+const navigation: NavItem[] = [
+  {
+    name: "自助服务",
+    href: "/faq",
+    icon: HelpCircle,
+  },
+  {
+    name: "在线咨询",
+    href: "/conversations",
+    icon: MessageSquare,
+  },
+  {
+    name: "工单管理",
+    icon: FileText,
+    children: [
+      { name: "提交工单", href: "/my-tickets/create", icon: FileText },
+      { name: "我的工单", href: "/my-tickets", icon: FileText },
+    ],
+  },
+  {
+    name: "反馈与投诉",
+    icon: MessageCircle,
+    children: [
+      { name: "提交建议", href: "/feedback", icon: MessageCircle },
+      { name: "提交投诉", href: "/complaints", icon: MessageCircle },
+    ],
+  },
+]
+
+export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [expandedItems, setExpandedItems] = useState<string[]>(["工单管理", "反馈与投诉"])
+  const pathname = usePathname()
+
+  const toggleExpanded = (name: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+    )
+  }
+
+  const renderNavItem = (item: NavItem) => {
+    const isExpanded = expandedItems.includes(item.name)
+    const hasChildren = item.children && item.children.length > 0
+    const Icon = item.icon
+
+    if (hasChildren) {
+      return (
+        <div key={item.name}>
+          <button
+            onClick={() => toggleExpanded(item.name)}
+            className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Icon className="h-5 w-5" />
+              <span>{item.name}</span>
+            </div>
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+          {isExpanded && (
+            <div className="ml-4 mt-1 space-y-1">
+              {item.children.map((child) => {
+                const ChildIcon = child.icon
+                const isActive = pathname === child.href
+                return (
+                  <Link
+                    key={child.href}
+                    href={child.href || "#"}
+                    className={cn(
+                      "flex items-center space-x-3 px-4 py-2 rounded-lg text-sm transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <ChildIcon className="h-4 w-4" />
+                    <span>{child.name}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    const isActive = pathname === item.href
+    return (
+      <Link
+        key={item.href}
+        href={item.href || "#"}
+        className={cn(
+          "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+          isActive
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        )}
+        onClick={() => setSidebarOpen(false)}
+      >
+        <Icon className="h-5 w-5" />
+        <span>{item.name}</span>
+      </Link>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Top Navbar */}
+      <nav className="border-b bg-background sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+              <Link href="/customer/dashboard" className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-bold text-lg">CS</span>
+                </div>
+                <span className="font-semibold text-lg hidden sm:inline-block">
+                  客户服务
+                </span>
+              </Link>
+            </div>
+
+            {/* Right Side */}
+            <div className="flex items-center space-x-4">
+              <LanguageSelector />
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.avatar} alt={user.name || user.email} />
+                        <AvatarFallback>
+                          {user.name?.[0] || user.email[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">{user.name || "User"}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/customer/dashboard">仪表板</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onLogout}>退出登录</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex flex-1">
+        {/* Sidebar - Desktop */}
+        <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-background">
+          <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <div className="mb-4">
+              <h2 className="px-4 text-lg font-semibold">客户服务</h2>
+            </div>
+            {navigation.map(renderNavItem)}
+          </div>
+        </aside>
+
+        {/* Sidebar - Mobile */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <div
+              className="fixed inset-0 bg-black/50"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <aside className="fixed left-0 top-16 bottom-0 w-64 bg-background border-r">
+              <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                <div className="mb-4">
+                  <h2 className="px-4 text-lg font-semibold">客户服务</h2>
+                </div>
+                {navigation.map(renderNavItem)}
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4 py-6">{children}</div>
+        </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t py-6 mt-auto">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Customer Service Platform. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+export default CustomerLayout
+

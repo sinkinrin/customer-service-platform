@@ -1,0 +1,217 @@
+{
+  "common": {
+    "appName": "Plateforme de Service Client",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "clear": "Effacer",
+    "submit": "Soumettre",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "conversations": "Conversations",
+    "faq": "FAQ",
+    "tickets": "Tickets",
+    "knowledgeBase": "Base de connaissances",
+    "users": "Utilisateurs",
+    "settings": "Paramètres",
+    "logout": "Déconnexion",
+    "profile": "Profil"
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "Inscription",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "fullName": "Nom complet",
+    "forgotPassword": "Mot de passe oublié?",
+    "noAccount": "Pas de compte?",
+    "hasAccount": "Vous avez déjà un compte?",
+    "loginButton": "Se connecter",
+    "registerButton": "S'inscrire",
+    "loggingIn": "Connexion en cours...",
+    "registering": "Inscription en cours...",
+    "loginSuccess": "Connexion réussie!",
+    "registerSuccess": "Inscription réussie! Veuillez vérifier votre email.",
+    "loginError": "Email ou mot de passe invalide",
+    "registerError": "Échec de l'inscription. Veuillez réessayer.",
+    "emailRequired": "L'email est requis",
+    "emailInvalid": "Adresse email invalide",
+    "passwordRequired": "Le mot de passe est requis",
+    "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "fullNameRequired": "Le nom complet est requis"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue",
+    "overview": "Aperçu",
+    "statistics": "Statistiques",
+    "recentActivity": "Activité récente",
+    "totalConversations": "Total des conversations",
+    "activeConversations": "Conversations actives",
+    "waitingConversations": "En attente",
+    "closedConversations": "Fermées",
+    "viewAll": "Voir tout"
+  },
+  "conversations": {
+    "title": "Conversations",
+    "newConversation": "Nouvelle conversation",
+    "searchPlaceholder": "Rechercher des conversations...",
+    "noConversations": "Aucune conversation trouvée",
+    "status": {
+      "waiting": "En attente",
+      "active": "Active",
+      "closed": "Fermée"
+    },
+    "businessType": {
+      "presales": "Avant-vente",
+      "aftersales": "Après-vente"
+    },
+    "messageInput": "Tapez votre message...",
+    "send": "Envoyer",
+    "attachFile": "Joindre un fichier",
+    "lastMessage": "Dernier message",
+    "messages": "Messages",
+    "noMessages": "Aucun message",
+    "startConversation": "Démarrer une conversation"
+  },
+  "faq": {
+    "title": "FAQ",
+    "searchPlaceholder": "Rechercher des réponses...",
+    "categories": "Catégories",
+    "allCategories": "Toutes les catégories",
+    "popularArticles": "Articles populaires",
+    "relatedArticles": "Articles connexes",
+    "helpful": "Cet article était-il utile?",
+    "yes": "Oui",
+    "no": "Non",
+    "thankYou": "Merci pour votre retour!",
+    "noResults": "Aucun article trouvé",
+    "browseByCategory": "Parcourir par catégorie",
+    "searchResults": "Résultats de recherche",
+    "viewCount": "vues"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "newTicket": "Nouveau ticket",
+    "searchPlaceholder": "Rechercher des tickets...",
+    "noTickets": "Aucun ticket trouvé",
+    "ticketNumber": "Ticket #",
+    "subject": "Sujet",
+    "status": "Statut",
+    "priority": "Priorité",
+    "assignedTo": "Assigné à",
+    "createdAt": "Créé le",
+    "updatedAt": "Mis à jour le",
+    "statusOptions": {
+      "new": "Nouveau",
+      "open": "Ouvert",
+      "pending": "En attente",
+      "closed": "Fermé"
+    },
+    "priorityOptions": {
+      "low": "Basse",
+      "normal": "Normale",
+      "high": "Haute",
+      "urgent": "Urgente"
+    },
+    "details": "Détails du ticket",
+    "articles": "Articles",
+    "addArticle": "Ajouter un article",
+    "internalNote": "Note interne",
+    "publicReply": "Réponse publique"
+  },
+  "admin": {
+    "users": {
+      "title": "Gestion des utilisateurs",
+      "newUser": "Nouvel utilisateur",
+      "searchPlaceholder": "Rechercher des utilisateurs...",
+      "noUsers": "Aucun utilisateur trouvé",
+      "role": "Rôle",
+      "status": "Statut",
+      "createdAt": "Créé le",
+      "actions": "Actions",
+      "editUser": "Modifier l'utilisateur",
+      "deleteUser": "Supprimer l'utilisateur",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet utilisateur?",
+      "roles": {
+        "customer": "Client",
+        "staff": "Personnel",
+        "admin": "Administrateur"
+      },
+      "statusOptions": {
+        "active": "Actif",
+        "inactive": "Inactif"
+      }
+    },
+    "faq": {
+      "title": "Gestion FAQ",
+      "newArticle": "Nouvel article",
+      "editArticle": "Modifier l'article",
+      "deleteArticle": "Supprimer l'article",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet article?",
+      "category": "Catégorie",
+      "translations": "Traductions",
+      "addTranslation": "Ajouter une traduction",
+      "language": "Langue",
+      "title_field": "Titre",
+      "content": "Contenu",
+      "keywords": "Mots-clés",
+      "published": "Publié",
+      "draft": "Brouillon"
+    },
+    "settings": {
+      "title": "Paramètres système",
+      "general": "Général",
+      "businessTypes": "Types d'activité",
+      "notifications": "Notifications",
+      "saveSuccess": "Paramètres enregistrés avec succès",
+      "saveError": "Échec de l'enregistrement des paramètres"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "profile": "Profil",
+    "notifications": "Notifications",
+    "language": "Langue",
+    "security": "Sécurité",
+    "updateProfile": "Mettre à jour le profil",
+    "changePassword": "Changer le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "emailNotifications": "Notifications par email",
+    "pushNotifications": "Notifications push",
+    "selectLanguage": "Sélectionner la langue"
+  },
+  "errors": {
+    "unauthorized": "Non autorisé. Veuillez vous connecter.",
+    "forbidden": "Vous n'avez pas la permission d'accéder à cette ressource.",
+    "notFound": "Ressource non trouvée.",
+    "serverError": "Erreur serveur. Veuillez réessayer plus tard.",
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "validationError": "Veuillez vérifier votre saisie et réessayer."
+  },
+  "validation": {
+    "required": "Ce champ est requis",
+    "emailInvalid": "Adresse email invalide",
+    "minLength": "Doit contenir au moins {min} caractères",
+    "maxLength": "Doit contenir au plus {max} caractères",
+    "passwordMismatch": "Les mots de passe ne correspondent pas"
+  }
+}
+

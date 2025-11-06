@@ -1,0 +1,103 @@
+/**
+ * Zammad Webhook Handler
+ *
+ * POST /api/webhooks/zammad - Receive Zammad webhook events
+ *
+ * TODO: Implement webhook processing logic
+ * - Store webhook events for real-time updates
+ * - Trigger WebSocket notifications to connected clients
+ * - Update conversation/ticket state in real-time
+ */
+
+import { NextRequest } from 'next/server'
+import {
+  successResponse,
+  errorResponse,
+  serverErrorResponse,
+} from '@/lib/utils/api-response'
+import type { ZammadWebhookPayload } from '@/lib/zammad/types'
+import crypto from 'crypto'
+
+// ============================================================================
+// Webhook Signature Verification
+// ============================================================================
+
+function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
+  try {
+    const hmac = crypto.createHmac('sha256', secret)
+    hmac.update(payload)
+    const calculatedSignature = hmac.digest('hex')
+    
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(calculatedSignature)
+    )
+  } catch {
+    return false
+  }
+}
+
+// ============================================================================
+// POST /api/webhooks/zammad
+// ============================================================================
+
+export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  let webhookPayload: ZammadWebhookPayload | null = null
+  let rawBody = ''
+
+  try {
+    // Get raw body for signature verification
+    rawBody = await request.text()
+    webhookPayload = JSON.parse(rawBody)
+
+    // Verify webhook signature (optional - can be disabled for testing)
+    const signature = request.headers.get('X-Zammad-Signature')
+    const webhookSecret = process.env.ZAMMAD_WEBHOOK_SECRET
+
+    if (webhookSecret && signature) {
+      // Verify signature if both secret and signature are present
+      const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret)
+
+      if (!isValid) {
+        console.error('Invalid webhook signature')
+        return errorResponse('Invalid webhook signature', 401)
+      }
+    }
+
+    // Validate payload
+    if (!webhookPayload || !webhookPayload.event) {
+      console.error('Invalid webhook payload:', webhookPayload)
+      return errorResponse('Invalid webhook payload', 400)
+    }
+
+    // Log webhook event
+    console.log('Zammad webhook received:', {
+      event: webhookPayload.event,
+      ticketId: webhookPayload.ticket?.id,
+      articleId: webhookPayload.article?.id,
+      timestamp: new Date().toISOString(),
+      processingTime: Date.now() - startTime,
+    })
+
+    // TODO: Process webhook event
+    // - Update conversation state in real-time
+    // - Trigger WebSocket notifications to connected clients
+    // - Store event for audit trail
+
+    return successResponse({
+      message: 'Webhook received successfully',
+      event: webhookPayload.event,
+      ticketId: webhookPayload.ticket?.id,
+      processingTime: Date.now() - startTime,
+    })
+  } catch (error) {
+    console.error('POST /api/webhooks/zammad error:', error)
+    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+  }
+}
+

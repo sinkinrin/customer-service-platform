@@ -1,0 +1,217 @@
+{
+  "common": {
+    "appName": "Customer Service Platform",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "clear": "Clear",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "conversations": "Conversations",
+    "faq": "FAQ",
+    "tickets": "Tickets",
+    "knowledgeBase": "Knowledge Base",
+    "users": "Users",
+    "settings": "Settings",
+    "logout": "Logout",
+    "profile": "Profile"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "fullName": "Full Name",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "loginButton": "Sign In",
+    "registerButton": "Sign Up",
+    "loggingIn": "Signing in...",
+    "registering": "Creating account...",
+    "loginSuccess": "Login successful!",
+    "registerSuccess": "Registration successful! Please check your email to verify your account.",
+    "loginError": "Invalid email or password",
+    "registerError": "Registration failed. Please try again.",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Invalid email address",
+    "passwordRequired": "Password is required",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "passwordMismatch": "Passwords do not match",
+    "fullNameRequired": "Full name is required"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "overview": "Overview",
+    "statistics": "Statistics",
+    "recentActivity": "Recent Activity",
+    "totalConversations": "Total Conversations",
+    "activeConversations": "Active Conversations",
+    "waitingConversations": "Waiting",
+    "closedConversations": "Closed",
+    "viewAll": "View All"
+  },
+  "conversations": {
+    "title": "Conversations",
+    "newConversation": "New Conversation",
+    "searchPlaceholder": "Search conversations...",
+    "noConversations": "No conversations found",
+    "status": {
+      "waiting": "Waiting",
+      "active": "Active",
+      "closed": "Closed"
+    },
+    "businessType": {
+      "presales": "Pre-sales",
+      "aftersales": "After-sales"
+    },
+    "messageInput": "Type your message...",
+    "send": "Send",
+    "attachFile": "Attach File",
+    "lastMessage": "Last message",
+    "messages": "Messages",
+    "noMessages": "No messages yet",
+    "startConversation": "Start a conversation"
+  },
+  "faq": {
+    "title": "FAQ",
+    "searchPlaceholder": "Search for answers...",
+    "categories": "Categories",
+    "allCategories": "All Categories",
+    "popularArticles": "Popular Articles",
+    "relatedArticles": "Related Articles",
+    "helpful": "Was this helpful?",
+    "yes": "Yes",
+    "no": "No",
+    "thankYou": "Thank you for your feedback!",
+    "noResults": "No articles found",
+    "browseByCategory": "Browse by Category",
+    "searchResults": "Search Results",
+    "viewCount": "views"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "newTicket": "New Ticket",
+    "searchPlaceholder": "Search tickets...",
+    "noTickets": "No tickets found",
+    "ticketNumber": "Ticket #",
+    "subject": "Subject",
+    "status": "Status",
+    "priority": "Priority",
+    "assignedTo": "Assigned To",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "statusOptions": {
+      "new": "New",
+      "open": "Open",
+      "pending": "Pending",
+      "closed": "Closed"
+    },
+    "priorityOptions": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "details": "Ticket Details",
+    "articles": "Articles",
+    "addArticle": "Add Article",
+    "internalNote": "Internal Note",
+    "publicReply": "Public Reply"
+  },
+  "admin": {
+    "users": {
+      "title": "User Management",
+      "newUser": "New User",
+      "searchPlaceholder": "Search users...",
+      "noUsers": "No users found",
+      "role": "Role",
+      "status": "Status",
+      "createdAt": "Created At",
+      "actions": "Actions",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "confirmDelete": "Are you sure you want to delete this user?",
+      "roles": {
+        "customer": "Customer",
+        "staff": "Staff",
+        "admin": "Admin"
+      },
+      "statusOptions": {
+        "active": "Active",
+        "inactive": "Inactive"
+      }
+    },
+    "faq": {
+      "title": "FAQ Management",
+      "newArticle": "New Article",
+      "editArticle": "Edit Article",
+      "deleteArticle": "Delete Article",
+      "confirmDelete": "Are you sure you want to delete this article?",
+      "category": "Category",
+      "translations": "Translations",
+      "addTranslation": "Add Translation",
+      "language": "Language",
+      "title_field": "Title",
+      "content": "Content",
+      "keywords": "Keywords",
+      "published": "Published",
+      "draft": "Draft"
+    },
+    "settings": {
+      "title": "System Settings",
+      "general": "General",
+      "businessTypes": "Business Types",
+      "notifications": "Notifications",
+      "saveSuccess": "Settings saved successfully",
+      "saveError": "Failed to save settings"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "language": "Language",
+    "security": "Security",
+    "updateProfile": "Update Profile",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "emailNotifications": "Email Notifications",
+    "pushNotifications": "Push Notifications",
+    "selectLanguage": "Select Language"
+  },
+  "errors": {
+    "unauthorized": "Unauthorized. Please login.",
+    "forbidden": "You don't have permission to access this resource.",
+    "notFound": "Resource not found.",
+    "serverError": "Server error. Please try again later.",
+    "networkError": "Network error. Please check your connection.",
+    "validationError": "Please check your input and try again."
+  },
+  "validation": {
+    "required": "This field is required",
+    "emailInvalid": "Invalid email address",
+    "minLength": "Must be at least {min} characters",
+    "maxLength": "Must be at most {max} characters",
+    "passwordMismatch": "Passwords do not match"
+  }
+}
+

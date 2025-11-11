@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { mockSettings } from '@/lib/mock-data'
+import { readAISettings } from '@/lib/utils/ai-config'
 
 const ChatRequestSchema = z.object({
   conversationId: z.string(),
@@ -15,19 +15,19 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const parsed = ChatRequestSchema.safeParse(body)
-    
+
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'Invalid request body' },
         { status: 400 }
       )
     }
-    
+
     const { message, history = [] } = parsed.data
-    
-    // Get AI settings from mock data
-    const aiSettings = mockSettings.ai_auto_reply
-    
+
+    // Get AI settings from persistent configuration
+    const aiSettings = readAISettings()
+
     // Check if AI is enabled
     if (!aiSettings.enabled) {
       return NextResponse.json(
@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
-    
+
     // Check if FastGPT configuration exists
-    if (!aiSettings.fastgpt_url || !aiSettings.fastgpt_appid || !aiSettings.fastgpt_api_key) {
+    if (!aiSettings.fastgptUrl || !aiSettings.fastgptAppId || !aiSettings.fastgptApiKey) {
       return NextResponse.json(
         { success: false, error: 'FastGPT is not configured' },
         { status: 500 }
@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
     ]
     
     // Call FastGPT API
-    const fastgptUrl = aiSettings.fastgpt_url.endsWith('/')
-      ? `${aiSettings.fastgpt_url}api/v1/chat/completions`
-      : `${aiSettings.fastgpt_url}/api/v1/chat/completions`
-    
+    const fastgptUrl = aiSettings.fastgptUrl.endsWith('/')
+      ? `${aiSettings.fastgptUrl}api/v1/chat/completions`
+      : `${aiSettings.fastgptUrl}/api/v1/chat/completions`
+
     const response = await fetch(fastgptUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${aiSettings.fastgpt_api_key}`,
+        'Authorization': `Bearer ${aiSettings.fastgptApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         messages,
       }),
     })
-    
+
     if (!response.ok) {
       const errorText = await response.text()
       console.error('FastGPT API error:', response.status, errorText)
@@ -83,13 +83,13 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-    
+
     const data = await response.json()
-    
+
     // Extract AI response from FastGPT response
     // FastGPT returns OpenAI-compatible format
     const aiMessage = data.choices?.[0]?.message?.content || data.data || 'Sorry, I could not generate a response.'
-    
+
     return NextResponse.json({
       success: true,
       data: {

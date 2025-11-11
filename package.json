@@ -7,10 +7,15 @@
     "build": "next build",
     "start": "next start -p 3010 -H 0.0.0.0",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^6.19.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -34,6 +39,7 @@
     "next-intl": "^4.4.0",
     "next-themes": "^0.4.6",
     "postcss": "^8.5.6",
+    "prisma": "^6.19.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.65.0",
@@ -54,6 +60,8 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.33",
     "tailwindcss": "^3.4.18",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.3.0"
   }
 }

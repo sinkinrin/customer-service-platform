@@ -110,22 +110,30 @@ export const useConversationStore = create<ConversationState>()(
   persist(
     (set, _get) => ({
       ...initialState,
-      
+
       setConversations: (conversations) => set({ conversations }),
+
+      addConversation: (conversation) => set((state) => {
+        // Ensure conversations is always an array
+        const currentConversations = Array.isArray(state.conversations) ? state.conversations : []
+        return {
+          conversations: [conversation, ...currentConversations],
+        }
+      }),
       
-      addConversation: (conversation) => set((state) => ({
-        conversations: [conversation, ...state.conversations],
-      })),
-      
-      updateConversation: (id, updates) => set((state) => ({
-        conversations: state.conversations.map((conv) =>
-          conv.id === id ? { ...conv, ...updates } : conv
-        ),
-        activeConversation:
-          state.activeConversation?.id === id
-            ? { ...state.activeConversation, ...updates }
-            : state.activeConversation,
-      })),
+      updateConversation: (id, updates) => set((state) => {
+        // Ensure conversations is always an array
+        const currentConversations = Array.isArray(state.conversations) ? state.conversations : []
+        return {
+          conversations: currentConversations.map((conv) =>
+            conv.id === id ? { ...conv, ...updates } : conv
+          ),
+          activeConversation:
+            state.activeConversation?.id === id
+              ? { ...state.activeConversation, ...updates }
+              : state.activeConversation,
+        }
+      }),
       
       setActiveConversation: (conversation) => set({
         activeConversation: conversation,
@@ -165,6 +173,15 @@ export const useConversationStore = create<ConversationState>()(
       partialize: (state) => ({
         conversations: state.conversations,
       }),
+      // Migrate function to fix corrupted state
+      migrate: (persistedState: any, version: number) => {
+        // Ensure conversations is always an array
+        if (persistedState && !Array.isArray(persistedState.conversations)) {
+          persistedState.conversations = []
+        }
+        return persistedState as ConversationState
+      },
+      version: 1,
     }
   )
 )

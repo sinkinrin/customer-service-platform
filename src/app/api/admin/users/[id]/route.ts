@@ -1,6 +1,6 @@
 /**
  * Admin User Detail API
- * 
+ *
  * GET /api/admin/users/[id] - Get user details
  * PUT /api/admin/users/[id] - Update user (role, status)
  */
@@ -14,6 +14,7 @@ import {
   validationErrorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { mockUsers } from '@/lib/mock-auth'
 import { z } from 'zod'
 
 const UpdateUserSchema = z.object({
@@ -21,6 +22,7 @@ const UpdateUserSchema = z.object({
   full_name: z.string().min(1).optional(),
   phone: z.string().optional(),
   language: z.string().optional(),
+  region: z.string().optional(),
 })
 
 export async function GET(
@@ -29,22 +31,19 @@ export async function GET(
 ) {
   try {
     await requireRole(['admin'])
-    const supabase = await createClient()
 
-    const { data: user, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', params.id)
-      .single()
+    // Find user by ID in mock data
+    const user = Object.values(mockUsers).find(u => u.id === params.id)
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return notFoundResponse('User not found')
-      }
-      throw error
+    if (!user) {
+      return notFoundResponse('User not found')
     }
 
-    return successResponse(user)
+    // Return with user_id for frontend compatibility
+    return successResponse({
+      ...user,
+      user_id: user.id,
+    })
   } catch (error: any) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return unauthorizedResponse()
@@ -59,7 +58,6 @@ export async function PUT(
 ) {
   try {
     await requireRole(['admin'])
-    const supabase = await createClient()
 
     // Parse and validate request body
     const body = await request.json()
@@ -69,22 +67,29 @@ export async function PUT(
       return validationErrorResponse(validation.error.errors)
     }
 
-    // Update user profile
-    const { data: updated, error } = await supabase
-      .from('user_profiles')
-      .update(validation.data)
-      .eq('user_id', params.id)
-      .select()
-      .single()
+    // Find user by ID in mock data
+    const userEmail = Object.keys(mockUsers).find(email => mockUsers[email].id === params.id)
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return notFoundResponse('User not found')
-      }
-      throw error
+    if (!userEmail) {
+      return notFoundResponse('User not found')
     }
 
-    return successResponse(updated)
+    // Update user in mock data
+    const currentUser = mockUsers[userEmail]
+    const updatedUser = {
+      ...currentUser,
+      ...validation.data,
+      updated_at: new Date().toISOString(),
+    }
+
+    // Update the mock data store
+    mockUsers[userEmail] = updatedUser
+
+    // Return with user_id for frontend compatibility
+    return successResponse({
+      ...updatedUser,
+      user_id: updatedUser.id,
+    })
   } catch (error: any) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return unauthorizedResponse()

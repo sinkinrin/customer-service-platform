@@ -20,8 +20,8 @@ interface ArticleCardProps {
 }
 
 // Helper function to highlight search terms
-function highlightText(text: string, query: string): string {
-  if (!query.trim()) return text
+function highlightText(text: string | undefined, query: string): string {
+  if (!text || !query.trim()) return text || ''
 
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
   return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>')

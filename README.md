@@ -45,6 +45,10 @@ A comprehensive customer service platform with conversation management, FAQ self
   - 6 languages: en, zh-CN, fr, es, ru, pt
   - next-intl 4.4.0
 
+- ✅ **OpenSpec 需求管理**
+  - 使用 OpenSpec 进行结构化需求定义
+  - 请参见 `openspec/` 目录了解规范和变更提案
+
 ---
 
 ## 🏗️ Technology Stack
@@ -81,6 +85,9 @@ A comprehensive customer service platform with conversation management, FAQ self
 
 ### Migration Documentation
 - ✅ Supabase Removal Complete
+
+### Requirements Management
+- [📁 OpenSpec](./openspec/) - 结构化需求和变更提案
 
 ---
 
@@ -212,6 +219,10 @@ customer-service-platform/
 ├── types/                 # TypeScript type definitions
 ├── public/               # Static assets
 ├── docs/                 # Documentation
+├── openspec/             # OpenSpec requirements and change management
+│   ├── specs/            # Current system specifications
+│   ├── changes/          # Proposed changes
+│   └── archive/          # Completed changes
 └── wiki/                 # Wiki pages
 ```
 

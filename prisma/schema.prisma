@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// FAQ Categories
+model FaqCategory {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  icon        String
+  slug        String   @unique
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles FaqArticle[]
+
+  @@map("faq_categories")
+}
+
+// FAQ Articles
+model FaqArticle {
+  id         Int      @id @default(autoincrement())
+  categoryId Int
+  slug       String   @unique
+  views      Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category     FaqCategory              @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  translations FaqArticleTranslation[]
+  ratings      FaqRating[]
+
+  @@index([categoryId])
+  @@map("faq_articles")
+}
+
+// FAQ Article Translations (for multi-language support)
+model FaqArticleTranslation {
+  id        Int      @id @default(autoincrement())
+  articleId Int
+  locale    String   // en, zh-CN, fr, es, ru, pt
+  title     String
+  content   String   // Markdown content
+  keywords  String   // JSON array of keywords
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article FaqArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, locale])
+  @@index([articleId])
+  @@index([locale])
+  @@map("faq_article_translations")
+}
+
+// FAQ Ratings (user feedback)
+model FaqRating {
+  id        Int      @id @default(autoincrement())
+  articleId Int
+  userId    String   // User ID from auth system
+  isHelpful Boolean  // true = helpful, false = not helpful
+  createdAt DateTime @default(now())
+
+  article FaqArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@index([articleId])
+  @@map("faq_ratings")
+}

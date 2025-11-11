@@ -50,7 +50,7 @@ export default function FAQArticlePage() {
         if (fetchedArticle.category_id) {
           try {
             const relatedResponse = await fetch(
-              `/api/faq?categoryId=${fetchedArticle.category_id}&limit=3&language=en`
+              `/api/faq?categoryId=${fetchedArticle.category_id}&limit=3&language=zh-CN`
             )
             if (relatedResponse.ok) {
               const relatedData = await relatedResponse.json()

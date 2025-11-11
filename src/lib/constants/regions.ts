@@ -19,25 +19,30 @@ export type RegionValue = typeof REGIONS[number]['value']
 
 /**
  * Region to Zammad Group ID Mapping
- * 
- * NOTE: These Group IDs must match the actual Zammad Groups created in the system
- * You need to create these groups in Zammad Admin Panel first, then update this mapping
- * 
- * To create groups in Zammad:
- * 1. Go to Zammad Admin Panel → Manage → Groups
- * 2. Create 8 groups with names matching the labelEn values above
- * 3. Note down the Group IDs
- * 4. Update this mapping with the actual IDs
+ *
+ * NOTE: These Group IDs match the actual Zammad Groups in the system
+ * Retrieved from Zammad API on 2025-01-15
+ *
+ * Zammad Groups:
+ * - ID 1: Users (default group)
+ * - ID 2: Middle-East
+ * - ID 3: European
+ * - ID 4: Latin America
+ * - ID 5: Asia-Pacific
+ * - ID 6: CIS
+ * - ID 7: North America
+ *
+ * NOTE: Africa and Europe Zone 2 groups don't exist in Zammad yet (ID = 1 as fallback to Users group)
  */
 export const REGION_GROUP_MAPPING: Record<RegionValue, number> = {
-  'asia-pacific': 1,      // TODO: Update with actual Zammad Group ID
-  'middle-east': 2,       // TODO: Update with actual Zammad Group ID
-  'africa': 3,            // TODO: Update with actual Zammad Group ID
-  'north-america': 4,     // TODO: Update with actual Zammad Group ID
-  'latin-america': 5,     // TODO: Update with actual Zammad Group ID
-  'europe-zone-1': 6,     // TODO: Update with actual Zammad Group ID
-  'europe-zone-2': 7,     // TODO: Update with actual Zammad Group ID
-  'cis': 8,               // TODO: Update with actual Zammad Group ID
+  'asia-pacific': 5,      // Zammad Group: Asia-Pacific
+  'middle-east': 2,       // Zammad Group: Middle-East
+  'africa': 1,            // TODO: Create Africa group in Zammad (using Users as fallback)
+  'north-america': 7,     // Zammad Group: North America
+  'latin-america': 4,     // Zammad Group: Latin America
+  'europe-zone-1': 3,     // Zammad Group: European
+  'europe-zone-2': 1,     // TODO: Create Europe Zone 2 group in Zammad (using Users as fallback)
+  'cis': 6,               // Zammad Group: CIS
 }
 
 /**

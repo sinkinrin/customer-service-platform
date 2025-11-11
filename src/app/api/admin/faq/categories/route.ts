@@ -1,0 +1,186 @@
+/**
+ * Admin FAQ Categories Management API
+ *
+ * POST /api/admin/faq/categories - Create new category
+ * PUT /api/admin/faq/categories - Update category
+ * DELETE /api/admin/faq/categories - Delete category
+ */
+
+import { NextRequest } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/utils/auth'
+import {
+  successResponse,
+  errorResponse,
+  unauthorizedResponse,
+  serverErrorResponse,
+} from '@/lib/utils/api-response'
+
+// ============================================================================
+// POST /api/admin/faq/categories - Create category
+// ============================================================================
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await requireAuth()
+
+    // Check if user is admin
+    if (user.role !== 'admin') {
+      return unauthorizedResponse('Admin access required')
+    }
+
+    const body = await request.json()
+    const { name, description, icon, slug } = body
+
+    if (!name || !description || !icon || !slug) {
+      return errorResponse('Missing required fields', 400)
+    }
+
+    // Check if slug already exists
+    const existing = await prisma.faqCategory.findUnique({
+      where: { slug },
+    })
+
+    if (existing) {
+      return errorResponse('Category with this slug already exists', 400)
+    }
+
+    // Create category
+    const category = await prisma.faqCategory.create({
+      data: {
+        name,
+        description,
+        icon,
+        slug,
+        sortOrder: 0,
+        isActive: true,
+      },
+    })
+
+    return successResponse(
+      {
+        message: 'Category created successfully',
+        category,
+      },
+      201
+    )
+  } catch (error: any) {
+    console.error('POST /api/admin/faq/categories error:', error)
+    if (error.message === 'Unauthorized') {
+      return unauthorizedResponse()
+    }
+    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+  }
+}
+
+// ============================================================================
+// PUT /api/admin/faq/categories - Update category
+// ============================================================================
+
+export async function PUT(request: NextRequest) {
+  try {
+    const user = await requireAuth()
+
+    if (user.role !== 'admin') {
+      return unauthorizedResponse('Admin access required')
+    }
+
+    const body = await request.json()
+    const { id, name, description, icon, slug, is_active } = body
+
+    if (!id) {
+      return errorResponse('Category ID is required', 400)
+    }
+
+    // Check if category exists
+    const existing = await prisma.faqCategory.findUnique({
+      where: { id: parseInt(id) },
+    })
+
+    if (!existing) {
+      return errorResponse('Category not found', 404)
+    }
+
+    // Update category
+    const category = await prisma.faqCategory.update({
+      where: { id: parseInt(id) },
+      data: {
+        ...(name && { name }),
+        ...(description && { description }),
+        ...(icon && { icon }),
+        ...(slug && { slug }),
+        ...(typeof is_active === 'boolean' && { isActive: is_active }),
+      },
+    })
+
+    return successResponse({
+      message: 'Category updated successfully',
+      category,
+    })
+  } catch (error: any) {
+    console.error('PUT /api/admin/faq/categories error:', error)
+    if (error.message === 'Unauthorized') {
+      return unauthorizedResponse()
+    }
+    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+  }
+}
+
+// ============================================================================
+// DELETE /api/admin/faq/categories - Delete category
+// ============================================================================
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await requireAuth()
+
+    if (user.role !== 'admin') {
+      return unauthorizedResponse('Admin access required')
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return errorResponse('Category ID is required', 400)
+    }
+
+    // Check if category exists
+    const existing = await prisma.faqCategory.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        _count: {
+          select: { articles: true },
+        },
+      },
+    })
+
+    if (!existing) {
+      return errorResponse('Category not found', 404)
+    }
+
+    // Check if category has articles
+    if (existing._count.articles > 0) {
+      return errorResponse(
+        'Cannot delete category with articles. Please delete or move articles first.',
+        400
+      )
+    }
+
+    // Delete category
+    await prisma.faqCategory.delete({
+      where: { id: parseInt(id) },
+    })
+
+    return successResponse({
+      message: 'Category deleted successfully',
+    })
+  } catch (error: any) {
+    console.error('DELETE /api/admin/faq/categories error:', error)
+    if (error.message === 'Unauthorized') {
+      return unauthorizedResponse()
+    }
+    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+  }
+}
+

@@ -37,62 +37,62 @@ export default function FAQPage() {
   
   // Fetch categories on mount
   useEffect(() => {
-    fetchCategories('en').catch((error) => {
+    fetchCategories('zh-CN').catch((error) => {
       console.error('Error fetching categories:', error)
       toast.error('Failed to load categories')
     })
   }, [fetchCategories])
-  
+
   // Fetch popular FAQ on mount
   useEffect(() => {
     if (activeTab === 'search' && !searchQuery) {
-      getPopularFAQ('en', 10).catch((error) => {
+      getPopularFAQ('zh-CN', 10).catch((error) => {
         console.error('Error fetching popular FAQ:', error)
         toast.error('Failed to load popular FAQ')
       })
     }
   }, [activeTab, searchQuery, getPopularFAQ])
-  
+
   // Handle search
   const handleSearch = async (query: string) => {
     setSearchQuery(query)
-    
+
     if (!query.trim()) {
       // Show popular FAQ when search is cleared
       try {
-        await getPopularFAQ('en', 10)
+        await getPopularFAQ('zh-CN', 10)
       } catch (error) {
         console.error('Error fetching popular FAQ:', error)
         toast.error('Failed to load popular FAQ')
       }
       return
     }
-    
+
     try {
-      await searchFAQ(query, 'en', undefined, 20)
+      await searchFAQ(query, 'zh-CN', undefined, 20)
     } catch (error) {
       console.error('Error searching FAQ:', error)
       toast.error('Failed to search FAQ')
     }
   }
-  
+
   // Handle category selection
   const handleCategorySelect = async (categoryId: string | null) => {
     setSelectedCategory(categoryId)
-    
+
     if (!categoryId) {
       // Show popular FAQ when "All Categories" is selected
       try {
-        await getPopularFAQ('en', 20)
+        await getPopularFAQ('zh-CN', 20)
       } catch (error) {
         console.error('Error fetching popular FAQ:', error)
         toast.error('Failed to load FAQ')
       }
       return
     }
-    
+
     try {
-      await getFAQByCategory(categoryId, 'en')
+      await getFAQByCategory(categoryId, 'zh-CN')
     } catch (error) {
       console.error('Error fetching FAQ by category:', error)
       toast.error('Failed to load FAQ')

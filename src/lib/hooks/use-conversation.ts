@@ -40,21 +40,21 @@ export function useConversation() {
    * Fetch conversations list
    */
   const fetchConversations = useCallback(async (status?: string) => {
-    if (!user) return
-    
+    // Authentication is handled by the API endpoint via requireAuth()
+
     setLoadingConversations(true)
-    
+
     try {
       const params = new URLSearchParams()
       if (status) params.append('status', status)
       params.append('limit', '20')
-      
+
       const response = await fetch(`/api/conversations?${params.toString()}`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch conversations')
       }
-      
+
       const data = await response.json()
       setConversations(data.data || [])
     } catch (err) {
@@ -64,7 +64,7 @@ export function useConversation() {
     } finally {
       setLoadingConversations(false)
     }
-  }, [user, setConversations, setLoadingConversations])
+  }, [setConversations, setLoadingConversations])
   
   /**
    * Create a new conversation
@@ -73,8 +73,8 @@ export function useConversation() {
     businessTypeId?: string,
     initialMessage?: string
   ) => {
-    if (!user) throw new Error('User not authenticated')
-    
+    // Authentication is handled by the API endpoint via requireAuth()
+
     try {
       const response = await fetch('/api/conversations', {
         method: 'POST',
@@ -84,24 +84,25 @@ export function useConversation() {
           initial_message: initialMessage,
         }),
       })
-      
+
       if (!response.ok) {
-        throw new Error('Failed to create conversation')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to create conversation')
       }
-      
+
       const data = await response.json()
       const conversation = data.data as Conversation
-      
+
       addConversation(conversation)
       setActiveConversation(conversation)
-      
+
       return conversation
     } catch (err) {
       const error = err as Error
       console.error('Error creating conversation:', error)
       throw error
     }
-  }, [user, addConversation, setActiveConversation])
+  }, [addConversation, setActiveConversation])
   
   /**
    * Fetch messages for a conversation
@@ -150,10 +151,11 @@ export function useConversation() {
     messageType: 'text' | 'image' | 'file' = 'text',
     metadata?: Record<string, unknown>
   ) => {
-    if (!user) throw new Error('User not authenticated')
-    
+    // Authentication is handled by the API endpoint via requireAuth()
+    // No need to check user here as it may not be loaded yet from the store
+
     setSendingMessage(true)
-    
+
     try {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
@@ -164,18 +166,19 @@ export function useConversation() {
           metadata,
         }),
       })
-      
+
       if (!response.ok) {
-        throw new Error('Failed to send message')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to send message')
       }
-      
+
       const data = await response.json()
       const message = data.data as Message
-      
+
       // Message will be added via Realtime subscription
       // But add it immediately for better UX
       addMessage(message)
-      
+
       return message
     } catch (err) {
       const error = err as Error
@@ -184,7 +187,7 @@ export function useConversation() {
     } finally {
       setSendingMessage(false)
     }
-  }, [user, addMessage, setSendingMessage])
+  }, [addMessage, setSendingMessage])
   
   /**
    * Subscribe to real-time updates for a conversation
@@ -193,14 +196,12 @@ export function useConversation() {
    * Currently returns a no-op function
    */
   const subscribeToConversation = useCallback((_conversationId: string) => {
-    if (!user) return () => {}
-
     // TODO: Implement real-time subscription
     // For now, return a no-op cleanup function
     return () => {
       // No cleanup needed for mock implementation
     }
-  }, [user])
+  }, [])
   
   /**
    * Update conversation status

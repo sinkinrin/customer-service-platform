@@ -68,8 +68,14 @@ export function getAccessibleGroupIds(user: MockUser): number[] {
     return [1, 2, 3, 4, 5, 6, 7, 8]
   }
 
-  // Staff and customer can only access their region's group
-  if (user.region) {
+  // Customers always have access to group ID 1 (Users group)
+  // This is where customer-initiated tickets are created
+  if (user.role === 'customer') {
+    return [1]
+  }
+
+  // Staff can only access their region's group
+  if (user.role === 'staff' && user.region) {
     const groupId = getGroupIdByRegion(user.region as RegionValue)
     return [groupId]
   }

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, requireRole } from '@/lib/utils/auth'
-import { mockSettings } from '@/lib/mock-data'
+import { readAISettings } from '@/lib/utils/ai-config'
 
 export async function POST(_request: NextRequest) {
   try {
@@ -14,7 +14,17 @@ export async function POST(_request: NextRequest) {
     await requireAuth()
     await requireRole(['admin'])
 
-    const aiSettings = mockSettings.ai_auto_reply
+    // Read AI settings from persistent storage
+    const settings = readAISettings()
+    const aiSettings = {
+      enabled: settings.enabled,
+      model: settings.model,
+      temperature: settings.temperature,
+      system_prompt: settings.systemPrompt,
+      fastgpt_url: settings.fastgptUrl,
+      fastgpt_appid: settings.fastgptAppId,
+      fastgpt_api_key: settings.fastgptApiKey,
+    }
 
     // Check if AI is enabled
     if (!aiSettings.enabled) {

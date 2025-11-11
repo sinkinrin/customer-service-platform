@@ -59,7 +59,7 @@ export type UpdateConversationRequest = z.infer<typeof UpdateConversationSchema>
 // ============================================================================
 
 export const CreateMessageSchema = z.object({
-  conversation_id: z.string().uuid(),
+  conversation_id: z.string(), // Can be UUID or numeric ticket ID
   content: z.string().min(1).max(5000),
   message_type: z.enum(['text', 'image', 'file', 'system']).default('text'),
   metadata: z.record(z.any()).optional(),

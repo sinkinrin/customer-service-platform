@@ -84,7 +84,7 @@ export default function AdminTicketsPage() {
   const filteredTickets = tickets.filter((ticket) => {
     // Filter by status tab
     if (activeTab !== 'all') {
-      const stateLower = ticket.state.toLowerCase()
+      const stateLower = ticket.state?.toLowerCase() || ''
       if (activeTab === 'open') {
         if (!stateLower.includes('new') && !stateLower.includes('open')) return false
       } else if (activeTab === 'pending') {

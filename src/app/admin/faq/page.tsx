@@ -32,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { FAQFormDialog } from '@/components/admin/faq-form-dialog'
 
 interface FAQItem {
   id: number
@@ -55,13 +56,16 @@ export default function FAQManagementPage() {
   const [sortBy, setSortBy] = useState('updated_at')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<FAQItem | null>(null)
+  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
+  const [editingItem, setEditingItem] = useState<FAQItem | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
 
   const fetchItems = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/faq?limit=1000')
+      const response = await fetch('/api/admin/faq?limit=1000&language=zh-CN')
       if (!response.ok) throw new Error('Failed to fetch FAQ items')
 
       const data = await response.json()
@@ -69,10 +73,10 @@ export default function FAQManagementPage() {
         id: item.id,
         title: item.title,
         content: item.content || '',
-        category: item.category || 'General',
-        state: item.state || 'draft',
+        category: item.category_id ? `Category ${item.category_id}` : 'General',
+        state: item.is_active ? 'published' : 'draft',
         views: item.views || 0,
-        likes: item.likes || 0,
+        likes: item.helpful || 0,
         created_at: item.created_at || new Date().toISOString(),
         updated_at: item.updated_at || new Date().toISOString(),
       }))
@@ -134,20 +138,41 @@ export default function FAQManagementPage() {
     setCurrentPage(1)
   }, [items, searchQuery, categoryFilter, stateFilter, sortBy])
 
+  const handleCreate = () => {
+    setFormMode('create')
+    setEditingItem(null)
+    setFormDialogOpen(true)
+  }
+
+  const handleEdit = (item: FAQItem) => {
+    setFormMode('edit')
+    setEditingItem(item)
+    setFormDialogOpen(true)
+  }
+
+  const handleFormSuccess = () => {
+    fetchItems()
+  }
+
   const handleDelete = async () => {
     if (!itemToDelete) return
 
     try {
-      const response = await fetch(`/api/admin/faq/${itemToDelete.id}`, {
+      const response = await fetch('/api/admin/faq/articles', {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: itemToDelete.id }),
       })
 
-      if (!response.ok) throw new Error('Failed to delete FAQ item')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete FAQ item')
+      }
 
       toast.success('FAQ item deleted successfully')
       fetchItems()
     } catch (error) {
-      toast.error('Failed to delete FAQ item')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete FAQ item')
       console.error(error)
     } finally {
       setDeleteDialogOpen(false)
@@ -157,19 +182,25 @@ export default function FAQManagementPage() {
 
   const handleTogglePublish = async (item: FAQItem) => {
     try {
-      const newState = item.state === 'published' ? 'draft' : 'published'
-      const response = await fetch(`/api/admin/faq/${item.id}`, {
+      const newIsActive = item.state !== 'published'
+      const response = await fetch('/api/admin/faq/articles', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: newState }),
+        body: JSON.stringify({
+          id: item.id,
+          is_active: newIsActive,
+        }),
       })
 
-      if (!response.ok) throw new Error('Failed to update FAQ item')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update FAQ item')
+      }
 
-      toast.success(`FAQ item ${newState === 'published' ? 'published' : 'unpublished'} successfully`)
+      toast.success(`FAQ item ${newIsActive ? 'published' : 'unpublished'} successfully`)
       fetchItems()
     } catch (error) {
-      toast.error('Failed to update FAQ item')
+      toast.error(error instanceof Error ? error.message : 'Failed to update FAQ item')
       console.error(error)
     }
   }
@@ -193,9 +224,9 @@ export default function FAQManagementPage() {
             Manage FAQ items from Zammad Knowledge Base
           </p>
         </div>
-        <Button disabled>
+        <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          Create FAQ (Coming Soon)
+          Create FAQ
         </Button>
       </div>
 
@@ -344,7 +375,12 @@ export default function FAQManagementPage() {
                           >
                             {item.state === 'published' ? 'Unpublish' : 'Publish'}
                           </Button>
-                          <Button variant="ghost" size="sm" disabled title="Edit (Coming Soon)">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(item)}
+                            title="Edit"
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
@@ -414,6 +450,28 @@ export default function FAQManagementPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* FAQ Form Dialog */}
+      <FAQFormDialog
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        mode={formMode}
+        article={editingItem ? {
+          id: editingItem.id,
+          category_id: parseInt(editingItem.category.replace('Category ', '')) || 1,
+          slug: `article-${editingItem.id}`,
+          is_active: editingItem.state === 'published',
+          translations: [
+            {
+              locale: 'zh-CN',
+              title: editingItem.title,
+              content: editingItem.content,
+              keywords: [],
+            },
+          ],
+        } : undefined}
+        onSuccess={handleFormSuccess}
+      />
     </div>
   )
 }

@@ -36,7 +36,8 @@ const CreateUserSchema = z.object({
 // TODO: Replace with real database when implemented
 export async function GET(request: NextRequest) {
   try {
-    await requireRole(['admin'])
+    // Allow both admin and staff to view users
+    await requireRole(['admin', 'staff'])
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
@@ -66,8 +67,14 @@ export async function GET(request: NextRequest) {
     // Apply pagination
     const paginatedUsers = filteredUsers.slice(offset, offset + limit)
 
+    // Map id to user_id for frontend compatibility
+    const usersWithUserId = paginatedUsers.map(user => ({
+      ...user,
+      user_id: user.id,
+    }))
+
     return successResponse({
-      users: paginatedUsers,
+      users: usersWithUserId,
       pagination: {
         limit,
         offset,

@@ -1,11 +1,11 @@
 /**
  * FAQ Categories API
  *
- * GET /api/faq/categories - Get all FAQ categories from Zammad Knowledge Base
+ * GET /api/faq/categories - Get all FAQ categories from database
  */
 
 import { NextRequest } from 'next/server'
-import { zammadClient } from '@/lib/zammad/client'
+import { prisma } from '@/lib/prisma'
 import {
   successResponse,
   serverErrorResponse,
@@ -21,16 +21,38 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const language = searchParams.get('language') || 'en'
 
-    // Convert language code to Zammad locale format
-    const locale = language.toLowerCase().replace('_', '-')
-
-    // Get categories from Zammad Knowledge Base
-    const result = await zammadClient.getKnowledgeBaseCategories(locale)
+    // Get categories from database
+    const categories = await prisma.faqCategory.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        sortOrder: 'asc',
+      },
+      include: {
+        _count: {
+          select: {
+            articles: {
+              where: {
+                isActive: true,
+              },
+            },
+          },
+        },
+      },
+    })
 
     return successResponse({
-      categories: result.categories || [],
-      total: result.categories?.length || 0,
+      categories: categories.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        description: cat.description,
+        icon: cat.icon,
+        article_count: cat._count.articles,
+      })),
+      total: categories.length,
       language,
+      source: 'database',
     })
   } catch (error) {
     console.error('GET /api/faq/categories error:', error)

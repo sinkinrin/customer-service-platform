@@ -121,111 +121,107 @@ export function AdminLayout({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-0",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-0 flex flex-col",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 border-b">
-            <Link href="/admin" className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">CS</span>
-              </div>
-              <span className="font-semibold">Admin Portal</span>
-            </Link>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* System Status */}
-          <div className="px-4 py-4 border-b">
-            <div className="flex items-center space-x-2 text-sm">
-              <Activity className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">System Status:</span>
+        {/* Logo */}
+        <div className="flex items-center justify-between h-16 px-6 border-b flex-shrink-0">
+          <Link href="/admin" className="flex items-center space-x-2">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-lg">CS</span>
             </div>
-            <div className="flex items-center space-x-2 mt-2">
-              <div className={cn("h-2 w-2 rounded-full", getStatusColor())} />
-              <span className="text-sm font-medium">{getStatusText()}</span>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href !== "/admin" && pathname.startsWith(item.href))
-              const Icon = item.icon
-
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.name}</span>
-                </Link>
-              )
-            })}
-          </nav>
-
-          <Separator />
-
-          {/* User Profile */}
-          {user && (
-            <div className="p-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-start px-2">
-                    <Avatar className="h-8 w-8 mr-3">
-                      <AvatarImage src={user.avatar} alt={user.name || user.email} />
-                      <AvatarFallback>
-                        {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col items-start flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate w-full">
-                        {user.name || "Admin"}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate w-full">
-                        Administrator
-                      </p>
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/profile">Profile Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/settings">System Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onLogout} className="text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
+            <span className="font-semibold">Admin Portal</span>
+          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
+
+        {/* System Status */}
+        <div className="px-4 py-4 border-b flex-shrink-0">
+          <div className="flex items-center space-x-2 text-sm">
+            <Activity className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">System Status:</span>
+          </div>
+          <div className="flex items-center space-x-2 mt-2">
+            <div className={cn("h-2 w-2 rounded-full", getStatusColor())} />
+            <span className="text-sm font-medium">{getStatusText()}</span>
+          </div>
+        </div>
+
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto pb-24">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href ||
+              (item.href !== "/admin" && pathname.startsWith(item.href))
+            const Icon = item.icon
+
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.name}</span>
+              </Link>
+            )
+          })}
+        </nav>
       </aside>
+
+      {/* User Profile - Fixed at Bottom Left */}
+      {user && (
+        <div className="fixed bottom-0 left-0 w-64 p-4 bg-card border-t border-r z-50 hidden lg:block">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start px-2 hover:bg-accent">
+                <Avatar className="h-8 w-8 mr-3">
+                  <AvatarImage src={user.avatar} alt={user.name || user.email} />
+                  <AvatarFallback>
+                    {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate w-full">
+                    {user.name || "Admin"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate w-full">
+                    Administrator
+                  </p>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 mb-2">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/profile">Profile Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/settings">System Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onLogout} className="text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">

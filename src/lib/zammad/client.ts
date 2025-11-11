@@ -21,6 +21,11 @@ import type {
   CreateGroupRequest,
   ZammadSearchResponse,
   ZammadError,
+  ZammadKnowledgeBaseInitResponse,
+  ZammadKnowledgeBaseLocale,
+  ZammadKnowledgeBaseCategory,
+  ZammadKnowledgeBaseAnswer,
+  ZammadKnowledgeBaseSearchResult,
 } from './types'
 
 export class ZammadClient {
@@ -450,26 +455,36 @@ export class ZammadClient {
   // ============================================================================
 
   /**
-   * Search knowledge base articles
-   * @param query - Search query
-   * @param locale - Language locale (e.g., 'en', 'zh-cn')
-   * @param limit - Maximum number of results
+   * Get Knowledge Base initialization data
+   * Returns all knowledge bases, locales, categories, and answers
    */
-  async searchKnowledgeBase(query: string, locale: string = 'en', limit: number = 10): Promise<any> {
-    const params = new URLSearchParams({
-      query,
-      locale,
-      limit: limit.toString()
-    })
-    return this.request<any>(`/knowledge_bases/search?${params}`)
+  async getKnowledgeBaseInit(): Promise<ZammadKnowledgeBaseInitResponse> {
+    return this.request<ZammadKnowledgeBaseInitResponse>('/knowledge_bases/init')
+  }
+
+  /**
+   * Get all knowledge base locales
+   */
+  async getKnowledgeBaseLocales(): Promise<ZammadKnowledgeBaseLocale[]> {
+    return this.request<ZammadKnowledgeBaseLocale[]>('/knowledge_base/locales')
   }
 
   /**
    * Get knowledge base categories
    * @param locale - Language locale (e.g., 'en', 'zh-cn')
    */
-  async getKnowledgeBaseCategories(locale: string = 'en'): Promise<any> {
-    return this.request<any>(`/knowledge_bases/categories?locale=${locale}`)
+  async getKnowledgeBaseCategories(locale?: string): Promise<ZammadKnowledgeBaseCategory[]> {
+    const params = locale ? `?locale=${locale}` : ''
+    return this.request<ZammadKnowledgeBaseCategory[]>(`/knowledge_base/categories${params}`)
+  }
+
+  /**
+   * Get all knowledge base answers
+   * @param locale - Language locale (e.g., 'en', 'zh-cn')
+   */
+  async getKnowledgeBaseAnswers(locale?: string): Promise<ZammadKnowledgeBaseAnswer[]> {
+    const params = locale ? `?locale=${locale}` : ''
+    return this.request<ZammadKnowledgeBaseAnswer[]>(`/knowledge_base/answers${params}`)
   }
 
   /**
@@ -477,8 +492,28 @@ export class ZammadClient {
    * @param id - Answer ID
    * @param locale - Language locale
    */
-  async getKnowledgeBaseAnswer(id: number, locale: string = 'en'): Promise<any> {
-    return this.request<any>(`/knowledge_bases/answers/${id}?locale=${locale}`)
+  async getKnowledgeBaseAnswer(id: number, locale?: string): Promise<ZammadKnowledgeBaseAnswer> {
+    const params = locale ? `?locale=${locale}` : ''
+    return this.request<ZammadKnowledgeBaseAnswer>(`/knowledge_base/answers/${id}${params}`)
+  }
+
+  /**
+   * Search knowledge base articles
+   * @param query - Search query
+   * @param locale - Language locale (e.g., 'en', 'zh-cn')
+   * @param limit - Maximum number of results
+   */
+  async searchKnowledgeBase(
+    query: string,
+    locale: string = 'en',
+    limit: number = 10
+  ): Promise<ZammadKnowledgeBaseSearchResult[]> {
+    const params = new URLSearchParams({
+      query,
+      locale,
+      limit: limit.toString(),
+    })
+    return this.request<ZammadKnowledgeBaseSearchResult[]>(`/knowledge_bases/search?${params}`)
   }
 }
 

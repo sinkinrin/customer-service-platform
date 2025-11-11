@@ -1,0 +1,286 @@
+'use client'
+
+/**
+ * FAQ Form Dialog Component
+ * 
+ * Dialog for creating and editing FAQ articles with multi-language support
+ */
+
+import { useState, useEffect } from 'react'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+
+interface FAQFormDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  mode: 'create' | 'edit'
+  article?: {
+    id: number
+    category_id: number
+    slug: string
+    is_active: boolean
+    translations: {
+      locale: string
+      title: string
+      content: string
+      keywords?: string[]
+    }[]
+  }
+  onSuccess: () => void
+}
+
+const LANGUAGES = [
+  { code: 'zh-CN', name: '中文 (Chinese)' },
+  { code: 'en', name: 'English' },
+]
+
+const CATEGORIES = [
+  { id: 1, name: 'Account & Login' },
+  { id: 2, name: 'Tickets & Support' },
+  { id: 3, name: 'Conversations' },
+  { id: 4, name: 'General' },
+]
+
+export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: FAQFormDialogProps) {
+  const [loading, setLoading] = useState(false)
+  const [categoryId, setCategoryId] = useState<number>(1)
+  const [slug, setSlug] = useState('')
+  const [isActive, setIsActive] = useState(true)
+  const [activeLanguage, setActiveLanguage] = useState('zh-CN')
+  
+  // Translation data for each language
+  const [translations, setTranslations] = useState<Record<string, { title: string; content: string; keywords: string }>>({
+    'zh-CN': { title: '', content: '', keywords: '' },
+    'en': { title: '', content: '', keywords: '' },
+  })
+
+  // Initialize form data when editing
+  useEffect(() => {
+    if (mode === 'edit' && article) {
+      setCategoryId(article.category_id)
+      setSlug(article.slug)
+      setIsActive(article.is_active)
+      
+      // Populate translations
+      const newTranslations: Record<string, { title: string; content: string; keywords: string }> = {
+        'zh-CN': { title: '', content: '', keywords: '' },
+        'en': { title: '', content: '', keywords: '' },
+      }
+      
+      article.translations.forEach((t) => {
+        newTranslations[t.locale] = {
+          title: t.title,
+          content: t.content,
+          keywords: t.keywords?.join(', ') || '',
+        }
+      })
+      
+      setTranslations(newTranslations)
+    } else {
+      // Reset form for create mode
+      setCategoryId(1)
+      setSlug('')
+      setIsActive(true)
+      setTranslations({
+        'zh-CN': { title: '', content: '', keywords: '' },
+        'en': { title: '', content: '', keywords: '' },
+      })
+    }
+  }, [mode, article, open])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      // Validate that at least one language has content
+      const hasContent = Object.values(translations).some(t => t.title.trim() && t.content.trim())
+      if (!hasContent) {
+        toast.error('Please provide at least one language translation')
+        setLoading(false)
+        return
+      }
+
+      // Prepare translations array
+      const translationsArray = Object.entries(translations)
+        .filter(([_, t]) => t.title.trim() && t.content.trim())
+        .map(([locale, t]) => ({
+          locale,
+          title: t.title,
+          content: t.content,
+          keywords: t.keywords.split(',').map(k => k.trim()).filter(k => k),
+        }))
+
+      const payload = {
+        ...(mode === 'edit' && { id: article?.id }),
+        category_id: categoryId,
+        slug: slug || `article-${Date.now()}`,
+        is_active: isActive,
+        translations: translationsArray,
+      }
+
+      const url = '/api/admin/faq/articles'
+      const method = mode === 'create' ? 'POST' : 'PUT'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to ${mode} article`)
+      }
+
+      toast.success(`Article ${mode === 'create' ? 'created' : 'updated'} successfully!`)
+      onSuccess()
+      onOpenChange(false)
+    } catch (error: any) {
+      console.error(`Failed to ${mode} article:`, error)
+      toast.error(error.message || `Failed to ${mode} article`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateTranslation = (locale: string, field: 'title' | 'content' | 'keywords', value: string) => {
+    setTranslations(prev => ({
+      ...prev,
+      [locale]: {
+        ...prev[locale],
+        [field]: value,
+      },
+    }))
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{mode === 'create' ? 'Create FAQ Article' : 'Edit FAQ Article'}</DialogTitle>
+          <DialogDescription>
+            {mode === 'create' 
+              ? 'Create a new FAQ article with multi-language support' 
+              : 'Update the FAQ article information'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select value={categoryId.toString()} onValueChange={(v) => setCategoryId(parseInt(v))}>
+                  <SelectTrigger id="category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug (optional)</Label>
+                <Input
+                  id="slug"
+                  placeholder="article-slug"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="is_active"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="is_active" className="cursor-pointer">
+                Publish immediately
+              </Label>
+            </div>
+          </div>
+
+          {/* Multi-language Translations */}
+          <div className="space-y-4">
+            <Label>Translations *</Label>
+            <Tabs value={activeLanguage} onValueChange={setActiveLanguage}>
+              <TabsList className="grid w-full grid-cols-2">
+                {LANGUAGES.map((lang) => (
+                  <TabsTrigger key={lang.code} value={lang.code}>
+                    {lang.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {LANGUAGES.map((lang) => (
+                <TabsContent key={lang.code} value={lang.code} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`title-${lang.code}`}>Title *</Label>
+                    <Input
+                      id={`title-${lang.code}`}
+                      placeholder="Enter article title"
+                      value={translations[lang.code].title}
+                      onChange={(e) => updateTranslation(lang.code, 'title', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`content-${lang.code}`}>Content *</Label>
+                    <Textarea
+                      id={`content-${lang.code}`}
+                      placeholder="Enter article content (Markdown supported)"
+                      value={translations[lang.code].content}
+                      onChange={(e) => updateTranslation(lang.code, 'content', e.target.value)}
+                      rows={10}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`keywords-${lang.code}`}>Keywords (comma-separated)</Label>
+                    <Input
+                      id={`keywords-${lang.code}`}
+                      placeholder="keyword1, keyword2, keyword3"
+                      value={translations[lang.code].keywords}
+                      onChange={(e) => updateTranslation(lang.code, 'keywords', e.target.value)}
+                    />
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {mode === 'create' ? 'Create Article' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+

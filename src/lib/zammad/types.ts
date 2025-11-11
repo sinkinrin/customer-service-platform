@@ -53,7 +53,9 @@ export interface ZammadTicket {
 export interface CreateTicketRequest {
   title: string
   group: string
-  customer: string
+  group_id?: number
+  customer?: string
+  customer_id?: number
   priority_id?: number
   state_id?: number
   article: {
@@ -62,7 +64,6 @@ export interface CreateTicketRequest {
     type: string
     internal: boolean
   }
-  customer_id?: number
   mentions?: number[]
 }
 
@@ -324,5 +325,103 @@ export interface ZammadSearchResponse {
 export interface ZammadError {
   error: string
   error_human?: string
+}
+
+// ============================================================================
+// Knowledge Base Types
+// ============================================================================
+
+export interface ZammadKnowledgeBase {
+  id: number
+  name: string
+  icon_font: string | null
+  footer_note: string | null
+  homepage_layout: string
+  category_layout: string
+  active: boolean
+  created_at: string
+  updated_at: string
+  color_highlight: string
+  color_header: string
+  kb_locale_ids: number[]
+}
+
+export interface ZammadKnowledgeBaseLocale {
+  id: number
+  knowledge_base_id: number
+  system_locale_id: number
+  primary: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ZammadKnowledgeBaseCategory {
+  id: number
+  knowledge_base_id: number
+  parent_id: number | null
+  position: number
+  created_at: string
+  updated_at: string
+  category_icon: string | null
+  schedule_at: string | null
+  translations: ZammadKnowledgeBaseCategoryTranslation[]
+}
+
+export interface ZammadKnowledgeBaseCategoryTranslation {
+  id: number
+  kb_locale_id: number
+  title: string
+  keywords: string | null
+  created_at: string
+  updated_at: string
+  footer_note: string | null
+  category_id: number
+  ui_color: string | null
+}
+
+export interface ZammadKnowledgeBaseAnswer {
+  id: number
+  category_id: number
+  position: number
+  promoted: boolean
+  internal_at: string | null
+  archived_at: string | null
+  created_at: string
+  updated_at: string
+  translations: ZammadKnowledgeBaseAnswerTranslation[]
+}
+
+export interface ZammadKnowledgeBaseAnswerTranslation {
+  id: number
+  kb_locale_id: number
+  title: string
+  content: {
+    body: string
+  }
+  keywords: string | null
+  title_tag: string | null
+  meta_description: string | null
+  created_at: string
+  updated_at: string
+  answer_id: number
+  ui_color: string | null
+}
+
+export interface ZammadKnowledgeBaseInitResponse {
+  knowledge_bases: ZammadKnowledgeBase[]
+  kb_locales: ZammadKnowledgeBaseLocale[]
+  categories: ZammadKnowledgeBaseCategory[]
+  answers: ZammadKnowledgeBaseAnswer[]
+}
+
+export interface ZammadKnowledgeBaseSearchResult {
+  id: number
+  title: string
+  content: string
+  category_id: number
+  category_name: string
+  kb_locale_id: number
+  locale: string
+  url: string
 }
 

@@ -13,7 +13,7 @@ import {
   validationErrorResponse,
 } from '@/lib/utils/api-response'
 import { z } from 'zod'
-import { mockSettings } from '@/lib/mock-data'
+import { readAISettings, writeAISettings, updateEnvFile } from '@/lib/utils/ai-config'
 
 const AISettingsSchema = z.object({
   enabled: z.boolean(),
@@ -30,8 +30,21 @@ export async function GET(_request: NextRequest) {
     await requireAuth()
     await requireRole(['admin'])
 
-    // Return mock settings
-    return successResponse(mockSettings.ai_auto_reply)
+    // Read settings from persistent storage
+    const settings = readAISettings()
+
+    // Convert to API response format (snake_case)
+    const response = {
+      enabled: settings.enabled,
+      model: settings.model,
+      temperature: settings.temperature,
+      system_prompt: settings.systemPrompt,
+      fastgpt_url: settings.fastgptUrl,
+      fastgpt_appid: settings.fastgptAppId,
+      fastgpt_api_key: settings.fastgptApiKey,
+    }
+
+    return successResponse(response)
   } catch (error: unknown) {
     const err = error as Error
     if (err.message === 'Unauthorized') {
@@ -59,16 +72,44 @@ export async function PUT(request: NextRequest) {
 
     const { enabled, model, temperature, system_prompt, fastgpt_url, fastgpt_appid, fastgpt_api_key } = validation.data
 
-    // Update mock settings
-    if (enabled !== undefined) mockSettings.ai_auto_reply.enabled = enabled
-    if (model !== undefined) mockSettings.ai_auto_reply.model = model
-    if (temperature !== undefined) mockSettings.ai_auto_reply.temperature = temperature
-    if (system_prompt !== undefined) mockSettings.ai_auto_reply.system_prompt = system_prompt
-    if (fastgpt_url !== undefined) mockSettings.ai_auto_reply.fastgpt_url = fastgpt_url
-    if (fastgpt_appid !== undefined) mockSettings.ai_auto_reply.fastgpt_appid = fastgpt_appid
-    if (fastgpt_api_key !== undefined) mockSettings.ai_auto_reply.fastgpt_api_key = fastgpt_api_key
+    // Prepare settings object (convert from snake_case to camelCase)
+    const settings: any = {}
+    if (enabled !== undefined) settings.enabled = enabled
+    if (model !== undefined) settings.model = model
+    if (temperature !== undefined) settings.temperature = temperature
+    if (system_prompt !== undefined) settings.systemPrompt = system_prompt
+    if (fastgpt_url !== undefined) settings.fastgptUrl = fastgpt_url
+    if (fastgpt_appid !== undefined) settings.fastgptAppId = fastgpt_appid
+    if (fastgpt_api_key !== undefined) settings.fastgptApiKey = fastgpt_api_key
 
-    return successResponse(mockSettings.ai_auto_reply)
+    // Write settings to persistent storage
+    writeAISettings(settings)
+
+    // If API key was provided, update .env.local file
+    if (fastgpt_api_key) {
+      try {
+        updateEnvFile(fastgpt_api_key)
+      } catch (error) {
+        console.error('[AI Settings] Failed to update .env.local:', error)
+        // Continue anyway - settings are still saved to config file
+      }
+    }
+
+    // Read back the saved settings
+    const savedSettings = readAISettings()
+
+    // Convert to API response format (snake_case)
+    const response = {
+      enabled: savedSettings.enabled,
+      model: savedSettings.model,
+      temperature: savedSettings.temperature,
+      system_prompt: savedSettings.systemPrompt,
+      fastgpt_url: savedSettings.fastgptUrl,
+      fastgpt_appid: savedSettings.fastgptAppId,
+      fastgpt_api_key: savedSettings.fastgptApiKey,
+    }
+
+    return successResponse(response)
   } catch (error: unknown) {
     const err = error as Error
     if (err.message === 'Unauthorized') {

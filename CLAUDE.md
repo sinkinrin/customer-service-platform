@@ -13,6 +13,7 @@ This is a **Customer Service Platform** built with Next.js 14 (App Router) and T
 - **Multilingual Support**: 6 languages (en, zh-CN, fr, es, ru, pt) via next-intl
 - **Conversation Management**: Real-time messaging with mock data storage
 - **FAQ Knowledge Base**: Searchable self-service with Zammad Knowledge Base integration
+- **OpenSpec 需求管理**: 使用 OpenSpec 进行结构化需求定义和变更管理
 
 ## Development Commands
 
@@ -205,6 +206,27 @@ Implement real-time communication:
 Add file upload functionality:
 - Cloud storage (AWS S3, Cloudinary)
 - Local file storage
+
+## OpenSpec 需求管理
+
+本项目使用 OpenSpec 进行结构化需求管理。OpenSpec 提供了一种标准化的方法来定义、管理和跟踪系统需求和变更。
+
+### 关键目录
+- `openspec/specs/` - 当前系统规范
+- `openspec/changes/` - 提议的变更和增强
+- `openspec/archive/` - 已完成的变更
+
+### 使用 OpenSpec
+1. **查看现有规范**：查看 `openspec/specs/` 目录
+2. **提议变更**：在 `openspec/changes/` 中创建新目录和提案
+3. **跟踪进度**：在 `tasks.md` 中更新实施清单
+4. **归档已完成的变更**：将已完成的变更移动到 `openspec/archive/`
+
+### 当前规范
+- `faq-system` - 自建 FAQ 知识库系统
+
+### 当前变更提案
+- `add-self-hosted-faq-kb` - 添加自建 FAQ 知识库系统
 
 ## Key Dependencies
 

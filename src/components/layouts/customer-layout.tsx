@@ -206,6 +206,9 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
                     <DropdownMenuItem asChild>
                       <Link href="/customer/dashboard">仪表板</Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings">设置</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={onLogout}>退出登录</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -218,14 +221,57 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
       <div className="flex flex-1">
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-background">
-          <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            <div className="mb-4">
-              <h2 className="px-4 text-lg font-semibold">客户服务</h2>
-            </div>
+        <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-background fixed left-0 top-16 bottom-0">
+          <div className="mb-4 px-4 pt-6 flex-shrink-0">
+            <h2 className="px-4 text-lg font-semibold">客户服务</h2>
+          </div>
+          <div className="flex-1 px-4 space-y-2 overflow-y-auto pb-24">
             {navigation.map(renderNavItem)}
           </div>
         </aside>
+
+        {/* User Profile - Fixed at Bottom Left (Desktop) */}
+        {user && (
+          <div className="fixed bottom-0 left-0 w-64 p-4 bg-background border-t border-r z-50 hidden lg:block">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start px-2 hover:bg-accent">
+                  <Avatar className="h-8 w-8 mr-3">
+                    <AvatarImage src={user.avatar} alt={user.name || user.email} />
+                    <AvatarFallback>
+                      {user.name?.[0] || user.email[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate w-full">
+                      {user.name || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate w-full">
+                      {user.email}
+                    </p>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 mb-2">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user.name || "User"}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/customer/dashboard">仪表板</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings">设置</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onLogout}>退出登录</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
 
         {/* Sidebar - Mobile */}
         {sidebarOpen && (
@@ -246,7 +292,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto lg:ml-64">
           <div className="container mx-auto px-4 py-6">{children}</div>
         </main>
       </div>

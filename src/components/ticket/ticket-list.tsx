@@ -33,33 +33,48 @@ const getStatusIcon = (state: string | undefined) => {
 
 const getStatusColor = (state: string | undefined) => {
   if (!state) {
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+    return 'bg-[#9CA3AF] text-white'
   }
   const stateLower = state.toLowerCase()
-  if (stateLower.includes('new') || stateLower.includes('open')) {
-    return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+  // Open (进行中) - Bright Blue
+  if (stateLower === 'open' || stateLower === 'new') {
+    return 'bg-[#3B82F6] text-white'
   }
-  if (stateLower.includes('pending')) {
-    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+  // Pending Reminder (等待提醒) - Amber Yellow
+  if (stateLower === 'pending reminder') {
+    return 'bg-[#FBBF24] text-gray-900'
   }
-  if (stateLower.includes('closed')) {
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+  // Pending Close (待关闭) - Light Cyan-Green
+  if (stateLower === 'pending close') {
+    return 'bg-[#10B981] text-white'
   }
-  return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+  // Closed (已关闭) - Neutral Gray
+  if (stateLower === 'closed') {
+    return 'bg-[#9CA3AF] text-white'
+  }
+  // Default fallback
+  return 'bg-[#9CA3AF] text-white'
 }
 
 const getPriorityColor = (priority: string | undefined) => {
   if (!priority) {
-    return 'secondary'
+    return 'bg-[#6366F1] text-white'
   }
   const priorityLower = priority.toLowerCase()
-  if (priorityLower.includes('urgent') || priorityLower === '1 low') {
-    return 'destructive'
+  // Low (低) - Light Blue-Gray
+  if (priorityLower === '1 low') {
+    return 'bg-[#A5B4FC] text-gray-800'
   }
-  if (priorityLower.includes('high') || priorityLower === '2 normal') {
-    return 'default'
+  // Normal (普通) - Neutral Blue-Gray
+  if (priorityLower === '2 normal') {
+    return 'bg-[#6366F1] text-white'
   }
-  return 'secondary'
+  // High (高) - Bright Red
+  if (priorityLower === '3 high') {
+    return 'bg-[#EF4444] text-white'
+  }
+  // Default fallback
+  return 'bg-[#6366F1] text-white'
 }
 
 export function TicketList({ tickets, isLoading }: TicketListProps) {
@@ -134,7 +149,7 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
                   <span className="mr-1">{getStatusIcon(ticket.state)}</span>
                   {ticket.state}
                 </Badge>
-                <Badge variant={getPriorityColor(ticket.priority)}>
+                <Badge className={getPriorityColor(ticket.priority)}>
                   {ticket.priority}
                 </Badge>
               </div>

@@ -77,16 +77,23 @@ export async function GET(
 
     const translation = article.translations[0]
 
+    // Get category name (FaqCategory doesn't have translations, just a name field)
+    const category = await prisma.faqCategory.findUnique({
+      where: { id: article.categoryId },
+    })
+
     return successResponse({
       item: {
-        id: article.id,
-        category_id: article.categoryId,
-        title: translation?.title || '',
-        content: translation?.content || '',
+        id: article.id.toString(), // Frontend expects string ID
+        category_id: article.categoryId.toString(), // Frontend expects string category_id
+        category_name: category?.name || `Category ${article.categoryId}`, // Frontend expects category_name
+        question: translation?.title || '', // Frontend expects 'question' field
+        answer: translation?.content || '', // Frontend expects 'answer' field
+        language: language, // Frontend expects language field
         keywords: translation ? JSON.parse(translation.keywords) : [],
-        views: article.views + 1, // Return incremented value
-        helpful: helpfulCount,
-        not_helpful: notHelpfulCount,
+        view_count: article.views + 1, // Return incremented value (frontend expects 'view_count')
+        helpful_count: helpfulCount, // Frontend expects 'helpful_count'
+        not_helpful_count: notHelpfulCount, // Frontend expects 'not_helpful_count'
         created_at: article.createdAt.toISOString(),
         updated_at: article.updatedAt.toISOString(),
       },

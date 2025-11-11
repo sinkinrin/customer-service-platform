@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Get rating counts
+    // Get rating counts and category names
     const articlesWithRatings = await Promise.all(
       filteredArticles.map(async (article) => {
         const helpfulCount = await prisma.faqRating.count({
@@ -100,17 +100,24 @@ export async function GET(request: NextRequest) {
           },
         })
 
+        // Get category name
+        const category = await prisma.faqCategory.findUnique({
+          where: { id: article.categoryId },
+        })
+
         const translation = article.translations[0]
 
         return {
-          id: article.id,
-          title: translation?.title || '',
-          content: translation?.content || '',
-          category_id: article.categoryId,
+          id: article.id.toString(), // Frontend expects string ID
+          question: translation?.title || '', // Frontend expects 'question' field
+          answer: translation?.content || '', // Frontend expects 'answer' field
+          category_id: article.categoryId.toString(), // Frontend expects string category_id
+          category_name: category?.name || `Category ${article.categoryId}`, // Frontend expects category_name
+          language: language, // Frontend expects language field
           keywords: translation ? JSON.parse(translation.keywords) : [],
-          views: article.views,
-          helpful: helpfulCount,
-          not_helpful: notHelpfulCount,
+          view_count: article.views, // Frontend expects 'view_count'
+          helpful_count: helpfulCount, // Frontend expects 'helpful_count'
+          not_helpful_count: notHelpfulCount, // Frontend expects 'not_helpful_count'
           created_at: article.createdAt.toISOString(),
           updated_at: article.updatedAt.toISOString(),
         }

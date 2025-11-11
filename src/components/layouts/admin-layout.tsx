@@ -118,10 +118,10 @@ export function AdminLayout({
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Fixed on all screen sizes */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-0 flex flex-col",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -223,8 +223,8 @@ export function AdminLayout({
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content - Add left margin to account for fixed sidebar */}
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         {/* Top Bar */}
         <header className="h-16 border-b bg-background flex items-center justify-between px-6">
           <Button

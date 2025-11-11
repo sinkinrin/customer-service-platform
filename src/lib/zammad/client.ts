@@ -193,14 +193,56 @@ export class ZammadClient {
   }
 
   /**
+   * Format search query for Zammad search syntax
+   * @param rawQuery - Raw search query from user
+   * @returns Formatted query for Zammad API
+   */
+  private formatSearchQuery(rawQuery: string): string {
+    const trimmed = rawQuery.trim()
+
+    // If query is purely numeric, search by ticket number
+    if (/^\d+$/.test(trimmed)) {
+      return `number:${trimmed}`
+    }
+
+    // If query already contains Zammad syntax (contains ':'), use as-is
+    if (trimmed.includes(':')) {
+      return trimmed
+    }
+
+    // Otherwise, search by title with wildcard
+    return `title:*${trimmed}*`
+  }
+
+  /**
    * Search tickets
-   * @param query - Search query
+   * @param query - Search query (will be auto-formatted for Zammad syntax)
    * @param limit - Maximum number of results
    * @param onBehalfOf - User email/login/ID to search tickets on behalf of
    */
   async searchTickets(query: string, limit: number = 10, onBehalfOf?: string): Promise<ZammadSearchResponse> {
-    const params = new URLSearchParams({ query, limit: limit.toString() })
-    return this.request<ZammadSearchResponse>(`/tickets/search?${params}`, {}, 0, onBehalfOf)
+    console.log('[DEBUG] ZammadClient.searchTickets - Raw query:', query)
+    const formattedQuery = this.formatSearchQuery(query)
+    console.log('[DEBUG] ZammadClient.searchTickets - Formatted query:', formattedQuery)
+    console.log('[DEBUG] ZammadClient.searchTickets - Limit:', limit)
+    console.log('[DEBUG] ZammadClient.searchTickets - OnBehalfOf:', onBehalfOf)
+
+    const params = new URLSearchParams({ query: formattedQuery, limit: limit.toString() })
+    const url = `/tickets/search?${params}`
+    console.log('[DEBUG] ZammadClient.searchTickets - Full URL:', url)
+
+    // Zammad search API returns an array directly, not an object
+    const tickets = await this.request<ZammadTicket[]>(url, {}, 0, onBehalfOf)
+    console.log('[DEBUG] ZammadClient.searchTickets - Raw response from Zammad:', JSON.stringify(tickets, null, 2))
+
+    // Wrap the array in the expected response format
+    const result: ZammadSearchResponse = {
+      tickets: tickets || [],
+      tickets_count: tickets?.length || 0
+    }
+    console.log('[DEBUG] ZammadClient.searchTickets - Wrapped response:', JSON.stringify(result, null, 2))
+
+    return result
   }
 
   // ============================================================================

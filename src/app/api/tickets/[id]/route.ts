@@ -1,9 +1,9 @@
 /**
  * Single Ticket API
- * 
+ *
  * GET    /api/tickets/[id] - Get ticket by conversation ID
  * PUT    /api/tickets/[id] - Update ticket
- * DELETE /api/tickets/[id] - Delete ticket (not implemented)
+ * DELETE /api/tickets/[id] - Delete ticket (admin only)
  */
 
 import { NextRequest } from 'next/server'
@@ -17,6 +17,106 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { z } from 'zod'
+import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Map priority_id to priority string for frontend compatibility
+ */
+function mapPriorityIdToString(priorityId: number): string {
+  switch (priorityId) {
+    case 1:
+      return '1 low'
+    case 2:
+      return '2 normal'
+    case 3:
+      return '3 high'
+    default:
+      return '2 normal' // Default to normal if unknown
+  }
+}
+
+/**
+ * Map state_id to state string for frontend compatibility
+ * Zammad state_id mapping (from Zammad API documentation):
+ * 1 = new
+ * 2 = open
+ * 3 = pending reminder
+ * 4 = closed
+ * 5 = merged
+ * 6 = removed
+ * 7 = pending close
+ */
+function mapStateIdToString(stateId: number): string {
+  switch (stateId) {
+    case 1:
+      return 'new'
+    case 2:
+      return 'open'
+    case 3:
+      return 'pending reminder'
+    case 4:
+      return 'closed'
+    case 5:
+      return 'merged'
+    case 6:
+      return 'removed'
+    case 7:
+      return 'pending close'
+    default:
+      return 'closed' // Default to closed for unknown states
+  }
+}
+
+/**
+ * Map state string to state_id for Zammad API
+ */
+function mapStateStringToId(state: string): number {
+  switch (state.toLowerCase()) {
+    case 'new':
+      return 1
+    case 'open':
+      return 2
+    case 'pending reminder':
+      return 3
+    case 'pending close':
+      return 4
+    case 'closed':
+      return 5
+    default:
+      return 2 // Default to open if unknown
+  }
+}
+
+/**
+ * Map priority string to priority_id for Zammad API
+ */
+function mapPriorityStringToId(priority: string): number {
+  switch (priority.toLowerCase()) {
+    case '1 low':
+      return 1
+    case '2 normal':
+      return 2
+    case '3 high':
+      return 3
+    default:
+      return 2 // Default to normal if unknown
+  }
+}
+
+/**
+ * Transform Zammad ticket to include priority and state strings
+ */
+function transformTicket(ticket: RawZammadTicket) {
+  return {
+    ...ticket,
+    priority: mapPriorityIdToString(ticket.priority_id),
+    state: mapStateIdToString(ticket.state_id),
+  }
+}
 
 // ============================================================================
 // Validation Schemas
@@ -52,13 +152,16 @@ export async function GET(
     }
 
     // Admin users get ticket without X-On-Behalf-Of, others use X-On-Behalf-Of
-    const ticket = user.role === 'admin'
+    const rawTicket = user.role === 'admin'
       ? await zammadClient.getTicket(ticketId)
       : await zammadClient.getTicket(ticketId, user.email)
 
-    if (!ticket) {
+    if (!rawTicket) {
       return notFoundResponse('Ticket not found')
     }
+
+    // Transform ticket to include priority and state strings
+    const ticket = transformTicket(rawTicket)
 
     return successResponse({ ticket })
   } catch (error) {
@@ -99,15 +202,29 @@ export async function PUT(
     const updateData = validationResult.data
 
     // Build update payload
+    // Zammad API accepts string values for state and priority, not IDs
     const payload: any = {}
     if (updateData.title) payload.title = updateData.title
     if (updateData.group) payload.group = updateData.group
-    if (updateData.state) payload.state = updateData.state
+    if (updateData.state) {
+      payload.state = updateData.state
+
+      // If state is "pending reminder", add pending_time (required field)
+      // Set to 24 hours from now by default
+      if (updateData.state.toLowerCase() === 'pending reminder') {
+        const pendingTime = new Date()
+        pendingTime.setHours(pendingTime.getHours() + 24)
+        payload.pending_time = pendingTime.toISOString()
+      }
+    }
     if (updateData.priority) payload.priority = updateData.priority
     if (updateData.owner_id) payload.owner_id = updateData.owner_id
 
+    console.log('[DEBUG] PUT /api/tickets/[id] - Update payload:', JSON.stringify(payload, null, 2))
+    console.log('[DEBUG] PUT /api/tickets/[id] - Original updateData:', JSON.stringify(updateData, null, 2))
+
     // Admin users update without X-On-Behalf-Of, others use X-On-Behalf-Of
-    const ticket = user.role === 'admin'
+    const rawTicket = user.role === 'admin'
       ? await zammadClient.updateTicket(ticketId, payload)
       : await zammadClient.updateTicket(ticketId, payload, user.email)
 
@@ -135,6 +252,9 @@ export async function PUT(
       }
     }
 
+    // Transform ticket to include priority and state strings
+    const ticket = transformTicket(rawTicket)
+
     return successResponse({ ticket })
   } catch (error) {
     console.error('PUT /api/tickets/[id] error:', error)
@@ -153,16 +273,32 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params: _params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const _user = await requireAuth(request)
+    const user = await requireAuth(request)
+    const ticketId = parseInt(params.id)
 
-    // Note: Deleting tickets is not recommended in production
-    // This endpoint is not implemented
-    return errorResponse('Deleting tickets is not supported', 405)
+    if (isNaN(ticketId)) {
+      return errorResponse('Invalid ticket ID', 400)
+    }
+
+    // Only admin users can delete tickets
+    if (user.role !== 'admin') {
+      return errorResponse('Unauthorized: Only admins can delete tickets', 403)
+    }
+
+    // Delete ticket using admin client (no X-On-Behalf-Of)
+    await zammadClient.deleteTicket(ticketId)
+
+    return successResponse({ message: 'Ticket deleted successfully' })
   } catch (error) {
     console.error('DELETE /api/tickets/[id] error:', error)
+
+    if (error instanceof Error && error.message.includes('404')) {
+      return notFoundResponse('Ticket not found')
+    }
+
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

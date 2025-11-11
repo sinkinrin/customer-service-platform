@@ -16,6 +16,70 @@ import {
 import { filterTicketsByRegion, validateTicketCreation } from '@/lib/utils/region-auth'
 import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
 import { z } from 'zod'
+import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Map priority_id to priority string for frontend compatibility
+ */
+function mapPriorityIdToString(priorityId: number): string {
+  switch (priorityId) {
+    case 1:
+      return '1 low'
+    case 2:
+      return '2 normal'
+    case 3:
+      return '3 high'
+    default:
+      return '2 normal' // Default to normal if unknown
+  }
+}
+
+/**
+ * Map state_id to state string for frontend compatibility
+ * Zammad state_id mapping (from Zammad API documentation):
+ * 1 = new
+ * 2 = open
+ * 3 = pending reminder
+ * 4 = closed
+ * 5 = merged
+ * 6 = removed
+ * 7 = pending close
+ */
+function mapStateIdToString(stateId: number): string {
+  switch (stateId) {
+    case 1:
+      return 'new'
+    case 2:
+      return 'open'
+    case 3:
+      return 'pending reminder'
+    case 4:
+      return 'closed'
+    case 5:
+      return 'merged'
+    case 6:
+      return 'removed'
+    case 7:
+      return 'pending close'
+    default:
+      return 'closed' // Default to closed for unknown states
+  }
+}
+
+/**
+ * Transform Zammad ticket to include priority and state strings
+ */
+function transformTicket(ticket: RawZammadTicket) {
+  return {
+    ...ticket,
+    priority: mapPriorityIdToString(ticket.priority_id),
+    state: mapStateIdToString(ticket.state_id),
+  }
+}
 
 // Helper function to ensure user exists in Zammad
 async function ensureZammadUser(email: string, fullName: string, role: string, region?: string) {
@@ -140,8 +204,11 @@ export async function GET(request: NextRequest) {
     // Apply limit
     const limitedTickets = filteredTickets.slice(0, limit)
 
+    // Transform tickets to include priority and state strings
+    const transformedTickets = limitedTickets.map((ticket: any) => transformTicket(ticket))
+
     return successResponse({
-      tickets: limitedTickets,
+      tickets: transformedTickets,
       total: filteredTickets.length,
     })
   } catch (error) {

@@ -128,6 +128,7 @@ const updateTicketSchema = z.object({
   state: z.string().optional(),
   priority: z.string().optional(),
   owner_id: z.number().int().optional(),
+  pending_time: z.string().optional(), // ISO 8601 datetime string
   article: z.object({
     subject: z.string().min(1),
     body: z.string().min(1),
@@ -209,12 +210,17 @@ export async function PUT(
     if (updateData.state) {
       payload.state = updateData.state
 
-      // If state is "pending reminder", add pending_time (required field)
-      // Set to 24 hours from now by default
-      if (updateData.state.toLowerCase() === 'pending reminder') {
-        const pendingTime = new Date()
-        pendingTime.setHours(pendingTime.getHours() + 24)
-        payload.pending_time = pendingTime.toISOString()
+      // If state is "pending reminder" or "pending close", add pending_time (required field)
+      const stateLower = updateData.state.toLowerCase()
+      if (stateLower === 'pending reminder' || stateLower === 'pending close') {
+        // Use provided pending_time if available, otherwise default to 24 hours from now
+        if (updateData.pending_time) {
+          payload.pending_time = updateData.pending_time
+        } else {
+          const pendingTime = new Date()
+          pendingTime.setHours(pendingTime.getHours() + 24)
+          payload.pending_time = pendingTime.toISOString()
+        }
       }
     }
     if (updateData.priority) payload.priority = updateData.priority

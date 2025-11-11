@@ -158,5 +158,65 @@
     "created_at": "2025-11-11T03:57:29.206Z",
     "updated_at": "2025-11-11T03:57:29.206Z",
     "last_message_at": "2025-11-11T03:57:29.206Z"
+  },
+  {
+    "id": "conv_1762848018893_rnb8zglyx",
+    "customer_id": "real-customer-id",
+    "customer_email": "jasper.deng@howentech.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-11T08:00:18.893Z",
+    "updated_at": "2025-11-11T08:00:18.893Z",
+    "last_message_at": "2025-11-11T08:00:18.893Z"
+  },
+  {
+    "id": "conv_1762848019073_9yxl84tas",
+    "customer_id": "real-customer-id",
+    "customer_email": "jasper.deng@howentech.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-11T08:00:19.073Z",
+    "updated_at": "2025-11-11T08:00:19.073Z",
+    "last_message_at": "2025-11-11T08:00:19.073Z"
+  },
+  {
+    "id": "conv_1762848020090_x4guvlalw",
+    "customer_id": "real-customer-id",
+    "customer_email": "jasper.deng@howentech.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-11T08:00:20.090Z",
+    "updated_at": "2025-11-11T08:00:20.090Z",
+    "last_message_at": "2025-11-11T08:00:20.090Z"
+  },
+  {
+    "id": "conv_1762853224586_bzjjc1k63",
+    "customer_id": "real-customer-id",
+    "customer_email": "jasper.deng@howentech.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-11T09:27:04.586Z",
+    "updated_at": "2025-11-11T09:27:04.586Z",
+    "last_message_at": "2025-11-11T09:27:04.586Z"
+  },
+  {
+    "id": "conv_1762853225763_u41gqcjyg",
+    "customer_id": "real-customer-id",
+    "customer_email": "jasper.deng@howentech.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-11T09:27:05.763Z",
+    "updated_at": "2025-11-11T09:27:05.763Z",
+    "last_message_at": "2025-11-11T09:27:05.763Z"
+  },
+  {
+    "id": "conv_1762853226030_v5ijm5d88",
+    "customer_id": "real-customer-id",
+    "customer_email": "jasper.deng@howentech.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-11T09:27:06.030Z",
+    "updated_at": "2025-11-11T09:27:06.030Z",
+    "last_message_at": "2025-11-11T09:27:06.030Z"
   }
 ]

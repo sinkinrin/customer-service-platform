@@ -16,27 +16,27 @@ import { format } from 'date-fns'
 export default function TicketDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const conversationId = params.id as string
-  
+  const ticketId = params.id as string
+
   const [ticket, setTicket] = useState<ZammadTicket | null>(null)
   const [articles, setArticles] = useState<TicketArticle[]>([])
-  const { fetchTicketByConversationId, updateTicket, addArticle, fetchArticles, isLoading } = useTicket()
+  const { fetchTicketById, updateTicket, addArticle, fetchArticles, isLoading } = useTicket()
 
   useEffect(() => {
     loadTicket()
     loadArticles()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId])
+  }, [ticketId])
 
   const loadTicket = async () => {
-    const data = await fetchTicketByConversationId(conversationId)
+    const data = await fetchTicketById(ticketId)
     if (data) {
       setTicket(data)
     }
   }
 
   const loadArticles = async () => {
-    const data = await fetchArticles(conversationId)
+    const data = await fetchArticles(ticketId)
     setArticles(data)
   }
 
@@ -45,7 +45,7 @@ export default function TicketDetailPage() {
     priority?: string
     owner_id?: number
   }) => {
-    const updated = await updateTicket(conversationId, updates)
+    const updated = await updateTicket(ticketId, updates)
     if (updated) {
       setTicket(updated)
     }
@@ -54,8 +54,8 @@ export default function TicketDetailPage() {
   const handleAddNote = async (note: string, internal: boolean) => {
     // Generate a temporary message ID (in real app, this would come from creating a message first)
     const tempMessageId = `temp-${Date.now()}`
-    
-    const article = await addArticle(conversationId, tempMessageId, {
+
+    const article = await addArticle(ticketId, tempMessageId, {
       subject: ticket?.title || 'Note',
       body: note,
       internal,

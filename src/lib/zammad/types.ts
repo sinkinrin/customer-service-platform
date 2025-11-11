@@ -73,6 +73,7 @@ export interface UpdateTicketRequest {
   state?: string
   priority?: string
   owner_id?: number
+  pending_time?: string // ISO 8601 datetime string (required for pending states)
   article?: {
     subject: string
     body: string

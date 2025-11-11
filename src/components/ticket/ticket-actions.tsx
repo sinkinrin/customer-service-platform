@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Save, X } from 'lucide-react'
+import { Save, X, Clock } from 'lucide-react'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 
 interface TicketActionsProps {
@@ -21,6 +22,7 @@ interface TicketActionsProps {
     state?: string
     priority?: string
     owner_id?: number
+    pending_time?: string
   }) => Promise<void>
   onAddNote: (note: string, internal: boolean) => Promise<void>
   isLoading?: boolean
@@ -48,9 +50,27 @@ export function TicketActions({
 }: TicketActionsProps) {
   const [state, setState] = useState(ticket.state)
   const [priority, setPriority] = useState(ticket.priority)
+  const [pendingTime, setPendingTime] = useState('')
   const [note, setNote] = useState('')
   const [isInternal, setIsInternal] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
+  const [showPendingTime, setShowPendingTime] = useState(false)
+
+  // Check if current state requires pending time
+  useEffect(() => {
+    const stateLower = state.toLowerCase()
+    const requiresPendingTime = stateLower === 'pending reminder' || stateLower === 'pending close'
+    setShowPendingTime(requiresPendingTime)
+
+    // Set default pending time to 24 hours from now if not already set
+    if (requiresPendingTime && !pendingTime) {
+      const defaultTime = new Date()
+      defaultTime.setHours(defaultTime.getHours() + 24)
+      // Format as datetime-local input value (YYYY-MM-DDTHH:mm)
+      const formatted = defaultTime.toISOString().slice(0, 16)
+      setPendingTime(formatted)
+    }
+  }, [state, pendingTime])
 
   const handleStateChange = (value: string) => {
     setState(value)
@@ -62,11 +82,27 @@ export function TicketActions({
     setHasChanges(true)
   }
 
+  const handlePendingTimeChange = (value: string) => {
+    setPendingTime(value)
+    setHasChanges(true)
+  }
+
   const handleSave = async () => {
-    const updates: { state?: string; priority?: string } = {}
-    
+    const updates: { state?: string; priority?: string; pending_time?: string } = {}
+
     if (state !== ticket.state) {
       updates.state = state
+
+      // Add pending_time if state requires it
+      const stateLower = state.toLowerCase()
+      if (stateLower === 'pending reminder' || stateLower === 'pending close') {
+        if (!pendingTime) {
+          alert('Please select a pending time for this state.')
+          return
+        }
+        // Convert to ISO 8601 format
+        updates.pending_time = new Date(pendingTime).toISOString()
+      }
     }
     if (priority !== ticket.priority) {
       updates.priority = priority
@@ -81,6 +117,7 @@ export function TicketActions({
   const handleCancel = () => {
     setState(ticket.state)
     setPriority(ticket.priority)
+    setPendingTime('')
     setHasChanges(false)
   }
 
@@ -115,6 +152,28 @@ export function TicketActions({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Pending Time Picker - Only show for pending states */}
+          {showPendingTime && (
+            <div className="space-y-2">
+              <Label htmlFor="pending-time" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Pending Until *
+              </Label>
+              <Input
+                id="pending-time"
+                type="datetime-local"
+                value={pendingTime}
+                onChange={(e) => handlePendingTimeChange(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="w-full"
+                required
+              />
+              <p className="text-sm text-muted-foreground">
+                Select when this ticket should be automatically updated
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="priority">Priority</Label>

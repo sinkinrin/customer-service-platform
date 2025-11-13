@@ -5,7 +5,7 @@
  * PUT /api/conversations/[id] - Update conversation
  * DELETE /api/conversations/[id] - Delete conversation (admin only)
  *
- * Implementation: Uses Zammad tickets with 'conversation' tag
+ * Implementation: Uses local file storage
  */
 
 import { NextRequest } from 'next/server'
@@ -19,7 +19,13 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { UpdateConversationSchema } from '@/types/api.types'
-import { zammadClient } from '@/lib/zammad/client'
+import {
+  getConversation,
+  updateConversation,
+  deleteConversation,
+  getConversationMessages,
+} from '@/lib/local-conversation-storage'
+import { broadcastConversationEvent } from '@/app/api/sse/conversations/route'
 
 export async function GET(
   request: NextRequest,
@@ -27,41 +33,54 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    const conversationId = params.id
 
-    // Parse ticket ID
-    const ticketId = parseInt(params.id)
-    if (isNaN(ticketId)) {
-      return notFoundResponse('Invalid conversation ID')
-    }
+    // Get conversation from local storage
+    const conversation = await getConversation(conversationId)
 
-    // Get ticket from Zammad
-    const ticket = await zammadClient.getTicket(ticketId, user.email)
-
-    if (!ticket) {
+    if (!conversation) {
       return notFoundResponse('Conversation not found')
     }
 
-    // Verify it's a conversation (has 'conversation' tag)
-    const tags = await zammadClient.getTags(ticketId, user.email)
-    if (!tags.includes('conversation')) {
+    // Verify access: customer can only access their own conversations
+    if (user.role === 'customer' && conversation.customer_email !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
-    // Transform to conversation format
-    const conversation = {
-      id: ticket.id.toString(),
-      customer_id: ticket.customer_id?.toString() || user.id,
-      staff_id: ticket.owner_id?.toString() || null,
+    // Get message count
+    const messages = await getConversationMessages(conversationId)
+    const messageCount = messages.length
+
+    // Transform to API format with customer and staff information
+    const response = {
+      id: conversation.id,
+      customer_id: conversation.customer_id,
+      customer_email: conversation.customer_email,
+      staff_id: conversation.staff_id || null,
       business_type_id: null,
-      status: ticket.state_id === 1 ? 'waiting' : ticket.state_id === 2 ? 'active' : 'closed',
-      message_count: ticket.article_count || 0,
-      created_at: ticket.created_at,
-      updated_at: ticket.updated_at,
-      last_message_at: ticket.updated_at,
+      status: conversation.status,
+      mode: conversation.mode,
+      zammad_ticket_id: conversation.zammad_ticket_id,
+      transferred_at: conversation.transferred_at,
+      transfer_reason: conversation.transfer_reason,
+      message_count: messageCount,
+      created_at: conversation.created_at,
+      updated_at: conversation.updated_at,
+      last_message_at: conversation.last_message_at,
+      customer: {
+        id: conversation.customer_id,
+        full_name: conversation.customer_email?.split('@')[0] || 'Customer',
+        email: conversation.customer_email,
+      },
+      staff: conversation.staff_id ? {
+        id: conversation.staff_id,
+        full_name: conversation.staff_name || 'Staff',
+      } : null,
     }
 
-    return successResponse(conversation)
+    return successResponse(response)
   } catch (error: any) {
+    console.error('GET /api/conversations/[id] error:', error)
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -75,11 +94,13 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
+    const conversationId = params.id
 
-    // Parse ticket ID
-    const ticketId = parseInt(params.id)
-    if (isNaN(ticketId)) {
-      return notFoundResponse('Invalid conversation ID')
+    // Get conversation from local storage
+    const conversation = await getConversation(conversationId)
+
+    if (!conversation) {
+      return notFoundResponse('Conversation not found')
     }
 
     // Parse and validate request body
@@ -90,52 +111,70 @@ export async function PUT(
       return validationErrorResponse(validation.error.errors)
     }
 
-    // Get ticket from Zammad
-    const ticket = await zammadClient.getTicket(ticketId, user.email)
-
-    if (!ticket) {
-      return notFoundResponse('Conversation not found')
-    }
-
-    // Verify it's a conversation
-    const tags = await zammadClient.getTags(ticketId, user.email)
-    if (!tags.includes('conversation')) {
-      return notFoundResponse('Conversation not found')
-    }
-
     // Check permissions
     const isStaffOrAdmin = user.role === 'staff' || user.role === 'admin'
+    const isOwner = conversation.customer_email === user.email
 
-    if (!isStaffOrAdmin) {
+    if (!isStaffOrAdmin && !isOwner) {
       return forbiddenResponse('You do not have permission to update this conversation')
     }
 
-    // Map status to Zammad state_id
-    let state_id = ticket.state_id
-    if (validation.data.status) {
-      if (validation.data.status === 'waiting') state_id = 1
-      if (validation.data.status === 'active') state_id = 2
-      if (validation.data.status === 'closed') state_id = 4
+    // Update conversation
+    const updated = await updateConversation(conversationId, validation.data)
+
+    if (!updated) {
+      return notFoundResponse('Conversation not found')
     }
 
-    // Update ticket
-    const updated = await zammadClient.updateTicket(ticketId, { state_id }, user.email)
+    // Get message count
+    const messages = await getConversationMessages(conversationId)
+    const messageCount = messages.length
 
-    // Transform to conversation format
-    const conversation = {
-      id: updated.id.toString(),
-      customer_id: updated.customer_id?.toString() || user.id,
-      staff_id: updated.owner_id?.toString() || null,
+    // Transform to API format with customer and staff information
+    const response = {
+      id: updated.id,
+      customer_id: updated.customer_id,
+      customer_email: updated.customer_email,
+      staff_id: updated.staff_id || null,
       business_type_id: null,
-      status: updated.state_id === 1 ? 'waiting' : updated.state_id === 2 ? 'active' : 'closed',
-      message_count: updated.article_count || 0,
+      status: updated.status,
+      mode: updated.mode,
+      zammad_ticket_id: updated.zammad_ticket_id,
+      transferred_at: updated.transferred_at,
+      transfer_reason: updated.transfer_reason,
+      message_count: messageCount,
       created_at: updated.created_at,
       updated_at: updated.updated_at,
-      last_message_at: updated.updated_at,
+      last_message_at: updated.last_message_at,
+      customer: {
+        id: updated.customer_id,
+        full_name: updated.customer_email?.split('@')[0] || 'Customer',
+        email: updated.customer_email,
+      },
+      staff: updated.staff_id ? {
+        id: updated.staff_id,
+        full_name: updated.staff_name || 'Staff',
+      } : null,
     }
 
-    return successResponse(conversation)
+    // Broadcast conversation updated event via SSE
+    try {
+      broadcastConversationEvent(
+        {
+          type: 'conversation_updated',
+          conversationId,
+          data: response,
+        },
+        [updated.customer_id]
+      )
+      console.log('[SSE] Broadcasted conversation_updated event:', conversationId)
+    } catch (error) {
+      console.error('[SSE] Failed to broadcast conversation update:', error)
+    }
+
+    return successResponse(response)
   } catch (error: any) {
+    console.error('PUT /api/conversations/[id] error:', error)
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -149,18 +188,20 @@ export async function DELETE(
 ) {
   try {
     const user = await requireRole(['admin'])
+    const conversationId = params.id
 
-    // Parse ticket ID
-    const ticketId = parseInt(params.id)
-    if (isNaN(ticketId)) {
-      return notFoundResponse('Invalid conversation ID')
+    // Delete conversation and its messages
+    const deleted = await deleteConversation(conversationId)
+
+    if (!deleted) {
+      return notFoundResponse('Conversation not found')
     }
 
-    // Delete ticket from Zammad
-    await zammadClient.deleteTicket(ticketId, user.email)
+    console.log('[LocalStorage] Deleted conversation:', conversationId)
 
     return successResponse({ message: 'Conversation deleted successfully' })
   } catch (error: any) {
+    console.error('DELETE /api/conversations/[id] error:', error)
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -170,4 +211,3 @@ export async function DELETE(
     return serverErrorResponse('Failed to delete conversation', error.message)
   }
 }
-

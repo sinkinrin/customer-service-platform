@@ -14,6 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Download } from 'lucide-react'
 import { type Message } from '@/lib/stores/conversation-store'
 import { useAuthStore } from '@/lib/stores/auth-store'
+import { SystemMessage } from './system-message'
+import { TransferHistoryMessage } from './transfer-history-message'
 
 interface MessageListProps {
   messages: Message[]
@@ -167,10 +169,42 @@ export function MessageList({
     <ScrollArea className="flex-1 p-4">
       <div className="space-y-4">
         {messages.map((message) => {
+          // Handle system messages
+          if (message.message_type === 'system' || message.sender?.role === 'system') {
+            const messageType = message.metadata?.type === 'transfer_success' ? 'success' : 'info'
+            return (
+              <SystemMessage
+                key={message.id}
+                content={message.content}
+                type={messageType}
+                timestamp={message.created_at}
+              />
+            )
+          }
+
+          // Handle transfer history messages (only for staff)
+          if (message.message_type === 'transfer_history' && user?.role === 'staff') {
+            const aiHistory = message.metadata?.aiHistory || []
+            const transferredAt = message.metadata?.transferredAt || message.created_at
+            return (
+              <TransferHistoryMessage
+                key={message.id}
+                aiHistory={aiHistory}
+                transferredAt={transferredAt}
+              />
+            )
+          }
+
+          // Skip transfer history for customer view
+          if (message.message_type === 'transfer_history') {
+            return null
+          }
+
+          // Regular messages
           const isOwnMessage = message.sender_id === user?.id
           const senderName = message.sender?.full_name || 'Unknown'
           const senderRole = message.sender?.role || 'customer'
-          
+
           return (
             <div
               key={message.id}
@@ -180,7 +214,7 @@ export function MessageList({
                 <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
                 <AvatarFallback>{getInitials(senderName)}</AvatarFallback>
               </Avatar>
-              
+
               <div className={`flex-1 space-y-1 ${isOwnMessage ? 'items-end' : ''}`}>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{senderName}</span>
@@ -198,7 +232,7 @@ export function MessageList({
                     {formatTime(message.created_at)}
                   </span>
                 </div>
-                
+
                 <div
                   className={`inline-block p-3 rounded-lg ${
                     isOwnMessage

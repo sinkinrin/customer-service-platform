@@ -172,11 +172,11 @@ export async function GET(request: NextRequest) {
       tickets = await zammadClient.getTickets()
     } else if (user.role === 'customer') {
       // Customer: Use search with X-On-Behalf-Of to get only their tickets
-      // This ensures customers only see tickets they have access to
+      // When using X-On-Behalf-Of, Zammad automatically filters to the user's tickets
       console.log('[DEBUG] GET /api/tickets - Searching tickets for customer:', user.email)
-      const searchResponse = await zammadClient.searchTickets(user.email, 1000, user.email)
-      tickets = searchResponse
-      console.log('[DEBUG] GET /api/tickets - Found', tickets.length, 'tickets for customer')
+      const searchResponse = await zammadClient.searchTickets('state:*', 1000, user.email)
+      tickets = searchResponse.tickets  // Extract tickets array from response object
+      console.log('[DEBUG] GET /api/tickets - Found', tickets?.length || 0, 'tickets for customer')
     } else {
       // Staff: Get tickets on behalf of user (filtered by region later)
       tickets = await zammadClient.getTickets(user.email)

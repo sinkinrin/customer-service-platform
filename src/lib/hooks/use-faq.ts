@@ -166,10 +166,10 @@ export function useFAQ() {
     helpful: boolean
   ) => {
     try {
-      const response = await fetch(`/api/faq/${itemId}/feedback`, {
+      const response = await fetch(`/api/faq/${itemId}/rating`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ helpful }),
+        body: JSON.stringify({ is_helpful: helpful }),
       })
       
       if (!response.ok) {

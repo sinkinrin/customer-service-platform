@@ -1,1 +1,120 @@
-[]
+[
+  {
+    "id": "msg_1763002743263_24emy3edw",
+    "conversation_id": "conv_1762939944625_95uq4blkm",
+    "sender_role": "system",
+    "sender_id": "system",
+    "content": "AI Conversation History (4 messages)",
+    "message_type": "transfer_history",
+    "metadata": {
+      "aiHistory": [
+        {
+          "role": "customer",
+          "content": "你好，我需要帮助",
+          "timestamp": "2025-11-13T02:57:37.356Z"
+        },
+        {
+          "role": "ai",
+          "content": "您好！欢迎联系Howen公司智能客服。\n\n我很乐意为您提供帮助！请问您需要了解或解决关于Howen产品的什么问题呢？\n\n我可以协助您处理：\n- **产品功能咨询**：VSS平台、MDVR、Dashcam、AI产品的功能特性\n- **技术问题排查**：设备连接、平台使用、故障诊断等\n- **安装配置指导**：设备安装、参数设置等\n- **其他技术支持**\n\n请详细描述您遇到的问题或需求，我会尽力为您提供专业的解决方案！",
+          "timestamp": "2025-11-13T02:57:53.772Z"
+        },
+        {
+          "role": "customer",
+          "content": "我想转人工客服",
+          "timestamp": "2025-11-13T02:58:09.863Z"
+        },
+        {
+          "role": "ai",
+          "content": "好的，我理解您希望转接人工客服的需求。\n\n非常抱歉我的回答没能完全满足您的需求，为了更好地解决您的问题，我立即为您转接人工客服处理。\n\n请您稍等片刻，人工客服将很快为您提供更专业的服务。",
+          "timestamp": "2025-11-13T02:58:25.004Z"
+        }
+      ],
+      "transferredBy": "mock-customer-id",
+      "transferredAt": "2025-11-13T02:59:03.262Z"
+    },
+    "created_at": "2025-11-13T02:59:03.263Z"
+  },
+  {
+    "id": "msg_1763002743268_dce1okztq",
+    "conversation_id": "conv_1762939944625_95uq4blkm",
+    "sender_role": "system",
+    "sender_id": "system",
+    "content": "您已成功转接至人工客服。\n原因：需要详细咨询产品技术问题\n\n客服人员会尽快回复您，请稍候...",
+    "message_type": "system",
+    "metadata": {
+      "type": "transfer_success",
+      "transferredBy": "mock-customer-id",
+      "transferredAt": "2025-11-13T02:59:03.265Z",
+      "reason": "需要详细咨询产品技术问题"
+    },
+    "created_at": "2025-11-13T02:59:03.268Z"
+  },
+  {
+    "id": "msg_1763004296272_d1tzgnl50",
+    "conversation_id": "conv_1762939944625_95uq4blkm",
+    "sender_role": "staff",
+    "sender_id": "mock-staff-id",
+    "content": "您好！我是人工客服，已收到您的咨询。关于产品技术问题，我很乐意为您解答。请问您具体遇到了什么问题？",
+    "message_type": "text",
+    "created_at": "2025-11-13T03:24:56.272Z"
+  },
+  {
+    "id": "msg_1763004387368_garlhsul4",
+    "conversation_id": "conv_1762939944625_95uq4blkm",
+    "sender_role": "staff",
+    "sender_id": "mock-staff-id",
+    "content": "你好！感谢回复。我在使用产品的API集成时遇到了认证失败的问题，错误代码是401。我已经按照文档配置了API密钥，但还是无法连接。",
+    "message_type": "text",
+    "created_at": "2025-11-13T03:26:27.368Z"
+  },
+  {
+    "id": "msg_1763004994878_q1h38kfcz",
+    "conversation_id": "conv_1762939714185_ctu53hj7s",
+    "sender_role": "system",
+    "sender_id": "system",
+    "content": "您已成功转接至人工客服，客服人员会尽快回复您，请稍候...",
+    "message_type": "system",
+    "metadata": {
+      "type": "transfer_success",
+      "transferredBy": "real-customer-id",
+      "transferredAt": "2025-11-13T03:36:34.875Z"
+    },
+    "created_at": "2025-11-13T03:36:34.878Z"
+  },
+  {
+    "id": "msg_1763005035668_6jqy55jjm",
+    "conversation_id": "conv_1762939714185_ctu53hj7s",
+    "sender_role": "staff",
+    "sender_id": "mock-staff-id",
+    "content": "你好",
+    "message_type": "text",
+    "created_at": "2025-11-13T03:37:15.668Z"
+  },
+  {
+    "id": "msg_1763005046552_i26w59v3k",
+    "conversation_id": "conv_1762939714185_ctu53hj7s",
+    "sender_role": "customer",
+    "sender_id": "real-customer-id",
+    "content": "?",
+    "message_type": "text",
+    "created_at": "2025-11-13T03:37:26.552Z"
+  },
+  {
+    "id": "msg_1763012105617_cks4mil16",
+    "conversation_id": "conv_1762939714185_ctu53hj7s",
+    "sender_role": "customer",
+    "sender_id": "real-customer-id",
+    "content": "？",
+    "message_type": "text",
+    "created_at": "2025-11-13T05:35:05.617Z"
+  },
+  {
+    "id": "msg_1763012129685_c4gv8luau",
+    "conversation_id": "conv_1762939714185_ctu53hj7s",
+    "sender_role": "staff",
+    "sender_id": "mock-staff-id",
+    "content": "你是？",
+    "message_type": "text",
+    "created_at": "2025-11-13T05:35:29.685Z"
+  }
+]

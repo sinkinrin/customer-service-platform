@@ -1,19 +1,17 @@
 /**
  * useConversation Hook
  *
- * Custom hook for conversation management
- *
- * TODO: Replace with real-time updates (Socket.IO, Pusher, or Supabase Realtime)
- * Currently uses polling for updates
+ * Custom hook for conversation management with SSE real-time updates
  */
 
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useConversationStore, type Conversation, type Message } from '@/lib/stores/conversation-store'
 import { useAuthStore } from '@/lib/stores/auth-store'
+import { useSSE } from '@/lib/hooks/use-sse'
 
 export function useConversation() {
   const { user } = useAuthStore()
-  
+
   const {
     conversations,
     activeConversation,
@@ -35,13 +33,69 @@ export function useConversation() {
     setSendingMessage,
     setTyping,
   } = useConversationStore()
-  
+
+  /**
+   * Set up SSE connection for real-time updates
+   */
+  const { isConnected: sseConnected, error: sseError } = useSSE({
+    url: '/api/sse/conversations',
+    enabled: !!user,
+    onMessage: (event) => {
+      console.log('[SSE] Received event:', event.type, event)
+
+      switch (event.type) {
+        case 'connected':
+          console.log('[SSE] Connected to conversations stream')
+          break
+
+        case 'new_message':
+          // Add new message to store if it's for the active conversation
+          if (event.conversationId === activeConversation?.id) {
+            console.log('[SSE] Adding new message to active conversation')
+            addMessage(event.data)
+          }
+          // Update conversation list (last_message_at)
+          if (event.data.conversation_id) {
+            updateConversation(event.data.conversation_id, {
+              last_message_at: event.data.created_at,
+            })
+          }
+          break
+
+        case 'conversation_updated':
+          console.log('[SSE] Conversation updated:', event.conversationId)
+          updateConversation(event.conversationId, event.data)
+          break
+
+        case 'conversation_created':
+          console.log('[SSE] New conversation created:', event.conversationId)
+          addConversation(event.data)
+          break
+
+        case 'typing':
+          console.log('[SSE] User typing:', event.data.userId)
+          setTyping(true, event.data.userName)
+          // Auto-clear typing indicator after 3 seconds
+          setTimeout(() => setTyping(false), 3000)
+          break
+
+        case 'timeout':
+          console.log('[SSE] Connection timeout, will reconnect...')
+          break
+
+        default:
+          console.log('[SSE] Unknown event type:', event.type)
+      }
+    },
+    onError: (error) => {
+      console.error('[SSE] Connection error:', error)
+    },
+  })
+
   /**
    * Fetch conversations list
    */
   const fetchConversations = useCallback(async (status?: string) => {
-    // Authentication is handled by the API endpoint via requireAuth()
-
     setLoadingConversations(true)
 
     try {
@@ -56,7 +110,7 @@ export function useConversation() {
       }
 
       const data = await response.json()
-      setConversations(data.data || [])
+      setConversations(data.data?.conversations || data.data || [])
     } catch (err) {
       const error = err as Error
       console.error('Error fetching conversations:', error)
@@ -65,7 +119,7 @@ export function useConversation() {
       setLoadingConversations(false)
     }
   }, [setConversations, setLoadingConversations])
-  
+
   /**
    * Create a new conversation
    */
@@ -73,8 +127,6 @@ export function useConversation() {
     businessTypeId?: string,
     initialMessage?: string
   ) => {
-    // Authentication is handled by the API endpoint via requireAuth()
-
     try {
       const response = await fetch('/api/conversations', {
         method: 'POST',
@@ -94,6 +146,7 @@ export function useConversation() {
       const conversation = data.data as Conversation
 
       addConversation(conversation)
+      setMessages([]) // Clear messages for new conversation
       setActiveConversation(conversation)
 
       return conversation
@@ -103,35 +156,35 @@ export function useConversation() {
       throw error
     }
   }, [addConversation, setActiveConversation])
-  
+
   /**
    * Fetch messages for a conversation
    */
   const fetchMessages = useCallback(async (conversationId: string, offset = 0) => {
     setLoadingMessages(true)
-    
+
     try {
       const params = new URLSearchParams()
       params.append('limit', '50')
       params.append('offset', offset.toString())
-      
+
       const response = await fetch(
         `/api/conversations/${conversationId}/messages?${params.toString()}`
       )
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch messages')
       }
-      
+
       const data = await response.json()
       const fetchedMessages = data.data.messages || []
-      
+
       if (offset === 0) {
         setMessages(fetchedMessages)
       } else {
         prependMessages(fetchedMessages)
       }
-      
+
       return fetchedMessages
     } catch (err) {
       const error = err as Error
@@ -141,7 +194,7 @@ export function useConversation() {
       setLoadingMessages(false)
     }
   }, [setMessages, prependMessages, setLoadingMessages])
-  
+
   /**
    * Send a message
    */
@@ -151,9 +204,6 @@ export function useConversation() {
     messageType: 'text' | 'image' | 'file' = 'text',
     metadata?: Record<string, unknown>
   ) => {
-    // Authentication is handled by the API endpoint via requireAuth()
-    // No need to check user here as it may not be loaded yet from the store
-
     setSendingMessage(true)
 
     try {
@@ -175,8 +225,8 @@ export function useConversation() {
       const data = await response.json()
       const message = data.data as Message
 
-      // Message will be added via Realtime subscription
-      // But add it immediately for better UX
+      // Message will be added via SSE event, but add it immediately for better UX
+      // The SSE event will be a no-op if message already exists (due to duplicate check in store)
       addMessage(message)
 
       return message
@@ -188,27 +238,52 @@ export function useConversation() {
       setSendingMessage(false)
     }
   }, [addMessage, setSendingMessage])
-  
+
   /**
    * Subscribe to real-time updates for a conversation
-   *
-   * TODO: Replace with real-time subscription (Socket.IO, Pusher, or Supabase Realtime)
-   * Currently returns a no-op function
+   * SSE connection is now managed globally via useSSE hook
    */
-  const subscribeToConversation = useCallback((_conversationId: string) => {
-    // TODO: Implement real-time subscription
-    // For now, return a no-op cleanup function
+  const subscribeToConversation = useCallback((conversationId: string) => {
+    console.log('[Conversation] Subscribed to conversation:', conversationId, 'via SSE')
+
+    // Return cleanup function
     return () => {
-      // No cleanup needed for mock implementation
+      console.log('[Conversation] Unsubscribed from conversation:', conversationId)
+      // Cleanup is handled by useSSE hook
     }
   }, [])
-  
+
+  /**
+   * Fetch a single conversation by ID
+   */
+  const fetchConversationById = useCallback(async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`)
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversation')
+      }
+
+      const data = await response.json()
+      const conversation = data.data as Conversation
+
+      setActiveConversation(conversation)
+      updateConversation(conversationId, conversation)
+
+      return conversation
+    } catch (err) {
+      const error = err as Error
+      console.error('Error fetching conversation:', error)
+      throw error
+    }
+  }, [setActiveConversation, updateConversation])
+
   /**
    * Update conversation status
    */
   const updateConversationStatus = useCallback(async (
     conversationId: string,
-    status: 'waiting' | 'active' | 'closed'
+    status: 'active' | 'closed'
   ) => {
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
@@ -216,11 +291,11 @@ export function useConversation() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to update conversation')
       }
-      
+
       const data = await response.json()
       updateConversation(conversationId, data.data)
     } catch (err) {
@@ -229,7 +304,7 @@ export function useConversation() {
       throw error
     }
   }, [updateConversation])
-  
+
   return {
     // State
     conversations,
@@ -240,10 +315,13 @@ export function useConversation() {
     isSendingMessage,
     isTyping,
     typingUser,
-    
+    sseConnected,
+    sseError,
+
     // Actions
     fetchConversations,
     createConversation,
+    fetchConversationById,
     fetchMessages,
     sendMessage,
     subscribeToConversation,
@@ -252,4 +330,3 @@ export function useConversation() {
     setTyping,
   }
 }
-

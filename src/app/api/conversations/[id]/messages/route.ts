@@ -4,7 +4,7 @@
  * GET /api/conversations/[id]/messages - Get messages for a conversation
  * POST /api/conversations/[id]/messages - Send a message in a conversation
  *
- * Implementation: Uses Zammad ticket articles as messages
+ * Implementation: Uses local file storage with SSE for real-time updates
  */
 
 import { NextRequest } from 'next/server'
@@ -17,7 +17,12 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { CreateMessageSchema } from '@/types/api.types'
-import { zammadClient } from '@/lib/zammad/client'
+import {
+  getConversation,
+  getConversationMessages,
+  addMessage,
+} from '@/lib/local-conversation-storage'
+import { broadcastConversationEvent } from '@/app/api/sse/conversations/route'
 
 export async function GET(
   request: NextRequest,
@@ -25,23 +30,17 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    const conversationId = params.id
 
-    // Parse ticket ID
-    const ticketId = parseInt(params.id)
-    if (isNaN(ticketId)) {
-      return notFoundResponse('Invalid conversation ID')
-    }
+    // Get conversation from local storage
+    const conversation = await getConversation(conversationId)
 
-    // Get ticket from Zammad
-    const ticket = await zammadClient.getTicket(ticketId, user.email)
-
-    if (!ticket) {
+    if (!conversation) {
       return notFoundResponse('Conversation not found')
     }
 
-    // Verify it's a conversation
-    const tags = await zammadClient.getTags(ticketId, user.email)
-    if (!tags.includes('conversation')) {
+    // Verify access: customer can only access their own conversations
+    if (user.role === 'customer' && conversation.customer_email !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -50,32 +49,32 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Get articles (messages) from Zammad
-    const articles = await zammadClient.getArticlesByTicket(ticketId, user.email)
+    // Get messages from local storage
+    const allMessages = await getConversationMessages(conversationId)
 
     // Sort by created_at ascending
-    const sorted = articles.sort((a: any, b: any) =>
+    const sorted = allMessages.sort((a, b) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
 
     // Apply pagination
     const paginated = sorted.slice(offset, offset + limit)
 
-    // Transform to message format
-    const messages = paginated.map((article: any) => ({
-      id: article.id.toString(),
-      conversation_id: params.id,
-      sender_id: article.created_by_id?.toString() || user.id,
-      content: article.body,
-      message_type: 'text',
-      metadata: {},
-      created_at: article.created_at,
-      updated_at: article.updated_at,
+    // Transform to API format
+    const messages = paginated.map((msg) => ({
+      id: msg.id,
+      conversation_id: conversationId,
+      sender_id: msg.sender_id,
+      sender_role: msg.sender_role,
+      content: msg.content,
+      message_type: msg.message_type || 'text',
+      metadata: msg.metadata || {},
+      created_at: msg.created_at,
       sender: {
-        id: article.created_by_id?.toString() || user.id,
-        full_name: article.from || user.full_name || user.email,
+        id: msg.sender_id,
+        full_name: msg.sender_role === 'ai' ? 'AI Assistant' : user.full_name || user.email,
         avatar_url: null,
-        role: user.role,
+        role: msg.sender_role,
       },
     }))
 
@@ -88,6 +87,7 @@ export async function GET(
       },
     })
   } catch (error: any) {
+    console.error('GET /api/conversations/[id]/messages error:', error)
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -101,23 +101,17 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth()
+    const conversationId = params.id
 
-    // Parse ticket ID
-    const ticketId = parseInt(params.id)
-    if (isNaN(ticketId)) {
-      return notFoundResponse('Invalid conversation ID')
-    }
+    // Get conversation from local storage
+    const conversation = await getConversation(conversationId)
 
-    // Get ticket from Zammad
-    const ticket = await zammadClient.getTicket(ticketId, user.email)
-
-    if (!ticket) {
+    if (!conversation) {
       return notFoundResponse('Conversation not found')
     }
 
-    // Verify it's a conversation
-    const tags = await zammadClient.getTags(ticketId, user.email)
-    if (!tags.includes('conversation')) {
+    // Verify access: customer can only post to their own conversations
+    if (user.role === 'customer' && conversation.customer_email !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -125,37 +119,36 @@ export async function POST(
     const body = await request.json()
     const validation = CreateMessageSchema.safeParse({
       ...body,
-      conversation_id: params.id,
+      conversation_id: conversationId,
     })
 
     if (!validation.success) {
       return validationErrorResponse(validation.error.errors)
     }
 
-    // Create article (message) in Zammad
-    const article = await zammadClient.createArticle({
-      ticket_id: ticketId,
-      subject: 'Message',
-      body: validation.data.content,
-      type: 'note',
-      internal: false,
-    }, user.email)
+    // Determine sender role
+    const senderRole = user.role === 'customer' ? 'customer' : 'staff'
 
-    // Update ticket status to active if it was waiting
-    if (ticket.state_id === 1) {
-      await zammadClient.updateTicket(ticketId, { state_id: 2 }, user.email)
-    }
+    // Add message to local storage
+    const newMessage = await addMessage(
+      conversationId,
+      senderRole as 'customer' | 'ai' | 'staff',
+      user.id,
+      validation.data.content
+    )
 
-    // Transform to message format
+    console.log('[LocalStorage] Created message:', newMessage.id, 'in conversation:', conversationId)
+
+    // Transform to API format
     const message = {
-      id: article.id.toString(),
-      conversation_id: params.id,
-      sender_id: article.created_by_id?.toString() || user.id,
-      content: article.body,
-      message_type: validation.data.message_type,
+      id: newMessage.id,
+      conversation_id: conversationId,
+      sender_id: user.id,
+      sender_role: senderRole,
+      content: newMessage.content,
+      message_type: validation.data.message_type || 'text',
       metadata: validation.data.metadata || {},
-      created_at: article.created_at,
-      updated_at: article.updated_at,
+      created_at: newMessage.created_at,
       sender: {
         id: user.id,
         full_name: user.full_name || user.email,
@@ -164,12 +157,31 @@ export async function POST(
       },
     }
 
+    // Broadcast new message event via SSE to all participants
+    // Customer + staff (if assigned) + AI system
+    const targetUserIds = [conversation.customer_id]
+
+    try {
+      broadcastConversationEvent(
+        {
+          type: 'new_message',
+          conversationId,
+          data: message,
+        },
+        targetUserIds
+      )
+      console.log('[SSE] Broadcasted new_message event for conversation:', conversationId)
+    } catch (error) {
+      console.error('[SSE] Failed to broadcast message:', error)
+      // Don't fail the request if SSE broadcast fails
+    }
+
     return successResponse(message, 201)
   } catch (error: any) {
+    console.error('POST /api/conversations/[id]/messages error:', error)
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
     return serverErrorResponse('Failed to send message', error.message)
   }
 }
-

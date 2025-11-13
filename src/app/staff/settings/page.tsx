@@ -39,7 +39,6 @@ interface StaffSettings {
 
 export default function StaffSettingsPage() {
   const { user } = useAuth()
-  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<StaffSettings>({
     full_name: '',

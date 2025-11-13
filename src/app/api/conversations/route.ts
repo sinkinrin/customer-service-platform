@@ -28,22 +28,41 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Get local AI conversations for the customer
-    let conversations = await getCustomerConversations(user.email)
+    // Get conversations based on user role
+    let conversations
+    if (user.role === 'staff' || user.role === 'admin') {
+      // Staff and Admin can see all conversations
+      const { getAllConversations } = await import('@/lib/local-conversation-storage')
+      conversations = await getAllConversations()
+    } else {
+      // Customers can only see their own conversations
+      conversations = await getCustomerConversations(user.email)
+    }
 
-    // Transform to API format
+    // Transform to API format with customer and staff information
     const transformedConversations = conversations.map((conv) => ({
       id: conv.id,
       customer_id: conv.customer_id,
-      staff_id: null,
+      staff_id: conv.staff_id || null,
       business_type_id: null,
       status: conv.status,
       mode: conv.mode,
       zammad_ticket_id: conv.zammad_ticket_id,
+      transferred_at: conv.transferred_at,
+      transfer_reason: conv.transfer_reason,
       message_count: 0, // Will be calculated from messages
       created_at: conv.created_at,
       updated_at: conv.updated_at,
       last_message_at: conv.last_message_at,
+      customer: {
+        id: conv.customer_id,
+        full_name: conv.customer_email?.split('@')[0] || 'User',
+        email: conv.customer_email || '',
+      },
+      staff: conv.staff_id ? {
+        id: conv.staff_id,
+        full_name: 'Staff',
+      } : null,
     }))
 
     // Apply filters
@@ -61,14 +80,7 @@ export async function GET(request: NextRequest) {
     const total = filteredConversations.length
     const paginatedConversations = filteredConversations.slice(offset, offset + limit)
 
-    return successResponse({
-      conversations: paginatedConversations,
-      pagination: {
-        limit,
-        offset,
-        total,
-      },
-    })
+    return successResponse(paginatedConversations)
   } catch (error: any) {
     console.error('GET /api/conversations error:', error)
     const message = error?.message || 'Unknown error'

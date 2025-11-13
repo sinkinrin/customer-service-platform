@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,9 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, MessageSquare, Clock, User, Filter } from 'lucide-react'
+import { Search, MessageSquare, Clock, Filter, BellRing } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { useSSE } from '@/lib/hooks/use-sse'
+import { cn } from '@/lib/utils'
 
 interface Conversation {
   id: string
@@ -53,11 +55,7 @@ export default function StaffConversationsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  useEffect(() => {
-    loadConversations()
-  }, [statusFilter])
-
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -77,7 +75,11 @@ export default function StaffConversationsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
+
+  useEffect(() => {
+    loadConversations()
+  }, [statusFilter, loadConversations])
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -105,7 +107,8 @@ export default function StaffConversationsPage() {
     }
   }
 
-  const filteredConversations = conversations.filter((conv) => {
+  const conversationList = Array.isArray(conversations) ? conversations : []
+  const filteredConversations = conversationList.filter((conv) => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
     return (
@@ -116,11 +119,77 @@ export default function StaffConversationsPage() {
   })
 
   const stats = {
-    total: conversations.length,
-    waiting: conversations.filter((c) => c.status === 'waiting').length,
-    active: conversations.filter((c) => c.status === 'active').length,
-    closed: conversations.filter((c) => c.status === 'closed').length,
+    total: conversationList.length,
+    waiting: conversationList.filter((c) => c.status === 'waiting').length,
+    active: conversationList.filter((c) => c.status === 'active').length,
+    closed: conversationList.filter((c) => c.status === 'closed').length,
   }
+
+  const [highlightedConversationId, setHighlightedConversationId] = useState<string | null>(null)
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const { state: sseState, isConnected: sseConnected } = useSSE({
+    url: '/api/sse/conversations',
+    enabled: true,
+    onMessage: (event) => {
+      if (event.type === 'new_conversation_transferred') {
+        const conversationId = event.conversationId
+        const customerName =
+          event.data?.customer?.full_name || event.data?.customer?.email || 'Unknown customer'
+        toast.custom(
+          () => (
+            <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                  <BellRing className="h-5 w-5" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-semibold text-blue-900">新的转人工对话</p>
+                  <p className="text-xs text-blue-800">
+                    {customerName} | ID: {conversationId}
+                  </p>
+                  {event.data?.transferReason && (
+                    <p className="text-xs text-muted-foreground">
+                      原因：{event.data.transferReason}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ),
+          { duration: 3000, id: `transfer-${conversationId}` }
+        )
+
+        setHighlightedConversationId(conversationId)
+        if (highlightTimeoutRef.current) {
+          clearTimeout(highlightTimeoutRef.current)
+        }
+        highlightTimeoutRef.current = setTimeout(() => {
+          setHighlightedConversationId((current) =>
+            current === conversationId ? null : current
+          )
+        }, 3000)
+
+        loadConversations()
+      }
+
+      if (event.type === 'conversation_transferred') {
+        loadConversations()
+      }
+    },
+    onError: (error) => {
+      console.error('[SSE] Error:', error)
+      toast.error('Real-time updates unavailable')
+    },
+  })
 
   return (
     <div className="space-y-6">
@@ -214,11 +283,21 @@ export default function StaffConversationsPage() {
 
       {/* Conversations Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Conversations List</CardTitle>
-          <CardDescription>
-            {filteredConversations.length} conversation(s) found
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>Conversations List</CardTitle>
+            <CardDescription>
+              {filteredConversations.length} conversation(s) found
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Badge variant={sseConnected ? 'secondary' : 'destructive'}>
+              {sseConnected ? '实时更新' : '实时中断'}
+            </Badge>
+            {sseState === 'error' && (
+              <span className="text-xs text-destructive">连接异常</span>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -251,7 +330,11 @@ export default function StaffConversationsPage() {
                 {filteredConversations.map((conversation) => (
                   <TableRow
                     key={conversation.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className={cn(
+                      'cursor-pointer hover:bg-muted/50 transition',
+                      highlightedConversationId === conversation.id &&
+                        'bg-blue-50 border border-blue-200'
+                    )}
                     onClick={() => router.push(`/staff/conversations/${conversation.id}`)}
                   >
                     <TableCell>
@@ -312,4 +395,3 @@ export default function StaffConversationsPage() {
     </div>
   )
 }
-

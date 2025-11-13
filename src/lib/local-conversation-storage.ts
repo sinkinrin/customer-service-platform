@@ -19,6 +19,10 @@ export interface LocalConversation {
   mode: 'ai' | 'human'
   status: 'active' | 'closed'
   zammad_ticket_id?: number // Only set when escalated to human
+  transferred_at?: string // When conversation was transferred to human
+  transfer_reason?: string // Optional reason for transfer
+  staff_id?: string // Assigned staff ID
+  staff_name?: string // Assigned staff name
   created_at: string
   updated_at: string
   last_message_at: string
@@ -27,9 +31,11 @@ export interface LocalConversation {
 export interface LocalMessage {
   id: string
   conversation_id: string
-  sender_role: 'customer' | 'ai' | 'staff'
+  sender_role: 'customer' | 'ai' | 'staff' | 'system'
   sender_id: string
   content: string
+  message_type?: 'text' | 'system' | 'transfer_history' // New field for message types
+  metadata?: Record<string, any> // Optional metadata for storing AI history, etc.
   created_at: string
 }
 
@@ -157,6 +163,14 @@ export async function getCustomerConversations(customer_email: string): Promise<
 }
 
 /**
+ * Get all conversations (for staff/admin)
+ */
+export async function getAllConversations(): Promise<LocalConversation[]> {
+  const conversations = await readConversations()
+  return conversations
+}
+
+/**
  * Update conversation
  */
 export async function updateConversation(
@@ -188,25 +202,62 @@ export async function addMessage(
   content: string
 ): Promise<LocalMessage> {
   const messages = await readMessages()
-  
+
   const newMessage: LocalMessage = {
     id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     conversation_id,
     sender_role,
     sender_id,
     content,
+    message_type: 'text',
     created_at: new Date().toISOString(),
   }
-  
+
   messages.push(newMessage)
   await writeMessages(messages)
-  
+
   // Update conversation's last_message_at
   await updateConversation(conversation_id, {
     last_message_at: newMessage.created_at,
   })
-  
+
   console.log('[LocalStorage] Added message to conversation:', conversation_id)
+  return newMessage
+}
+
+/**
+ * Add message with metadata (for system messages, transfer history, etc.)
+ */
+export async function addMessageWithMetadata(
+  conversation_id: string,
+  sender_role: 'customer' | 'ai' | 'staff' | 'system',
+  sender_id: string,
+  content: string,
+  message_type: 'text' | 'system' | 'transfer_history',
+  metadata?: Record<string, any>
+): Promise<LocalMessage> {
+  const messages = await readMessages()
+
+  const newMessage: LocalMessage = {
+    id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    conversation_id,
+    sender_role,
+    sender_id,
+    content,
+    message_type,
+    metadata,
+    created_at: new Date().toISOString(),
+  }
+
+  messages.push(newMessage)
+  await writeMessages(messages)
+
+  // Update conversation's last_message_at
+  await updateConversation(conversation_id, {
+    last_message_at: newMessage.created_at,
+  })
+
+  console.log('[LocalStorage] Added message with metadata:', conversation_id, message_type)
   return newMessage
 }
 

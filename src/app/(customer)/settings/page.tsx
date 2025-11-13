@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/hooks/use-auth'
-import { User, Bell, Lock, Globe } from 'lucide-react'
+import { User, Bell, Lock } from 'lucide-react'
 
 export default function CustomerSettingsPage() {
   const { user } = useAuth()
@@ -57,7 +57,7 @@ export default function CustomerSettingsPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
       toast.success('个人信息已更新')
-    } catch (error) {
+    } catch {
       toast.error('更新失败，请重试')
     } finally {
       setLoading(false)
@@ -70,7 +70,7 @@ export default function CustomerSettingsPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
       toast.success('通知设置已更新')
-    } catch (error) {
+    } catch {
       toast.error('更新失败，请重试')
     } finally {
       setLoading(false)
@@ -98,7 +98,7 @@ export default function CustomerSettingsPage() {
         newPassword: '',
         confirmPassword: '',
       })
-    } catch (error) {
+    } catch {
       toast.error('密码更新失败，请重试')
     } finally {
       setLoading(false)

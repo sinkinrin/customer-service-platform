@@ -1,34 +1,37 @@
 /**
- * Conversation Detail Page
+ * Conversation Detail Page - Customer View
  *
- * AI-first conversation with manual escalation to human agents
+ * AI-first conversation with improved manual escalation to human agents
  */
 
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useConversation } from '@/lib/hooks/use-conversation'
 import { MessageList } from '@/components/conversation/message-list'
 import { MessageInput } from '@/components/conversation/message-input'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
+import { ConversationHeader } from '@/components/conversation/conversation-header'
+import { TransferDialog } from '@/components/conversation/transfer-dialog'
 import { toast } from 'sonner'
 import { Loading } from '@/components/common/loading'
 import { useSSE } from '@/lib/hooks/use-sse'
-import { Wifi, WifiOff, AlertCircle, Bot, User } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 type ConversationMode = 'ai' | 'human'
 
 export default function ConversationDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const conversationId = params.id as string
+
   const [showNewMessageNotification, setShowNewMessageNotification] = useState(false)
   const [mode, setMode] = useState<ConversationMode>('ai')
-  const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([])
+  const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant', content: string, timestamp: string }>>([])
   const [isAiLoading, setIsAiLoading] = useState(false)
+  const [showTransferDialog, setShowTransferDialog] = useState(false)
+  const [isTransferring, setIsTransferring] = useState(false)
 
   const {
     activeConversation,
@@ -38,33 +41,56 @@ export default function ConversationDetailPage() {
     isTyping,
     typingUser,
     fetchMessages,
+    fetchConversationById,
     sendMessage,
     subscribeToConversation,
   } = useConversation()
 
   // SSE connection for real-time updates
   const { state: sseState, isConnected, error: sseError } = useSSE({
-    url: '/api/sse/tickets',
-    enabled: true,
+    url: '/api/sse/conversations',
+    enabled: mode === 'human',
     onMessage: (event) => {
-      if (event.type === 'new_message' && event.ticketId === conversationId) {
-        // Show notification
+      console.log('[SSE] Received event:', event)
+
+      // Handle conversation transferred event (customer side)
+      if (event.type === 'conversation_transferred' && event.conversationId === conversationId) {
+        console.log('[SSE] Conversation transferred to human')
+        setMode('human')
+        fetchConversationById(conversationId)
+        fetchMessages(conversationId)
+        toast.success('已成功转接至人工客服')
+      }
+
+      // Handle new message
+      if (event.type === 'new_message' && event.conversationId === conversationId) {
         setShowNewMessageNotification(true)
         setTimeout(() => setShowNewMessageNotification(false), 3000)
-
-        // Refresh messages
         fetchMessages(conversationId)
+      }
 
-        // Show toast
-        toast.info('New message received')
+      // Handle conversation updated
+      if (event.type === 'conversation_updated' && event.conversationId === conversationId) {
+        fetchConversationById(conversationId)
       }
     },
     onError: (error) => {
-      console.error('SSE error:', error)
+      console.error('[SSE] Error:', error)
     },
   })
-  
-  // Fetch conversation and messages only in human mode
+
+  // Fetch conversation to determine mode
+  useEffect(() => {
+    if (conversationId) {
+      fetchConversationById(conversationId).then((conv) => {
+        if (conv && conv.mode) {
+          setMode(conv.mode as ConversationMode)
+        }
+      })
+    }
+  }, [conversationId, fetchConversationById])
+
+  // Fetch messages only in human mode
   useEffect(() => {
     if (conversationId && mode === 'human') {
       fetchMessages(conversationId)
@@ -85,7 +111,11 @@ export default function ConversationDetailPage() {
       setIsAiLoading(true)
 
       // Add user message to AI chat
-      const newUserMessage = { role: 'user' as const, content }
+      const newUserMessage = {
+        role: 'user' as const,
+        content,
+        timestamp: new Date().toISOString()
+      }
       setAiMessages(prev => [...prev, newUserMessage])
 
       // Call AI API
@@ -95,7 +125,7 @@ export default function ConversationDetailPage() {
         body: JSON.stringify({
           conversationId,
           message: content,
-          history: aiMessages,
+          history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
         }),
       })
 
@@ -106,12 +136,30 @@ export default function ConversationDetailPage() {
       }
 
       // Add AI response to chat
-      const aiResponse = { role: 'assistant' as const, content: data.data.message }
+      const aiResponse = {
+        role: 'assistant' as const,
+        content: data.data.message,
+        timestamp: new Date().toISOString()
+      }
       setAiMessages(prev => [...prev, aiResponse])
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI chat error:', error)
-      toast.error('Failed to get AI response')
+
+      // Provide helpful error messages based on error type
+      if (error.message?.includes('FastGPT')) {
+        toast.error('AI服务暂时不可用,请转人工客服获取帮助', {
+          duration: 5000,
+          action: {
+            label: '转人工',
+            onClick: () => setShowTransferDialog(true),
+          },
+        })
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        toast.error('网络连接失败,请检查网络后重试')
+      } else {
+        toast.error('AI响应失败,请重试或转人工客服')
+      }
     } finally {
       setIsAiLoading(false)
     }
@@ -131,80 +179,64 @@ export default function ConversationDetailPage() {
     }
   }
 
-  // Transfer to human agent
-  const handleTransferToHuman = async () => {
+  // Transfer to human agent - New implementation
+  const handleTransferToHuman = async (reason?: string) => {
     try {
-      setIsAiLoading(true)
+      setIsTransferring(true)
 
-      // Create conversation history summary
-      const historySummary = aiMessages.map(msg =>
-        `${msg.role === 'user' ? 'Customer' : 'AI'}: ${msg.content}`
-      ).join('\n\n')
+      // Prepare AI history
+      const aiHistory = aiMessages.map(msg => ({
+        role: msg.role === 'user' ? 'customer' as const : 'ai' as const,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }))
 
-      // Create Zammad ticket with conversation history
-      const response = await fetch('/api/conversations', {
+      // Call transfer API
+      const response = await fetch(`/api/conversations/${conversationId}/transfer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          initial_message: `[AI Chat History]\n\n${historySummary}\n\n---\n\nCustomer requested human agent assistance.`,
+          aiHistory: aiHistory.length > 0 ? aiHistory : undefined,
+          reason: reason || undefined,
         }),
       })
 
       const data = await response.json()
 
       if (!data.success) {
-        throw new Error(data.error || 'Failed to create ticket')
+        throw new Error(data.error?.message || 'Failed to transfer conversation')
       }
 
-      // Get the new ticket ID
-      const newTicketId = data.data.id
+      // Close dialog
+      setShowTransferDialog(false)
 
-      // Switch to human mode
+      // Update mode to human
       setMode('human')
-      toast.success('Transferred to human agent')
 
-      // Redirect to the new ticket conversation
-      window.location.href = `/conversations/${newTicketId}`
+      // Clear AI messages
+      setAiMessages([])
+
+      // Fetch conversation and messages
+      await fetchConversationById(conversationId)
+      await fetchMessages(conversationId)
+
+      toast.success('已成功转接至人工客服')
 
     } catch (error) {
       console.error('Transfer error:', error)
-      toast.error('Failed to transfer to human agent')
+      toast.error('转接失败，请重试')
     } finally {
-      setIsAiLoading(false)
+      setIsTransferring(false)
     }
   }
-  
-  // Get user initials
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-  
-  // Get status variant
-  const getStatusVariant = (status: string): 'default' | 'secondary' | 'outline' => {
-    switch (status) {
-      case 'waiting':
-        return 'secondary'
-      case 'active':
-        return 'default'
-      case 'closed':
-        return 'outline'
-      default:
-        return 'outline'
-    }
-  }
-  
+
   if (mode === 'human' && !activeConversation && isLoadingMessages) {
     return <Loading fullScreen text="Loading conversation..." />
   }
 
-  const staffName = mode === 'ai' ? 'AI Assistant' : (activeConversation?.staff?.full_name || 'Waiting for assignment')
-  const staffAvatar = mode === 'ai' ? undefined : activeConversation?.staff?.avatar_url
-  const conversationStatus = mode === 'ai' ? 'active' : (activeConversation?.status || 'waiting')
+  const staffName = activeConversation?.staff?.full_name
+  const staffAvatar = activeConversation?.staff?.avatar_url
+  const conversationStatus = mode === 'human' ? (activeConversation?.status || 'waiting') : 'active'
   const isClosed = mode === 'human' && conversationStatus === 'closed'
 
   // Convert AI messages to display format
@@ -216,13 +248,13 @@ export default function ConversationDetailPage() {
         content: msg.content,
         message_type: 'text' as const,
         metadata: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: msg.timestamp,
+        updated_at: msg.timestamp,
         sender: {
           id: msg.role === 'user' ? 'user' : 'ai',
           full_name: msg.role === 'user' ? 'You' : 'AI Assistant',
           avatar_url: undefined,
-          role: msg.role === 'user' ? 'customer' : 'staff',
+          role: msg.role === 'user' ? ('customer' as const) : ('staff' as const),
         },
       }))
     : messages
@@ -249,52 +281,17 @@ export default function ConversationDetailPage() {
       )}
 
       {/* Header */}
-      <div className="border-b bg-background p-4">
-        <div className="container max-w-4xl">
-          <div className="flex items-center gap-4">
-            {/* Mode Indicator */}
-            <div className="flex items-center gap-2">
-              {mode === 'ai' ? (
-                <Bot className="h-5 w-5 text-blue-500" title="AI Chat" />
-              ) : isConnected ? (
-                <Wifi className="h-4 w-4 text-green-500" title="Connected" />
-              ) : sseState === 'connecting' ? (
-                <WifiOff className="h-4 w-4 text-yellow-500 animate-pulse" title="Connecting..." />
-              ) : (
-                <WifiOff className="h-4 w-4 text-gray-400" title="Disconnected" />
-              )}
-            </div>
+      <ConversationHeader
+        mode={mode}
+        staffName={staffName}
+        staffAvatar={staffAvatar}
+        status={conversationStatus}
+        isConnected={mode === 'human' && isConnected}
+        sseState={sseState}
+        onTransferToHuman={() => setShowTransferDialog(true)}
+        isTransferring={isTransferring}
+      />
 
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={staffAvatar} alt={staffName} />
-              <AvatarFallback>
-                {mode === 'ai' ? <Bot className="h-5 w-5" /> : getInitials(staffName)}
-              </AvatarFallback>
-            </Avatar>
-
-            <div className="flex-1 min-w-0">
-              <h2 className="font-semibold truncate">{staffName}</h2>
-              <Badge variant={getStatusVariant(conversationStatus)} className="mt-1">
-                {mode === 'ai' ? 'AI Chat' : conversationStatus}
-              </Badge>
-            </div>
-
-            {/* Transfer to Human Button - Only in AI mode */}
-            {mode === 'ai' && (
-              <Button
-                onClick={handleTransferToHuman}
-                disabled={isAiLoading}
-                variant="outline"
-                size="sm"
-              >
-                <User className="h-4 w-4 mr-2" />
-                转人工
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-      
       {/* Messages */}
       <div className="flex-1 overflow-hidden">
         <div className="container max-w-4xl h-full">
@@ -307,24 +304,20 @@ export default function ConversationDetailPage() {
         </div>
       </div>
 
-      {/* Input */}
+      {/* Input - Fixed at bottom */}
       {!isClosed && (
-        <div className="border-t">
-          <div className="container max-w-4xl">
-            <MessageInput
-              onSend={mode === 'ai' ? handleAIMessage : handleHumanMessage}
-              isSending={mode === 'ai' ? isAiLoading : isSendingMessage}
-              disabled={isClosed || isAiLoading}
-              placeholder={
-                mode === 'ai'
-                  ? 'Type a message to chat with AI...'
-                  : conversationStatus === 'waiting'
-                  ? 'Send a message to start the conversation...'
-                  : 'Type a message...'
-              }
-            />
-          </div>
-        </div>
+        <MessageInput
+          onSend={mode === 'ai' ? handleAIMessage : handleHumanMessage}
+          isSending={mode === 'ai' ? isAiLoading : isSendingMessage}
+          disabled={isClosed || isAiLoading}
+          placeholder={
+            mode === 'ai'
+              ? 'Type a message to chat with AI...'
+              : conversationStatus === 'waiting'
+              ? 'Send a message to start the conversation...'
+              : 'Type a message...'
+          }
+        />
       )}
 
       {isClosed && (
@@ -336,7 +329,14 @@ export default function ConversationDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Transfer Dialog */}
+      <TransferDialog
+        open={showTransferDialog}
+        onOpenChange={setShowTransferDialog}
+        onConfirm={handleTransferToHuman}
+        isTransferring={isTransferring}
+      />
     </div>
   )
 }
-

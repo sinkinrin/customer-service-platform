@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
     // Use mock authentication (password is 'password123' for all test accounts)
     const result = await mockSignIn(email, 'password123')
 
-    if (!result.success || !result.user || !result.session) {
-      return serverErrorResponse('Login failed', 'Invalid credentials', 401)
+    if (result.error || !result.user || !result.session) {
+      return serverErrorResponse('Login failed', result.error || 'Invalid credentials', 401)
     }
 
     return successResponse({

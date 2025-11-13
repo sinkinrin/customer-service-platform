@@ -170,7 +170,7 @@ export default function MyTicketsPage() {
                   <TableRow
                     key={ticket.id}
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => router.push(`/staff/tickets/${ticket.id}`)}
+                    onClick={() => router.push(`/my-tickets/${ticket.id}`)}
                   >
                     <TableCell className="font-medium">#{ticket.number}</TableCell>
                     <TableCell className="max-w-md truncate">{ticket.title}</TableCell>
@@ -197,7 +197,7 @@ export default function MyTicketsPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          router.push(`/staff/tickets/${ticket.id}`)
+                          router.push(`/my-tickets/${ticket.id}`)
                         }}
                       >
                         查看详情

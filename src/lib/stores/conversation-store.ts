@@ -137,7 +137,7 @@ export const useConversationStore = create<ConversationState>()(
       
       setActiveConversation: (conversation) => set({
         activeConversation: conversation,
-        messages: [], // Clear messages when switching conversations
+        // Don't auto-clear messages - let the caller manage messages explicitly
       }),
       
       setMessages: (messages) => set({ messages }),

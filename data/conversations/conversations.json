@@ -218,5 +218,45 @@
     "created_at": "2025-11-11T09:27:06.030Z",
     "updated_at": "2025-11-11T09:27:06.030Z",
     "last_message_at": "2025-11-11T09:27:06.030Z"
+  },
+  {
+    "id": "conv_1762915365387_nna9i7p93",
+    "customer_id": "mock-customer-id",
+    "customer_email": "customer@test.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-12T02:42:45.387Z",
+    "updated_at": "2025-11-12T02:42:45.387Z",
+    "last_message_at": "2025-11-12T02:42:45.387Z"
+  },
+  {
+    "id": "conv_1762915365679_6xcbois7d",
+    "customer_id": "mock-customer-id",
+    "customer_email": "customer@test.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-12T02:42:45.679Z",
+    "updated_at": "2025-11-12T02:42:45.679Z",
+    "last_message_at": "2025-11-12T02:42:45.679Z"
+  },
+  {
+    "id": "conv_1762915365713_y9idjgqk4",
+    "customer_id": "mock-customer-id",
+    "customer_email": "customer@test.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-12T02:42:45.713Z",
+    "updated_at": "2025-11-12T02:42:45.713Z",
+    "last_message_at": "2025-11-12T02:42:45.713Z"
+  },
+  {
+    "id": "conv_1762915366788_uc925w86q",
+    "customer_id": "mock-customer-id",
+    "customer_email": "customer@test.com",
+    "mode": "ai",
+    "status": "active",
+    "created_at": "2025-11-12T02:42:46.788Z",
+    "updated_at": "2025-11-12T02:42:46.788Z",
+    "last_message_at": "2025-11-12T02:42:46.788Z"
   }
 ]

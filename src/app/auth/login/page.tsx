@@ -1,0 +1,189 @@
+/**
+ * Login Page
+ *
+ * User login with email and password using mock authentication
+ */
+
+"use client"
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { useAuth } from '@/lib/hooks/use-auth'
+import { getDefaultRouteForRole, type UserRole } from '@/lib/utils/route-helpers'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+})
+
+type LoginFormData = z.infer<typeof loginSchema>
+
+export default function LoginPage() {
+  const router = useRouter()
+  const { signIn, getUserRole, user, userRole } = useAuth()
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  })
+
+  // Auto-redirect authenticated users to their dashboard
+  useEffect(() => {
+    // Only redirect if we have both user and userRole (skip loading checks to avoid infinite loading)
+    if (user && userRole) {
+      const defaultRoute = getDefaultRouteForRole(userRole)
+      router.replace(defaultRoute)
+    }
+  }, [user, userRole, router])
+
+
+  // Auto-redirect if already signed in; avoid awaiting role resolution to prevent UI hang
+  useEffect(() => {
+    if (!user) return
+    const email = user.email?.toLowerCase()
+    if (process.env.NODE_ENV !== 'production' && email) {
+      if (email === 'admin@test.com') { router.replace('/admin/dashboard'); return }
+      if (email === 'staff@test.com') { router.replace('/staff/dashboard'); return }
+      if (email === 'customer@test.com') { router.replace('/customer/dashboard'); return }
+    }
+    if (userRole) {
+      const target = getDefaultRouteForRole(userRole as UserRole)
+      if (typeof window !== 'undefined' && window.location.pathname !== target) {
+        router.replace(target)
+      }
+    }
+  }, [user, userRole, router])
+
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      setIsSubmitting(true)
+      setError(null)
+
+      const { data: authData, error } = await signIn(data.email, data.password)
+
+      if (error) {
+        setError(error.message || 'Failed to sign in')
+        return
+      }
+
+      // Get user role and redirect to appropriate dashboard
+      if (authData?.user) {
+        const role = await getUserRole(authData.user.id)
+        const defaultRoute = getDefaultRouteForRole(role)
+        router.replace(defaultRoute)
+      } else {
+        // Fallback to home page if no user data
+        router.replace('/')
+      }
+    } catch (err) {
+      const error = err as Error
+      setError(error.message || 'An unexpected error occurred')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Don't render login form if user is already authenticated (will redirect via useEffect)
+  if (user && userRole) {
+    return (
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold">Redirecting...</CardTitle>
+          <CardDescription>
+            Taking you to your dashboard
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+        <CardDescription>
+          Enter your email and password to access your account
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Email Field */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              {...register('email')}
+              disabled={isSubmitting}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+
+          {/* Password Field */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                href="/forgot-password"
+                className="text-sm text-primary hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              {...register('password')}
+              disabled={isSubmitting}
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </form>
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-4">
+        <div className="text-sm text-center text-muted-foreground">
+          Don&apos;t have an account?{' '}
+          <Link href="/auth/register" className="text-primary hover:underline font-medium">
+            Sign up
+          </Link>
+        </div>
+      </CardFooter>
+    </Card>
+  )
+}
+

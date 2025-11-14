@@ -1,7 +1,7 @@
 /**
- * Customer Layout
- * 
- * Layout for customer-facing pages
+ * Customer Layout (Parenthesized Route Group)
+ *
+ * Layout for customer-facing pages with authentication protection
  */
 
 'use client'
@@ -21,7 +21,7 @@ export default function CustomerLayoutWrapper({
 
   const handleLogout = async () => {
     await signOut()
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   return (
@@ -30,8 +30,8 @@ export default function CustomerLayoutWrapper({
         user={user ? {
           id: user.id,
           email: user.email || '',
-          name: user.user_metadata?.full_name || undefined,
-          avatar: user.user_metadata?.avatar_url || undefined,
+          name: user.full_name || undefined,
+          avatar: user.avatar_url || undefined,
           role: userRole || 'customer',
         } : undefined}
         onLogout={handleLogout}
@@ -41,4 +41,3 @@ export default function CustomerLayoutWrapper({
     </ProtectedRoute>
   )
 }
-

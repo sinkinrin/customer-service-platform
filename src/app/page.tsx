@@ -46,7 +46,7 @@ export default function HomePage() {
             </p>
 
             {/* Unified Login Button */}
-            <Link href="/login">
+            <Link href="/auth/login">
               <Button size="lg" className="text-lg px-8 py-6 h-auto">
                 <LogIn className="mr-2 h-5 w-5" />
                 Sign In to Your Account
@@ -55,7 +55,7 @@ export default function HomePage() {
 
             <p className="text-sm text-gray-500 mt-4">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-blue-600 hover:underline">
+              <Link href="/auth/register" className="text-blue-600 hover:underline">
                 Sign up here
               </Link>
             </p>

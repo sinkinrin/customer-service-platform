@@ -8,32 +8,29 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, MessageSquare, Clock, Filter, BellRing } from 'lucide-react'
+import { Search, MessageSquare, Clock, Filter, BellRing, User, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { useSSE } from '@/lib/hooks/use-sse'
 import { cn } from '@/lib/utils'
+import { Separator } from '@/components/ui/separator'
+import { UnreadBadge } from '@/components/ui/unread-badge'
 
 interface Conversation {
   id: string
   customer_id: string
   staff_id?: string
   status: 'waiting' | 'active' | 'closed'
+  mode?: 'ai' | 'human'
   message_count: number
+  staff_unread_count?: number // Staff's unread count
+  customer_unread_count?: number // Customer's unread count
   created_at: string
   updated_at: string
   last_message_at?: string
@@ -97,11 +94,11 @@ export default function StaffConversationsPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'waiting':
-        return 'Waiting'
+        return '等待中'
       case 'active':
-        return 'Active'
+        return '进行中'
       case 'closed':
-        return 'Closed'
+        return '已关闭'
       default:
         return status
     }
@@ -184,6 +181,12 @@ export default function StaffConversationsPage() {
       if (event.type === 'conversation_transferred') {
         loadConversations()
       }
+
+      // Handle new message - reload conversations to update unread counts
+      if (event.type === 'new_message') {
+        console.log('[Staff] Received new_message event, reloading conversations')
+        loadConversations()
+      }
     },
     onError: (error) => {
       console.error('[SSE] Error:', error)
@@ -195,9 +198,9 @@ export default function StaffConversationsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Conversations</h1>
+        <h1 className="text-3xl font-bold">对话管理</h1>
         <p className="text-muted-foreground mt-2">
-          Manage customer conversations and provide support
+          管理客户对话并提供支持
         </p>
       </div>
 
@@ -205,7 +208,7 @@ export default function StaffConversationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
+            <CardTitle className="text-sm font-medium">全部对话</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -214,7 +217,7 @@ export default function StaffConversationsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Waiting</CardTitle>
+            <CardTitle className="text-sm font-medium">等待中</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -223,7 +226,7 @@ export default function StaffConversationsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <CardTitle className="text-sm font-medium">进行中</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -232,7 +235,7 @@ export default function StaffConversationsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Closed</CardTitle>
+            <CardTitle className="text-sm font-medium">已关闭</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -244,8 +247,8 @@ export default function StaffConversationsPage() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Filter Conversations</CardTitle>
-          <CardDescription>Search and filter conversations</CardDescription>
+          <CardTitle>筛选对话</CardTitle>
+          <CardDescription>搜索和筛选对话列表</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
@@ -253,7 +256,7 @@ export default function StaffConversationsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by customer name, email, or ID..."
+                  placeholder="搜索客户姓名、邮箱或对话ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -264,134 +267,174 @@ export default function StaffConversationsPage() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder="状态" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="waiting">Waiting</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="waiting">等待中</SelectItem>
+                  <SelectItem value="active">进行中</SelectItem>
+                  <SelectItem value="closed">已关闭</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <Button onClick={loadConversations} variant="outline">
-              Refresh
+              刷新
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Conversations Table */}
-      <Card>
-        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      {/* Conversations Grid */}
+      <div>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
           <div>
-            <CardTitle>Conversations List</CardTitle>
-            <CardDescription>
-              {filteredConversations.length} conversation(s) found
-            </CardDescription>
+            <h2 className="text-xl font-semibold">对话列表</h2>
+            <p className="text-sm text-muted-foreground">
+              找到 {filteredConversations.length} 个对话
+            </p>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Badge variant={sseConnected ? 'secondary' : 'destructive'}>
-              {sseConnected ? '实时更新' : '实时中断'}
+              {sseConnected ? '🟢 实时更新' : '🔴 实时中断'}
             </Badge>
             {sseState === 'error' && (
               <span className="text-xs text-destructive">连接异常</span>
             )}
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-              <p className="mt-2 text-sm text-muted-foreground">Loading conversations...</p>
-            </div>
-          ) : filteredConversations.length === 0 ? (
-            <div className="text-center py-8">
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+            <p className="mt-2 text-sm text-muted-foreground">加载对话中...</p>
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
               <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium">No conversations found</p>
+              <p className="text-lg font-medium">暂无对话</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {searchQuery ? 'Try adjusting your search criteria' : 'No conversations available'}
+                {searchQuery ? '尝试调整搜索条件' : '还没有客户对话'}
               </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Messages</TableHead>
-                  <TableHead>Staff</TableHead>
-                  <TableHead>Last Activity</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredConversations.map((conversation) => (
-                  <TableRow
-                    key={conversation.id}
-                    className={cn(
-                      'cursor-pointer hover:bg-muted/50 transition',
-                      highlightedConversationId === conversation.id &&
-                        'bg-blue-50 border border-blue-200'
-                    )}
-                    onClick={() => router.push(`/staff/conversations/${conversation.id}`)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredConversations.map((conversation) => (
+              <Card
+                key={conversation.id}
+                className={cn(
+                  'cursor-pointer hover:shadow-md transition-all duration-200 hover:border-primary/50 relative',
+                  highlightedConversationId === conversation.id &&
+                    'bg-blue-50 dark:bg-blue-950 border-blue-500 shadow-lg ring-2 ring-blue-500/20'
+                )}
+                onClick={() => router.push(`/staff/conversations/${conversation.id}`)}
+              >
+                {/* Unread Badge - Top Right Corner */}
+                {conversation.staff_unread_count && conversation.staff_unread_count > 0 && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <UnreadBadge count={conversation.staff_unread_count} />
+                  </div>
+                )}
+
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-primary text-primary-foreground">
                             {conversation.customer?.full_name?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <div className="font-medium">
-                            {conversation.customer?.full_name || 'Unknown'}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {conversation.customer?.email || 'No email'}
-                          </div>
-                        </div>
+                        {/* Red dot on avatar for unread messages */}
+                        {conversation.staff_unread_count && conversation.staff_unread_count > 0 && (
+                          <span className="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500 ring-2 ring-background" />
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base font-semibold truncate">
+                          {conversation.customer?.full_name || '未知客户'}
+                        </CardTitle>
+                        <CardDescription className="text-xs truncate">
+                          {conversation.customer?.email || '无邮箱'}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
                       <Badge variant={getStatusBadgeVariant(conversation.status)}>
                         {getStatusLabel(conversation.status)}
                       </Badge>
-                    </TableCell>
-                    <TableCell>{conversation.message_count}</TableCell>
-                    <TableCell>
-                      {conversation.staff?.full_name || (
-                        <span className="text-muted-foreground">Unassigned</span>
+                      {conversation.mode && (
+                        <Badge variant={conversation.mode === 'ai' ? 'outline' : 'secondary'}>
+                          {conversation.mode === 'ai' ? 'AI' : '人工'}
+                        </Badge>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {conversation.last_message_at
-                        ? format(new Date(conversation.last_message_at), 'MMM d, HH:mm')
-                        : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(conversation.created_at), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/staff/conversations/${conversation.id}`)
-                        }}
-                      >
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MessageSquare className="h-3 w-3" />
+                      <span>{conversation.message_count || 0} 条</span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        负责客服
+                      </span>
+                      <span className="font-medium truncate max-w-[120px]">
+                        {conversation.staff?.full_name || (
+                          <span className="text-muted-foreground">未分配</span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        最后活动
+                      </span>
+                      <span className="font-medium">
+                        {conversation.last_message_at
+                          ? format(new Date(conversation.last_message_at), 'MM-dd HH:mm')
+                          : '无活动'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">创建时间</span>
+                      <span className="font-medium">
+                        {format(new Date(conversation.created_at), 'MM-dd HH:mm')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/staff/conversations/${conversation.id}`)
+                    }}
+                  >
+                    查看对话
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

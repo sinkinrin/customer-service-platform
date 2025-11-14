@@ -15,7 +15,7 @@ export default function StaffRootLayout({
 
   const handleLogout = async () => {
     await signOut()
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   return (
@@ -24,8 +24,8 @@ export default function StaffRootLayout({
         user={{
           id: user?.id || '',
           email: user?.email || '',
-          name: user?.user_metadata?.full_name || undefined,
-          avatar: user?.user_metadata?.avatar_url || undefined,
+          name: user?.full_name || undefined,
+          avatar: user?.avatar_url || undefined,
           role: 'staff',
         }}
         onLogout={handleLogout}

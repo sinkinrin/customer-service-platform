@@ -62,10 +62,10 @@ export default function StaffSettingsPage() {
     if (user) {
       setSettings((prev) => ({
         ...prev,
-        full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+        full_name: user.full_name || '',
         email: user.email || '',
-        phone: user.user_metadata?.phone || '',
-        language: user.user_metadata?.language || 'en',
+        phone: user.phone || '',
+        language: user.language || 'en',
       }))
     }
   }, [user])

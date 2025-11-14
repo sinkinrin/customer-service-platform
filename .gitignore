@@ -3,3 +3,40 @@ node_modules
 .env.local
 config/ai-settings.json
 /src/generated/prisma
+
+# Build files
+*.tsbuildinfo
+dist/
+build/
+
+# Data files (runtime data should not be committed)
+data/conversations/*.json
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+nul
+
+# Test and analysis reports (temporary)
+*-REPORT.md
+*-ANALYSIS.md
+*-SUMMARY.md
+*-VERIFICATION.md
+
+# Playwright MCP
+.playwright-mcp/
+
+# Local settings
+.claude/settings.local.json
+
+# Disabled/backup files
+*.disabled
+*.backup
+*.old

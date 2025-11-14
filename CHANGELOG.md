@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-11-14
+
+### 🐛 修复
+
+#### R1: Switch-to-AI 端点安全加固
+- **文件**: `src/app/api/conversations/[id]/switch-to-ai/route.ts`
+- 添加了 `requireAuth()` 身份验证调用
+- 实现参与者权限检查（只有对话拥有者、分配的员工或管理员可切换模式）
+- 添加 401/403 错误处理，防止未授权访问
+- 与 transfer 端点的安全模式保持一致
+- 修复安全漏洞：任何未认证用户都能将对话从人工模式切换回 AI 模式
+
+#### R2: Mark-Read 未读计数按员工隔离
+- **文件**: `src/app/api/conversations/[id]/mark-read/route.ts`
+- 员工调用 `getStaffUnreadCount(user.id)` 只看到分配给自己的对话未读数
+- 管理员继续调用 `getStaffUnreadCount()` 无参数，看到全局未读计数
+- 改进 SSE 广播逻辑，使每个员工只收到自己的未读计数更新
+- 修复问题：员工标记对话已读后，所有员工都看到全局未读计数而非个人计数
+
+#### R3: 客户对话页面防止重复创建
+- **文件**: `src/app/customer/conversations/page.tsx`
+- 添加显式的 `conversationsLoaded` 标志
+- 确保在 `fetchConversations()` 完成后才执行创建/重定向逻辑
+- 优先重用现有的活动对话，只在没有活动对话时才创建新对话
+- 修复问题：客户访问 `/customer/conversations` 时会在获取对话列表前创建重复对话
+
+### 技术细节
+
+- 所有修复实现 OpenSpec 提案: `update-conversation-security-and-launch`
+- 更改保持向后兼容，遵循现有代码模式
+- 无数据库架构更改
+- 包含清晰的 R1/R2/R3 注释便于需求追溯
+
+### 参考
+
+- OpenSpec 提案: `openspec/changes/update-conversation-security-and-launch/proposal.md`
+- 任务列表: `openspec/changes/update-conversation-security-and-launch/tasks.md`
+- 提交: [94fbd11](https://github.com/user/customer-service-platform/commit/94fbd11)
+
+---
+
 ## [0.1.0] - 2025-11-14
 
 ### Fixed

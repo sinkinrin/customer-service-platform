@@ -113,11 +113,12 @@ export function getAccessibleRegions(user: MockUser): RegionValue[] {
 
 /**
  * Filter tickets by user's accessible regions
+ * R5: Customers now see all their tickets regardless of group reassignment
  * @param tickets - Array of tickets to filter
  * @param user - The user to filter for
  * @returns Filtered array of tickets
  */
-export function filterTicketsByRegion<T extends { group_id?: number }>(
+export function filterTicketsByRegion<T extends { group_id?: number; customer_id?: number }>(
   tickets: T[],
   user: MockUser
 ): T[] {
@@ -126,10 +127,16 @@ export function filterTicketsByRegion<T extends { group_id?: number }>(
     return tickets
   }
 
-  // Get accessible group IDs
+  // R5: Customers see all their tickets regardless of group_id
+  // Zammad API with X-On-Behalf-Of already filters by customer ownership
+  // So we don't need additional group_id filtering for customers
+  if (user.role === 'customer') {
+    return tickets
+  }
+
+  // Staff: Filter by accessible group IDs (region-based)
   const accessibleGroupIds = getAccessibleGroupIds(user)
 
-  // Filter tickets by group_id
   return tickets.filter((ticket) => {
     if (!ticket.group_id) {
       return false

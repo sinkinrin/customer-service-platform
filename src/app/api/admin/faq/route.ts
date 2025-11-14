@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '1000')
     const language = searchParams.get('language') || 'zh-CN'
-    const categoryId = searchParams.get('category_id')
+    // Support both camelCase (categoryId) and snake_case (category_id) for backwards compatibility
+    const categoryId = searchParams.get('categoryId') || searchParams.get('category_id')
 
     // Build where clause - NO isActive filter for admin (show all articles)
     const where: any = {}

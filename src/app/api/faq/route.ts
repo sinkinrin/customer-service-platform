@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('query') || ''
     const language = searchParams.get('language') || 'zh-CN'
-    const categoryId = searchParams.get('category_id')
+    // Support both camelCase (categoryId) and snake_case (category_id) for backwards compatibility
+    const categoryId = searchParams.get('categoryId') || searchParams.get('category_id')
     const limit = parseInt(searchParams.get('limit') || '10')
 
     // Validate limit (allow up to 1000 for admin pages)

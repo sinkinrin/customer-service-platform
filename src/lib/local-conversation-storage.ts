@@ -16,13 +16,18 @@ export interface LocalConversation {
   id: string
   customer_id: string
   customer_email: string
+  customer_name?: string // Customer display name
   mode: 'ai' | 'human'
-  status: 'active' | 'closed'
+  status: 'active' | 'waiting' | 'closed'
   zammad_ticket_id?: number // Only set when escalated to human
   transferred_at?: string // When conversation was transferred to human
   transfer_reason?: string // Optional reason for transfer
   staff_id?: string // Assigned staff ID
   staff_name?: string // Assigned staff name
+  customer_unread_count?: number // Number of unread messages for customer
+  staff_unread_count?: number // Number of unread messages for staff
+  customer_last_read_at?: string // Last time customer read messages
+  staff_last_read_at?: string // Last time staff read messages
   created_at: string
   updated_at: string
   last_message_at: string
@@ -199,7 +204,8 @@ export async function addMessage(
   conversation_id: string,
   sender_role: 'customer' | 'ai' | 'staff',
   sender_id: string,
-  content: string
+  content: string,
+  metadata?: Record<string, any>
 ): Promise<LocalMessage> {
   const messages = await readMessages()
 
@@ -210,6 +216,7 @@ export async function addMessage(
     sender_id,
     content,
     message_type: 'text',
+    metadata,
     created_at: new Date().toISOString(),
   }
 
@@ -291,7 +298,7 @@ export async function deleteConversation(id: string): Promise<boolean> {
  */
 export async function getConversationStats(customer_email: string) {
   const conversations = await getCustomerConversations(customer_email)
-  
+
   return {
     total: conversations.length,
     active: conversations.filter(c => c.status === 'active').length,
@@ -299,5 +306,113 @@ export async function getConversationStats(customer_email: string) {
     ai_mode: conversations.filter(c => c.mode === 'ai').length,
     human_mode: conversations.filter(c => c.mode === 'human').length,
   }
+}
+
+/**
+ * Increment unread count for specific user role
+ * @param conversation_id - The conversation ID
+ * @param forRole - Which role should see the unread count ('customer' or 'staff')
+ */
+export async function incrementUnreadCount(
+  conversation_id: string,
+  forRole: 'customer' | 'staff'
+): Promise<LocalConversation | null> {
+  const conversation = await getConversation(conversation_id)
+  if (!conversation) return null
+
+  if (forRole === 'customer') {
+    const currentCount = conversation.customer_unread_count || 0
+    return await updateConversation(conversation_id, {
+      customer_unread_count: currentCount + 1,
+    })
+  } else {
+    const currentCount = conversation.staff_unread_count || 0
+    return await updateConversation(conversation_id, {
+      staff_unread_count: currentCount + 1,
+    })
+  }
+}
+
+/**
+ * Mark conversation as read for specific user role
+ * @param conversation_id - The conversation ID
+ * @param byRole - Which role is marking as read ('customer' or 'staff')
+ */
+export async function markConversationAsRead(
+  conversation_id: string,
+  byRole: 'customer' | 'staff'
+): Promise<LocalConversation | null> {
+  if (byRole === 'customer') {
+    return await updateConversation(conversation_id, {
+      customer_unread_count: 0,
+      customer_last_read_at: new Date().toISOString(),
+    })
+  } else {
+    return await updateConversation(conversation_id, {
+      staff_unread_count: 0,
+      staff_last_read_at: new Date().toISOString(),
+    })
+  }
+}
+
+/**
+ * Get total unread count for a customer
+ */
+export async function getTotalUnreadCount(customer_email: string): Promise<number> {
+  const conversations = await getCustomerConversations(customer_email)
+  return conversations.reduce((total, conv) => total + (conv.customer_unread_count || 0), 0)
+}
+
+/**
+ * Get total unread count for staff
+ * R4: Now supports per-staff filtering for individual queues
+ * @param staff_id - Optional staff ID to filter by assigned conversations. If omitted, returns global count (admin view)
+ */
+export async function getStaffUnreadCount(staff_id?: string): Promise<number> {
+  const conversations = await getAllConversations()
+  let humanConversations = conversations.filter(c => c.mode === 'human' && c.status === 'active')
+
+  // R4: Filter by staff assignment if staff_id provided
+  if (staff_id) {
+    humanConversations = humanConversations.filter(c => c.staff_id === staff_id)
+  }
+
+  return humanConversations.reduce((total, conv) => total + (conv.staff_unread_count || 0), 0)
+}
+
+/**
+ * Create a new message (with message_type support)
+ */
+export async function createMessage(data: {
+  conversation_id: string
+  sender_role: 'customer' | 'ai' | 'staff' | 'system'
+  sender_id: string
+  content: string
+  message_type?: 'text' | 'system' | 'transfer_history'
+  metadata?: Record<string, any>
+}): Promise<LocalMessage> {
+  const messages = await readMessages()
+
+  const newMessage: LocalMessage = {
+    id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    conversation_id: data.conversation_id,
+    sender_role: data.sender_role,
+    sender_id: data.sender_id,
+    content: data.content,
+    message_type: data.message_type || 'text',
+    metadata: data.metadata,
+    created_at: new Date().toISOString(),
+  }
+
+  messages.push(newMessage)
+  await writeMessages(messages)
+
+  // Update conversation's last_message_at
+  await updateConversation(data.conversation_id, {
+    last_message_at: newMessage.created_at,
+  })
+
+  console.log('[LocalStorage] Created message:', newMessage.id)
+  return newMessage
 }
 

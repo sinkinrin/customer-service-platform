@@ -54,14 +54,21 @@ export async function POST(
     // Broadcast update to connected clients
     broadcastConversationUpdate(conversationId, updatedConversation)
 
-    // Broadcast updated unread count to the user
+    // R2: Broadcast updated unread count to the user
     try {
-      const unreadCount = userRole === 'customer'
-        ? await localStorage.getTotalUnreadCount(user.email)
-        : await localStorage.getStaffUnreadCount()
+      let unreadCount: number
+      if (userRole === 'customer') {
+        unreadCount = await localStorage.getTotalUnreadCount(user.email)
+      } else if (user.role === 'admin') {
+        // Admin gets global unread count (all conversations)
+        unreadCount = await localStorage.getStaffUnreadCount()
+      } else {
+        // R2: Staff gets only their assigned conversations' unread count
+        unreadCount = await localStorage.getStaffUnreadCount(user.id)
+      }
 
       broadcastUnreadCountUpdate(user.id, unreadCount)
-      console.log(`[SSE] Broadcasted unread count update to ${user.id}: ${unreadCount}`)
+      console.log(`[SSE] Broadcasted unread count update to ${user.id} (${user.role}): ${unreadCount}`)
     } catch (error) {
       console.error('[SSE] Failed to broadcast unread count:', error)
     }

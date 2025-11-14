@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/utils/auth'
 import * as localStorage from '@/lib/local-conversation-storage'
 
 export async function POST(
@@ -13,6 +14,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    // R1: Require authentication
+    const user = await requireAuth()
     const conversationId = params.id
 
     // Get conversation
@@ -24,6 +27,21 @@ export async function POST(
           error: { code: 'NOT_FOUND', message: 'Conversation not found' },
         },
         { status: 404 }
+      )
+    }
+
+    // R1: Verify participant access - only customer owner, assigned staff, or admin can switch modes
+    const isCustomerOwner = user.role === 'customer' && conversation.customer_email === user.email
+    const isAssignedStaff = (user.role === 'staff' || user.role === 'admin') &&
+      (conversation.staff_id === user.id || user.role === 'admin')
+
+    if (!isCustomerOwner && !isAssignedStaff) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'You do not have permission to switch this conversation mode' },
+        },
+        { status: 403 }
       )
     }
 
@@ -62,6 +80,18 @@ export async function POST(
     })
   } catch (error) {
     console.error('[API] Switch to AI error:', error)
+
+    // R1: Handle authentication errors
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
+        },
+        { status: 401 }
+      )
+    }
+
     return NextResponse.json(
       {
         success: false,

@@ -17,17 +17,20 @@ export default function ConversationsPage() {
   const router = useRouter()
   const { conversations, fetchConversations, createConversation } = useConversation()
   const [isProcessing, setIsProcessing] = useState(true)
+  const [conversationsLoaded, setConversationsLoaded] = useState(false)
 
+  // R3: Fetch conversations first and set explicit loaded flag
   useEffect(() => {
-    const autoJoinOrCreate = async () => {
+    const loadConversations = async () => {
       try {
         setIsProcessing(true)
+        setConversationsLoaded(false)
 
-        // Fetch all conversations
+        // Fetch all conversations and wait for completion
         await fetchConversations()
 
-        // Wait a bit for state to update
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // R3: Set explicit flag after fetch completes
+        setConversationsLoaded(true)
       } catch (error) {
         console.error('Error fetching conversations:', error)
         toast.error('Failed to load conversations')
@@ -35,12 +38,12 @@ export default function ConversationsPage() {
       }
     }
 
-    autoJoinOrCreate()
+    loadConversations()
   }, [fetchConversations])
 
-  // After conversations are loaded, check for active conversation
+  // R3: Only run after conversations are explicitly loaded
   useEffect(() => {
-    if (!isProcessing || !conversations) return
+    if (!conversationsLoaded || !isProcessing) return
 
     const handleRedirect = async () => {
       try {
@@ -53,10 +56,12 @@ export default function ConversationsPage() {
         )
 
         if (activeConversation) {
-          // Join existing active conversation
+          // R3: Reuse existing active conversation
+          console.log('[Conversations] Reusing existing conversation:', activeConversation.id)
           router.replace(`/customer/conversations/${activeConversation.id}`)
         } else {
-          // Create new conversation
+          // R3: Only create new conversation if no active one exists
+          console.log('[Conversations] No active conversation found, creating new one')
           const newConversation = await createConversation()
           router.replace(`/customer/conversations/${newConversation.id}`)
         }
@@ -68,7 +73,7 @@ export default function ConversationsPage() {
     }
 
     handleRedirect()
-  }, [conversations, isProcessing, router, createConversation])
+  }, [conversationsLoaded, conversations, isProcessing, router, createConversation])
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

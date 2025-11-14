@@ -159,13 +159,14 @@ export async function POST(
       sender_name: user.full_name || user.email,
     }
 
-    // Add message to local storage
+    // R2: Add message to local storage with message_type to preserve attachments
     const newMessage = await addMessage(
       conversationId,
       senderRole,
       user.id,
       validation.data.content,
-      messageMetadata
+      messageMetadata,
+      validation.data.message_type
     )
 
     console.log('[LocalStorage] Created message:', newMessage.id, 'in conversation:', conversationId)

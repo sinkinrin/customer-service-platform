@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-11-14
+
+### 🐛 修复
+
+#### R1: Admin 票务区域过滤器修正
+- **文件**: `src/app/admin/tickets/page.tsx:102`
+- 修复区域过滤逻辑，使用规范的英文名称 (`labelEn`) 而非本地化标签 (`label`)
+- 解决选择区域后所有票务被隐藏的问题
+- Zammad 返回的 `ticket.group` 是英文名（如 "Asia-Pacific"），现在正确匹配 `ticketRegion.labelEn`
+- 修复前：比较 "Asia-Pacific" 与 "亚太区 (Asia-Pacific)" 导致不匹配
+
+#### R2: 对话附件消息类型保存
+- **文件**:
+  - `src/lib/local-conversation-storage.ts:204-234` - `addMessage()` 函数
+  - `src/lib/local-conversation-storage.ts:36-45` - `LocalMessage` 接口
+  - `src/app/api/conversations/[id]/messages/route.ts:163-170` - API 路由
+  - `src/lib/stores/conversation-store.ts:10-33` - Message 接口
+- 更新 `addMessage()` 函数接受可选的 `message_type` 参数
+- 支持消息类型：`'text' | 'image' | 'file' | 'system' | 'transfer_history'`
+- API 路由现在正确传递 `message_type` 到存储层
+- 扩展 `Message` 接口以支持附件 metadata（`file_name`, `file_size`, `file_url`, `mime_type` 等）
+- 修复问题：客户上传的图片/文件被硬编码为 `'text'` 类型，导致 MessageList 无法渲染附件
+
+#### R3: Staff 标记已读权限放宽
+- **文件**: `src/app/api/conversations/[id]/mark-read/route.ts:33-48`
+- 放宽权限检查，允许任何 staff/admin 标记 human 模式对话为已读
+- 第一个接手转人工对话的员工现在可以清除自己的未读计数
+- 未读计数保持按 `staff_id` 隔离（每个员工只看到自己的未读数）
+- 修复问题：转人工后 `staff_id` 未设置，导致员工无法标记对话已读，未读徽章永远 >0
+
+### 技术细节
+
+- 所有修复实现 OpenSpec 提案: `update-support-ux-consistency`
+- 更改保持向后兼容，遵循现有代码模式
+- 无数据库架构更改
+- TypeScript 类型检查通过，未引入新错误
+- 包含清晰的 R1/R2/R3 注释便于需求追溯
+
+### 参考
+
+- OpenSpec 提案: `openspec/changes/update-support-ux-consistency/proposal.md`
+- 任务列表: `openspec/changes/update-support-ux-consistency/tasks.md`
+
+---
+
 ## [0.1.1] - 2025-11-14
 
 ### 🐛 修复

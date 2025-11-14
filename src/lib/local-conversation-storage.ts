@@ -39,8 +39,8 @@ export interface LocalMessage {
   sender_role: 'customer' | 'ai' | 'staff' | 'system'
   sender_id: string
   content: string
-  message_type?: 'text' | 'system' | 'transfer_history' // New field for message types
-  metadata?: Record<string, any> // Optional metadata for storing AI history, etc.
+  message_type?: 'text' | 'image' | 'file' | 'system' | 'transfer_history' // R2: Support attachments
+  metadata?: Record<string, any> // Optional metadata for storing AI history, attachments, etc.
   created_at: string
 }
 
@@ -199,13 +199,15 @@ export async function updateConversation(
 
 /**
  * Add message to conversation
+ * R2: Now accepts message_type to preserve attachment metadata
  */
 export async function addMessage(
   conversation_id: string,
   sender_role: 'customer' | 'ai' | 'staff',
   sender_id: string,
   content: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
+  message_type?: 'text' | 'image' | 'file' | 'system' | 'transfer_history'
 ): Promise<LocalMessage> {
   const messages = await readMessages()
 
@@ -215,7 +217,7 @@ export async function addMessage(
     sender_role,
     sender_id,
     content,
-    message_type: 'text',
+    message_type: message_type || 'text',
     metadata,
     created_at: new Date().toISOString(),
   }
@@ -228,7 +230,7 @@ export async function addMessage(
     last_message_at: newMessage.created_at,
   })
 
-  console.log('[LocalStorage] Added message to conversation:', conversation_id)
+  console.log('[LocalStorage] Added message to conversation:', conversation_id, message_type || 'text')
   return newMessage
 }
 

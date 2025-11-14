@@ -12,12 +12,16 @@ export interface Message {
   conversation_id: string
   sender_id: string
   content: string
-  message_type: 'text' | 'image' | 'file'
+  message_type: 'text' | 'image' | 'file' | 'system' | 'transfer_history'
   metadata?: {
     file_name?: string
     file_size?: number
     file_url?: string
     mime_type?: string
+    type?: string
+    aiHistory?: any[]
+    transferredAt?: string
+    [key: string]: any
   }
   created_at: string
   sender?: {

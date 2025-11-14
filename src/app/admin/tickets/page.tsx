@@ -98,8 +98,8 @@ export default function AdminTicketsPage() {
     if (selectedRegion !== 'all') {
       const ticketRegion = REGIONS.find(r => r.value === selectedRegion)
       if (ticketRegion && ticket.group) {
-        // Check if ticket group matches selected region
-        if (ticket.group.toLowerCase() !== ticketRegion.label.toLowerCase()) return false
+        // R1: Check if ticket group matches selected region using canonical English name
+        if (ticket.group.toLowerCase() !== ticketRegion.labelEn.toLowerCase()) return false
       }
     }
 

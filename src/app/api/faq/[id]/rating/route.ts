@@ -29,7 +29,7 @@ export async function POST(
     const articleId = parseInt(params.id)
 
     if (isNaN(articleId)) {
-      return errorResponse('Invalid article ID', 400)
+      return errorResponse('INVALID_ID', 'Invalid article ID', undefined, 400)
     }
 
     // Parse request body
@@ -37,7 +37,7 @@ export async function POST(
     const { is_helpful } = body
 
     if (typeof is_helpful !== 'boolean') {
-      return errorResponse('is_helpful must be a boolean', 400)
+      return errorResponse('INVALID_TYPE', 'is_helpful must be a boolean', undefined, 400)
     }
 
     // Check if article exists
@@ -49,7 +49,7 @@ export async function POST(
     })
 
     if (!article) {
-      return errorResponse('Article not found', 404)
+      return errorResponse('NOT_FOUND', 'Article not found', undefined, 404)
     }
 
     // Check if user has already rated this article

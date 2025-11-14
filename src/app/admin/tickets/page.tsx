@@ -96,10 +96,10 @@ export default function AdminTicketsPage() {
 
     // Filter by region
     if (selectedRegion !== 'all') {
-      const regionGroupId = REGIONS.find(r => r.value === selectedRegion)?.value
-      if (regionGroupId && ticket.group_id) {
-        const ticketRegion = REGIONS.find(r => r.value === selectedRegion)
-        if (!ticketRegion) return false
+      const ticketRegion = REGIONS.find(r => r.value === selectedRegion)
+      if (ticketRegion && ticket.group) {
+        // Check if ticket group matches selected region
+        if (ticket.group.toLowerCase() !== ticketRegion.label.toLowerCase()) return false
       }
     }
 

@@ -6,9 +6,7 @@
 
 import { NextRequest } from 'next/server'
 import { mockGetUser } from '@/lib/mock-auth'
-
-// Store active connections
-const connections = new Map<string, ReadableStreamDefaultController>()
+import { addConnection, removeConnection } from '@/lib/sse/ticket-broadcaster'
 
 // Heartbeat interval (30 seconds)
 const HEARTBEAT_INTERVAL = 30000
@@ -33,7 +31,7 @@ export async function GET(request: NextRequest) {
   const stream = new ReadableStream({
     start(controller) {
       // Store the connection
-      connections.set(userId, controller)
+      addConnection(userId, controller)
 
       // Send initial connection message
       const encoder = new TextEncoder()
@@ -48,7 +46,7 @@ export async function GET(request: NextRequest) {
         } catch (error) {
           console.error('Heartbeat error:', error)
           clearInterval(heartbeatInterval)
-          connections.delete(userId)
+          removeConnection(userId)
         }
       }, HEARTBEAT_INTERVAL)
 
@@ -63,14 +61,14 @@ export async function GET(request: NextRequest) {
           console.error('Timeout error:', error)
         }
         clearInterval(heartbeatInterval)
-        connections.delete(userId)
+        removeConnection(userId)
       }, CONNECTION_TIMEOUT)
 
       // Clean up on connection close
       request.signal.addEventListener('abort', () => {
         clearInterval(heartbeatInterval)
         clearTimeout(timeoutId)
-        connections.delete(userId)
+        removeConnection(userId)
         try {
           controller.close()
         } catch {
@@ -88,59 +86,5 @@ export async function GET(request: NextRequest) {
       'X-Accel-Buffering': 'no', // Disable buffering in nginx
     },
   })
-}
-
-/**
- * Broadcast an event to specific users or all users
- */
-export function broadcastEvent(
-  event: {
-    type: string
-    data: any
-  },
-  targetUserIds?: string[]
-) {
-  const encoder = new TextEncoder()
-  const message = `data: ${JSON.stringify(event)}\n\n`
-  const encodedMessage = encoder.encode(message)
-
-  if (targetUserIds) {
-    // Send to specific users
-    targetUserIds.forEach((userId) => {
-      const controller = connections.get(userId)
-      if (controller) {
-        try {
-          controller.enqueue(encodedMessage)
-        } catch (error) {
-          console.error(`Failed to send event to user ${userId}:`, error)
-          connections.delete(userId)
-        }
-      }
-    })
-  } else {
-    // Broadcast to all connected users
-    connections.forEach((controller, userId) => {
-      try {
-        controller.enqueue(encodedMessage)
-      } catch (error) {
-        console.error(`Failed to broadcast event to user ${userId}:`, error)
-        connections.delete(userId)
-      }
-    })
-  }
-}
-
-/**
- * Get count of active connections
- */
-export function getActiveConnectionsCount(): number {
-  return connections.size
-}
-
-/**
- * Get list of connected user IDs
- */
-export function getConnectedUserIds(): string[] {
-  return Array.from(connections.keys())
 }
 

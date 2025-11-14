@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const { name, description, icon, slug } = body
 
     if (!name || !description || !icon || !slug) {
-      return errorResponse('Missing required fields', 400)
+      return errorResponse('MISSING_FIELDS', 'Missing required fields', undefined, 400)
     }
 
     // Check if slug already exists
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existing) {
-      return errorResponse('Category with this slug already exists', 400)
+      return errorResponse('SLUG_EXISTS', 'Category with this slug already exists', undefined, 400)
     }
 
     // Create category
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest) {
     const { id, name, description, icon, slug, is_active } = body
 
     if (!id) {
-      return errorResponse('Category ID is required', 400)
+      return errorResponse('MISSING_ID', 'Category ID is required', undefined, 400)
     }
 
     // Check if category exists
@@ -98,7 +98,7 @@ export async function PUT(request: NextRequest) {
     })
 
     if (!existing) {
-      return errorResponse('Category not found', 404)
+      return errorResponse('NOT_FOUND', 'Category not found', undefined, 404)
     }
 
     // Update category
@@ -142,7 +142,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id')
 
     if (!id) {
-      return errorResponse('Category ID is required', 400)
+      return errorResponse('MISSING_ID', 'Category ID is required', undefined, 400)
     }
 
     // Check if category exists
@@ -156,13 +156,15 @@ export async function DELETE(request: NextRequest) {
     })
 
     if (!existing) {
-      return errorResponse('Category not found', 404)
+      return errorResponse('NOT_FOUND', 'Category not found', undefined, 404)
     }
 
     // Check if category has articles
     if (existing._count.articles > 0) {
       return errorResponse(
+        'HAS_ARTICLES',
         'Cannot delete category with articles. Please delete or move articles first.',
+        undefined,
         400
       )
     }

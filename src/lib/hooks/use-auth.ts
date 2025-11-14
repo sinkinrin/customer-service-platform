@@ -164,7 +164,7 @@ export function useAuth() {
       if (error) throw error
 
       reset()
-      router.push('/login')
+      router.push('/auth/login')
     } catch (error) {
       console.error('Sign out error:', error)
     } finally {

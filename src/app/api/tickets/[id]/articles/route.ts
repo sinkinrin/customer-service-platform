@@ -38,7 +38,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
@@ -69,7 +69,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {

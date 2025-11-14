@@ -65,14 +65,14 @@ export async function POST(request: NextRequest) {
 
       if (!isValid) {
         console.error('Invalid webhook signature')
-        return errorResponse('Invalid webhook signature', 401)
+        return errorResponse('INVALID_SIGNATURE', 'Invalid webhook signature', undefined, 401)
       }
     }
 
     // Validate payload
     if (!webhookPayload || !webhookPayload.event) {
       console.error('Invalid webhook payload:', webhookPayload)
-      return errorResponse('Invalid webhook payload', 400)
+      return errorResponse('INVALID_PAYLOAD', 'Invalid webhook payload', undefined, 400)
     }
 
     // Log webhook event

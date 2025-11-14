@@ -158,7 +158,7 @@ const createTicketSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -223,7 +223,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
 
     // Parse and validate request body
     const body = await request.json()

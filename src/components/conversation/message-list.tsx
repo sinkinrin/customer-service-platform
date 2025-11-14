@@ -9,7 +9,6 @@
 import { useEffect, useRef } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Download } from 'lucide-react'
 import { type Message } from '@/lib/stores/conversation-store'
@@ -166,9 +165,8 @@ export function MessageList({
   }
   
   return (
-    <ScrollArea className="flex-1 p-4">
-      <div className="space-y-4">
-        {messages.map((message) => {
+    <div className="space-y-4">
+      {messages.map((message) => {
           // Handle system messages
           if (message.message_type === 'system' || message.sender?.role === 'system') {
             const messageType = message.metadata?.type === 'transfer_success' ? 'success' : 'info'
@@ -201,22 +199,25 @@ export function MessageList({
           }
 
           // Regular messages
-          const isOwnMessage = message.sender_id === user?.id
+          // Layout: Customer messages on RIGHT, Staff/AI messages on LEFT
           const senderName = message.sender?.full_name || 'Unknown'
           const senderRole = message.sender?.role || 'customer'
+          const isCustomerMessage = senderRole === 'customer'
 
           return (
             <div
               key={message.id}
-              className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}
+              className={`flex gap-3 ${isCustomerMessage ? 'justify-end' : 'justify-start'}`}
             >
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
-                <AvatarFallback>{getInitials(senderName)}</AvatarFallback>
-              </Avatar>
+              {!isCustomerMessage && (
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
+                  <AvatarFallback>{getInitials(senderName)}</AvatarFallback>
+                </Avatar>
+              )}
 
-              <div className={`flex-1 space-y-1 ${isOwnMessage ? 'items-end' : ''}`}>
-                <div className="flex items-center gap-2">
+              <div className={`flex flex-col space-y-1 max-w-[70%] ${isCustomerMessage ? 'items-end' : 'items-start'}`}>
+                <div className={`flex items-center gap-2 ${isCustomerMessage ? 'flex-row-reverse' : ''}`}>
                   <span className="text-sm font-medium">{senderName}</span>
                   {senderRole === 'staff' && (
                     <Badge variant="secondary" className="text-xs">
@@ -234,15 +235,22 @@ export function MessageList({
                 </div>
 
                 <div
-                  className={`inline-block p-3 rounded-lg ${
-                    isOwnMessage
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
+                  className={`p-3 rounded-lg ${
+                    isCustomerMessage
+                      ? 'bg-primary text-primary-foreground rounded-tr-none'
+                      : 'bg-muted rounded-tl-none'
                   }`}
                 >
                   {renderMessageContent(message)}
                 </div>
               </div>
+
+              {isCustomerMessage && (
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
+                  <AvatarFallback>{getInitials(senderName)}</AvatarFallback>
+                </Avatar>
+              )}
             </div>
           )
         })}
@@ -261,10 +269,9 @@ export function MessageList({
             </div>
           </div>
         )}
-        
-        <div ref={bottomRef} />
-      </div>
-    </ScrollArea>
+
+      <div ref={bottomRef} />
+    </div>
   )
 }
 

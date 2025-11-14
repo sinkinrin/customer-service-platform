@@ -21,7 +21,8 @@ export async function GET(_request: NextRequest) {
 
     // Get all tickets from Zammad
     // Note: This uses admin client, not X-On-Behalf-Of
-    const allTickets = await zammadClient.searchTickets('*', 1000)
+    const searchResult = await zammadClient.searchTickets('*', 1000)
+    const allTickets = searchResult.tickets || []
 
     // Initialize region statistics
     const regionStats = REGIONS.map((region) => ({
@@ -58,7 +59,7 @@ export async function GET(_request: NextRequest) {
 
     return successResponse({
       regions: regionStats,
-      total: allTickets.length,
+      total: searchResult.tickets_count || allTickets.length,
     })
   } catch (error: any) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {

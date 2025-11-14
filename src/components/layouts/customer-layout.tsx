@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useState } from "react"
+import { ReactNode, useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -25,6 +25,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { LanguageSelector } from "@/components/language-selector"
+import { UnreadBadge } from "@/components/ui/unread-badge"
 
 interface CustomerLayoutProps {
   children: ReactNode
@@ -48,28 +49,28 @@ interface NavItem {
 const navigation: NavItem[] = [
   {
     name: "自助服务",
-    href: "/faq",
+    href: "/customer/faq",
     icon: HelpCircle,
   },
   {
     name: "在线咨询",
-    href: "/conversations",
+    href: "/customer/conversations",
     icon: MessageSquare,
   },
   {
     name: "工单管理",
     icon: FileText,
     children: [
-      { name: "提交工单", href: "/my-tickets/create", icon: FileText },
-      { name: "我的工单", href: "/my-tickets", icon: FileText },
+      { name: "提交工单", href: "/customer/my-tickets/create", icon: FileText },
+      { name: "我的工单", href: "/customer/my-tickets", icon: FileText },
     ],
   },
   {
     name: "反馈与投诉",
     icon: MessageCircle,
     children: [
-      { name: "提交建议", href: "/feedback", icon: MessageCircle },
-      { name: "提交投诉", href: "/complaints", icon: MessageCircle },
+      { name: "提交建议", href: "/customer/feedback", icon: MessageCircle },
+      { name: "提交投诉", href: "/customer/complaints", icon: MessageCircle },
     ],
   },
 ]
@@ -77,7 +78,29 @@ const navigation: NavItem[] = [
 export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>(["工单管理", "反馈与投诉"])
+  const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
+
+  // Fetch unread count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch('/api/conversations/unread-count')
+        const data = await response.json()
+        if (data.success) {
+          setUnreadCount(data.data.unreadCount || 0)
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread count:', error)
+      }
+    }
+
+    fetchUnreadCount()
+
+    // Refresh unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const toggleExpanded = (name: string) => {
     setExpandedItems((prev) =>
@@ -136,20 +159,27 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
     }
 
     const isActive = pathname === item.href
+    const isConversationsLink = item.href === "/customer/conversations"
+
     return (
       <Link
         key={item.href}
         href={item.href || "#"}
         className={cn(
-          "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+          "flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors relative",
           isActive
             ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         )}
         onClick={() => setSidebarOpen(false)}
       >
-        <Icon className="h-5 w-5" />
-        <span>{item.name}</span>
+        <div className="flex items-center space-x-3">
+          <Icon className="h-5 w-5" />
+          <span>{item.name}</span>
+        </div>
+        {isConversationsLink && unreadCount > 0 && (
+          <UnreadBadge count={unreadCount} dotOnly className="absolute top-2 right-2" />
+        )}
       </Link>
     )
   }
@@ -207,7 +237,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
                       <Link href="/customer/dashboard">仪表板</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/settings">设置</Link>
+                      <Link href="/customer/settings">设置</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={onLogout}>退出登录</DropdownMenuItem>
@@ -264,7 +294,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
                   <Link href="/customer/dashboard">仪表板</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/settings">设置</Link>
+                  <Link href="/customer/settings">设置</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onLogout}>退出登录</DropdownMenuItem>

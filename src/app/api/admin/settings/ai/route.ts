@@ -11,6 +11,8 @@ import {
   successResponse,
   serverErrorResponse,
   validationErrorResponse,
+  unauthorizedResponse,
+  forbiddenResponse,
 } from '@/lib/utils/api-response'
 import { z } from 'zod'
 import { readAISettings, writeAISettings, updateEnvFile } from '@/lib/utils/ai-config'
@@ -48,10 +50,10 @@ export async function GET(_request: NextRequest) {
   } catch (error: unknown) {
     const err = error as Error
     if (err.message === 'Unauthorized') {
-      return serverErrorResponse('Unauthorized', 'You must be logged in', 401)
+      return unauthorizedResponse('You must be logged in')
     }
     if (err.message === 'Forbidden') {
-      return serverErrorResponse('Forbidden', 'Admin access required', 403)
+      return forbiddenResponse('Admin access required')
     }
     return serverErrorResponse('Failed to fetch AI settings', err.message)
   }
@@ -113,10 +115,10 @@ export async function PUT(request: NextRequest) {
   } catch (error: unknown) {
     const err = error as Error
     if (err.message === 'Unauthorized') {
-      return serverErrorResponse('Unauthorized', 'You must be logged in', 401)
+      return unauthorizedResponse('You must be logged in')
     }
     if (err.message === 'Forbidden') {
-      return serverErrorResponse('Forbidden', 'Admin access required', 403)
+      return forbiddenResponse('Admin access required')
     }
     return serverErrorResponse('Failed to update AI settings', err.message)
   }

@@ -24,7 +24,7 @@ export async function GET(
     const articleId = parseInt(params.id)
 
     if (isNaN(articleId)) {
-      return errorResponse('Invalid article ID', 400)
+      return errorResponse('INVALID_ID', 'Invalid article ID', undefined, 400)
     }
 
     // Get query parameters
@@ -47,7 +47,7 @@ export async function GET(
     })
 
     if (!article) {
-      return errorResponse('Article not found', 404)
+      return errorResponse('NOT_FOUND', 'Article not found', undefined, 404)
     }
 
     // Increment view count

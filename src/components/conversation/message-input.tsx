@@ -146,7 +146,7 @@ export function MessageInput({
   const canSend = (message.trim() || selectedFile) && !isDisabled
   
   return (
-    <div className="border-t bg-background p-4">
+    <div className="p-4">
       {/* File preview */}
       {selectedFile && (
         <div className="mb-2 flex items-center gap-2 p-2 bg-muted rounded-lg">

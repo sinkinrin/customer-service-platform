@@ -73,27 +73,42 @@ export class SSEManager {
       this.eventSource = new EventSource(this.url)
       
       this.eventSource.onopen = () => {
+        console.log('[SSE] Connection opened')
         this.setState('connected')
         this.reconnectAttempts = 0
         this.reconnectDelay = 1000
         this.lastHeartbeat = Date.now()
-        this.startHeartbeatMonitor()
+        // Don't start heartbeat monitor - EventSource handles connection health
       }
-      
+
       this.eventSource.onmessage = (event) => {
         this.lastHeartbeat = Date.now()
-        
+
         try {
           const data = JSON.parse(event.data)
           this.onMessage?.(data)
         } catch (error) {
-          console.error('Failed to parse SSE message:', error)
+          console.error('[SSE] Failed to parse message:', error)
         }
       }
       
-      this.eventSource.onerror = (error) => {
-        console.error('SSE error:', error)
-        this.handleError(new Error('SSE connection error'))
+      this.eventSource.onerror = (event) => {
+        console.error('SSE error:', event)
+
+        // Check if this is a connection close (readyState === 2 means CLOSED)
+        if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED) {
+          // Connection was closed, don't reconnect if we intentionally disconnected
+          if (this.state === 'disconnected') {
+            return
+          }
+          this.handleError(new Error('SSE connection closed'))
+        } else if (this.eventSource && this.eventSource.readyState === EventSource.CONNECTING) {
+          // Still trying to connect, wait for it
+          return
+        } else {
+          // Other error, trigger reconnect
+          this.handleError(new Error('SSE connection error'))
+        }
       }
     } catch (error) {
       this.handleError(error as Error)

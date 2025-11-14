@@ -10,12 +10,12 @@ export default function AdminRouteLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, userRole, signOut } = useAuth()
+  const { user, signOut } = useAuth()
   const router = useRouter()
 
   const handleLogout = async () => {
     await signOut()
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   return (
@@ -24,9 +24,8 @@ export default function AdminRouteLayout({
         user={user ? {
           id: user.id,
           email: user.email || '',
-          name: user.user_metadata?.full_name || undefined,
-          avatar: user.user_metadata?.avatar_url || undefined,
-          role: userRole || 'admin',
+          name: user.full_name || undefined,
+          avatar: user.avatar_url || undefined,
         } : undefined}
         onLogout={handleLogout}
       >

@@ -6,18 +6,13 @@
 
 import { NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/utils/auth'
-
-// Store active connections per user
-const connections = new Map<string, ReadableStreamDefaultController>()
-
-// Store user roles for filtering
-const userRoles = new Map<string, string>()
+import { addConnection, removeConnection } from '@/lib/sse/conversation-broadcaster'
 
 // Heartbeat interval (30 seconds)
 const HEARTBEAT_INTERVAL = 30000
 
-// Connection timeout (10 minutes of inactivity)
-const CONNECTION_TIMEOUT = 10 * 60 * 1000
+// Connection timeout (60 minutes of inactivity)
+const CONNECTION_TIMEOUT = 60 * 60 * 1000
 
 export const dynamic = 'force-dynamic'
 
@@ -30,50 +25,54 @@ export async function GET(request: NextRequest) {
 
     console.log(`[SSE] User ${userId} (${userRole}) connecting to conversations stream`)
 
+    // Track connection state
+    let isClosed = false
+
     // Create a readable stream for SSE
     const stream = new ReadableStream({
       start(controller) {
-        // Close existing connection if any
-        const existingController = connections.get(userId)
-        if (existingController) {
-          try {
-            existingController.close()
-          } catch {
-            // Already closed
-          }
-          connections.delete(userId)
-        }
-
         // Store the new connection and user role
-        connections.set(userId, controller)
-        userRoles.set(userId, userRole)
+        addConnection(userId, controller, userRole)
 
         // Send initial connection message
         const encoder = new TextEncoder()
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({
-            type: 'connected',
-            userId,
-            role: userRole,
-            timestamp: new Date().toISOString()
-          })}\n\n`)
-        )
-
-        console.log(`[SSE] User ${userId} connected. Active connections: ${connections.size}`)
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({
+              type: 'connected',
+              userId,
+              role: userRole,
+              timestamp: new Date().toISOString()
+            })}\n\n`)
+          )
+          console.log(`[SSE] User ${userId} connected`)
+        } catch (error) {
+          console.error(`[SSE] Failed to send connection message:`, error)
+          isClosed = true
+        }
 
         // Set up heartbeat
         const heartbeatInterval = setInterval(() => {
+          // Skip if connection is closed
+          if (isClosed) {
+            clearInterval(heartbeatInterval)
+            return
+          }
+
           try {
             controller.enqueue(encoder.encode(': heartbeat\n\n'))
           } catch (error) {
-            console.error(`[SSE] Heartbeat error for user ${userId}:`, error)
+            // Connection closed
+            isClosed = true
             clearInterval(heartbeatInterval)
-            connections.delete(userId)
+            removeConnection(userId)
           }
         }, HEARTBEAT_INTERVAL)
 
         // Set up connection timeout
         const timeoutId = setTimeout(() => {
+          if (isClosed) return
+
           try {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({
@@ -82,21 +81,26 @@ export async function GET(request: NextRequest) {
               })}\n\n`)
             )
             controller.close()
+            isClosed = true
           } catch (error) {
-            console.error(`[SSE] Timeout error for user ${userId}:`, error)
+            // Already closed
+            isClosed = true
           }
           clearInterval(heartbeatInterval)
-          connections.delete(userId)
-          console.log(`[SSE] User ${userId} connection timeout. Active connections: ${connections.size}`)
+          removeConnection(userId)
+          console.log(`[SSE] User ${userId} connection timeout`)
         }, CONNECTION_TIMEOUT)
 
         // Clean up on connection close
         request.signal.addEventListener('abort', () => {
+          if (isClosed) return
+
+          isClosed = true
           clearInterval(heartbeatInterval)
           clearTimeout(timeoutId)
-          connections.delete(userId)
-          userRoles.delete(userId)
-          console.log(`[SSE] User ${userId} disconnected. Active connections: ${connections.size}`)
+          removeConnection(userId)
+          console.log(`[SSE] User ${userId} disconnected`)
+
           try {
             controller.close()
           } catch {
@@ -121,80 +125,4 @@ export async function GET(request: NextRequest) {
     }
     return new Response('Internal Server Error', { status: 500 })
   }
-}
-
-/**
- * Broadcast a conversation event to specific users or roles
- */
-export function broadcastConversationEvent(
-  event: {
-    type:
-      | 'new_message'
-      | 'conversation_updated'
-      | 'conversation_created'
-      | 'conversation_transferred'
-      | 'new_conversation_transferred'
-      | 'typing'
-    conversationId: string
-    data: any
-  },
-  targetUserIds: string[]
-) {
-  const encoder = new TextEncoder()
-  const message = `data: ${JSON.stringify({
-    ...event,
-    timestamp: new Date().toISOString()
-  })}\n\n`
-  const encodedMessage = encoder.encode(message)
-
-  let targetUsers: string[] = []
-
-  // Check if broadcasting to roles (e.g., 'staff')
-  if (targetUserIds.includes('staff')) {
-    // Broadcast to all staff users
-    targetUsers = Array.from(connections.keys()).filter(userId => {
-      const role = userRoles.get(userId)
-      return role === 'staff' || role === 'admin'
-    })
-    console.log(`[SSE] Broadcasting ${event.type} to all staff (${targetUsers.length} users)`)
-  } else {
-    // Broadcast to specific users
-    targetUsers = targetUserIds
-    console.log(`[SSE] Broadcasting ${event.type} to ${targetUsers.length} specific users`)
-  }
-
-  let successCount = 0
-  let failCount = 0
-
-  // Send to target users
-  targetUsers.forEach((userId) => {
-    const controller = connections.get(userId)
-    if (controller) {
-      try {
-        controller.enqueue(encodedMessage)
-        successCount++
-      } catch (error) {
-        console.error(`[SSE] Failed to send event to user ${userId}:`, error)
-        connections.delete(userId)
-        userRoles.delete(userId)
-        failCount++
-      }
-    }
-  })
-
-  console.log(`[SSE] Broadcast complete: ${successCount} success, ${failCount} failed`)
-}
-
-/**
- * Get count of active connections
- */
-export function getActiveConnectionsCount(): number {
-  return connections.size
-}
-
-/**
- * Get list of connected user IDs
- */
-export function getConnectedUserIds(): string[] {
-  return Array.from(connections.keys())
 }

@@ -19,7 +19,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({
   children,
-  redirectTo = '/login',
+  redirectTo = '/auth/login',
   requiredRole,
   requiredRoles,
 }: ProtectedRouteProps) {

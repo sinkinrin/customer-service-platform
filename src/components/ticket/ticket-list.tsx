@@ -88,7 +88,7 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
     } else if (user?.role === 'staff') {
       return `/staff/tickets/${ticketId}`
     } else {
-      return `/my-tickets/${ticketId}`
+      return `/customer/my-tickets/${ticketId}`
     }
   }
 

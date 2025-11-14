@@ -37,8 +37,8 @@ export class ZammadClient {
   constructor(
     baseUrl?: string,
     apiToken?: string,
-    timeout: number = 30000,
-    maxRetries: number = 3
+    timeout: number = 5000, // 减少到 5秒
+    maxRetries: number = 1  // 减少重试次数
   ) {
     this.baseUrl = (baseUrl || process.env.ZAMMAD_URL || '').replace(/\/$/, '')
     this.apiToken = apiToken || process.env.ZAMMAD_API_TOKEN || ''

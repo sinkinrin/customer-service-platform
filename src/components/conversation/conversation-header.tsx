@@ -19,7 +19,9 @@ interface ConversationHeaderProps {
   isConnected?: boolean
   sseState?: 'connecting' | 'connected' | 'error' | 'disconnected'
   onTransferToHuman?: () => void
+  onSwitchToAI?: () => void // New: Switch back to AI mode
   isTransferring?: boolean
+  enableModeSwitching?: boolean // New: Enable bidirectional switching
 }
 
 export function ConversationHeader({
@@ -30,7 +32,9 @@ export function ConversationHeader({
   isConnected = false,
   sseState = 'disconnected',
   onTransferToHuman,
+  onSwitchToAI,
   isTransferring = false,
+  enableModeSwitching = false,
 }: ConversationHeaderProps) {
   const displayName = mode === 'ai' ? 'AI Assistant' : (staffName || 'Waiting for assignment')
 
@@ -107,8 +111,35 @@ export function ConversationHeader({
             </div>
           </div>
 
-          {/* Transfer to Human Button - Only in AI mode */}
-          {mode === 'ai' && onTransferToHuman && (
+          {/* Mode Switching Buttons */}
+          {enableModeSwitching && (
+            <>
+              {mode === 'ai' && onTransferToHuman && (
+                <Button
+                  onClick={onTransferToHuman}
+                  disabled={isTransferring}
+                  variant="outline"
+                  size="sm"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  {isTransferring ? '转接中...' : '切换到人工'}
+                </Button>
+              )}
+              {mode === 'human' && onSwitchToAI && (
+                <Button
+                  onClick={onSwitchToAI}
+                  disabled={isTransferring}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Bot className="h-4 w-4 mr-2" />
+                  {isTransferring ? '切换中...' : '切换到AI'}
+                </Button>
+              )}
+            </>
+          )}
+          {/* Legacy: Transfer to Human Button (for non-switching mode) */}
+          {!enableModeSwitching && mode === 'ai' && onTransferToHuman && (
             <Button
               onClick={onTransferToHuman}
               disabled={isTransferring}

@@ -114,10 +114,10 @@ export function Navbar({ user, onLogout, showLanguageSelector = true }: NavbarPr
             ) : (
               <div className="flex items-center space-x-2">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/login">Log in</Link>
+                  <Link href="/auth/login">Log in</Link>
                 </Button>
                 <Button size="sm" asChild>
-                  <Link href="/register">Sign up</Link>
+                  <Link href="/auth/register">Sign up</Link>
                 </Button>
               </div>
             )}

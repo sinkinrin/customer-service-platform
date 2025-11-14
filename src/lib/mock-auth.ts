@@ -232,3 +232,36 @@ export async function mockResetPassword(_email: string): Promise<{ error: null }
   return { error: null }
 }
 
+/**
+ * Mock get user by ID - returns user from mockUsers
+ */
+export async function mockGetUserById(userId: string): Promise<MockUser | null> {
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 100))
+
+  // Search for user by ID
+  const user = Object.values(mockUsers).find(u => u.id === userId)
+  return user || null
+}
+
+/**
+ * Mock update user role - updates user role in mockUsers
+ */
+export async function mockUpdateUserRole(userId: string, role: 'customer' | 'staff' | 'admin'): Promise<MockUser | null> {
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 300))
+
+  // Find user by ID
+  const userEntry = Object.entries(mockUsers).find(([_, u]) => u.id === userId)
+  if (!userEntry) {
+    return null
+  }
+
+  // Update user role (in-memory only)
+  const [email, user] = userEntry
+  user.role = role
+  mockUsers[email] = user
+
+  return user
+}
+

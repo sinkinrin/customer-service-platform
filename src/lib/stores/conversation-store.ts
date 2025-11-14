@@ -174,7 +174,7 @@ export const useConversationStore = create<ConversationState>()(
         conversations: state.conversations,
       }),
       // Migrate function to fix corrupted state
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: any, _version: number) => {
         // Ensure conversations is always an array
         if (persistedState && !Array.isArray(persistedState.conversations)) {
           persistedState.conversations = []

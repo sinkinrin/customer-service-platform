@@ -21,8 +21,11 @@ import {
   getConversation,
   getConversationMessages,
   addMessage,
+  incrementUnreadCount,
+  getTotalUnreadCount,
+  getStaffUnreadCount,
 } from '@/lib/local-conversation-storage'
-import { broadcastConversationEvent } from '@/app/api/sse/conversations/route'
+import { broadcastConversationEvent, broadcastUnreadCountUpdate } from '@/lib/sse/conversation-broadcaster'
 
 export async function GET(
   request: NextRequest,
@@ -61,22 +64,43 @@ export async function GET(
     const paginated = sorted.slice(offset, offset + limit)
 
     // Transform to API format
-    const messages = paginated.map((msg) => ({
-      id: msg.id,
-      conversation_id: conversationId,
-      sender_id: msg.sender_id,
-      sender_role: msg.sender_role,
-      content: msg.content,
-      message_type: msg.message_type || 'text',
-      metadata: msg.metadata || {},
-      created_at: msg.created_at,
-      sender: {
-        id: msg.sender_id,
-        full_name: msg.sender_role === 'ai' ? 'AI Assistant' : user.full_name || user.email,
-        avatar_url: null,
-        role: msg.sender_role,
-      },
-    }))
+    const messages = paginated.map((msg) => {
+      // Determine sender name based on role and stored data
+      let senderName = 'Unknown'
+      if (msg.sender_role === 'ai') {
+        senderName = 'AI Assistant'
+      } else if (msg.metadata?.sender_name) {
+        // Use stored sender name from metadata
+        senderName = msg.metadata.sender_name
+      } else if (msg.sender_id === user.id) {
+        // Current user
+        senderName = user.full_name || user.email
+      } else {
+        // Other user - try to infer from conversation
+        if (msg.sender_role === 'customer') {
+          senderName = conversation.customer_name || conversation.customer_email
+        } else if (msg.sender_role === 'staff') {
+          senderName = 'Staff Member'
+        }
+      }
+
+      return {
+        id: msg.id,
+        conversation_id: conversationId,
+        sender_id: msg.sender_id,
+        sender_role: msg.sender_role,
+        content: msg.content,
+        message_type: msg.message_type || 'text',
+        metadata: msg.metadata || {},
+        created_at: msg.created_at,
+        sender: {
+          id: msg.sender_id,
+          full_name: senderName,
+          avatar_url: null,
+          role: msg.sender_role,
+        },
+      }
+    })
 
     return successResponse({
       messages,
@@ -126,18 +150,35 @@ export async function POST(
       return validationErrorResponse(validation.error.errors)
     }
 
-    // Determine sender role
-    const senderRole = user.role === 'customer' ? 'customer' : 'staff'
+    // Determine sender role (explicitly typed to match LocalMessage.sender_role)
+    const senderRole: 'customer' | 'ai' | 'staff' | 'system' = user.role === 'customer' ? 'customer' : 'staff'
+
+    // Prepare metadata with sender name
+    const messageMetadata = {
+      ...validation.data.metadata,
+      sender_name: user.full_name || user.email,
+    }
 
     // Add message to local storage
     const newMessage = await addMessage(
       conversationId,
-      senderRole as 'customer' | 'ai' | 'staff',
+      senderRole,
       user.id,
-      validation.data.content
+      validation.data.content,
+      messageMetadata
     )
 
     console.log('[LocalStorage] Created message:', newMessage.id, 'in conversation:', conversationId)
+
+    // Increment unread count for the recipient(s) in human mode
+    // - If sender is customer: increment staff's unread count
+    // - If sender is staff: increment customer's unread count
+    // Note: AI messages are handled separately and don't use this API endpoint
+    if (conversation.mode === 'human') {
+      const recipientRole = senderRole === 'customer' ? 'staff' : 'customer'
+      await incrementUnreadCount(conversationId, recipientRole)
+      console.log('[LocalStorage] Incremented unread count for', recipientRole, 'in conversation:', conversationId)
+    }
 
     // Transform to API format
     const message = {
@@ -147,7 +188,7 @@ export async function POST(
       sender_role: senderRole,
       content: newMessage.content,
       message_type: validation.data.message_type || 'text',
-      metadata: validation.data.metadata || {},
+      metadata: messageMetadata,
       created_at: newMessage.created_at,
       sender: {
         id: user.id,
@@ -160,6 +201,9 @@ export async function POST(
     // Broadcast new message event via SSE to all participants
     // Customer + staff (if assigned) + AI system
     const targetUserIds = [conversation.customer_id]
+    if (conversation.staff_id) {
+      targetUserIds.push(conversation.staff_id)
+    }
 
     try {
       broadcastConversationEvent(
@@ -170,7 +214,7 @@ export async function POST(
         },
         targetUserIds
       )
-      console.log('[SSE] Broadcasted new_message event for conversation:', conversationId)
+      console.log('[SSE] Broadcasted new_message event to:', targetUserIds, 'for conversation:', conversationId)
     } catch (error) {
       console.error('[SSE] Failed to broadcast message:', error)
       // Don't fail the request if SSE broadcast fails

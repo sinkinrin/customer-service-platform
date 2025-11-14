@@ -25,7 +25,7 @@ import {
   deleteConversation,
   getConversationMessages,
 } from '@/lib/local-conversation-storage'
-import { broadcastConversationEvent } from '@/app/api/sse/conversations/route'
+import { broadcastConversationEvent } from '@/lib/sse/conversation-broadcaster'
 
 export async function GET(
   request: NextRequest,
@@ -187,7 +187,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireRole(['admin'])
+    await requireRole(['admin'])
     const conversationId = params.id
 
     // Delete conversation and its messages

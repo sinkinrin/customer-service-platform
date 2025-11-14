@@ -74,6 +74,7 @@ function mapStateIdToString(stateId: number): string {
 /**
  * Map state string to state_id for Zammad API
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function mapStateStringToId(state: string): number {
   switch (state.toLowerCase()) {
     case 'new':
@@ -94,6 +95,7 @@ function mapStateStringToId(state: string): number {
 /**
  * Map priority string to priority_id for Zammad API
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function mapPriorityStringToId(priority: string): number {
   switch (priority.toLowerCase()) {
     case '1 low':
@@ -145,7 +147,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
@@ -185,7 +187,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
@@ -282,7 +284,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {

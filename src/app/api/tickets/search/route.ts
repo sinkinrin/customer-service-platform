@@ -138,7 +138,7 @@ async function ensureZammadUser(email: string, fullName: string, role: string, r
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuth(request)
+    const user = await requireAuth()
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -154,9 +154,22 @@ export async function GET(request: NextRequest) {
       return errorResponse('Limit must be between 1 and 100', 400)
     }
 
+    // Check if Zammad is enabled
+    const zammadEnabled = process.env.ZAMMAD_ENABLED !== 'false'
+
+    if (!zammadEnabled) {
+      console.log('[Tickets API] Zammad disabled, returning empty results')
+      return successResponse([])
+    }
+
     // Ensure user exists in Zammad before searching (for non-admin users)
     if (user.role !== 'admin') {
-      await ensureZammadUser(user.email, user.full_name, user.role, user.region)
+      try {
+        await ensureZammadUser(user.email, user.full_name, user.role, user.region)
+      } catch (error) {
+        console.warn('[Tickets API] Failed to ensure Zammad user:', error)
+        // Continue anyway, search might still work
+      }
     }
 
     // Admin users search all tickets, other users search only their tickets

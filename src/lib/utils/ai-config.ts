@@ -78,6 +78,7 @@ export function writeAISettings(settings: Partial<AISettings>): void {
     const currentSettings = readAISettings()
 
     // Merge with new settings (exclude API key from file)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { fastgptApiKey, ...fileSettings } = {
       ...currentSettings,
       ...settings,

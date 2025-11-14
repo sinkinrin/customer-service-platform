@@ -63,7 +63,7 @@ const formatRelativeTime = (dateString: string) => {
 
 export default function AdminDashboardPage() {
   const { user } = useAuth()
-  const adminName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Administrator'
+  const adminName = user?.full_name || user?.email?.split('@')[0] || 'Administrator'
   const [ticketStats, setTicketStats] = useState<TicketStats>({ total: 0, open: 0, pending: 0, closed: 0 })
   const [regionStats, setRegionStats] = useState<RegionStats[]>([])
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])

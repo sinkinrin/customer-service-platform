@@ -22,7 +22,7 @@ import {
   updateConversation,
   addMessageWithMetadata,
 } from '@/lib/local-conversation-storage'
-import { broadcastConversationEvent } from '@/app/api/sse/conversations/route'
+import { broadcastConversationEvent } from '@/lib/sse/conversation-broadcaster'
 import { z } from 'zod'
 
 // Request validation schema
@@ -36,8 +36,6 @@ const TransferConversationSchema = z.object({
   ).optional(),
   reason: z.string().max(500).optional(),
 })
-
-type TransferConversationRequest = z.infer<typeof TransferConversationSchema>
 
 export async function POST(
   request: NextRequest,

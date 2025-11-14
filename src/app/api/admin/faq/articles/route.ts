@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const { category_id, slug, translations } = body
 
     if (!category_id || !slug || !translations || !Array.isArray(translations)) {
-      return errorResponse('Missing required fields', 400)
+      return errorResponse('MISSING_FIELDS', 'Missing required fields', undefined, 400)
     }
 
     // Check if category exists
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!category) {
-      return errorResponse('Category not found', 404)
+      return errorResponse('NOT_FOUND', 'Category not found', undefined, 404)
     }
 
     // Check if slug already exists
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existing) {
-      return errorResponse('Article with this slug already exists', 400)
+      return errorResponse('SLUG_EXISTS', 'Article with this slug already exists', undefined, 400)
     }
 
     // Create article with translations
@@ -106,7 +106,7 @@ export async function PUT(request: NextRequest) {
     const { id, category_id, slug, is_active, translations } = body
 
     if (!id) {
-      return errorResponse('Article ID is required', 400)
+      return errorResponse('MISSING_ID', 'Article ID is required', undefined, 400)
     }
 
     // Check if article exists
@@ -115,11 +115,11 @@ export async function PUT(request: NextRequest) {
     })
 
     if (!existing) {
-      return errorResponse('Article not found', 404)
+      return errorResponse('NOT_FOUND', 'Article not found', undefined, 404)
     }
 
     // Update article
-    const article = await prisma.faqArticle.update({
+    await prisma.faqArticle.update({
       where: { id: parseInt(id) },
       data: {
         ...(category_id && { categoryId: parseInt(category_id) }),
@@ -191,7 +191,7 @@ export async function DELETE(request: NextRequest) {
     const { id } = body
 
     if (!id) {
-      return errorResponse('Article ID is required', 400)
+      return errorResponse('MISSING_ID', 'Article ID is required', undefined, 400)
     }
 
     // Check if article exists
@@ -200,7 +200,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     if (!existing) {
-      return errorResponse('Article not found', 404)
+      return errorResponse('NOT_FOUND', 'Article not found', undefined, 404)
     }
 
     // Delete article (translations and ratings will be cascade deleted)

@@ -9,14 +9,14 @@
  */
 
 import { NextRequest } from 'next/server'
-import { successResponse, serverErrorResponse } from '@/lib/utils/api-response'
+import { successResponse, serverErrorResponse, errorResponse } from '@/lib/utils/api-response'
 import { mockSignIn } from '@/lib/mock-auth'
 
 // TODO: Replace with real authentication when implemented
 export async function POST(request: NextRequest) {
   // Only allow in development
   if (process.env.NODE_ENV === 'production') {
-    return serverErrorResponse('Not available in production', 'This endpoint is only available in development mode', 403)
+    return errorResponse('NOT_AVAILABLE', 'This endpoint is only available in development mode', undefined, 403)
   }
 
   try {
@@ -32,14 +32,14 @@ export async function POST(request: NextRequest) {
 
     const email = emailMap[role]
     if (!email) {
-      return serverErrorResponse('Invalid role', 'Role must be customer, staff, or admin', 400)
+      return errorResponse('INVALID_ROLE', 'Role must be customer, staff, or admin', undefined, 400)
     }
 
     // Use mock authentication (password is 'password123' for all test accounts)
     const result = await mockSignIn(email, 'password123')
 
     if (result.error || !result.user || !result.session) {
-      return serverErrorResponse('Login failed', result.error || 'Invalid credentials', 401)
+      return errorResponse('LOGIN_FAILED', result.error || 'Invalid credentials', undefined, 401)
     }
 
     return successResponse({

@@ -72,9 +72,9 @@ export function getNavigationItemsForRole(role: UserRole): Array<{
   switch (role) {
     case 'customer':
       return [
-        { label: '仪表板', href: '/dashboard' },
-        { label: '在线咨询', href: '/conversations' },
-        { label: '知识库', href: '/faq' },
+        { label: '仪表板', href: '/customer/dashboard' },
+        { label: '在线咨询', href: '/customer/conversations' },
+        { label: '知识库', href: '/customer/faq' },
       ]
     case 'staff':
       return [

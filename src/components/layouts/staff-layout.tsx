@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useState } from "react"
+import { ReactNode, useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -15,7 +15,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
+import { UnreadBadge } from "@/components/ui/unread-badge"
 
 interface StaffLayoutProps {
   children: ReactNode
@@ -74,10 +74,32 @@ export function StaffLayout({
   ticketCount = 0,
 }: StaffLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
 
+  // Fetch unread count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch('/api/conversations/unread-count')
+        const data = await response.json()
+        if (data.success) {
+          setUnreadCount(data.data.unreadCount || 0)
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread count:', error)
+      }
+    }
+
+    fetchUnreadCount()
+
+    // Refresh unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   const getBadgeCount = (badgeKey?: string) => {
-    if (badgeKey === "conversationCount") return conversationCount
+    if (badgeKey === "conversationCount") return unreadCount > 0 ? unreadCount : conversationCount
     if (badgeKey === "ticketCount") return ticketCount
     return 0
   }
@@ -123,13 +145,14 @@ export function StaffLayout({
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
             const badgeCount = getBadgeCount(item.badge)
             const Icon = item.icon
+            const isConversationsLink = item.href === "/staff/conversations"
 
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors relative",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -140,7 +163,10 @@ export function StaffLayout({
                   <Icon className="h-5 w-5" />
                   <span>{item.name}</span>
                 </div>
-                {badgeCount > 0 && (
+                {isConversationsLink && unreadCount > 0 && (
+                  <UnreadBadge count={unreadCount} dotOnly className="absolute top-2 right-2" />
+                )}
+                {!isConversationsLink && badgeCount > 0 && (
                   <Badge variant={isActive ? "secondary" : "default"} className="ml-auto">
                     {badgeCount}
                   </Badge>

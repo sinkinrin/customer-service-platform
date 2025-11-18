@@ -2,6 +2,11 @@
  * FAQ API
  *
  * GET /api/faq - Search FAQ items from database
+ *
+ * Performance optimizations:
+ * - Simple in-memory cache (no Redis needed for low concurrency)
+ * - Fixed N+1 query problem
+ * - Optimized field selection
  */
 
 import { NextRequest } from 'next/server'
@@ -11,6 +16,7 @@ import {
   errorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { faqCache } from '@/lib/cache/simple-cache'
 
 // ============================================================================
 // GET /api/faq
@@ -31,6 +37,18 @@ export async function GET(request: NextRequest) {
       return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 1000', undefined, 400)
     }
 
+    // PERFORMANCE: Check cache first (for non-search queries)
+    if (!query) {
+      const cacheKey = `faq:list:${language}:${categoryId || 'all'}:${limit}`
+      const cached = faqCache.get(cacheKey)
+      if (cached) {
+        return successResponse({
+          ...cached,
+          cached: true,
+        })
+      }
+    }
+
     // Build where clause
     const where: any = {
       isActive: true,
@@ -41,22 +59,33 @@ export async function GET(request: NextRequest) {
       where.categoryId = parseInt(categoryId)
     }
 
-    // Get articles from database
+    // PERFORMANCE: Get articles with optimized include (fixed N+1 problem)
     const articles = await prisma.faqArticle.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        categoryId: true,
+        views: true,
+        createdAt: true,
+        updatedAt: true,
         translations: {
           where: {
             locale: language,
           },
-        },
-        _count: {
           select: {
-            ratings: {
-              where: {
-                isHelpful: true,
-              },
-            },
+            title: true,
+            content: true,
+            keywords: true,
+          },
+        },
+        category: {
+          select: {
+            name: true,
+          },
+        },
+        ratings: {
+          select: {
+            isHelpful: true,
           },
         },
       },
@@ -84,54 +113,43 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Get rating counts and category names
-    const articlesWithRatings = await Promise.all(
-      filteredArticles.map(async (article) => {
-        const helpfulCount = await prisma.faqRating.count({
-          where: {
-            articleId: article.id,
-            isHelpful: true,
-          },
-        })
+    // PERFORMANCE: Calculate ratings in-memory (no extra DB queries)
+    const articlesWithRatings = filteredArticles.map((article) => {
+      const translation = article.translations[0]
+      const helpfulCount = article.ratings.filter(r => r.isHelpful).length
+      const notHelpfulCount = article.ratings.filter(r => !r.isHelpful).length
 
-        const notHelpfulCount = await prisma.faqRating.count({
-          where: {
-            articleId: article.id,
-            isHelpful: false,
-          },
-        })
+      return {
+        id: article.id.toString(), // Frontend expects string ID
+        question: translation?.title || '', // Frontend expects 'question' field
+        answer: translation?.content || '', // Frontend expects 'answer' field
+        category_id: article.categoryId.toString(), // Frontend expects string category_id
+        category_name: article.category?.name || `Category ${article.categoryId}`, // Frontend expects category_name
+        language: language, // Frontend expects language field
+        keywords: translation ? JSON.parse(translation.keywords) : [],
+        view_count: article.views, // Frontend expects 'view_count'
+        helpful_count: helpfulCount, // Frontend expects 'helpful_count'
+        not_helpful_count: notHelpfulCount, // Frontend expects 'not_helpful_count'
+        created_at: article.createdAt.toISOString(),
+        updated_at: article.updatedAt.toISOString(),
+      }
+    })
 
-        // Get category name
-        const category = await prisma.faqCategory.findUnique({
-          where: { id: article.categoryId },
-        })
-
-        const translation = article.translations[0]
-
-        return {
-          id: article.id.toString(), // Frontend expects string ID
-          question: translation?.title || '', // Frontend expects 'question' field
-          answer: translation?.content || '', // Frontend expects 'answer' field
-          category_id: article.categoryId.toString(), // Frontend expects string category_id
-          category_name: category?.name || `Category ${article.categoryId}`, // Frontend expects category_name
-          language: language, // Frontend expects language field
-          keywords: translation ? JSON.parse(translation.keywords) : [],
-          view_count: article.views, // Frontend expects 'view_count'
-          helpful_count: helpfulCount, // Frontend expects 'helpful_count'
-          not_helpful_count: notHelpfulCount, // Frontend expects 'not_helpful_count'
-          created_at: article.createdAt.toISOString(),
-          updated_at: article.updatedAt.toISOString(),
-        }
-      })
-    )
-
-    return successResponse({
+    const response = {
       items: articlesWithRatings,
       total: articlesWithRatings.length,
       query,
       language,
       source: 'database',
-    })
+    }
+
+    // PERFORMANCE: Cache non-search results for 10 minutes
+    if (!query) {
+      const cacheKey = `faq:list:${language}:${categoryId || 'all'}:${limit}`
+      faqCache.set(cacheKey, response, 600)
+    }
+
+    return successResponse(response)
   } catch (error) {
     console.error('GET /api/faq error:', error)
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')

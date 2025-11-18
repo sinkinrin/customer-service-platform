@@ -1,31 +1,42 @@
 /**
  * FAQ Search Bar Component
- * 
- * Search input for FAQ items
+ *
+ * Search input for FAQ items with debounce optimization
  */
 
 'use client'
 
-import { useState, KeyboardEvent } from 'react'
+import { useState, KeyboardEvent, useEffect, memo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search, X } from 'lucide-react'
+import { useDebounce } from '@/lib/hooks/use-debounce'
 
 interface SearchBarProps {
   onSearch: (query: string) => void
   placeholder?: string
   defaultValue?: string
   isLoading?: boolean
+  debounceDelay?: number
 }
 
-export function SearchBar({
+export const SearchBar = memo(function SearchBar({
   onSearch,
   placeholder = 'Search for help...',
   defaultValue = '',
   isLoading = false,
+  debounceDelay = 300,
 }: SearchBarProps) {
   const [query, setQuery] = useState(defaultValue)
-  
+  const debouncedQuery = useDebounce(query, debounceDelay)
+
+  // PERFORMANCE: Auto-search with debounce (reduces API calls)
+  useEffect(() => {
+    if (debouncedQuery !== defaultValue) {
+      onSearch(debouncedQuery.trim())
+    }
+  }, [debouncedQuery, onSearch, defaultValue])
+
   const handleSearch = () => {
     onSearch(query.trim())
   }
@@ -79,5 +90,5 @@ export function SearchBar({
       </Button>
     </div>
   )
-}
+})
 

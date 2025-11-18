@@ -1,11 +1,12 @@
 /**
  * FAQ Article Card Component
- * 
- * Displays a single FAQ item as a card
+ *
+ * Displays a single FAQ item as a card with React.memo optimization
  */
 
 'use client'
 
+import { memo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChevronRight, Eye, ThumbsUp } from 'lucide-react'
@@ -27,7 +28,8 @@ function highlightText(text: string | undefined, query: string): string {
   return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>')
 }
 
-export function ArticleCard({
+// PERFORMANCE: React.memo prevents unnecessary re-renders
+export const ArticleCard = memo(function ArticleCard({
   article,
   onClick,
   showCategory = true,
@@ -87,5 +89,5 @@ export function ArticleCard({
       )}
     </Card>
   )
-}
+})
 

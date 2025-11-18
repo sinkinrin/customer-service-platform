@@ -152,10 +152,10 @@ export async function POST(
 
     // Determine sender role (explicitly typed to match LocalMessage.sender_role)
     // R2: Support metadata.role='ai' to allow AI messages to be stored with correct sender_role
-    // This allows the client to persist both user and AI messages with proper attribution
+    // Security: Only allow AI role if conversation is in AI mode to prevent spoofing
     let senderRole: 'customer' | 'ai' | 'staff' | 'system'
-    if (validation.data.metadata?.role === 'ai' && user.role === 'customer') {
-      // Allow customers to save AI messages with sender_role='ai'
+    if (validation.data.metadata?.role === 'ai' && user.role === 'customer' && conversation.mode === 'ai') {
+      // Allow customers to save AI messages ONLY when conversation is in AI mode
       senderRole = 'ai'
     } else {
       // Default role based on authenticated user

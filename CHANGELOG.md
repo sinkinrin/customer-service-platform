@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### R2: AI 消息发送者角色标记修复
 - **文件**: `src/app/api/conversations/[id]/messages/route.ts:153-169`
 - 支持 `metadata.role='ai'` 参数,允许客户端正确标记 AI 消息
-- 当 `metadata.role === 'ai'` 且用户是 customer 时,设置 `sender_role='ai'`
+- 安全验证: 只有当对话处于 AI 模式时才允许标记为 AI 角色 (`conversation.mode === 'ai'`)
+- 防止客户在 human 模式下伪造 AI 消息误导员工
 - AI 消息的 `sender_name` 正确显示为 "AI Assistant" 而非客户名称
 - 修复问题:客户端发送的 AI 回复被错误标记为 customer 角色,导致员工无法区分用户消息和 AI 回复
 - 转人工后,员工现在能看到清晰标注的对话历史(customer/ai 角色区分)

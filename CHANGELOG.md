@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2025-11-18
+
+### 🐛 Bug修复
+
+#### 修复Admin FAQ分类管理ID不一致问题
+- **文件**: `src/components/admin/faq-form-dialog.tsx`, `src/app/admin/faq/page.tsx`
+- **问题**:
+  - Admin FAQ管理页面将`category_id`转换为显示字符串`"Category X"`
+  - 编辑时从字符串解析回ID，导致分类信息不准确
+  - `FAQFormDialog`硬编码CATEGORIES数组，无法反映数据库中的真实分类
+- **修复**:
+  - `FAQManagementPage`新增`categories` Map，保存真实`category_id`和`category_name`
+  - `fetchItems`从`/api/faq/categories`获取分类数据并映射到FAQ列表
+  - `FAQFormDialog`移除硬编码，改为动态从`/api/faq/categories`获取分类
+  - 传递给Dialog的`article.category_id`使用真实ID，不再从字符串解析
+- **影响**: Admin编辑FAQ时分类选择准确，新建分类立即可用，无需刷新页面
+
+#### 修复Customer对话页面AI模式下无法接收转人工事件
+- **文件**: `src/app/customer/conversations/[id]/page.tsx`
+- **问题**:
+  - SSE连接仅在`mode === 'human'`时启用
+  - 用户在AI模式下无法接收`conversation_transferred`事件
+  - 转人工后需要手动刷新页面才能看到人工回复
+- **修复**:
+  - SSE连接`enabled`参数改为`true`，始终保持连接
+  - 添加`conversationId`过滤，仅处理当前对话的事件
+  - `conversation_transferred`事件立即切换到human模式并加载消息
+  - `new_message`事件仅在human模式下处理，避免与AI消息冲突
+- **影响**: 用户在AI模式下转人工时立即切换界面，无需刷新页面，体验更流畅
+
+#### 实现Customer工单列表分页功能
+- **文件**: `src/app/customer/my-tickets/page.tsx`
+- **问题**:
+  - 工单列表仅获取前50条工单（`limit=50`）
+  - 超过50个工单的用户无法访问历史工单
+  - 忽略API返回的`hasMore`分页元数据
+- **修复**:
+  - 新增`page`、`hasMore`、`loadingMore`状态跟踪分页
+  - `fetchTickets`支持分页参数和append模式
+  - 添加"加载更多"按钮，点击后请求下一页并追加到列表
+  - 当`hasMore=true`时显示按钮，直到加载全部工单
+- **影响**: 用户可以查看所有历史工单，无50条限制
+
+### 📝 文档更新
+
+- 更新OpenSpec提案`update-faq-conversation-ticket-fixes`的所有任务为已完成状态
+
 ## [0.1.8] - 2025-11-18
 
 ### 🔒 安全修复

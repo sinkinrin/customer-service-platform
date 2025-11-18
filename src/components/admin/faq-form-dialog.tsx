@@ -41,25 +41,64 @@ const LANGUAGES = [
   { code: 'en', name: 'English' },
 ]
 
-const CATEGORIES = [
-  { id: 1, name: 'Account & Login' },
-  { id: 2, name: 'Tickets & Support' },
-  { id: 3, name: 'Conversations' },
-  { id: 4, name: 'General' },
-]
+interface Category {
+  id: number
+  name: string
+}
 
 export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: FAQFormDialogProps) {
   const [loading, setLoading] = useState(false)
+  const [loadingCategories, setLoadingCategories] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
   const [categoryId, setCategoryId] = useState<number>(1)
   const [slug, setSlug] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [activeLanguage, setActiveLanguage] = useState('zh-CN')
-  
+
   // Translation data for each language
   const [translations, setTranslations] = useState<Record<string, { title: string; content: string; keywords: string }>>({
     'zh-CN': { title: '', content: '', keywords: '' },
     'en': { title: '', content: '', keywords: '' },
   })
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true)
+      try {
+        const response = await fetch('/api/faq/categories')
+        if (!response.ok) throw new Error('Failed to fetch categories')
+
+        const data = await response.json()
+        const categoryList = (data.data?.categories || []).map((cat: any) => ({
+          id: cat.id,
+          name: cat.name || `Category ${cat.id}`,
+        }))
+
+        setCategories(categoryList)
+
+        // Set default category if no category is selected yet
+        if (categoryList.length > 0 && !article) {
+          setCategoryId(categoryList[0].id)
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+        // Fallback to default categories if API fails
+        setCategories([
+          { id: 1, name: 'Account & Login' },
+          { id: 2, name: 'Tickets & Support' },
+          { id: 3, name: 'Conversations' },
+          { id: 4, name: 'General' },
+        ])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+
+    if (open) {
+      fetchCategories()
+    }
+  }, [open, article])
 
   // Initialize form data when editing
   useEffect(() => {
@@ -180,16 +219,30 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
-                <Select value={categoryId.toString()} onValueChange={(v) => setCategoryId(parseInt(v))}>
+                <Select
+                  value={categoryId.toString()}
+                  onValueChange={(v) => setCategoryId(parseInt(v))}
+                  disabled={loadingCategories}
+                >
                   <SelectTrigger id="category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id.toString()}>
-                        {cat.name}
+                    {loadingCategories ? (
+                      <SelectItem value="0" disabled>
+                        Loading categories...
                       </SelectItem>
-                    ))}
+                    ) : categories.length === 0 ? (
+                      <SelectItem value="0" disabled>
+                        No categories available
+                      </SelectItem>
+                    ) : (
+                      categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id.toString()}>
+                          {cat.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

@@ -47,13 +47,16 @@ export default function MyTicketsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
 
   useEffect(() => {
     if (user?.email) {
-      fetchTickets()
+      fetchTickets(1)
     }
   }, [user])
 
@@ -69,24 +72,44 @@ export default function MyTicketsPage() {
     }
   }, [searchQuery, tickets])
 
-  const fetchTickets = async () => {
-    setLoading(true)
+  const fetchTickets = async (pageToLoad: number, append: boolean = false) => {
+    if (append) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+    }
+
     try {
       // Search for tickets by user email
-      const response = await fetch(`/api/tickets?query=${encodeURIComponent(user?.email || '')}&limit=50`)
-      
+      const response = await fetch(`/api/tickets?query=${encodeURIComponent(user?.email || '')}&limit=50&page=${pageToLoad}`)
+
       if (!response.ok) {
         throw new Error('Failed to fetch tickets')
       }
 
       const data = await response.json()
-      setTickets(data.data.tickets || [])
+      const newTickets = data.data.tickets || []
+
+      if (append) {
+        setTickets(prev => [...prev, ...newTickets])
+      } else {
+        setTickets(newTickets)
+      }
+
+      setHasMore(data.data.hasMore || false)
+      setPage(pageToLoad)
     } catch (error) {
       console.error('Failed to fetch tickets:', error)
       toast.error('Failed to load tickets')
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
+  }
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1
+    fetchTickets(nextPage, true)
   }
 
   const formatDate = (dateString: string) => {
@@ -207,6 +230,26 @@ export default function MyTicketsPage() {
                 ))}
               </TableBody>
             </Table>
+          )}
+
+          {/* Load More Button */}
+          {!loading && hasMore && (
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                variant="outline"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    加载中...
+                  </>
+                ) : (
+                  '加载更多'
+                )}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

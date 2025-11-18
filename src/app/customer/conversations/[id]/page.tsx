@@ -46,15 +46,20 @@ export default function ConversationDetailPage() {
     addMessage,
   } = useConversation()
 
-  // SSE connection for real-time updates
+  // SSE connection for real-time updates - always enabled to receive transfer events
   const { state: sseState, isConnected, error: sseError } = useSSE({
     url: '/api/sse/conversations',
-    enabled: mode === 'human',
+    enabled: true, // Always enabled to receive conversation_transferred events in AI mode
     onMessage: (event) => {
       console.log('[SSE] Received event:', event)
 
+      // Only process events for this conversation
+      if (event.conversationId !== conversationId) {
+        return
+      }
+
       // Handle conversation transferred event (customer side)
-      if (event.type === 'conversation_transferred' && event.conversationId === conversationId) {
+      if (event.type === 'conversation_transferred') {
         console.log('[SSE] Conversation transferred to human')
         setMode('human')
         fetchConversationById(conversationId)
@@ -62,8 +67,8 @@ export default function ConversationDetailPage() {
         toast.success('已成功转接至人工客服')
       }
 
-      // Handle new message - directly add to messages instead of re-fetching all
-      if (event.type === 'new_message' && event.conversationId === conversationId) {
+      // Handle new message - only in human mode to avoid conflicts with AI messages
+      if (event.type === 'new_message' && mode === 'human') {
         setShowNewMessageNotification(true)
         setTimeout(() => setShowNewMessageNotification(false), 3000)
         // Use addMessage from SSE event data instead of re-fetching all messages
@@ -73,7 +78,7 @@ export default function ConversationDetailPage() {
       }
 
       // Handle conversation updated
-      if (event.type === 'conversation_updated' && event.conversationId === conversationId) {
+      if (event.type === 'conversation_updated') {
         fetchConversationById(conversationId)
       }
     },

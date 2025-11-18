@@ -39,6 +39,7 @@ interface FAQItem {
   title: string
   content: string
   category: string
+  category_id: number
   state: string
   views: number
   likes: number
@@ -61,10 +62,24 @@ export default function FAQManagementPage() {
   const [editingItem, setEditingItem] = useState<FAQItem | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
+  const [categories, setCategories] = useState<Map<number, string>>(new Map())
 
   const fetchItems = async () => {
     setLoading(true)
     try {
+      // Fetch categories first
+      const categoriesResponse = await fetch('/api/faq/categories')
+      const categoriesData = await categoriesResponse.json()
+      const categoryMap = new Map<number, string>()
+
+      if (categoriesData.data?.categories) {
+        categoriesData.data.categories.forEach((cat: any) => {
+          categoryMap.set(cat.id, cat.name || `Category ${cat.id}`)
+        })
+      }
+      setCategories(categoryMap)
+
+      // Then fetch FAQ items
       const response = await fetch('/api/admin/faq?limit=1000&language=zh-CN')
       if (!response.ok) throw new Error('Failed to fetch FAQ items')
 
@@ -73,7 +88,8 @@ export default function FAQManagementPage() {
         id: item.id,
         title: item.title,
         content: item.content || '',
-        category: item.category_id ? `Category ${item.category_id}` : 'General',
+        category_id: item.category_id || 1,
+        category: categoryMap.get(item.category_id) || `Category ${item.category_id}`,
         state: item.is_active ? 'published' : 'draft',
         views: item.views || 0,
         likes: item.helpful || 0,
@@ -458,7 +474,7 @@ export default function FAQManagementPage() {
         mode={formMode}
         article={editingItem ? {
           id: editingItem.id,
-          category_id: parseInt(editingItem.category.replace('Category ', '')) || 1,
+          category_id: editingItem.category_id,
           slug: `article-${editingItem.id}`,
           is_active: editingItem.state === 'published',
           translations: [

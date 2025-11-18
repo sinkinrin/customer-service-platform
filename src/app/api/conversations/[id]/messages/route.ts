@@ -55,9 +55,9 @@ export async function GET(
     // Get messages from local storage
     const allMessages = await getConversationMessages(conversationId)
 
-    // Sort by created_at ascending
+    // Sort by created_at descending (newest first) to ensure latest messages are loaded by default
     const sorted = allMessages.sort((a, b) =>
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
 
     // Apply pagination

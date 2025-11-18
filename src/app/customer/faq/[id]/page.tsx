@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import DOMPurify from 'dompurify'
 import { useFAQ, type FAQItem } from '@/lib/hooks/use-faq'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -164,7 +165,7 @@ export default function FAQArticlePage() {
           {/* Answer */}
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div
-              dangerouslySetInnerHTML={{ __html: article.answer }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.answer) }}
               className="whitespace-pre-wrap"
             />
           </div>

@@ -159,13 +159,16 @@ export function useConversation() {
 
   /**
    * Fetch messages for a conversation
+   * @param conversationId - Conversation ID
+   * @param offset - Offset for pagination (default: 0)
+   * @param limit - Number of messages to fetch (default: 1000 to load all messages)
    */
-  const fetchMessages = useCallback(async (conversationId: string, offset = 0) => {
+  const fetchMessages = useCallback(async (conversationId: string, offset = 0, limit = 1000) => {
     setLoadingMessages(true)
 
     try {
       const params = new URLSearchParams()
-      params.append('limit', '50')
+      params.append('limit', limit.toString())
       params.append('offset', offset.toString())
 
       const response = await fetch(
@@ -179,13 +182,18 @@ export function useConversation() {
       const data = await response.json()
       const fetchedMessages = data.data.messages || []
 
+      // API returns messages in descending order (newest first)
+      // Reverse them to display in ascending order (oldest first, newest last)
+      const sortedMessages = [...fetchedMessages].reverse()
+
       if (offset === 0) {
-        setMessages(fetchedMessages)
+        setMessages(sortedMessages)
       } else {
-        prependMessages(fetchedMessages)
+        // For pagination, prepend older messages
+        prependMessages(sortedMessages)
       }
 
-      return fetchedMessages
+      return sortedMessages
     } catch (err) {
       const error = err as Error
       console.error('Error fetching messages:', error)

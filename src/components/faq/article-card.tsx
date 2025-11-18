@@ -7,6 +7,7 @@
 'use client'
 
 import { memo } from 'react'
+import DOMPurify from 'dompurify'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChevronRight, Eye, ThumbsUp } from 'lucide-react'
@@ -20,12 +21,21 @@ interface ArticleCardProps {
   searchQuery?: string
 }
 
-// Helper function to highlight search terms
+// Helper function to highlight search terms with XSS protection
 function highlightText(text: string | undefined, query: string): string {
-  if (!text || !query.trim()) return text || ''
+  if (!text || !query.trim()) {
+    // Sanitize even if no query to prevent XSS from raw content
+    return DOMPurify.sanitize(text || '')
+  }
 
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-  return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>')
+  const highlighted = text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>')
+
+  // Sanitize the final HTML to prevent XSS while preserving <mark> tags
+  return DOMPurify.sanitize(highlighted, {
+    ALLOWED_TAGS: ['mark'],
+    ALLOWED_ATTR: ['class']
+  })
 }
 
 // PERFORMANCE: React.memo prevents unnecessary re-renders

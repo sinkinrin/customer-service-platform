@@ -72,13 +72,15 @@ function mapStateIdToString(stateId: number): string {
 }
 
 /**
- * Transform Zammad ticket to include priority and state strings
+ * Transform Zammad ticket to include priority, state, and customer information
  */
-function transformTicket(ticket: RawZammadTicket) {
+function transformTicket(ticket: RawZammadTicket, customerInfo?: { name?: string; email?: string }) {
   return {
     ...ticket,
     priority: mapPriorityIdToString(ticket.priority_id),
     state: mapStateIdToString(ticket.state_id),
+    customer: customerInfo?.name || customerInfo?.email || `Customer #${ticket.customer_id}`,
+    customer_email: customerInfo?.email,
   }
 }
 
@@ -205,8 +207,38 @@ export async function GET(request: NextRequest) {
     // Apply limit
     const limitedTickets = filteredTickets.slice(0, limit)
 
-    // Transform tickets to include priority and state strings
-    const transformedTickets = limitedTickets.map((ticket: any) => transformTicket(ticket))
+    // Collect unique customer IDs
+    const customerIds = [...new Set(limitedTickets.map((t: any) => t.customer_id))]
+
+    // Fetch customer information in batch
+    const customerMap = new Map<number, { name?: string; email?: string }>()
+    try {
+      await Promise.all(
+        customerIds.map(async (customerId) => {
+          try {
+            const customer = await zammadClient.getUser(customerId)
+            const name = customer.firstname && customer.lastname
+              ? `${customer.firstname} ${customer.lastname}`.trim()
+              : customer.firstname || customer.lastname || undefined
+            customerMap.set(customerId, {
+              name,
+              email: customer.email,
+            })
+          } catch (error) {
+            console.error(`[DEBUG] Failed to fetch customer ${customerId}:`, error)
+            // Keep entry empty if fetch fails
+          }
+        })
+      )
+    } catch (error) {
+      console.error('[DEBUG] Error fetching customer information:', error)
+      // Continue even if batch fetch fails
+    }
+
+    // Transform tickets to include priority, state, and customer information
+    const transformedTickets = limitedTickets.map((ticket: any) =>
+      transformTicket(ticket, customerMap.get(ticket.customer_id))
+    )
 
     return successResponse({
       tickets: transformedTickets,

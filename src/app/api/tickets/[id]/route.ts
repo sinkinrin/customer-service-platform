@@ -111,13 +111,15 @@ function mapPriorityStringToId(priority: string): number {
 }
 
 /**
- * Transform Zammad ticket to include priority and state strings
+ * Transform Zammad ticket to include priority, state, and customer information
  */
-function transformTicket(ticket: RawZammadTicket) {
+function transformTicket(ticket: RawZammadTicket, customerInfo?: { name?: string; email?: string }) {
   return {
     ...ticket,
     priority: mapPriorityIdToString(ticket.priority_id),
     state: mapStateIdToString(ticket.state_id),
+    customer: customerInfo?.name || customerInfo?.email || `Customer #${ticket.customer_id}`,
+    customer_email: customerInfo?.email,
   }
 }
 
@@ -164,8 +166,24 @@ export async function GET(
       return notFoundResponse('Ticket not found')
     }
 
-    // Transform ticket to include priority and state strings
-    const ticket = transformTicket(rawTicket)
+    // Fetch customer information
+    let customerInfo: { name?: string; email?: string } | undefined
+    try {
+      const customer = await zammadClient.getUser(rawTicket.customer_id)
+      const name = customer.firstname && customer.lastname
+        ? `${customer.firstname} ${customer.lastname}`.trim()
+        : customer.firstname || customer.lastname || undefined
+      customerInfo = {
+        name,
+        email: customer.email,
+      }
+    } catch (error) {
+      console.error(`[DEBUG] Failed to fetch customer ${rawTicket.customer_id}:`, error)
+      // Continue without customer info
+    }
+
+    // Transform ticket to include priority, state, and customer information
+    const ticket = transformTicket(rawTicket, customerInfo)
 
     return successResponse({ ticket })
   } catch (error) {

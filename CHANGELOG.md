@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-11-18
+
+### 🔒 安全修复
+
+#### 修复FAQ内容XSS注入漏洞
+- **文件**: `src/app/customer/faq/[id]/page.tsx`, `src/components/faq/article-card.tsx`
+- **问题**: FAQ详情页和搜索卡片直接使用`dangerouslySetInnerHTML`渲染数据库内容，存在XSS安全风险
+- **修复**:
+  - 引入`dompurify`库对HTML内容进行清洗
+  - FAQ详情页：使用`DOMPurify.sanitize()`清洗文章内容
+  - ArticleCard：在搜索高亮时仅允许`<mark>`标签，清洗所有其他HTML
+- **影响**: 阻止恶意脚本注入，保护用户数据安全
+
+### 🐛 Bug修复
+
+#### 修复对话消息分页导致最新消息丢失
+- **文件**: `src/app/api/conversations/[id]/messages/route.ts`, `src/lib/hooks/use-conversation.ts`
+- **问题**:
+  - API按时间升序排序后`slice(offset, offset + limit)`，导致只返回最旧的50条消息
+  - Hook写死`limit=50`且`offset=0`，超过50条的对话会丢失最新消息
+- **修复**:
+  - API改为按`created_at`倒序排序（最新消息在前）
+  - Hook支持动态`limit`参数（默认1000），在前端反转消息顺序以正确显示
+  - 保留分页功能，支持通过`offset`加载更多历史消息
+- **影响**: 长对话现在能正确显示所有最新消息，支持加载完整对话历史
+
+#### 修复工单列表客户信息显示为undefined
+- **文件**: `src/app/api/tickets/route.ts`, `src/app/api/tickets/search/route.ts`, `src/app/api/tickets/[id]/route.ts`
+- **问题**:
+  - `transformTicket`仅返回`priority`和`state`文本，未包含客户信息
+  - 工单列表显示`Customer: undefined`
+- **修复**:
+  - 扩展`transformTicket`函数，接受客户信息参数
+  - API批量获取客户信息（`zammadClient.getUser`），创建`customer_id → user`映射
+  - 返回`customer`字段（客户姓名或邮箱）和`customer_email`字段
+  - 失败降级显示`Customer #${ticket.customer_id}`
+- **影响**: 工单列表和详情现在正确显示客户身份，方便管理员快速识别
+
+### 📦 依赖更新
+
+- 新增: `dompurify@^3.2.3` - HTML内容清洗库
+- 新增: `@types/dompurify@^3.2.0` - DOMPurify类型定义
+
+### 📚 文档
+
+- **更新**: `openspec/changes/update-conversation-ticket-faq-quality/tasks.md` - 标记已完成任务
+
+### 参考
+
+- OpenSpec提案: `openspec/changes/update-conversation-ticket-faq-quality/`
+
+---
+
 ## [0.1.7] - 2025-11-18
 
 ### 🐛 Bug修复 (Code Review Issues)

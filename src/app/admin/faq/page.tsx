@@ -221,8 +221,8 @@ export default function FAQManagementPage() {
     }
   }
 
-  // Get unique categories
-  const categories = Array.from(new Set(items.map((item) => item.category)))
+  // Get unique categories for filter dropdown
+  const categoryOptions = Array.from(new Set(items.map((item) => item.category)))
 
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
@@ -271,7 +271,7 @@ export default function FAQManagementPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
+                {categoryOptions.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>

@@ -151,12 +151,21 @@ export async function POST(
     }
 
     // Determine sender role (explicitly typed to match LocalMessage.sender_role)
-    const senderRole: 'customer' | 'ai' | 'staff' | 'system' = user.role === 'customer' ? 'customer' : 'staff'
+    // R2: Support metadata.role='ai' to allow AI messages to be stored with correct sender_role
+    // This allows the client to persist both user and AI messages with proper attribution
+    let senderRole: 'customer' | 'ai' | 'staff' | 'system'
+    if (validation.data.metadata?.role === 'ai' && user.role === 'customer') {
+      // Allow customers to save AI messages with sender_role='ai'
+      senderRole = 'ai'
+    } else {
+      // Default role based on authenticated user
+      senderRole = user.role === 'customer' ? 'customer' : 'staff'
+    }
 
     // Prepare metadata with sender name
     const messageMetadata = {
       ...validation.data.metadata,
-      sender_name: user.full_name || user.email,
+      sender_name: senderRole === 'ai' ? 'AI Assistant' : (user.full_name || user.email),
     }
 
     // R2: Add message to local storage with message_type to preserve attachments

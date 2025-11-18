@@ -166,13 +166,15 @@ export default function ConversationDetailPage() {
       }
 
       // Call AI API
+      // R3: Fix history to include the message that was just typed
+      // React state updates are async, so we must manually include newUserMessage
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId,
           message: content,
-          history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
+          history: [...aiMessages, newUserMessage].map(msg => ({ role: msg.role, content: msg.content })),
         }),
       })
 

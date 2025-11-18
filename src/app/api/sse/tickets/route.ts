@@ -5,7 +5,7 @@
  */
 
 import { NextRequest } from 'next/server'
-import { mockGetUser } from '@/lib/mock-auth'
+import { requireRole } from '@/lib/utils/auth'
 import { addConnection, removeConnection } from '@/lib/sse/ticket-broadcaster'
 
 // Heartbeat interval (30 seconds)
@@ -17,15 +17,12 @@ const CONNECTION_TIMEOUT = 5 * 60 * 1000
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  // Verify authentication
-  const user = await mockGetUser()
-
-  if (!user) {
-    return new Response('Unauthorized', { status: 401 })
-  }
-
-  const userId = user.id
-  const userRole = user.role
+  // Verify authentication and require staff/admin role
+  // Customers should not have access to ticket SSE broadcasts
+  try {
+    const user = await requireRole(['staff', 'admin'])
+    const userId = user.id
+    const userRole = user.role
 
   // Create a readable stream for SSE
   const stream = new ReadableStream({
@@ -78,13 +75,17 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
-      'X-Accel-Buffering': 'no', // Disable buffering in nginx
-    },
-  })
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no', // Disable buffering in nginx
+      },
+    })
+  } catch (error) {
+    console.error('SSE tickets authentication error:', error)
+    return new Response('Forbidden', { status: 403 })
+  }
 }
 

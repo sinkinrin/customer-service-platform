@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { REGIONS } from '@/lib/constants/regions'
+import { REGIONS, getGroupIdByRegion } from '@/lib/constants/regions'
 import { useSSE } from '@/lib/hooks/use-sse'
 import { toast } from 'sonner'
 
@@ -94,12 +94,11 @@ export default function AdminTicketsPage() {
       }
     }
 
-    // Filter by region
+    // Filter by region using canonical group_id
     if (selectedRegion !== 'all') {
-      const ticketRegion = REGIONS.find(r => r.value === selectedRegion)
-      if (ticketRegion && ticket.group) {
-        // R1: Check if ticket group matches selected region using canonical English name
-        if (ticket.group.toLowerCase() !== ticketRegion.labelEn.toLowerCase()) return false
+      const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
+      if (ticket.group_id && ticket.group_id !== expectedGroupId) {
+        return false
       }
     }
 

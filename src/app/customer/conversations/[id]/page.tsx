@@ -81,9 +81,35 @@ export default function ConversationDetailPage() {
   // Fetch conversation to determine mode and mark as read
   useEffect(() => {
     if (conversationId) {
-      fetchConversationById(conversationId).then((conv) => {
+      fetchConversationById(conversationId).then(async (conv) => {
         if (conv && conv.mode) {
           setMode(conv.mode as ConversationMode)
+
+          // R3: Load persisted AI messages if in AI mode
+          if (conv.mode === 'ai') {
+            try {
+              const response = await fetch(`/api/conversations/${conversationId}/messages`)
+              const data = await response.json()
+
+              if (data.success && data.data?.messages) {
+                // Filter only AI mode messages and convert to aiMessages format
+                const aiModeMessages = data.data.messages
+                  .filter((msg: any) => msg.metadata?.aiMode)
+                  .map((msg: any) => ({
+                    role: msg.metadata?.role === 'ai' ? 'assistant' as const : 'user' as const,
+                    content: msg.content,
+                    timestamp: msg.created_at
+                  }))
+
+                if (aiModeMessages.length > 0) {
+                  setAiMessages(aiModeMessages)
+                  console.log('[R3] Loaded', aiModeMessages.length, 'persisted AI messages')
+                }
+              }
+            } catch (error) {
+              console.error('[R3] Failed to load persisted AI messages:', error)
+            }
+          }
         }
       })
 
@@ -124,6 +150,21 @@ export default function ConversationDetailPage() {
       }
       setAiMessages(prev => [...prev, newUserMessage])
 
+      // R3: Persist user message to storage
+      try {
+        await fetch(`/api/conversations/${conversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content,
+            message_type: 'text',
+            metadata: { aiMode: true, role: 'customer' }
+          }),
+        })
+      } catch (error) {
+        console.error('[R3] Failed to persist user AI message:', error)
+      }
+
       // Call AI API
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -148,6 +189,21 @@ export default function ConversationDetailPage() {
         timestamp: new Date().toISOString()
       }
       setAiMessages(prev => [...prev, aiResponse])
+
+      // R3: Persist AI response to storage
+      try {
+        await fetch(`/api/conversations/${conversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: data.data.message,
+            message_type: 'text',
+            metadata: { aiMode: true, role: 'ai' }
+          }),
+        })
+      } catch (error) {
+        console.error('[R3] Failed to persist AI response:', error)
+      }
 
     } catch (error: any) {
       console.error('AI chat error:', error)

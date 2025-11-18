@@ -157,17 +157,22 @@ export async function PUT(
       } : null,
     }
 
-    // Broadcast conversation updated event via SSE
+    // Broadcast conversation updated event via SSE to both customer and staff
     try {
+      const targetUserIds = [updated.customer_id]
+      if (updated.staff_id) {
+        targetUserIds.push(updated.staff_id)
+      }
+
       broadcastConversationEvent(
         {
           type: 'conversation_updated',
           conversationId,
           data: response,
         },
-        [updated.customer_id]
+        targetUserIds
       )
-      console.log('[SSE] Broadcasted conversation_updated event:', conversationId)
+      console.log('[SSE] Broadcasted conversation_updated event to:', targetUserIds, 'for conversation:', conversationId)
     } catch (error) {
       console.error('[SSE] Failed to broadcast conversation update:', error)
     }

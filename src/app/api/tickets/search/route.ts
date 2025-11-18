@@ -146,12 +146,12 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
 
     if (!query) {
-      return errorResponse('Query parameter is required', 400)
+      return errorResponse('INVALID_QUERY', 'Query parameter is required', undefined, 400)
     }
 
     // Validate limit
     if (limit < 1 || limit > 100) {
-      return errorResponse('Limit must be between 1 and 100', 400)
+      return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 100', undefined, 400)
     }
 
     // Check if Zammad is enabled

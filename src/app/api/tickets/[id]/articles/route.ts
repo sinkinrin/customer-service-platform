@@ -42,7 +42,7 @@ export async function GET(
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
-      return errorResponse('Invalid ticket ID', 400)
+      return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
     }
 
     // Admin users get articles without X-On-Behalf-Of, others use X-On-Behalf-Of
@@ -73,7 +73,7 @@ export async function POST(
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
-      return errorResponse('Invalid ticket ID', 400)
+      return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
     }
 
     // Parse and validate request body

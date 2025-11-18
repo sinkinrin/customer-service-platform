@@ -17,6 +17,7 @@ import { filterTicketsByRegion, validateTicketCreation } from '@/lib/utils/regio
 import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
+import { broadcastEvent } from '@/lib/sse/ticket-broadcaster'
 
 // ============================================================================
 // Helper Functions
@@ -287,6 +288,24 @@ export async function POST(request: NextRequest) {
     })
 
     console.log('[DEBUG] POST /api/tickets - Created ticket:', ticket.id)
+
+    // R1: Broadcast ticket created event via SSE
+    try {
+      broadcastEvent({
+        type: 'ticket_created',
+        data: {
+          id: ticket.id,
+          number: ticket.number,
+          title: ticket.title,
+          state_id: ticket.state_id,
+          priority_id: ticket.priority_id,
+          group_id: ticket.group_id,
+        },
+      })
+      console.log('[SSE] Broadcasted ticket_created event for ticket:', ticket.id)
+    } catch (error) {
+      console.error('[SSE] Failed to broadcast ticket creation:', error)
+    }
 
     return successResponse(
       {

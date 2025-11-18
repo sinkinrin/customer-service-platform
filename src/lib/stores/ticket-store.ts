@@ -9,6 +9,7 @@ export interface ZammadTicket {
   priority_id: number
   priority: string
   group: string
+  group_id?: number
   customer: string
   owner_id?: number
   created_at: string

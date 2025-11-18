@@ -5,6 +5,91 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-11-18
+
+### 🐛 修复
+
+#### R1: 票务实时SSE事件广播
+- **文件**: `src/app/api/tickets/route.ts:292-308`, `src/app/api/tickets/[id]/route.ts:267-283,322-333`, `src/app/api/webhooks/zammad/route.ts:88-121`
+- 添加 `broadcastEvent()` 调用到票务 CRUD 操作和 webhook 处理器
+- 创建、更新、删除票务时发送 SSE 事件到管理员和员工
+- 前端 `/admin/tickets` 和 `/staff/tickets` 页面无需手动刷新即可显示"新更新"徽章
+- 修复问题：管理员和员工票务列表页面已经监听 SSE 事件，但后端从未发送事件
+
+#### R2: API错误响应规范化
+- **文件**: `src/app/api/faq/route.ts:31`, `src/app/api/tickets/search/route.ts:149,154`, `src/app/api/tickets/[id]/route.ts:155,195,311,316`, `src/app/api/tickets/[id]/articles/route.ts:45,76`
+- 修正所有 `errorResponse()` 调用使用正确的4参数格式：`errorResponse(code, message, details, status)`
+- 现在所有 API 错误返回描述性的 `error.code` 和 `error.message` 对
+- UI toasts (Sonner) 显示可读的错误原因而非 HTTP 状态码（如 "400"）
+- 修复前：`errorResponse('Limit must be between 1 and 1000', 400)` - 缺少错误代码
+- 修复后：`errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 1000', undefined, 400)`
+
+#### R3: AI对话历史持久化
+- **文件**: `src/app/customer/conversations/[id]/page.tsx:115-180,82-123`, `src/app/api/conversations/[id]/transfer/route.ts:20-24,88-120`
+- `handleAIMessage()` 现在将用户消息和 AI 回复都持久化到 `local-conversation-storage`
+- 页面加载时从存储加载已持久化的 AI 消息，对话历史在页面刷新后保留
+- 转人工端点从存储读取持久化历史（而非仅依赖客户端payload），即使页面刷新后也能保证完整历史记录
+- 修复问题：AI 对话仅存在于组件 state 中，页面刷新后丢失；转人工时可能丢失对话上下文
+
+### 技术细节
+
+- 所有修复实现 OpenSpec 提案: `update-ticket-sse-and-ai-history`
+- 更改保持向后兼容，遵循现有代码模式
+- 无数据库架构更改
+- TypeScript 类型检查通过，未引入新的类型错误
+- 包含清晰的 R1/R2/R3 注释便于需求追溯
+
+### 参考
+
+- OpenSpec 提案: `openspec/changes/update-ticket-sse-and-ai-history/proposal.md`
+- 任务列表: `openspec/changes/update-ticket-sse-and-ai-history/tasks.md`
+
+---
+
+## [0.1.3] - 2025-11-14
+
+### 🐛 修复
+
+#### R1: Admin 区域过滤器使用 group_id
+- **文件**: `src/app/admin/tickets/page.tsx:97-103`
+- 修复区域过滤逻辑，使用规范的 `group_id` 而非本地化的 `labelEn` 进行比较
+- 解决 Africa 和 Europe Zone 2 等共享 fallback group 的区域无法正确过滤票务的问题
+- 通过 `getGroupIdByRegion()` 获取区域对应的 Zammad Group ID，直接比较 `ticket.group_id`
+- 修复前：比较 "Users" (ticket.group) 与 "Africa" (ticketRegion.labelEn) 导致不匹配
+- 修复后：比较 group_id (1 vs 1) 正确匹配
+
+#### R2: 对话更新同时通知客户和员工
+- **文件**: `src/app/api/conversations/[id]/route.ts:160-178`
+- 修复 SSE 广播逻辑，conversation_updated 事件现在同时发送给客户和已分配的员工
+- 员工实时看到对话状态变化（关闭、重新打开、重新分配等）
+- 修复前：只广播给 `[updated.customer_id]`
+- 修复后：广播给 `[updated.customer_id, updated.staff_id]`（如果有 staff_id）
+
+#### R3: Staff 票务详情页面创建
+- **文件**: `src/app/staff/tickets/[id]/page.tsx` (新建)
+- 创建完整的 Staff 票务详情页面，复用 `TicketDetail` 和 `TicketActions` 组件
+- 支持查看票务信息、历史对话、添加回复和内部备注
+- 员工点击票务列表不再出现 404 错误
+- 与 Admin 票务详情页面类似，但去除了删除功能（Staff 无权限）
+
+#### 类型修复
+- **文件**: `src/lib/stores/ticket-store.ts:12`
+- 为 `ZammadTicket` 接口添加 `group_id?: number` 字段
+- 修复 TypeScript 类型错误，支持使用 `group_id` 进行过滤
+
+### 技术细节
+
+- 所有修复实现 OpenSpec 提案: `update-support-routing-and-realtime`
+- 更改保持向后兼容，遵循现有代码模式
+- 无数据库架构更改
+- TypeScript 类型检查通过，未引入新的类型错误
+- 成功复用现有组件（TicketDetail, TicketActions），保持代码 DRY
+
+### 参考
+
+- OpenSpec 提案: `openspec/changes/update-support-routing-and-realtime/proposal.md`
+- 任务列表: `openspec/changes/update-support-routing-and-realtime/tasks.md`
+
 ## [0.1.2] - 2025-11-14
 
 ### 🐛 修复

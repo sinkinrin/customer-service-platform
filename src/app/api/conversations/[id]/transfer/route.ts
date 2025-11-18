@@ -21,6 +21,7 @@ import {
   getConversation,
   updateConversation,
   addMessageWithMetadata,
+  getConversationMessages,
 } from '@/lib/local-conversation-storage'
 import { broadcastConversationEvent } from '@/lib/sse/conversation-broadcaster'
 import { z } from 'zod'
@@ -84,10 +85,23 @@ export async function POST(
       return validationErrorResponse(validation.error.errors)
     }
 
-    const { aiHistory, reason } = validation.data
+    const { aiHistory: clientAiHistory, reason } = validation.data
 
-    // Step 1: Save AI conversation history as system message (if provided)
-    if (aiHistory && aiHistory.length > 0) {
+    // R3: Step 1: Read persisted AI history from storage (not just from client payload)
+    const persistedMessages = await getConversationMessages(conversationId)
+    const aiModeMessages = persistedMessages
+      .filter(msg => msg.metadata?.aiMode)
+      .map(msg => ({
+        role: msg.metadata?.role === 'ai' ? 'ai' as const : 'customer' as const,
+        content: msg.content,
+        timestamp: msg.created_at
+      }))
+
+    // Use persisted history if available, otherwise fall back to client payload
+    const aiHistory = aiModeMessages.length > 0 ? aiModeMessages : (clientAiHistory || [])
+
+    // Step 2: Save AI conversation history as system message (if we have any history)
+    if (aiHistory.length > 0) {
       await addMessageWithMetadata(
         conversationId,
         'system',
@@ -100,10 +114,12 @@ export async function POST(
           transferredAt: new Date().toISOString(),
         }
       )
-      console.log('[Transfer] Saved AI history:', aiHistory.length, 'messages')
+      console.log('[R3] Saved AI history from storage:', aiHistory.length, 'messages')
+    } else {
+      console.log('[R3] No AI history found (neither persisted nor from client)')
     }
 
-    // Step 2: Update conversation mode to 'human'
+    // Step 3: Update conversation mode to 'human'
     const updated = await updateConversation(conversationId, {
       mode: 'human',
       transferred_at: new Date().toISOString(),
@@ -114,7 +130,7 @@ export async function POST(
       return serverErrorResponse('Failed to update conversation')
     }
 
-    // Step 3: Send system message to customer
+    // Step 4: Send system message to customer
     const systemMessageContent = reason
       ? `您已成功转接至人工客服。\n原因：${reason}\n\n客服人员会尽快回复您，请稍候...`
       : '您已成功转接至人工客服，客服人员会尽快回复您，请稍候...'
@@ -135,7 +151,7 @@ export async function POST(
 
     console.log('[Transfer] Conversation transferred to human:', conversationId)
 
-    // Step 4: Broadcast SSE event to customer
+    // Step 5: Broadcast SSE event to customer
     try {
       broadcastConversationEvent(
         {
@@ -153,7 +169,7 @@ export async function POST(
       console.error('[SSE] Failed to broadcast to customer:', error)
     }
 
-    // Step 5: Broadcast SSE event to all staff
+    // Step 6: Broadcast SSE event to all staff
     try {
       broadcastConversationEvent(
         {

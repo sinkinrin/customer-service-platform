@@ -18,6 +18,7 @@ import {
 } from '@/lib/utils/api-response'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
+import { broadcastEvent } from '@/lib/sse/ticket-broadcaster'
 
 // ============================================================================
 // Helper Functions
@@ -151,7 +152,7 @@ export async function GET(
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
-      return errorResponse('Invalid ticket ID', 400)
+      return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
     }
 
     // Admin users get ticket without X-On-Behalf-Of, others use X-On-Behalf-Of
@@ -191,7 +192,7 @@ export async function PUT(
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
-      return errorResponse('Invalid ticket ID', 400)
+      return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
     }
 
     // Parse and validate request body
@@ -263,6 +264,24 @@ export async function PUT(
     // Transform ticket to include priority and state strings
     const ticket = transformTicket(rawTicket)
 
+    // R1: Broadcast ticket updated event via SSE
+    try {
+      broadcastEvent({
+        type: 'ticket_updated',
+        data: {
+          id: ticket.id,
+          number: ticket.number,
+          title: ticket.title,
+          state_id: rawTicket.state_id,
+          priority_id: rawTicket.priority_id,
+          group_id: rawTicket.group_id,
+        },
+      })
+      console.log('[SSE] Broadcasted ticket_updated event for ticket:', ticket.id)
+    } catch (error) {
+      console.error('[SSE] Failed to broadcast ticket update:', error)
+    }
+
     return successResponse({ ticket })
   } catch (error) {
     console.error('PUT /api/tickets/[id] error:', error)
@@ -288,16 +307,29 @@ export async function DELETE(
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
-      return errorResponse('Invalid ticket ID', 400)
+      return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
     }
 
     // Only admin users can delete tickets
     if (user.role !== 'admin') {
-      return errorResponse('Unauthorized: Only admins can delete tickets', 403)
+      return errorResponse('UNAUTHORIZED', 'Only admins can delete tickets', undefined, 403)
     }
 
     // Delete ticket using admin client (no X-On-Behalf-Of)
     await zammadClient.deleteTicket(ticketId)
+
+    // R1: Broadcast ticket deleted event via SSE
+    try {
+      broadcastEvent({
+        type: 'ticket_deleted',
+        data: {
+          id: ticketId,
+        },
+      })
+      console.log('[SSE] Broadcasted ticket_deleted event for ticket:', ticketId)
+    } catch (error) {
+      console.error('[SSE] Failed to broadcast ticket deletion:', error)
+    }
 
     return successResponse({ message: 'Ticket deleted successfully' })
   } catch (error) {

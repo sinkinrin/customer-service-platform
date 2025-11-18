@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     // Validate limit (allow up to 1000 for admin pages)
     if (limit < 1 || limit > 1000) {
-      return errorResponse('Limit must be between 1 and 1000', 400)
+      return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 1000', undefined, 400)
     }
 
     // Build where clause

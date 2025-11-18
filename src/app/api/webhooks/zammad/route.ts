@@ -17,6 +17,7 @@ import {
 } from '@/lib/utils/api-response'
 import type { ZammadWebhookPayload } from '@/lib/zammad/types'
 import crypto from 'crypto'
+import { broadcastEvent } from '@/lib/sse/ticket-broadcaster'
 
 // ============================================================================
 // Webhook Signature Verification
@@ -84,10 +85,40 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime,
     })
 
-    // TODO: Process webhook event
-    // - Update conversation state in real-time
-    // - Trigger WebSocket notifications to connected clients
-    // - Store event for audit trail
+    // R1: Broadcast ticket event via SSE based on webhook type
+    try {
+      const ticket = webhookPayload.ticket
+      if (ticket) {
+        let eventType: 'ticket_created' | 'ticket_updated' | 'ticket_deleted' | undefined
+
+        // Map Zammad webhook events to SSE event types
+        // Note: Zammad uses 'ticket.create', 'ticket.update', etc. (not 'created', 'updated')
+        if (webhookPayload.event === 'ticket.create') {
+          eventType = 'ticket_created'
+        } else if (webhookPayload.event === 'ticket.update') {
+          eventType = 'ticket_updated'
+        } else if (webhookPayload.event === 'ticket.close') {
+          eventType = 'ticket_updated'
+        }
+
+        if (eventType) {
+          broadcastEvent({
+            type: eventType,
+            data: {
+              id: ticket.id,
+              number: ticket.number,
+              title: ticket.title,
+              state_id: ticket.state_id,
+              priority_id: ticket.priority_id,
+              group_id: ticket.group_id,
+            },
+          })
+          console.log('[SSE] Broadcasted', eventType, 'event from webhook for ticket:', ticket.id)
+        }
+      }
+    } catch (error) {
+      console.error('[SSE] Failed to broadcast webhook event:', error)
+    }
 
     return successResponse({
       message: 'Webhook received successfully',

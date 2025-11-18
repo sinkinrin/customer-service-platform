@@ -207,29 +207,39 @@ export async function GET(request: NextRequest) {
     // Apply limit
     const limitedTickets = filteredTickets.slice(0, limit)
 
-    // Collect unique customer IDs
+    // Collect unique customer IDs (to avoid duplicate fetches)
     const customerIds = [...new Set(limitedTickets.map((t: any) => t.customer_id))]
 
-    // Fetch customer information in batch
+    // In-memory cache for this request to avoid duplicate fetches
     const customerMap = new Map<number, { name?: string; email?: string }>()
+
+    // Fetch customer information with concurrency limit to avoid overwhelming Zammad
+    const CONCURRENCY_LIMIT = 5  // Process 5 customers at a time
+    const chunks: number[][] = []
+    for (let i = 0; i < customerIds.length; i += CONCURRENCY_LIMIT) {
+      chunks.push(customerIds.slice(i, i + CONCURRENCY_LIMIT))
+    }
+
     try {
-      await Promise.all(
-        customerIds.map(async (customerId) => {
-          try {
-            const customer = await zammadClient.getUser(customerId)
-            const name = customer.firstname && customer.lastname
-              ? `${customer.firstname} ${customer.lastname}`.trim()
-              : customer.firstname || customer.lastname || undefined
-            customerMap.set(customerId, {
-              name,
-              email: customer.email,
-            })
-          } catch (error) {
-            console.error(`[DEBUG] Failed to fetch customer ${customerId}:`, error)
-            // Keep entry empty if fetch fails
-          }
-        })
-      )
+      for (const chunk of chunks) {
+        await Promise.all(
+          chunk.map(async (customerId) => {
+            try {
+              const customer = await zammadClient.getUser(customerId)
+              const name = customer.firstname && customer.lastname
+                ? `${customer.firstname} ${customer.lastname}`.trim()
+                : customer.firstname || customer.lastname || undefined
+              customerMap.set(customerId, {
+                name,
+                email: customer.email,
+              })
+            } catch (error) {
+              console.error(`[DEBUG] Failed to fetch customer ${customerId}:`, error)
+              // Keep entry empty if fetch fails
+            }
+          })
+        )
+      }
     } catch (error) {
       console.error('[DEBUG] Error fetching customer information:', error)
       // Continue even if batch fetch fails

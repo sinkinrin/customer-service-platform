@@ -9,6 +9,8 @@ export type SSEConnectionState = 'connecting' | 'connected' | 'disconnected' | '
 export interface SSEEvent {
   type: string
   data?: any
+  conversationId?: string  // Optional conversationId for conversation events
+  timestamp?: string       // Optional timestamp added by broadcaster
 }
 
 export interface SSEManagerOptions {

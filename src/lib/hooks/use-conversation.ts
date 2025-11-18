@@ -336,5 +336,6 @@ export function useConversation() {
     updateConversationStatus,
     setActiveConversation,
     setTyping,
+    addMessage,  // Expose addMessage for direct message insertion (e.g., from SSE events)
   }
 }

@@ -42,6 +42,7 @@ export default function StaffConversationDetailPage() {
     fetchConversationById,
     sendMessage,
     subscribeToConversation,
+    addMessage,
   } = useConversation()
 
   // SSE connection for real-time updates
@@ -51,11 +52,14 @@ export default function StaffConversationDetailPage() {
     onMessage: (event) => {
       console.log('[SSE] Received event:', event)
 
-      // Handle new message
+      // Handle new message - directly add to messages instead of re-fetching all
       if (event.type === 'new_message' && event.conversationId === conversationId) {
         setShowNewMessageNotification(true)
         setTimeout(() => setShowNewMessageNotification(false), 3000)
-        fetchMessages(conversationId)
+        // Use addMessage from SSE event data instead of re-fetching all messages
+        if (event.data) {
+          addMessage(event.data)
+        }
       }
 
       // Handle conversation updated

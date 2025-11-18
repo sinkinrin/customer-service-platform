@@ -221,6 +221,7 @@ Add file upload functionality:
 2. **提议变更**：在 `openspec/changes/` 中创建新目录和提案
 3. **跟踪进度**：在 `tasks.md` 中更新实施清单
 4. **归档已完成的变更**：将已完成的变更移动到 `openspec/archive/`
+5. **生成 Changelog**：遵循 `CHANGELOG_GUIDE.md` 中的指引，基于 git commits 生成规范的变更日志
 
 ### 当前规范
 - `faq-system` - 自建 FAQ 知识库系统

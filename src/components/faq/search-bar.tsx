@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useState, KeyboardEvent, useEffect, memo } from 'react'
+import { useState, KeyboardEvent, useEffect, useRef, memo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search, X } from 'lucide-react'
@@ -29,11 +29,19 @@ export const SearchBar = memo(function SearchBar({
 }: SearchBarProps) {
   const [query, setQuery] = useState(defaultValue)
   const debouncedQuery = useDebounce(query, debounceDelay)
+  const previousQueryRef = useRef<string>(debouncedQuery)
 
   // PERFORMANCE: Auto-search with debounce (reduces API calls)
-  // FIX: Always trigger onSearch when debouncedQuery changes, including when clearing input
+  // FIX: Only trigger onSearch when debouncedQuery actually changes
+  // Using useRef to track previous value prevents infinite loop from onSearch recreation
   useEffect(() => {
-    onSearch(debouncedQuery.trim())
+    const trimmedQuery = debouncedQuery.trim()
+    const previousQuery = previousQueryRef.current.trim()
+
+    if (trimmedQuery !== previousQuery) {
+      onSearch(trimmedQuery)
+      previousQueryRef.current = debouncedQuery
+    }
   }, [debouncedQuery, onSearch])
 
   const handleSearch = () => {

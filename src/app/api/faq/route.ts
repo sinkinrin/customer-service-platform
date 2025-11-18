@@ -31,14 +31,16 @@ export async function GET(request: NextRequest) {
     // Support both camelCase (categoryId) and snake_case (category_id) for backwards compatibility
     const categoryId = searchParams.get('categoryId') || searchParams.get('category_id')
     const limit = parseInt(searchParams.get('limit') || '10')
+    // FIX: Add forceRefresh parameter to bypass cache (for admin edits verification)
+    const forceRefresh = searchParams.get('forceRefresh') === 'true'
 
     // Validate limit (allow up to 1000 for admin pages)
     if (limit < 1 || limit > 1000) {
       return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 1000', undefined, 400)
     }
 
-    // PERFORMANCE: Check cache first (for non-search queries)
-    if (!query) {
+    // PERFORMANCE: Check cache first (for non-search queries and non-force-refresh)
+    if (!query && !forceRefresh) {
       const cacheKey = `faq:list:${language}:${categoryId || 'all'}:${limit}`
       const cached = faqCache.get(cacheKey)
       if (cached) {

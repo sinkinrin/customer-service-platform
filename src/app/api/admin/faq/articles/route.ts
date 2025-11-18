@@ -15,6 +15,7 @@ import {
   unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { faqCache } from '@/lib/cache/simple-cache'
 
 // ============================================================================
 // POST /api/admin/faq/articles - Create article
@@ -73,6 +74,10 @@ export async function POST(request: NextRequest) {
         translations: true,
       },
     })
+
+    // FIX: Clear FAQ cache after article creation
+    faqCache.clear()
+    console.log('[Cache] Cleared FAQ cache after article creation')
 
     return successResponse(
       {
@@ -162,6 +167,10 @@ export async function PUT(request: NextRequest) {
       },
     })
 
+    // FIX: Clear FAQ cache after article update
+    faqCache.clear()
+    console.log('[Cache] Cleared FAQ cache after article update')
+
     return successResponse({
       message: 'Article updated successfully',
       article: updatedArticle,
@@ -207,6 +216,10 @@ export async function DELETE(request: NextRequest) {
     await prisma.faqArticle.delete({
       where: { id: parseInt(id) },
     })
+
+    // FIX: Clear FAQ cache after article deletion
+    faqCache.clear()
+    console.log('[Cache] Cleared FAQ cache after article deletion')
 
     return successResponse({
       message: 'Article deleted successfully',

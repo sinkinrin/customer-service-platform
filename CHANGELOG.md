@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2025-11-18
+
+### 🐛 Bug修复 (Code Review Issues)
+
+#### 修复SearchBar自动搜索无法清除结果
+- **文件**: `src/components/faq/search-bar.tsx`
+- 问题：防抖effect只在`debouncedQuery !== defaultValue`时触发，清空输入时不会调用`onSearch('')`
+- 修复：移除`defaultValue`比较条件，确保每次`debouncedQuery`变化都触发搜索
+- 影响：清空搜索框现在能正确显示热门FAQ
+
+#### 修复AI对话历史只加载最旧的50条消息
+- **文件**: `src/app/customer/conversations/[id]/page.tsx:92`
+- 问题：API调用未传递`limit`参数，默认返回前50条，长对话会丢失最新消息
+- 修复：添加`?limit=1000`参数，加载所有AI消息
+- 影响：AI对话现在可以加载最多1000条消息，保留完整上下文
+
+#### 添加FAQ缓存失效机制
+- **文件**: `src/app/api/faq/route.ts`, `src/app/api/admin/faq/articles/route.ts`, `src/app/api/admin/faq/categories/route.ts`
+- 问题：FAQ缓存10分钟，但文章/分类编辑、评分变化时不清除缓存，显示陈旧内容
+- 修复：
+  - 添加`forceRefresh`查询参数，允许绕过缓存（管理员验证编辑用）
+  - 在admin API的创建/更新/删除操作后自动清除FAQ和分类缓存
+  - 文章操作清除`faqCache`，分类操作清除`faqCache`和`categoriesCache`
+- 影响：管理员编辑后，用户立即看到最新内容
+
+#### 修复serverless定时器泄漏
+- **文件**: `src/lib/cache/simple-cache.ts:133-155`
+- 问题：模块作用域的`setInterval`在serverless环境中保持event loop活跃，阻止worker空闲
+- 修复：
+  - 使用`globalThis.__cacheCleanupStarted`守卫，防止热重载时创建多个定时器
+  - 使用`timer.unref()`允许进程在只有此定时器时退出
+- 影响：serverless workers可以正常空闲和退出，减少空闲CPU使用
+
+### 📚 文档
+
+- **新增**: `docs/REVIEW-FIXES.md` - 详细的代码审查修复文档
+
+### 参考
+
+- Code Review: `review.md` (最新6次提交的审查结果)
+
+---
+
 ## [0.1.6] - 2025-11-18
 
 ### ⚡ 性能优化

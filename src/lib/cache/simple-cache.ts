@@ -130,12 +130,26 @@ export const categoriesCache = new SimpleCache<any>(10, 1800) // 30 minutes
 export const ticketCache = new SimpleCache<any>(100, 300) // 5 minutes
 export const conversationCache = new SimpleCache<any>(100, 300) // 5 minutes
 
-// Auto cleanup every 5 minutes
+// FIX: Auto cleanup every 5 minutes with proper serverless handling
+// Use globalThis guard to prevent multiple timers on hot reload
+// Use unref() to allow process to exit when this is the only active timer
 if (typeof window === 'undefined') {
-  setInterval(() => {
-    faqCache.cleanup()
-    categoriesCache.cleanup()
-    ticketCache.cleanup()
-    conversationCache.cleanup()
-  }, 5 * 60 * 1000)
+  // @ts-ignore - globalThis augmentation for cleanup tracking
+  if (!globalThis.__cacheCleanupStarted) {
+    // @ts-ignore
+    globalThis.__cacheCleanupStarted = true
+
+    const timer = setInterval(() => {
+      faqCache.cleanup()
+      categoriesCache.cleanup()
+      ticketCache.cleanup()
+      conversationCache.cleanup()
+    }, 5 * 60 * 1000)
+
+    // Use unref() to allow the process to exit if this is the only active timer
+    // This prevents the timer from keeping serverless workers alive
+    if (timer.unref) {
+      timer.unref()
+    }
+  }
 }

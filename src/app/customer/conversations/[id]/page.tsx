@@ -88,7 +88,8 @@ export default function ConversationDetailPage() {
           // R3: Load persisted AI messages if in AI mode
           if (conv.mode === 'ai') {
             try {
-              const response = await fetch(`/api/conversations/${conversationId}/messages`)
+              // FIX: Pass large limit to load all AI messages, not just first 50
+              const response = await fetch(`/api/conversations/${conversationId}/messages?limit=1000`)
               const data = await response.json()
 
               if (data.success && data.data?.messages) {

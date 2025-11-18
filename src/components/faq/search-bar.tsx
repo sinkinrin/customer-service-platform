@@ -31,11 +31,10 @@ export const SearchBar = memo(function SearchBar({
   const debouncedQuery = useDebounce(query, debounceDelay)
 
   // PERFORMANCE: Auto-search with debounce (reduces API calls)
+  // FIX: Always trigger onSearch when debouncedQuery changes, including when clearing input
   useEffect(() => {
-    if (debouncedQuery !== defaultValue) {
-      onSearch(debouncedQuery.trim())
-    }
-  }, [debouncedQuery, onSearch, defaultValue])
+    onSearch(debouncedQuery.trim())
+  }, [debouncedQuery, onSearch])
 
   const handleSearch = () => {
     onSearch(query.trim())

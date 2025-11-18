@@ -15,6 +15,7 @@ import {
   unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { faqCache, categoriesCache } from '@/lib/cache/simple-cache'
 
 // ============================================================================
 // POST /api/admin/faq/categories - Create category
@@ -56,6 +57,11 @@ export async function POST(request: NextRequest) {
         isActive: true,
       },
     })
+
+    // FIX: Clear FAQ and categories cache after category creation
+    faqCache.clear()
+    categoriesCache.clear()
+    console.log('[Cache] Cleared FAQ and categories cache after category creation')
 
     return successResponse(
       {
@@ -112,6 +118,11 @@ export async function PUT(request: NextRequest) {
         ...(typeof is_active === 'boolean' && { isActive: is_active }),
       },
     })
+
+    // FIX: Clear FAQ and categories cache after category update
+    faqCache.clear()
+    categoriesCache.clear()
+    console.log('[Cache] Cleared FAQ and categories cache after category update')
 
     return successResponse({
       message: 'Category updated successfully',
@@ -173,6 +184,11 @@ export async function DELETE(request: NextRequest) {
     await prisma.faqCategory.delete({
       where: { id: parseInt(id) },
     })
+
+    // FIX: Clear FAQ and categories cache after category deletion
+    faqCache.clear()
+    categoriesCache.clear()
+    console.log('[Cache] Cleared FAQ and categories cache after category deletion')
 
     return successResponse({
       message: 'Category deleted successfully',

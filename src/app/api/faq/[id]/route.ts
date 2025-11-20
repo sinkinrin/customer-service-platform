@@ -32,7 +32,8 @@ export async function GET(
     const language = searchParams.get('language') || 'zh-CN'
 
     // Get article from database
-    const article = await prisma.faqArticle.findUnique({
+    // FIX: Use findFirst instead of findUnique to avoid Prisma error with non-unique field isActive
+    const article = await prisma.faqArticle.findFirst({
       where: {
         id: articleId,
         isActive: true,
@@ -46,8 +47,9 @@ export async function GET(
       },
     })
 
+    // Return 404 if article not found or not active (as per OpenSpec requirement)
     if (!article) {
-      return errorResponse('NOT_FOUND', 'Article not found', undefined, 404)
+      return errorResponse('NOT_FOUND', 'Article not found or not available', undefined, 404)
     }
 
     // Increment view count

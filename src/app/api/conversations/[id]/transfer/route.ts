@@ -89,8 +89,10 @@ export async function POST(
 
     // R3: Step 1: Read persisted AI history from storage (not just from client payload)
     const persistedMessages = await getConversationMessages(conversationId)
+    // OpenSpec: Sort messages by timestamp ascending (oldest first) for correct history order
     const aiModeMessages = persistedMessages
       .filter(msg => msg.metadata?.aiMode)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Ascending order
       .map(msg => ({
         role: msg.metadata?.role === 'ai' ? 'ai' as const : 'customer' as const,
         content: msg.content,

@@ -103,8 +103,11 @@ export default function ConversationDetailPage() {
 
               if (data.success && data.data?.messages) {
                 // Filter only AI mode messages and convert to aiMessages format
+                // OpenSpec: API returns messages in descending order (newest first)
+                // Reverse to ascending order (oldest first) for correct AI history display
                 const aiModeMessages = data.data.messages
                   .filter((msg: any) => msg.metadata?.aiMode)
+                  .reverse() // Reverse to get ascending order (oldest first)
                   .map((msg: any) => ({
                     role: msg.metadata?.role === 'ai' ? 'assistant' as const : 'user' as const,
                     content: msg.content,
@@ -113,7 +116,7 @@ export default function ConversationDetailPage() {
 
                 if (aiModeMessages.length > 0) {
                   setAiMessages(aiModeMessages)
-                  console.log('[R3] Loaded', aiModeMessages.length, 'persisted AI messages')
+                  console.log('[R3] Loaded', aiModeMessages.length, 'persisted AI messages in ascending order')
                 }
               }
             } catch (error) {

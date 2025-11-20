@@ -13,7 +13,9 @@ import {
   errorResponse,
   validationErrorResponse,
   serverErrorResponse,
+  notFoundResponse,
 } from '@/lib/utils/api-response'
+import { validateTicketAccess } from '@/lib/utils/region-auth'
 import { z } from 'zod'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 
@@ -55,6 +57,38 @@ export async function GET(
         { service: 'zammad', available: false },
         503
       )
+    }
+
+    // OpenSpec: Validate region/ownership access before fetching articles
+    // First, fetch the ticket to check permissions
+    const ticket = user.role === 'admin'
+      ? await zammadClient.getTicket(ticketId)
+      : await zammadClient.getTicket(ticketId, user.email)
+
+    if (!ticket) {
+      return notFoundResponse('Ticket not found')
+    }
+
+    // Validate access control
+    if (user.role === 'staff') {
+      try {
+        validateTicketAccess(user, ticket.group_id)
+      } catch (error) {
+        console.warn('[Articles API] Staff access denied:', error instanceof Error ? error.message : 'Unknown error')
+        return errorResponse('FORBIDDEN', 'You do not have permission to access articles for this ticket', undefined, 403)
+      }
+    } else if (user.role === 'customer') {
+      // Customer can only access articles for their own tickets
+      try {
+        const ticketCustomer = await zammadClient.getUser(ticket.customer_id)
+        if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
+          console.warn('[Articles API] Customer access denied: ticket belongs to different customer')
+          return notFoundResponse('Ticket not found')
+        }
+      } catch (error) {
+        console.error('[Articles API] Failed to verify ticket ownership:', error)
+        return notFoundResponse('Ticket not found')
+      }
     }
 
     // Admin users get articles without X-On-Behalf-Of, others use X-On-Behalf-Of
@@ -112,6 +146,38 @@ export async function POST(
         { service: 'zammad', available: false },
         503
       )
+    }
+
+    // OpenSpec: Validate region/ownership access before creating article
+    // First, fetch the ticket to check permissions
+    const ticket = user.role === 'admin'
+      ? await zammadClient.getTicket(ticketId)
+      : await zammadClient.getTicket(ticketId, user.email)
+
+    if (!ticket) {
+      return notFoundResponse('Ticket not found')
+    }
+
+    // Validate access control
+    if (user.role === 'staff') {
+      try {
+        validateTicketAccess(user, ticket.group_id)
+      } catch (error) {
+        console.warn('[Articles API] Staff create access denied:', error instanceof Error ? error.message : 'Unknown error')
+        return errorResponse('FORBIDDEN', 'You do not have permission to create articles for this ticket', undefined, 403)
+      }
+    } else if (user.role === 'customer') {
+      // Customer can only create articles for their own tickets
+      try {
+        const ticketCustomer = await zammadClient.getUser(ticket.customer_id)
+        if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
+          console.warn('[Articles API] Customer create access denied: ticket belongs to different customer')
+          return notFoundResponse('Ticket not found')
+        }
+      } catch (error) {
+        console.error('[Articles API] Failed to verify ticket ownership for article creation:', error)
+        return notFoundResponse('Ticket not found')
+      }
     }
 
     // Parse and validate request body

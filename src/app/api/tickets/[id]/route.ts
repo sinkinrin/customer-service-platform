@@ -16,6 +16,7 @@ import {
   validationErrorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { validateTicketAccess } from '@/lib/utils/region-auth'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { broadcastEvent } from '@/lib/sse/ticket-broadcaster'
@@ -178,6 +179,32 @@ export async function GET(
       return notFoundResponse('Ticket not found')
     }
 
+    // OpenSpec: Validate region/ownership access control
+    // Staff can only access tickets in their region, customer can only access their own tickets
+    if (user.role === 'staff') {
+      try {
+        validateTicketAccess(user, rawTicket.group_id)
+      } catch (error) {
+        console.warn('[Ticket API] Staff access denied:', error instanceof Error ? error.message : 'Unknown error')
+        return errorResponse('FORBIDDEN', 'You do not have permission to access this ticket', undefined, 403)
+      }
+    } else if (user.role === 'customer') {
+      // Customer can only access their own tickets
+      // Note: X-On-Behalf-Of already filters by customer, but we add explicit check for security
+      const customerEmail = user.email.toLowerCase()
+      try {
+        const ticketCustomer = await zammadClient.getUser(rawTicket.customer_id)
+        if (ticketCustomer.email.toLowerCase() !== customerEmail) {
+          console.warn('[Ticket API] Customer access denied: ticket belongs to different customer')
+          return notFoundResponse('Ticket not found') // Return 404 instead of 403 to not leak ticket existence
+        }
+      } catch (error) {
+        console.error('[Ticket API] Failed to verify ticket ownership:', error)
+        return notFoundResponse('Ticket not found')
+      }
+    }
+    // Admin has full access, no additional checks needed
+
     // Fetch customer information
     let customerInfo: { name?: string; email?: string } | undefined
     try {
@@ -286,6 +313,38 @@ export async function PUT(
 
     console.log('[DEBUG] PUT /api/tickets/[id] - Update payload:', JSON.stringify(payload, null, 2))
     console.log('[DEBUG] PUT /api/tickets/[id] - Original updateData:', JSON.stringify(updateData, null, 2))
+
+    // OpenSpec: Validate region/ownership access before update
+    // First, fetch the ticket to check permissions
+    const existingTicket = user.role === 'admin'
+      ? await zammadClient.getTicket(ticketId)
+      : await zammadClient.getTicket(ticketId, user.email)
+
+    if (!existingTicket) {
+      return notFoundResponse('Ticket not found')
+    }
+
+    // Validate access control
+    if (user.role === 'staff') {
+      try {
+        validateTicketAccess(user, existingTicket.group_id)
+      } catch (error) {
+        console.warn('[Ticket API] Staff update access denied:', error instanceof Error ? error.message : 'Unknown error')
+        return errorResponse('FORBIDDEN', 'You do not have permission to update this ticket', undefined, 403)
+      }
+    } else if (user.role === 'customer') {
+      // Customer can only update their own tickets
+      try {
+        const ticketCustomer = await zammadClient.getUser(existingTicket.customer_id)
+        if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
+          console.warn('[Ticket API] Customer update access denied: ticket belongs to different customer')
+          return notFoundResponse('Ticket not found')
+        }
+      } catch (error) {
+        console.error('[Ticket API] Failed to verify ticket ownership for update:', error)
+        return notFoundResponse('Ticket not found')
+      }
+    }
 
     // Admin users update without X-On-Behalf-Of, others use X-On-Behalf-Of
     const rawTicket = user.role === 'admin'

@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-11-20
+
+### 🐛 Bug修复（Code Review Issues）
+
+#### 修复Zammad服务不可用时仍返回HTTP 500而非503
+- **文件**:
+  - `src/lib/utils/api-response.ts`
+  - `src/app/api/tickets/route.ts`
+  - `src/app/api/tickets/search/route.ts`
+  - `src/app/api/tickets/[id]/route.ts`
+  - `src/app/api/tickets/[id]/articles/route.ts`
+- **问题**:
+  - `serverErrorResponse` 硬编码返回500状态码
+  - 所有Zammad不可用的情况仍返回500而非503
+  - 客户端无法区分"服务不可用"和"实际服务器错误"
+- **修复**:
+  - 为 `serverErrorResponse` 添加可选的 `status` 参数（默认500，保持向后兼容）
+  - 新增 `serviceUnavailableResponse` 辅助函数（返回503）
+  - 所有Zammad健康检查失败的分支传递503状态码
+  - 正确区分401（认证错误）、503（服务不可用）、500（实际错误）
+- **影响**: 客户端现在可以正确识别服务不可用状态，实现更好的错误处理和用户体验
+
+#### 修复Zammad配置缺失时模块导入崩溃
+- **文件**: `src/lib/zammad/client.ts`
+- **问题**:
+  - 构造函数中 `throw Error` 导致模块导入时崩溃
+  - 缺少 `ZAMMAD_URL` 或 `ZAMMAD_API_TOKEN` 时整个应用无法启动
+  - 健康检查逻辑永远无法运行
+- **修复**:
+  - 移除构造函数中的配置验证
+  - 将验证延迟到 `request` 方法执行时
+  - 允许创建"未配置"的客户端实例
+  - 健康检查可以捕获配置错误并返回友好的503响应
+- **影响**: 应用可以在Zammad未配置时正常启动，健康检查端点返回配置错误信息
+
+#### 修复健康检查端点返回503时success标志仍为true
+- **文件**: `src/app/api/health/zammad/route.ts`
+- **问题**:
+  - 使用 `successResponse` 返回503状态码
+  - `success: true` 与503状态码矛盾
+  - 监控系统可能误判服务状态
+- **修复**:
+  - 服务不健康时使用 `serviceUnavailableResponse` 而非 `successResponse`
+  - 确保 `success: false` 与503状态码一致
+  - 返回结构化的错误信息
+- **影响**: 监控和负载均衡器可以正确识别服务健康状态
+
+### 📊 修复统计
+
+| 问题类型 | 修复数量 | 影响文件 |
+|---------|---------|---------|
+| HTTP状态码错误 | 14处 | 5个API文件 |
+| 模块导入崩溃 | 1处 | 1个核心文件 |
+| 响应格式不一致 | 1处 | 1个健康检查端点 |
+
+### 技术细节
+
+- 所有修复基于Code Review发现的问题
+- 保持向后兼容性（默认参数）
+- 未引入新的TypeScript或ESLint错误
+- 遵循HTTP状态码最佳实践
+
+### 参考
+
+- Code Review: review.md (commit 07b8886的审查结果)
+
+---
+
 ## [0.2.0] - 2025-11-20
 
 ### 🐛 Bug修复

@@ -52,7 +52,8 @@ export async function GET(
       console.warn('[Articles API] Zammad service unavailable:', healthCheck.error)
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -77,7 +78,8 @@ export async function GET(
     if (isZammadUnavailableError(error)) {
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -107,7 +109,8 @@ export async function POST(
       console.warn('[Articles API] Zammad service unavailable:', healthCheck.error)
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -161,7 +164,8 @@ export async function POST(
     if (isZammadUnavailableError(error)) {
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 

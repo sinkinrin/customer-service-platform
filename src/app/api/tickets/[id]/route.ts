@@ -164,7 +164,8 @@ export async function GET(
       console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -213,7 +214,8 @@ export async function GET(
     if (isZammadUnavailableError(error)) {
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -243,7 +245,8 @@ export async function PUT(
       console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -353,7 +356,8 @@ export async function PUT(
     if (isZammadUnavailableError(error)) {
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -388,7 +392,8 @@ export async function DELETE(
       console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -425,7 +430,8 @@ export async function DELETE(
     if (isZammadUnavailableError(error)) {
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 

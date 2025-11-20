@@ -163,7 +163,8 @@ export async function GET(request: NextRequest) {
       console.warn('[Tickets Search API] Zammad service unavailable:', healthCheck.error)
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 
@@ -259,7 +260,8 @@ export async function GET(request: NextRequest) {
     if (isZammadUnavailableError(error)) {
       return serverErrorResponse(
         getZammadUnavailableMessage(),
-        { service: 'zammad', available: false }
+        { service: 'zammad', available: false },
+        503
       )
     }
 

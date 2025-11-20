@@ -48,7 +48,18 @@ export function validationErrorResponse(details: any): NextResponse {
   return errorResponse('VALIDATION_ERROR', 'Validation failed', details, 400)
 }
 
-export function serverErrorResponse(message: string = 'Internal server error', details?: any): NextResponse {
-  return errorResponse('INTERNAL_ERROR', message, details, 500)
+export function serverErrorResponse(
+  message: string = 'Internal server error',
+  details?: any,
+  status: number = 500
+): NextResponse {
+  return errorResponse('INTERNAL_ERROR', message, details, status)
+}
+
+export function serviceUnavailableResponse(
+  message: string = 'Service temporarily unavailable',
+  details?: any
+): NextResponse {
+  return errorResponse('SERVICE_UNAVAILABLE', message, details, 503)
 }
 

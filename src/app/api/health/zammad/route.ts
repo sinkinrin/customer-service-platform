@@ -6,14 +6,14 @@
 
 import { NextRequest } from 'next/server'
 import { checkZammadHealth } from '@/lib/zammad/health-check'
-import { successResponse, serverErrorResponse } from '@/lib/utils/api-response'
+import { successResponse, serviceUnavailableResponse, serverErrorResponse } from '@/lib/utils/api-response'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(_request: NextRequest) {
   try {
     const healthCheck = await checkZammadHealth()
-    
+
     if (healthCheck.isHealthy) {
       return successResponse({
         service: 'zammad',
@@ -22,12 +22,15 @@ export async function GET(_request: NextRequest) {
         message: 'Zammad service is available',
       })
     } else {
-      return successResponse({
-        service: 'zammad',
-        status: 'unhealthy',
-        available: false,
-        message: healthCheck.error || 'Zammad service is not available',
-      }, 503)
+      // Return error response with success: false when service is unavailable
+      return serviceUnavailableResponse(
+        healthCheck.error || 'Zammad service is not available',
+        {
+          service: 'zammad',
+          status: 'unhealthy',
+          available: false,
+        }
+      )
     }
   } catch (error) {
     console.error('Health check error:', error)

@@ -45,9 +45,9 @@ export class ZammadClient {
     this.timeout = timeout
     this.maxRetries = maxRetries
 
-    if (!this.baseUrl || !this.apiToken) {
-      throw new Error('Zammad URL and API Token are required')
-    }
+    // Note: Configuration validation is deferred to request time
+    // This allows the module to load even when Zammad is not configured,
+    // enabling health checks to report configuration errors gracefully
   }
 
   /**
@@ -63,6 +63,13 @@ export class ZammadClient {
     retryCount: number = 0,
     onBehalfOf?: string
   ): Promise<T> {
+    // Validate configuration before making requests
+    if (!this.baseUrl || !this.apiToken) {
+      throw new Error(
+        'Zammad is not configured. Please set ZAMMAD_URL and ZAMMAD_API_TOKEN environment variables.'
+      )
+    }
+
     const url = `${this.baseUrl}/api/v1${endpoint}`
 
     try {

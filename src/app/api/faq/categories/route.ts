@@ -56,7 +56,15 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('GET /api/faq/categories error:', error)
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+
+    // Handle database connection errors
+    if (error instanceof Error) {
+      if (error.message.includes('SQLITE_CANTOPEN') || error.message.includes('database')) {
+        return serverErrorResponse('Database connection failed. Please ensure the database is properly initialized.', error.message)
+      }
+    }
+
+    return serverErrorResponse(error instanceof Error ? error.message : 'Failed to fetch FAQ categories')
   }
 }
 

@@ -62,7 +62,7 @@ export default function FAQManagementPage() {
   const [editingItem, setEditingItem] = useState<FAQItem | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
-  const [categories, setCategories] = useState<Map<number, string>>(new Map())
+  const [_categories, _setCategories] = useState<Map<number, string>>(new Map())
 
   const fetchItems = async () => {
     setLoading(true)
@@ -77,7 +77,7 @@ export default function FAQManagementPage() {
           categoryMap.set(cat.id, cat.name || `Category ${cat.id}`)
         })
       }
-      setCategories(categoryMap)
+      _setCategories(categoryMap)
 
       // Then fetch FAQ items
       const response = await fetch('/api/admin/faq?limit=1000&language=zh-CN')

@@ -22,10 +22,8 @@ import {
   getConversationMessages,
   addMessage,
   incrementUnreadCount,
-  getTotalUnreadCount,
-  getStaffUnreadCount,
 } from '@/lib/local-conversation-storage'
-import { broadcastConversationEvent, broadcastUnreadCountUpdate } from '@/lib/sse/conversation-broadcaster'
+import { broadcastConversationEvent } from '@/lib/sse/conversation-broadcaster'
 
 export async function GET(
   request: NextRequest,

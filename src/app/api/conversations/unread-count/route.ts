@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/utils/auth'
 import { getTotalUnreadCount, getStaffUnreadCount } from '@/lib/local-conversation-storage'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const user = await requireAuth()
 

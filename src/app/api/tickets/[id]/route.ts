@@ -19,6 +19,7 @@ import {
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { broadcastEvent } from '@/lib/sse/ticket-broadcaster'
+import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 
 // ============================================================================
 // Helper Functions
@@ -157,6 +158,16 @@ export async function GET(
       return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
     }
 
+    // Check Zammad health before proceeding
+    const healthCheck = await checkZammadHealth()
+    if (!healthCheck.isHealthy) {
+      console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
+    }
+
     // Admin users get ticket without X-On-Behalf-Of, others use X-On-Behalf-Of
     const rawTicket = user.role === 'admin'
       ? await zammadClient.getTicket(ticketId)
@@ -189,11 +200,24 @@ export async function GET(
   } catch (error) {
     console.error('GET /api/tickets/[id] error:', error)
 
+    // Check if error is authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
+    }
+
     if (error instanceof Error && error.message.includes('404')) {
       return notFoundResponse('Ticket not found')
     }
 
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+    // Check if error is due to Zammad being unavailable
+    if (isZammadUnavailableError(error)) {
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
+    }
+
+    return serverErrorResponse(error instanceof Error ? error.message : 'Failed to fetch ticket')
   }
 }
 
@@ -211,6 +235,16 @@ export async function PUT(
 
     if (isNaN(ticketId)) {
       return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
+    }
+
+    // Check Zammad health before proceeding
+    const healthCheck = await checkZammadHealth()
+    if (!healthCheck.isHealthy) {
+      console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
     }
 
     // Parse and validate request body
@@ -262,6 +296,7 @@ export async function PUT(
           ticket_id: ticketId,
           subject: updateData.article.subject,
           body: updateData.article.body,
+          content_type: 'text/html',
           type: 'note',
           internal: updateData.article.internal,
         })
@@ -271,6 +306,7 @@ export async function PUT(
             ticket_id: ticketId,
             subject: updateData.article.subject,
             body: updateData.article.body,
+            content_type: 'text/html',
             type: 'note',
             internal: updateData.article.internal,
           },
@@ -304,11 +340,24 @@ export async function PUT(
   } catch (error) {
     console.error('PUT /api/tickets/[id] error:', error)
 
+    // Check if error is authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
+    }
+
     if (error instanceof Error && error.message.includes('404')) {
       return notFoundResponse('Ticket not found')
     }
 
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+    // Check if error is due to Zammad being unavailable
+    if (isZammadUnavailableError(error)) {
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
+    }
+
+    return serverErrorResponse(error instanceof Error ? error.message : 'Failed to update ticket')
   }
 }
 
@@ -317,7 +366,7 @@ export async function PUT(
 // ============================================================================
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -331,6 +380,16 @@ export async function DELETE(
     // Only admin users can delete tickets
     if (user.role !== 'admin') {
       return errorResponse('UNAUTHORIZED', 'Only admins can delete tickets', undefined, 403)
+    }
+
+    // Check Zammad health before proceeding
+    const healthCheck = await checkZammadHealth()
+    if (!healthCheck.isHealthy) {
+      console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
     }
 
     // Delete ticket using admin client (no X-On-Behalf-Of)
@@ -353,11 +412,24 @@ export async function DELETE(
   } catch (error) {
     console.error('DELETE /api/tickets/[id] error:', error)
 
+    // Check if error is authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
+    }
+
     if (error instanceof Error && error.message.includes('404')) {
       return notFoundResponse('Ticket not found')
     }
 
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+    // Check if error is due to Zammad being unavailable
+    if (isZammadUnavailableError(error)) {
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
+    }
+
+    return serverErrorResponse(error instanceof Error ? error.message : 'Failed to delete ticket')
   }
 }
 

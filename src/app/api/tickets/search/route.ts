@@ -13,6 +13,7 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
+import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 
 // ============================================================================
 // Helper Functions
@@ -156,12 +157,14 @@ export async function GET(request: NextRequest) {
       return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 100', undefined, 400)
     }
 
-    // Check if Zammad is enabled
-    const zammadEnabled = process.env.ZAMMAD_ENABLED !== 'false'
-
-    if (!zammadEnabled) {
-      console.log('[Tickets API] Zammad disabled, returning empty results')
-      return successResponse([])
+    // Check Zammad health before proceeding
+    const healthCheck = await checkZammadHealth()
+    if (!healthCheck.isHealthy) {
+      console.warn('[Tickets Search API] Zammad service unavailable:', healthCheck.error)
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
     }
 
     // Ensure user exists in Zammad before searching (for non-admin users)
@@ -246,7 +249,21 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('GET /api/tickets/search error:', error)
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+
+    // Check if error is authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
+    }
+
+    // Check if error is due to Zammad being unavailable
+    if (isZammadUnavailableError(error)) {
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
+    }
+
+    return serverErrorResponse(error instanceof Error ? error.message : 'Failed to search tickets')
   }
 }
 

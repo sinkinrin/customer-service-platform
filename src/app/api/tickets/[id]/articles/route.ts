@@ -15,6 +15,7 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { z } from 'zod'
+import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 
 // ============================================================================
 // Validation Schemas
@@ -45,6 +46,16 @@ export async function GET(
       return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
     }
 
+    // Check Zammad health before proceeding
+    const healthCheck = await checkZammadHealth()
+    if (!healthCheck.isHealthy) {
+      console.warn('[Articles API] Zammad service unavailable:', healthCheck.error)
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
+    }
+
     // Admin users get articles without X-On-Behalf-Of, others use X-On-Behalf-Of
     const articles = user.role === 'admin'
       ? await zammadClient.getArticlesByTicket(ticketId)
@@ -56,7 +67,21 @@ export async function GET(
     })
   } catch (error) {
     console.error('GET /api/tickets/[id]/articles error:', error)
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+
+    // Check if error is authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
+    }
+
+    // Check if error is due to Zammad being unavailable
+    if (isZammadUnavailableError(error)) {
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
+    }
+
+    return serverErrorResponse(error instanceof Error ? error.message : 'Failed to fetch articles')
   }
 }
 
@@ -74,6 +99,16 @@ export async function POST(
 
     if (isNaN(ticketId)) {
       return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
+    }
+
+    // Check Zammad health before proceeding
+    const healthCheck = await checkZammadHealth()
+    if (!healthCheck.isHealthy) {
+      console.warn('[Articles API] Zammad service unavailable:', healthCheck.error)
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
     }
 
     // Parse and validate request body
@@ -116,7 +151,21 @@ export async function POST(
     )
   } catch (error) {
     console.error('POST /api/tickets/[id]/articles error:', error)
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+
+    // Check if error is authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
+    }
+
+    // Check if error is due to Zammad being unavailable
+    if (isZammadUnavailableError(error)) {
+      return serverErrorResponse(
+        getZammadUnavailableMessage(),
+        { service: 'zammad', available: false }
+      )
+    }
+
+    return serverErrorResponse(error instanceof Error ? error.message : 'Failed to create article')
   }
 }
 

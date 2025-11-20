@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 
           try {
             controller.enqueue(encoder.encode(': heartbeat\n\n'))
-          } catch (error) {
+          } catch {
             // Connection closed
             isClosed = true
             clearInterval(heartbeatInterval)
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
             )
             controller.close()
             isClosed = true
-          } catch (error) {
+          } catch {
             // Already closed
             isClosed = true
           }

@@ -446,9 +446,11 @@
     "mode": "human",
     "status": "active",
     "created_at": "2025-11-12T09:28:34.185Z",
-    "updated_at": "2025-11-13T05:35:29.689Z",
+    "updated_at": "2025-11-19T03:58:14.099Z",
     "last_message_at": "2025-11-13T05:35:29.685Z",
-    "transferred_at": "2025-11-13T03:36:34.875Z"
+    "transferred_at": "2025-11-13T03:36:34.875Z",
+    "staff_unread_count": 0,
+    "staff_last_read_at": "2025-11-19T03:58:14.098Z"
   },
   {
     "id": "conv_1762939944485_g08g39bx0",
@@ -464,12 +466,16 @@
     "id": "conv_1762939944625_95uq4blkm",
     "customer_id": "mock-customer-id",
     "customer_email": "customer@test.com",
-    "mode": "human",
+    "mode": "ai",
     "status": "active",
     "created_at": "2025-11-12T09:32:24.625Z",
-    "updated_at": "2025-11-13T03:26:27.370Z",
-    "last_message_at": "2025-11-13T03:26:27.368Z",
+    "updated_at": "2025-11-20T03:49:42.714Z",
+    "last_message_at": "2025-11-20T02:48:19.293Z",
     "transferred_at": "2025-11-13T02:59:03.265Z",
-    "transfer_reason": "需要详细咨询产品技术问题"
+    "transfer_reason": "需要详细咨询产品技术问题",
+    "customer_unread_count": 0,
+    "customer_last_read_at": "2025-11-20T03:49:42.712Z",
+    "staff_unread_count": 0,
+    "staff_last_read_at": "2025-11-19T09:58:44.929Z"
   }
 ]

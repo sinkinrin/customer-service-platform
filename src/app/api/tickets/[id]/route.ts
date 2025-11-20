@@ -194,6 +194,11 @@ export async function GET(
       const customerEmail = user.email.toLowerCase()
       try {
         const ticketCustomer = await zammadClient.getUser(rawTicket.customer_id)
+        // Guard against missing email from Zammad
+        if (!ticketCustomer.email) {
+          console.warn('[Ticket API] Customer access denied: ticket customer has no email')
+          return notFoundResponse('Ticket not found')
+        }
         if (ticketCustomer.email.toLowerCase() !== customerEmail) {
           console.warn('[Ticket API] Customer access denied: ticket belongs to different customer')
           return notFoundResponse('Ticket not found') // Return 404 instead of 403 to not leak ticket existence
@@ -336,6 +341,11 @@ export async function PUT(
       // Customer can only update their own tickets
       try {
         const ticketCustomer = await zammadClient.getUser(existingTicket.customer_id)
+        // Guard against missing email from Zammad
+        if (!ticketCustomer.email) {
+          console.warn('[Ticket API] Customer update access denied: ticket customer has no email')
+          return notFoundResponse('Ticket not found')
+        }
         if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
           console.warn('[Ticket API] Customer update access denied: ticket belongs to different customer')
           return notFoundResponse('Ticket not found')

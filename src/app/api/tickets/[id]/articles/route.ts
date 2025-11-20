@@ -81,6 +81,11 @@ export async function GET(
       // Customer can only access articles for their own tickets
       try {
         const ticketCustomer = await zammadClient.getUser(ticket.customer_id)
+        // Guard against missing email from Zammad
+        if (!ticketCustomer.email) {
+          console.warn('[Articles API] Customer access denied: ticket customer has no email')
+          return notFoundResponse('Ticket not found')
+        }
         if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
           console.warn('[Articles API] Customer access denied: ticket belongs to different customer')
           return notFoundResponse('Ticket not found')
@@ -170,6 +175,11 @@ export async function POST(
       // Customer can only create articles for their own tickets
       try {
         const ticketCustomer = await zammadClient.getUser(ticket.customer_id)
+        // Guard against missing email from Zammad
+        if (!ticketCustomer.email) {
+          console.warn('[Articles API] Customer create access denied: ticket customer has no email')
+          return notFoundResponse('Ticket not found')
+        }
         if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
           console.warn('[Articles API] Customer create access denied: ticket belongs to different customer')
           return notFoundResponse('Ticket not found')

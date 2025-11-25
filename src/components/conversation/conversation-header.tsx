@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Bot, User, Wifi, WifiOff } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ConversationHeaderProps {
   mode: 'ai' | 'human'
@@ -64,29 +65,28 @@ export function ConversationHeader({
     return mode === 'ai' ? 'default' : 'secondary'
   }
 
-  const getModeLabel = (mode: 'ai' | 'human') => {
-    return mode === 'ai' ? 'AI 对话' : '人工客服'
-  }
+  const getModeLabel = (mode: 'ai' | 'human') =>
+    mode === 'ai' ? 'AI 对话' : '人工客服'
 
   return (
-    <div className="border-b bg-background">
+    <div className="border-b bg-gradient-to-r from-primary/5 via-background to-background">
       <div className="container max-w-4xl p-4">
         <div className="flex items-center gap-4">
           {/* Connection/Mode Indicator */}
           <div className="flex items-center gap-2">
             {mode === 'ai' ? (
-              <Bot className="h-5 w-5 text-blue-500" title="AI Chat" />
+              <Bot className="h-5 w-5 text-blue-500" aria-label="AI Chat" />
             ) : isConnected ? (
-              <Wifi className="h-4 w-4 text-green-500" title="Connected" />
+              <Wifi className="h-4 w-4 text-green-500" aria-label="Connected" />
             ) : sseState === 'connecting' ? (
-              <WifiOff className="h-4 w-4 text-yellow-500 animate-pulse" title="Connecting..." />
+              <WifiOff className="h-4 w-4 text-yellow-500 animate-pulse" aria-label="Connecting..." />
             ) : (
-              <WifiOff className="h-4 w-4 text-gray-400" title="Disconnected" />
+              <WifiOff className="h-4 w-4 text-gray-400" aria-label="Disconnected" />
             )}
           </div>
 
           {/* Avatar */}
-          <Avatar className="h-10 w-10">
+          <Avatar className="h-11 w-11 shadow-sm ring-1 ring-border/60">
             <AvatarImage src={staffAvatar} alt={displayName} />
             <AvatarFallback>
               {mode === 'ai' ? <Bot className="h-5 w-5" /> : getInitials(displayName)}
@@ -99,7 +99,12 @@ export function ConversationHeader({
             <div className="flex gap-2 mt-1">
               <Badge
                 variant={getModeVariant(mode)}
-                className={mode === 'ai' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600'}
+                className={cn(
+                  "shadow-sm",
+                  mode === 'ai'
+                    ? 'bg-blue-500 hover:bg-blue-600'
+                    : 'bg-green-500 hover:bg-green-600'
+                )}
               >
                 {getModeLabel(mode)}
               </Badge>

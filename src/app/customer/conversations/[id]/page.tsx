@@ -225,7 +225,7 @@ export default function ConversationDetailPage() {
 
       // Provide helpful error messages based on error type
       if (error.message?.includes('FastGPT')) {
-        toast.error('AI服务暂时不可用,请转人工客服获取帮助', {
+        toast.error('AI服务暂时不可用，请转人工客服获取帮助', {
           duration: 5000,
           action: {
             label: '转人工',
@@ -233,9 +233,9 @@ export default function ConversationDetailPage() {
           },
         })
       } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        toast.error('网络连接失败,请检查网络后重试')
+        toast.error('网络连接失败，请检查网络后重试')
       } else {
-        toast.error('AI响应失败,请重试或转人工客服')
+        toast.error('AI响应失败，请重试或转人工客服')
       }
     } finally {
       setIsAiLoading(false)
@@ -373,10 +373,10 @@ export default function ConversationDetailPage() {
     : messages
 
   return (
-    <div className="fixed inset-y-0 right-0 left-0 lg:left-64 top-16 flex flex-col">
+    <div className="-mx-4 lg:mx-0 flex min-h-[calc(100vh-8rem)] flex-col bg-gradient-to-b from-background via-background to-muted/30">
       {/* SSE Connection Status - Only in human mode */}
       {mode === 'human' && sseState === 'error' && sseError && (
-        <Alert variant="destructive" className="m-4 mb-0 rounded-lg">
+        <Alert variant="destructive" className="mx-auto mb-0 mt-2 w-full max-w-6xl rounded-lg px-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Real-time updates unavailable: {sseError.message}
@@ -386,7 +386,7 @@ export default function ConversationDetailPage() {
 
       {/* New Message Notification - Only in human mode */}
       {mode === 'human' && showNewMessageNotification && (
-        <Alert className="m-4 mb-0 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 rounded-lg">
+        <Alert className="mx-auto mb-0 mt-2 w-full max-w-6xl rounded-lg border-blue-200 bg-blue-50 px-4 dark:border-blue-800 dark:bg-blue-950">
           <AlertDescription className="text-blue-900 dark:text-blue-100">
             New message received - scroll down to view
           </AlertDescription>
@@ -394,56 +394,64 @@ export default function ConversationDetailPage() {
       )}
 
       {/* Header - Sticky Top */}
-      <div className="sticky top-0 z-10 bg-background border-b">
-        <ConversationHeader
-          mode={mode}
-          staffName={staffName}
-          staffAvatar={staffAvatar}
-          status={conversationStatus}
-          isConnected={mode === 'human' && isConnected}
-          sseState={sseState}
-          onTransferToHuman={() => setShowTransferDialog(true)}
-          onSwitchToAI={handleSwitchToAI}
-          isTransferring={isTransferring}
-          enableModeSwitching={true}
-        />
-      </div>
-
-      {/* Messages - Scrollable Middle Section */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="container max-w-4xl py-4">
-          <MessageList
-            messages={displayMessages}
-            isLoading={mode === 'ai' ? isAiLoading : isLoadingMessages}
-            isTyping={mode === 'human' && isTyping}
-            typingUser={mode === 'human' ? typingUser : null}
+      <div className="sticky top-16 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-3 pt-4 lg:px-6">
+          <ConversationHeader
+            mode={mode}
+            staffName={staffName}
+            staffAvatar={staffAvatar}
+            status={conversationStatus}
+            isConnected={mode === 'human' && isConnected}
+            sseState={sseState}
+            onTransferToHuman={() => setShowTransferDialog(true)}
+            onSwitchToAI={handleSwitchToAI}
+            isTransferring={isTransferring}
+            enableModeSwitching={true}
           />
         </div>
       </div>
 
-      {/* Input - Sticky Bottom */}
+      {/* Messages - Scrollable Middle Section */}
+      <div className="flex-1 min-h-0 pb-4">
+        <div className="mx-auto flex h-full w-full max-w-6xl px-2 py-4 sm:px-4">
+          <div className="relative flex h-full w-full flex-col rounded-2xl border bg-card/90 shadow-md backdrop-blur-sm">
+            <div className="relative flex-1 overflow-y-auto px-3 py-4 sm:px-5 sm:py-6 pb-28 sm:pb-32">
+              <MessageList
+                messages={displayMessages}
+                isLoading={mode === 'ai' ? isAiLoading : isLoadingMessages}
+                isTyping={mode === 'human' && isTyping}
+                typingUser={mode === 'human' ? typingUser : null}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Input - Fixed Bottom */}
       {!isClosed && (
-        <div className="sticky bottom-0 z-10 bg-background border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-          <MessageInput
-            onSend={mode === 'ai' ? handleAIMessage : handleHumanMessage}
-            isSending={mode === 'ai' ? isAiLoading : isSendingMessage}
-            disabled={isClosed || isAiLoading}
-            placeholder={
-              mode === 'ai'
-                ? '与 AI 助手对话...'
-                : conversationStatus === 'waiting'
-                ? '发送消息开始对话...'
-                : '输入消息...'
-            }
-          />
+        <div className="fixed inset-x-0 bottom-0 z-30 bg-background/95 shadow-[0_-12px_28px_-14px_rgba(0,0,0,0.35)] backdrop-blur supports-[backdrop-filter]:backdrop-blur lg:left-64">
+          <div className="mx-auto w-full max-w-6xl px-2 py-3 sm:px-4 pb-[env(safe-area-inset-bottom,12px)]">
+            <MessageInput
+              onSend={mode === 'ai' ? handleAIMessage : handleHumanMessage}
+              isSending={mode === 'ai' ? isAiLoading : isSendingMessage}
+              disabled={isClosed || isAiLoading}
+              placeholder={
+                mode === 'ai'
+                  ? 'Ask the AI assistant...'
+                  : conversationStatus === 'waiting'
+                  ? 'Waiting for an agent...'
+                  : 'Type a message...'
+              }
+            />
+          </div>
         </div>
       )}
 
       {isClosed && (
-        <div className="sticky bottom-0 z-10 border-t bg-muted p-4">
-          <div className="container max-w-4xl text-center">
+        <div className="sticky bottom-0 z-20 border-t bg-muted p-4">
+          <div className="mx-auto w-full max-w-4xl text-center">
             <p className="text-sm text-muted-foreground">
-              对话已关闭。请创建新对话以继续交流。
+              Conversation is closed. Please start a new chat to continue.
             </p>
           </div>
         </div>

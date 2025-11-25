@@ -17,8 +17,8 @@ export const localeNames: Record<Locale, string> = {
 }
 
 export default getRequestConfig(async ({ locale }) => {
-  // Validate that the incoming `locale` parameter is valid
-  if (!locales.includes(locale as Locale)) {
+  // Reject invalid locales instead of silently falling back to default
+  if (!locale || !locales.includes(locale as Locale)) {
     notFound()
   }
 

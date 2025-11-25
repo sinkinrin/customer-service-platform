@@ -11,21 +11,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Globe } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 // Simplified language configuration
 const locales = ['en', 'zh-CN', 'fr', 'es', 'ru', 'pt'] as const
 type Locale = (typeof locales)[number]
 
-const localeNames: Record<Locale, string> = {
-  en: 'English',
-  'zh-CN': '简体中文',
-  fr: 'Français',
-  es: 'Español',
-  ru: 'Русский',
-  pt: 'Português',
-}
-
 export function LanguageSelector() {
+  const tCommon = useTranslations('common.localeNames')
+  const tSettings = useTranslations('settings')
   const [locale, setLocale] = useState<Locale>('en')
 
   useEffect(() => {
@@ -55,7 +49,7 @@ export function LanguageSelector() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Select Language</DropdownMenuLabel>
+        <DropdownMenuLabel>{tSettings('selectLanguage')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {locales.map((loc) => (
           <DropdownMenuItem
@@ -63,7 +57,7 @@ export function LanguageSelector() {
             onClick={() => handleLanguageChange(loc)}
             className={locale === loc ? 'bg-accent' : ''}
           >
-            {localeNames[loc]}
+            {tCommon(loc)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

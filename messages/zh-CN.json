@@ -19,7 +19,15 @@
     "close": "关闭",
     "confirm": "确认",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "localeNames": {
+      "en": "English",
+      "zh-CN": "简体中文",
+      "fr": "Français",
+      "es": "Español",
+      "ru": "Русский",
+      "pt": "Português"
+    }
   },
   "nav": {
     "dashboard": "仪表板",
@@ -196,7 +204,50 @@
     "newPassword": "新密码",
     "emailNotifications": "邮件通知",
     "pushNotifications": "推送通知",
-    "selectLanguage": "选择语言"
+    "selectLanguage": "选择语言",
+    "ai": {
+      "title": "AI 智能回复",
+      "description": "配置 AI 自动回复功能，帮助客服团队提高响应效率",
+      "enableLabel": "启用 AI 智能回复",
+      "enableHint": "开启后，系统将自动使用 AI 为客户提供初步回复",
+      "modelLabel": "AI 模型",
+      "modelHint": "使用的 AI 模型名称（如 gpt-3.5-turbo, gpt-4）",
+      "temperatureLabel": "随机温度",
+      "temperatureHint": "控制回复的随机性（0-2，推荐 0.7）",
+      "promptLabel": "系统提示词",
+      "promptPlaceholder": "你是一个专业的客服助手...",
+      "promptHint": "定义 AI 的角色和回复风格",
+      "fastgpt": {
+        "title": "FastGPT 配置",
+        "url": "FastGPT URL",
+        "urlHint": "FastGPT 服务器地址",
+        "appId": "FastGPT 应用 ID",
+        "appIdHint": "FastGPT 应用 ID",
+        "apiKey": "FastGPT API 密钥",
+        "apiKeyHint": "FastGPT API 密钥"
+      },
+      "save": {
+        "label": "保存设置",
+        "saving": "保存中..."
+      },
+      "test": {
+        "label": "测试 FastGPT 连接",
+        "testing": "测试中...",
+        "success": "连接测试成功！",
+        "error": "连接测试失败",
+        "missingConfig": "请先启用 AI 功能并完整配置 FastGPT 信息后再测试",
+        "resultSuccess": "连接成功",
+        "resultFail": "连接失败",
+        "responseTime": "响应时间: {ms}ms",
+        "testReply": "AI 测试回复:",
+        "genericError": "测试失败",
+        "networkError": "网络错误，请检查您的网络连接"
+      },
+      "saveSuccess": "AI 设置已保存",
+      "saveError": "保存 AI 设置失败",
+      "loadError": "加载 AI 设置失败",
+      "loadErrorGeneral": "获取 AI 设置失败"
+    }
   },
   "errors": {
     "unauthorized": "未授权，请登录。",
@@ -212,6 +263,101 @@
     "minLength": "至少需要 {min} 个字符",
     "maxLength": "最多 {max} 个字符",
     "passwordMismatch": "两次输入的密码不一致"
+  },
+  "complaints": {
+    "title": "提交投诉",
+    "subtitle": "我们重视每一位客户的反馈，您的投诉将得到认真对待和及时处理。",
+    "detailsTitle": "投诉信息",
+    "detailsDescription": "请详细描述您的投诉内容，我们会尽快调查并给予回复",
+    "category": {
+      "label": "投诉类别 *",
+      "options": {
+        "service": "服务质量",
+        "product": "产品质量",
+        "delivery": "交付问题",
+        "billing": "计费问题",
+        "other": "其他投诉"
+      }
+    },
+    "severity": {
+      "label": "严重程度 *",
+      "options": {
+        "1": "低 - 轻微不满",
+        "2": "中 - 一般问题",
+        "3": "高 - 严重影响",
+        "4": "紧急 - 重大损失"
+      }
+    },
+    "titleField": {
+      "label": "投诉标题 *",
+      "placeholder": "简要概括您的投诉",
+      "help": "{count}/200 字符"
+    },
+    "descriptionField": {
+      "label": "详细描述 *",
+      "placeholder": "请详细描述投诉内容，包括：&#10;1. 问题发生的时间和地点&#10;2. 涉及的人员或产品&#10;3. 具体的问题和影响&#10;4. 您期望的解决方案",
+      "help": "{count}/1200 字符"
+    },
+    "contactField": {
+      "label": "联系方式 *",
+      "placeholder": "邮箱或电话",
+      "help": "我们会通过此方式与您联系，跟进投诉处理进度"
+    },
+    "actions": {
+      "cancel": "取消",
+      "submit": "提交投诉",
+      "submitting": "提交中..."
+    },
+    "success": "您的投诉已提交，我们会尽快处理。",
+    "warningsTitle": "重要提示",
+    "warnings": [
+      "请确保提供的信息真实准确，以便我们更好地处理您的投诉",
+      "我们承诺在收到投诉后 24 小时内给予初步回复",
+      "对于紧急投诉，我们会优先处理并尽快解决",
+      "您可以在\"我的工单\"中查看投诉的处理进度和回复",
+      "如有任何疑问，请随时通过在线咨询联系我们"
+    ],
+    "ticketPrefix": "[投诉]",
+    "loginRequired": "请登录后再提交投诉"
+  },
+  "myTickets": {
+    "title": "我的工单",
+    "subtitle": "查看和管理您提交的所有工单",
+    "listTitle": "工单列表",
+    "listDescription": "共 {count} 个工单",
+    "searchPlaceholder": "搜索工单标题或编号...",
+    "empty": {
+      "title": "暂无工单",
+      "description": "您还没有提交任何工单",
+      "noResults": "没有找到匹配的工单",
+      "hint": "请通过在线咨询创建工单"
+    },
+    "table": {
+      "id": "工单编号",
+      "title": "标题",
+      "status": "状态",
+      "priority": "优先级",
+      "replies": "回复数",
+      "created": "创建时间",
+      "updated": "更新时间",
+      "actions": "操作",
+      "view": "查看详情",
+      "loadMore": "加载更多",
+      "loading": "加载中..."
+    },
+    "priority": {
+      "1": "低",
+      "2": "中",
+      "3": "高",
+      "4": "紧急",
+      "unknown": "未知"
+    },
+    "status": {
+      "1": "新建",
+      "2": "处理中",
+      "3": "待回复",
+      "4": "已关闭",
+      "unknown": "未知"
+    }
   }
 }
-

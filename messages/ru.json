@@ -19,7 +19,15 @@
     "close": "Закрыть",
     "confirm": "Подтвердить",
     "yes": "Да",
-    "no": "Нет"
+    "no": "Нет",
+    "localeNames": {
+      "en": "English",
+      "zh-CN": "简体中文",
+      "fr": "Français",
+      "es": "Español",
+      "ru": "Русский",
+      "pt": "Português"
+    }
   },
   "nav": {
     "dashboard": "Панель управления",
@@ -196,7 +204,50 @@
     "newPassword": "Новый пароль",
     "emailNotifications": "Email уведомления",
     "pushNotifications": "Push уведомления",
-    "selectLanguage": "Выбрать язык"
+    "selectLanguage": "Выбрать язык",
+    "ai": {
+      "title": "AI Auto-Reply",
+      "description": "Configure AI auto replies to help the support team respond faster",
+      "enableLabel": "Enable AI auto-reply",
+      "enableHint": "When enabled, the system uses AI to provide an initial response to customers",
+      "modelLabel": "AI model",
+      "modelHint": "Name of the AI model (for example gpt-3.5-turbo or gpt-4)",
+      "temperatureLabel": "Temperature",
+      "temperatureHint": "Controls randomness of replies (0-2, recommended 0.7)",
+      "promptLabel": "System prompt",
+      "promptPlaceholder": "You are a professional support assistant...",
+      "promptHint": "Define the AI role and response style",
+      "fastgpt": {
+        "title": "FastGPT configuration",
+        "url": "FastGPT URL",
+        "urlHint": "FastGPT server URL",
+        "appId": "FastGPT app ID",
+        "appIdHint": "FastGPT app ID",
+        "apiKey": "FastGPT API key",
+        "apiKeyHint": "FastGPT API key"
+      },
+      "save": {
+        "label": "Save settings",
+        "saving": "Saving..."
+      },
+      "test": {
+        "label": "Test FastGPT connection",
+        "testing": "Testing...",
+        "success": "Connection test succeeded",
+        "error": "Connection test failed",
+        "missingConfig": "Enable AI and complete the FastGPT fields before testing",
+        "resultSuccess": "Connection succeeded",
+        "resultFail": "Connection failed",
+        "responseTime": "Response time: {ms}ms",
+        "testReply": "AI test reply:",
+        "genericError": "Test failed",
+        "networkError": "Network error, please check your connection"
+      },
+      "saveSuccess": "AI settings saved successfully",
+      "saveError": "Failed to save AI settings",
+      "loadError": "Failed to load AI settings",
+      "loadErrorGeneral": "Failed to fetch AI settings"
+    }
   },
   "errors": {
     "unauthorized": "Не авторизован. Пожалуйста, войдите.",
@@ -212,6 +263,101 @@
     "minLength": "Должно быть не менее {min} символов",
     "maxLength": "Должно быть не более {max} символов",
     "passwordMismatch": "Пароли не совпадают"
+  },
+  "complaints": {
+    "title": "Submit complaint",
+    "subtitle": "We value every customer's feedback; your complaint will be handled promptly.",
+    "detailsTitle": "Complaint details",
+    "detailsDescription": "Please describe your complaint in detail. We will investigate and respond quickly.",
+    "category": {
+      "label": "Complaint category *",
+      "options": {
+        "service": "Service quality",
+        "product": "Product quality",
+        "delivery": "Delivery issue",
+        "billing": "Billing issue",
+        "other": "Other complaint"
+      }
+    },
+    "severity": {
+      "label": "Severity *",
+      "options": {
+        "1": "Low - minor inconvenience",
+        "2": "Medium - standard issue",
+        "3": "High - major impact",
+        "4": "Urgent - critical issue"
+      }
+    },
+    "titleField": {
+      "label": "Complaint title *",
+      "placeholder": "Briefly summarize your complaint",
+      "help": "{count}/200 characters"
+    },
+    "descriptionField": {
+      "label": "Detailed description *",
+      "placeholder": "Please describe the complaint in detail, including:&#10;1. When and where the issue happened&#10;2. People or products involved&#10;3. The specific issue and its impact&#10;4. Your expected resolution",
+      "help": "{count}/1200 characters"
+    },
+    "contactField": {
+      "label": "Contact method *",
+      "placeholder": "Email or phone",
+      "help": "We will contact you via this method to follow up on your complaint."
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "submit": "Submit complaint",
+      "submitting": "Submitting..."
+    },
+    "success": "Your complaint has been submitted. We will process it as soon as possible.",
+    "warningsTitle": "Important notes",
+    "warnings": [
+      "Please provide accurate information so we can handle your complaint effectively.",
+      "We will provide an initial response within 24 hours of receiving your complaint.",
+      "Urgent complaints are prioritized for rapid resolution.",
+      "You can check complaint updates and replies under \"My Tickets.\"",
+      "If you have any questions, contact us via live chat at any time."
+    ],
+    "ticketPrefix": "[Complaint]",
+    "loginRequired": "Please login to submit a complaint"
+  },
+  "myTickets": {
+    "title": "My tickets",
+    "subtitle": "View and manage all tickets you have submitted",
+    "listTitle": "Ticket list",
+    "listDescription": "Total {count} tickets",
+    "searchPlaceholder": "Search ticket title or number...",
+    "empty": {
+      "title": "No tickets yet",
+      "description": "You have not submitted any tickets yet",
+      "noResults": "No matching tickets found",
+      "hint": "Please create a ticket via live chat."
+    },
+    "table": {
+      "id": "Ticket ID",
+      "title": "Title",
+      "status": "Status",
+      "priority": "Priority",
+      "replies": "Replies",
+      "created": "Created",
+      "updated": "Updated",
+      "actions": "Actions",
+      "view": "View details",
+      "loadMore": "Load more",
+      "loading": "Loading..."
+    },
+    "priority": {
+      "1": "Low",
+      "2": "Medium",
+      "3": "High",
+      "4": "Urgent",
+      "unknown": "Unknown"
+    },
+    "status": {
+      "1": "New",
+      "2": "In progress",
+      "3": "Waiting reply",
+      "4": "Closed",
+      "unknown": "Unknown"
+    }
   }
 }
-

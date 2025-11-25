@@ -10,10 +10,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Loader2, Send, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useTranslations } from 'next-intl'
 
 export default function ComplaintsPage() {
   const router = useRouter()
   const { user } = useAuth()
+  const t = useTranslations('complaints')
   const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -28,7 +30,7 @@ export default function ComplaintsPage() {
     e.preventDefault()
     
     if (!user?.email) {
-      toast.error('Please login to submit a complaint')
+      toast.error(t('loginRequired'))
       return
     }
 
@@ -38,13 +40,13 @@ export default function ComplaintsPage() {
       // Create a ticket with "Complaint" tag and higher priority
       const ticketData = {
         conversationId: crypto.randomUUID(),
-        title: `[投诉] ${formData.title}`,
+        title: `${t('ticketPrefix')} ${formData.title}`,
         group: 'Support',
         customer: user.email,
         priority_id: parseInt(formData.severity), // Use severity as priority
         article: {
           subject: formData.title,
-          body: `类别: ${getCategoryLabel(formData.category)}\n严重程度: ${getSeverityLabel(formData.severity)}\n\n${formData.description}\n\n联系方式: ${formData.contact}`,
+          body: `${t('category.label')}: ${t(`category.options.${formData.category}`)}\n${t('severity.label')}: ${t(`severity.options.${formData.severity}`)}\n\n${formData.description}\n\n${t('contactField.label')}: ${formData.contact}`,
           type: 'web' as const,
           internal: false,
         },
@@ -61,7 +63,7 @@ export default function ComplaintsPage() {
         throw new Error(error.error || 'Failed to submit complaint')
       }
 
-      toast.success('您的投诉已提交，我们会尽快处理。')
+      toast.success(t('success'))
       router.push('/customer/my-tickets')
     } catch (error: any) {
       console.error('Failed to submit complaint:', error)
@@ -71,51 +73,30 @@ export default function ComplaintsPage() {
     }
   }
 
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      service: '服务质量',
-      product: '产品质量',
-      delivery: '交付问题',
-      billing: '计费问题',
-      other: '其他投诉',
-    }
-    return labels[category] || category
-  }
-
-  const getSeverityLabel = (severity: string) => {
-    const labels: Record<string, string> = {
-      '1': '低',
-      '2': '中',
-      '3': '高',
-      '4': '紧急',
-    }
-    return labels[severity] || severity
-  }
-
   return (
     <div className="container mx-auto py-6 max-w-4xl">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <AlertTriangle className="h-8 w-8 text-red-500" />
-          <h1 className="text-3xl font-bold">提交投诉</h1>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
         </div>
         <p className="text-muted-foreground">
-          我们重视每一位客户的反馈，您的投诉将得到认真对待和及时处理
+          {t('subtitle')}
         </p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>投诉信息</CardTitle>
+            <CardTitle>{t('detailsTitle')}</CardTitle>
             <CardDescription>
-              请详细描述您的投诉内容，我们会尽快调查并给予回复
+              {t('detailsDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Category */}
             <div className="space-y-2">
-              <Label htmlFor="category">投诉类别 *</Label>
+              <Label htmlFor="category">{t('category.label')}</Label>
               <select
                 id="category"
                 value={formData.category}
@@ -123,17 +104,17 @@ export default function ComplaintsPage() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 required
               >
-                <option value="service">服务质量</option>
-                <option value="product">产品质量</option>
-                <option value="delivery">交付问题</option>
-                <option value="billing">计费问题</option>
-                <option value="other">其他投诉</option>
+                <option value="service">{t('category.options.service')}</option>
+                <option value="product">{t('category.options.product')}</option>
+                <option value="delivery">{t('category.options.delivery')}</option>
+                <option value="billing">{t('category.options.billing')}</option>
+                <option value="other">{t('category.options.other')}</option>
               </select>
             </div>
 
             {/* Severity */}
             <div className="space-y-2">
-              <Label htmlFor="severity">严重程度 *</Label>
+              <Label htmlFor="severity">{t('severity.label')}</Label>
               <select
                 id="severity"
                 value={formData.severity}
@@ -141,59 +122,59 @@ export default function ComplaintsPage() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 required
               >
-                <option value="1">低 - 轻微不满</option>
-                <option value="2">中 - 一般问题</option>
-                <option value="3">高 - 严重影响</option>
-                <option value="4">紧急 - 重大损失</option>
+                <option value="1">{t('severity.options.1')}</option>
+                <option value="2">{t('severity.options.2')}</option>
+                <option value="3">{t('severity.options.3')}</option>
+                <option value="4">{t('severity.options.4')}</option>
               </select>
             </div>
 
             {/* Title */}
             <div className="space-y-2">
-              <Label htmlFor="title">投诉标题 *</Label>
+              <Label htmlFor="title">{t('titleField.label')}</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="简要概括您的投诉"
+                placeholder={t('titleField.placeholder')}
                 required
                 maxLength={200}
               />
               <p className="text-xs text-muted-foreground">
-                {formData.title.length}/200 字符
+                {t('titleField.help', { count: formData.title.length })}
               </p>
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">详细描述 *</Label>
+              <Label htmlFor="description">{t('descriptionField.label')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="请详细描述投诉内容，包括：&#10;1. 问题发生的时间和地点&#10;2. 涉及的人员或产品&#10;3. 具体的问题和影响&#10;4. 您期望的解决方案"
+                placeholder={t('descriptionField.placeholder')}
                 rows={8}
                 required
                 maxLength={1200}
               />
               <p className="text-xs text-muted-foreground">
-                {formData.description.length}/1200 字符
+                {t('descriptionField.help', { count: formData.description.length })}
               </p>
             </div>
 
             {/* Contact */}
             <div className="space-y-2">
-              <Label htmlFor="contact">联系方式 *</Label>
+              <Label htmlFor="contact">{t('contactField.label')}</Label>
               <Input
                 id="contact"
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                placeholder="邮箱或电话"
+                placeholder={t('contactField.placeholder')}
                 required
                 maxLength={100}
               />
               <p className="text-xs text-muted-foreground">
-                我们会通过此方式与您联系，跟进投诉处理进度
+                {t('contactField.help')}
               </p>
             </div>
 
@@ -205,18 +186,18 @@ export default function ComplaintsPage() {
                 onClick={() => router.back()}
                 disabled={loading}
               >
-                取消
+                {t('actions.cancel')}
               </Button>
               <Button type="submit" disabled={loading} variant="destructive">
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    提交中...
+                    {t('actions.submitting')}
                   </>
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" />
-                    提交投诉
+                    {t('actions.submit')}
                   </>
                 )}
               </Button>
@@ -228,14 +209,12 @@ export default function ComplaintsPage() {
       {/* Warning */}
       <Card className="mt-6 border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950">
         <CardHeader>
-          <CardTitle className="text-red-900 dark:text-red-100">⚠️ 重要提示</CardTitle>
+          <CardTitle className="text-red-900 dark:text-red-100">{t('warningsTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-red-800 dark:text-red-200 space-y-2">
-          <p>• 请确保提供的信息真实准确，以便我们更好地处理您的投诉</p>
-          <p>• 我们承诺在收到投诉后 24 小时内给予初步回复</p>
-          <p>• 对于紧急投诉，我们会优先处理并尽快解决</p>
-          <p>• 您可以在&quot;我的工单&quot;中查看投诉的处理进度和回复</p>
-          <p>• 如有任何疑问，请随时通过在线咨询联系我们</p>
+          {[0, 1, 2, 3, 4].map((idx) => (
+            <p key={`warning-${idx}`}>- {t(`warnings.${idx}`)}</p>
+          ))}
         </CardContent>
       </Card>
     </div>

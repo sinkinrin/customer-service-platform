@@ -18,6 +18,7 @@ import {
 import { Loader2, Save, CheckCircle2, XCircle, Wifi } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useTranslations } from 'next-intl'
 
 interface BusinessType {
   id: string
@@ -41,6 +42,7 @@ interface AISettings {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('settings.ai')
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [aiSettings, setAISettings] = useState<AISettings>({
@@ -75,12 +77,12 @@ export default function SettingsPage() {
     setAILoading(true)
     try {
       const response = await fetch('/api/admin/settings/ai')
-      if (!response.ok) throw new Error('Failed to fetch AI settings')
+      if (!response.ok) throw new Error(t('loadErrorGeneral'))
 
       const data = await response.json()
       setAISettings(data.data)
     } catch (error) {
-      toast.error('Failed to load AI settings')
+      toast.error(t('loadError'))
       console.error(error)
     } finally {
       setAILoading(false)
@@ -96,11 +98,11 @@ export default function SettingsPage() {
         body: JSON.stringify(aiSettings),
       })
 
-      if (!response.ok) throw new Error('Failed to save AI settings')
+      if (!response.ok) throw new Error(t('saveError'))
 
-      toast.success('AI settings saved successfully')
+      toast.success(t('saveSuccess'))
     } catch (error) {
-      toast.error('Failed to save AI settings')
+      toast.error(t('saveError'))
       console.error(error)
     } finally {
       setAISaving(false)
@@ -124,9 +126,9 @@ export default function SettingsPage() {
       {/* AI Auto-Reply Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>AI 智能回复</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
           <CardDescription>
-            配置 AI 自动回复功能，帮助客服团队提高响应效率
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -139,10 +141,10 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="ai-enabled" className="text-base">
-                    启用 AI 智能回复
+                    {t('enableLabel')}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    开启后，系统将自动使用 AI 为客户提供初步回复
+                    {t('enableHint')}
                   </p>
                 </div>
                 <Switch
@@ -157,7 +159,7 @@ export default function SettingsPage() {
               {aiSettings.enabled && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="ai-model">AI 模型</Label>
+                    <Label htmlFor="ai-model">{t('modelLabel')}</Label>
                     <Input
                       id="ai-model"
                       value={aiSettings.model}
@@ -167,12 +169,12 @@ export default function SettingsPage() {
                       placeholder="gpt-3.5-turbo"
                     />
                     <p className="text-xs text-muted-foreground">
-                      使用的 AI 模型名称（如 gpt-3.5-turbo, gpt-4）
+                      {t('modelHint')}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="ai-temperature">Temperature</Label>
+                    <Label htmlFor="ai-temperature">{t('temperatureLabel')}</Label>
                     <Input
                       id="ai-temperature"
                       type="number"
@@ -188,12 +190,12 @@ export default function SettingsPage() {
                       }
                     />
                     <p className="text-xs text-muted-foreground">
-                      控制回复的随机性（0-2，推荐 0.7）
+                      {t('temperatureHint')}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="ai-prompt">系统提示词</Label>
+                    <Label htmlFor="ai-prompt">{t('promptLabel')}</Label>
                     <Textarea
                       id="ai-prompt"
                       value={aiSettings.system_prompt}
@@ -201,18 +203,18 @@ export default function SettingsPage() {
                         setAISettings({ ...aiSettings, system_prompt: e.target.value })
                       }
                       rows={4}
-                      placeholder="你是一个专业的客服助手..."
+                      placeholder={t('promptPlaceholder')}
                     />
                     <p className="text-xs text-muted-foreground">
-                      定义 AI 的角色和回复风格
+                      {t('promptHint')}
                     </p>
                   </div>
 
                   <div className="border-t pt-4 space-y-4">
-                    <h3 className="text-sm font-medium">FastGPT 配置</h3>
+                    <h3 className="text-sm font-medium">{t('fastgpt.title')}</h3>
 
                     <div className="space-y-2">
-                      <Label htmlFor="fastgpt-url">FastGPT URL</Label>
+                      <Label htmlFor="fastgpt-url">{t('fastgpt.url')}</Label>
                       <Input
                         id="fastgpt-url"
                         value={aiSettings.fastgpt_url}
@@ -222,12 +224,12 @@ export default function SettingsPage() {
                         placeholder="https://your-fastgpt-instance.com"
                       />
                       <p className="text-xs text-muted-foreground">
-                        FastGPT 服务器地址
+                        {t('fastgpt.urlHint')}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="fastgpt-appid">FastGPT App ID</Label>
+                      <Label htmlFor="fastgpt-appid">{t('fastgpt.appId')}</Label>
                       <Input
                         id="fastgpt-appid"
                         value={aiSettings.fastgpt_appid}
@@ -237,12 +239,12 @@ export default function SettingsPage() {
                         placeholder="your-app-id"
                       />
                       <p className="text-xs text-muted-foreground">
-                        FastGPT 应用 ID
+                        {t('fastgpt.appIdHint')}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="fastgpt-api-key">FastGPT API Key</Label>
+                      <Label htmlFor="fastgpt-api-key">{t('fastgpt.apiKey')}</Label>
                       <Input
                         id="fastgpt-api-key"
                         type="password"
@@ -253,7 +255,7 @@ export default function SettingsPage() {
                         placeholder="fastgpt-xxxxxx"
                       />
                       <p className="text-xs text-muted-foreground">
-                        FastGPT API 密钥
+                        {t('fastgpt.apiKeyHint')}
                       </p>
                     </div>
 
@@ -270,12 +272,12 @@ export default function SettingsPage() {
                   {aiSaving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      保存中...
+                      {t('save.saving')}
                     </>
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      保存设置
+                      {t('save.label')}
                     </>
                   )}
                 </Button>
@@ -383,6 +385,7 @@ export default function SettingsPage() {
  * Test Connection Button Component
  */
 function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
+  const t = useTranslations('settings.ai.test')
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{
     success: boolean
@@ -406,18 +409,18 @@ function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
       setTestResult(data)
 
       if (data.success) {
-        toast.success('连接测试成功！')
+        toast.success(t('success'))
       } else {
-        toast.error(data.error || '连接测试失败')
+        toast.error(data.error || t('error'))
       }
     } catch (error: any) {
       console.error('Test connection error:', error)
       setTestResult({
         success: false,
-        message: '测试失败',
-        details: error.message || '网络错误，请检查您的网络连接'
+        message: t('genericError'),
+        details: error.message || t('networkError')
       })
-      toast.error('测试失败')
+      toast.error(t('genericError'))
     } finally {
       setTesting(false)
     }
@@ -440,19 +443,19 @@ function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
         {testing ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            测试中...
+            {t('testing')}
           </>
         ) : (
           <>
             <Wifi className="mr-2 h-4 w-4" />
-            测试 FastGPT 连接
+            {t('label')}
           </>
         )}
       </Button>
 
       {!canTest && (
         <p className="text-xs text-muted-foreground">
-          请先启用 AI 功能并完整配置 FastGPT 信息后再测试
+          {t('missingConfig')}
         </p>
       )}
 
@@ -467,7 +470,7 @@ function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
             <div className="flex-1 space-y-2">
               <AlertDescription>
                 <div className="font-medium">
-                  {testResult.success ? '✅ 连接成功' : '❌ 连接失败'}
+                  {testResult.success ? t('resultSuccess') : t('resultFail')}
                 </div>
                 {testResult.details && (
                   <div className="text-sm mt-1 opacity-90">
@@ -476,12 +479,12 @@ function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
                 )}
                 {testResult.responseTime !== undefined && (
                   <div className="text-sm mt-1 opacity-90">
-                    响应时间: {testResult.responseTime}ms
+                    {t('responseTime', { ms: testResult.responseTime })}
                   </div>
                 )}
                 {testResult.testResponse && (
                   <div className="text-sm mt-2 p-2 bg-muted rounded">
-                    <div className="font-medium mb-1">AI 测试回复:</div>
+                    <div className="font-medium mb-1">{t('testReply')}</div>
                     <div className="opacity-90">{testResult.testResponse}</div>
                   </div>
                 )}

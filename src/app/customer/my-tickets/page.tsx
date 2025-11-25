@@ -17,6 +17,7 @@ import {
 import { Loader2, Search, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useTranslations } from 'next-intl'
 
 interface Ticket {
   id: number
@@ -29,21 +30,22 @@ interface Ticket {
   article_count: number
 }
 
-const priorityMap: Record<number, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  1: { label: '低', variant: 'secondary' },
-  2: { label: '中', variant: 'default' },
-  3: { label: '高', variant: 'destructive' },
-  4: { label: '紧急', variant: 'destructive' },
+const priorityVariants: Record<number, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  1: 'secondary',
+  2: 'default',
+  3: 'destructive',
+  4: 'destructive',
 }
 
-const stateMap: Record<number, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  1: { label: '新建', variant: 'default' },
-  2: { label: '处理中', variant: 'outline' },
-  3: { label: '待回复', variant: 'secondary' },
-  4: { label: '已关闭', variant: 'secondary' },
+const stateVariants: Record<number, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  1: 'default',
+  2: 'outline',
+  3: 'secondary',
+  4: 'secondary',
 }
 
 export default function MyTicketsPage() {
+  const t = useTranslations('myTickets')
   const router = useRouter()
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -127,9 +129,9 @@ export default function MyTicketsPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">我的工单</h1>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
           <p className="text-muted-foreground mt-2">
-            查看和管理您提交的所有工单
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -138,16 +140,16 @@ export default function MyTicketsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>工单列表</CardTitle>
+              <CardTitle>{t('listTitle')}</CardTitle>
               <CardDescription>
-                共 {filteredTickets.length} 个工单
+                {t('listDescription', { count: filteredTickets.length })}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="搜索工单标题或编号..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-8"
@@ -164,13 +166,13 @@ export default function MyTicketsPage() {
           ) : filteredTickets.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">暂无工单</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery ? '没有找到匹配的工单' : '您还没有提交任何工单'}
+                {searchQuery ? t('empty.noResults') : t('empty.description')}
               </p>
               {!searchQuery && (
                 <p className="text-sm text-muted-foreground">
-                  请通过在线咨询创建工单
+                  {t('empty.hint')}
                 </p>
               )}
             </div>
@@ -178,14 +180,14 @@ export default function MyTicketsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>工单编号</TableHead>
-                  <TableHead>标题</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>优先级</TableHead>
-                  <TableHead>回复数</TableHead>
-                  <TableHead>创建时间</TableHead>
-                  <TableHead>更新时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t('table.id')}</TableHead>
+                  <TableHead>{t('table.title')}</TableHead>
+                  <TableHead>{t('table.status')}</TableHead>
+                  <TableHead>{t('table.priority')}</TableHead>
+                  <TableHead>{t('table.replies')}</TableHead>
+                  <TableHead>{t('table.created')}</TableHead>
+                  <TableHead>{t('table.updated')}</TableHead>
+                  <TableHead className="text-right">{t('table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -198,13 +200,13 @@ export default function MyTicketsPage() {
                     <TableCell className="font-medium">#{ticket.number}</TableCell>
                     <TableCell className="max-w-md truncate">{ticket.title}</TableCell>
                     <TableCell>
-                      <Badge variant={stateMap[ticket.state_id]?.variant || 'default'}>
-                        {stateMap[ticket.state_id]?.label || '未知'}
+                      <Badge variant={stateVariants[ticket.state_id] || 'default'}>
+                        {t((['1','2','3','4'].includes(String(ticket.state_id)) ? `status.${ticket.state_id}` : 'status.unknown') as any)}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={priorityMap[ticket.priority_id]?.variant || 'default'}>
-                        {priorityMap[ticket.priority_id]?.label || '未知'}
+                      <Badge variant={priorityVariants[ticket.priority_id] || 'default'}>
+                        {t((['1','2','3','4'].includes(String(ticket.priority_id)) ? `priority.${ticket.priority_id}` : 'priority.unknown') as any)}
                       </Badge>
                     </TableCell>
                     <TableCell>{ticket.article_count}</TableCell>
@@ -223,7 +225,7 @@ export default function MyTicketsPage() {
                           router.push(`/customer/my-tickets/${ticket.id}`)
                         }}
                       >
-                        查看详情
+                        {t('table.view')}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -243,10 +245,10 @@ export default function MyTicketsPage() {
                 {loadingMore ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    加载中...
+                    {t('table.loading')}
                   </>
                 ) : (
-                  '加载更多'
+                  t('table.loadMore')
                 )}
               </Button>
             </div>

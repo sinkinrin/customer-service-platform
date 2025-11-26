@@ -8,6 +8,7 @@
 
 import Link from 'next/link'
 import { ChevronRight, Home } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface BreadcrumbItem {
   label: string
@@ -19,14 +20,16 @@ interface BreadcrumbsProps {
 }
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
+  const t = useTranslations('faq')
+
   return (
     <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-      <Link 
-        href="/" 
+      <Link
+        href="/"
         className="flex items-center gap-1 hover:text-foreground transition-colors"
       >
         <Home className="h-4 w-4" />
-        <span>Home</span>
+        <span>{t('home')}</span>
       </Link>
       
       {items.map((item, index) => (

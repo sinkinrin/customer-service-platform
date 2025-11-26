@@ -43,6 +43,8 @@ interface AISettings {
 
 export default function SettingsPage() {
   const t = useTranslations('settings.ai')
+  const tSettings = useTranslations('admin.settings')
+  const tToast = useTranslations('toast.admin.settings')
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [aiSettings, setAISettings] = useState<AISettings>({
@@ -66,7 +68,7 @@ export default function SettingsPage() {
       const data = await response.json()
       setSettings(data)
     } catch (error) {
-      toast.error('Failed to load settings')
+      toast.error(tToast('saveError'))
       console.error(error)
     } finally {
       setLoading(false)
@@ -117,9 +119,9 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">System Settings</h1>
+        <h1 className="text-3xl font-bold">{tSettings('pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage system settings and configurations
+          {tSettings('pageDescription')}
         </p>
       </div>
 
@@ -295,9 +297,9 @@ export default function SettingsPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Business Types</CardTitle>
+              <CardTitle>{tSettings('businessTypes.title')}</CardTitle>
               <CardDescription>
-                Manage business types for conversation categorization
+                {tSettings('businessTypes.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -305,9 +307,9 @@ export default function SettingsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Created At</TableHead>
+                      <TableHead>{tSettings('businessTypes.table.name')}</TableHead>
+                      <TableHead>{tSettings('businessTypes.table.description')}</TableHead>
+                      <TableHead>{tSettings('businessTypes.table.createdAt')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -324,7 +326,7 @@ export default function SettingsPage() {
                 </Table>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No business types configured
+                  {tSettings('businessTypes.noTypes')}
                 </div>
               )}
             </CardContent>
@@ -332,44 +334,44 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>System Configuration</CardTitle>
+              <CardTitle>{tSettings('systemConfig.title')}</CardTitle>
               <CardDescription>
-                General system settings and parameters
+                {tSettings('systemConfig.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b">
                   <div>
-                    <p className="font-medium">Default Language</p>
+                    <p className="font-medium">{tSettings('systemConfig.defaultLanguage.title')}</p>
                     <p className="text-sm text-muted-foreground">
-                      Default language for new users
+                      {tSettings('systemConfig.defaultLanguage.description')}
                     </p>
                   </div>
                   <Button variant="outline" size="sm">
-                    Configure
+                    {tSettings('systemConfig.configure')}
                   </Button>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b">
                   <div>
-                    <p className="font-medium">Session Timeout</p>
+                    <p className="font-medium">{tSettings('systemConfig.sessionTimeout.title')}</p>
                     <p className="text-sm text-muted-foreground">
-                      User session timeout duration
+                      {tSettings('systemConfig.sessionTimeout.description')}
                     </p>
                   </div>
                   <Button variant="outline" size="sm">
-                    Configure
+                    {tSettings('systemConfig.configure')}
                   </Button>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <div>
-                    <p className="font-medium">Email Notifications</p>
+                    <p className="font-medium">{tSettings('systemConfig.emailNotifications.title')}</p>
                     <p className="text-sm text-muted-foreground">
-                      Configure email notification settings
+                      {tSettings('systemConfig.emailNotifications.description')}
                     </p>
                   </div>
                   <Button variant="outline" size="sm">
-                    Configure
+                    {tSettings('systemConfig.configure')}
                   </Button>
                 </div>
               </div>

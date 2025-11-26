@@ -1,6 +1,6 @@
 /**
  * Recent Activity Component
- * 
+ *
  * Displays recent messages and conversation status changes
  */
 
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MessageSquare, Clock, CheckCircle2, User } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useTranslations } from 'next-intl'
 
 interface Activity {
   id: string
@@ -35,7 +36,8 @@ interface RecentActivityProps {
 
 export function RecentActivity({ activities, isLoading = false }: RecentActivityProps) {
   const router = useRouter()
-  
+  const t = useTranslations('dashboardComponents.recentActivity')
+
   const getActivityIcon = (type: Activity['type']) => {
     switch (type) {
       case 'message':
@@ -65,13 +67,13 @@ export function RecentActivity({ activities, isLoading = false }: RecentActivity
   const getActivityTitle = (activity: Activity) => {
     switch (activity.type) {
       case 'message':
-        return 'New message'
+        return t('activity.newMessage')
       case 'status_change':
-        return `Status changed to ${activity.status}`
+        return t('activity.statusChanged', { status: activity.status || 'unknown' })
       case 'assignment':
-        return 'Conversation assigned'
+        return t('activity.assigned')
       default:
-        return 'Activity'
+        return t('activity.default')
     }
   }
   
@@ -109,17 +111,17 @@ export function RecentActivity({ activities, isLoading = false }: RecentActivity
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex gap-4">
-                <div className="h-10 w-10 bg-muted animate-pulse rounded-full" />
+                <div className="h-10 w-10 bg-muted animate-pulse motion-reduce:animate-none rounded-full" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                  <div className="h-3 w-48 bg-muted animate-pulse rounded" />
-                  <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-32 bg-muted animate-pulse motion-reduce:animate-none rounded" />
+                  <div className="h-3 w-48 bg-muted animate-pulse motion-reduce:animate-none rounded" />
+                  <div className="h-3 w-24 bg-muted animate-pulse motion-reduce:animate-none rounded" />
                 </div>
               </div>
             ))}
@@ -128,30 +130,30 @@ export function RecentActivity({ activities, isLoading = false }: RecentActivity
       </Card>
     )
   }
-  
+
   if (activities.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Clock className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No recent activity</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('noActivity')}</h3>
             <p className="text-muted-foreground">
-              Your recent conversations and messages will appear here
+              {t('noActivityHint')}
             </p>
           </div>
         </CardContent>
       </Card>
     )
   }
-  
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
+        <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">

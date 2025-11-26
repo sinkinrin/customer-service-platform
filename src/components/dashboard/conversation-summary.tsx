@@ -66,11 +66,11 @@ export function ConversationSummary({ stats, isLoading = false }: ConversationSu
         {[1, 2, 3, 4].map((i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-              <div className="h-8 w-8 bg-muted animate-pulse rounded-lg" />
+              <div className="h-4 w-24 bg-muted animate-pulse motion-reduce:animate-none rounded" />
+              <div className="h-8 w-8 bg-muted animate-pulse motion-reduce:animate-none rounded-lg" />
             </CardHeader>
             <CardContent>
-              <div className="h-8 w-16 bg-muted animate-pulse rounded" />
+              <div className="h-8 w-16 bg-muted animate-pulse motion-reduce:animate-none rounded" />
             </CardContent>
           </Card>
         ))}

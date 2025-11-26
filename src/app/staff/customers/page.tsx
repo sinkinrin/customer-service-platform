@@ -25,6 +25,7 @@ import {
 import { Search, Users, Mail, Phone, MapPin, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { useTranslations } from 'next-intl'
 
 interface Customer {
   user_id: string
@@ -39,6 +40,12 @@ interface Customer {
 
 export default function StaffCustomersPage() {
   const router = useRouter()
+  const t = useTranslations('staff.customers')
+  const tStats = useTranslations('staff.customers.stats')
+  const tFilter = useTranslations('staff.customers.filter')
+  const tList = useTranslations('staff.customers.list')
+  const tTable = useTranslations('staff.customers.table')
+  const tToast = useTranslations('toast.staff.customers')
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -62,7 +69,7 @@ export default function StaffCustomersPage() {
       setCustomers(customerList)
     } catch (error) {
       console.error('Failed to load customers:', error)
-      toast.error('Failed to load customers')
+      toast.error(tToast('loadError'))
     } finally {
       setLoading(false)
     }
@@ -91,9 +98,9 @@ export default function StaffCustomersPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Customers</h1>
+        <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          View and manage customer information
+          {t('pageDescription')}
         </p>
       </div>
 
@@ -101,7 +108,7 @@ export default function StaffCustomersPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">{tStats('totalCustomers')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -110,7 +117,7 @@ export default function StaffCustomersPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">With Phone</CardTitle>
+            <CardTitle className="text-sm font-medium">{tStats('withPhone')}</CardTitle>
             <Phone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -119,7 +126,7 @@ export default function StaffCustomersPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Regions</CardTitle>
+            <CardTitle className="text-sm font-medium">{tStats('regions')}</CardTitle>
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -131,8 +138,8 @@ export default function StaffCustomersPage() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Filter Customers</CardTitle>
-          <CardDescription>Search and filter customer list</CardDescription>
+          <CardTitle>{tFilter('title')}</CardTitle>
+          <CardDescription>{tFilter('description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
@@ -140,7 +147,7 @@ export default function StaffCustomersPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, email, or phone..."
+                  placeholder={tFilter('searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -151,20 +158,20 @@ export default function StaffCustomersPage() {
               <Select value={regionFilter} onValueChange={setRegionFilter}>
                 <SelectTrigger>
                   <MapPin className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Region" />
+                  <SelectValue placeholder={tFilter('regionPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Regions</SelectItem>
+                  <SelectItem value="all">{tFilter('allRegions')}</SelectItem>
                   {regions.map((region) => (
                     <SelectItem key={region} value={region || ''}>
-                      {region || 'Unknown'}
+                      {region || tTable('unknown')}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <Button onClick={loadCustomers} variant="outline">
-              Refresh
+              {tFilter('refresh')}
             </Button>
           </div>
         </CardContent>
@@ -173,36 +180,36 @@ export default function StaffCustomersPage() {
       {/* Customers Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Customers List</CardTitle>
+          <CardTitle>{tList('title')}</CardTitle>
           <CardDescription>
-            {filteredCustomers.length} customer(s) found
+            {tList('found', { count: filteredCustomers.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-              <p className="mt-2 text-sm text-muted-foreground">Loading customers...</p>
+              <div className="inline-block h-8 w-8 animate-spin motion-reduce:animate-none rounded-full border-4 border-solid border-current border-r-transparent" />
+              <p className="mt-2 text-sm text-muted-foreground">{tList('loading')}</p>
             </div>
           ) : filteredCustomers.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium">No customers found</p>
+              <p className="text-lg font-medium">{tList('noCustomers')}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {searchQuery ? 'Try adjusting your search criteria' : 'No customers available'}
+                {searchQuery ? tList('adjustSearch') : tList('noData')}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Language</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{tTable('customer')}</TableHead>
+                  <TableHead>{tTable('email')}</TableHead>
+                  <TableHead>{tTable('phone')}</TableHead>
+                  <TableHead>{tTable('region')}</TableHead>
+                  <TableHead>{tTable('language')}</TableHead>
+                  <TableHead>{tTable('joined')}</TableHead>
+                  <TableHead className="text-right">{tTable('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -215,7 +222,7 @@ export default function StaffCustomersPage() {
                             {customer.full_name?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="font-medium">{customer.full_name || 'Unknown'}</div>
+                        <div className="font-medium">{customer.full_name || tTable('unknown')}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -260,7 +267,7 @@ export default function StaffCustomersPage() {
                         variant="ghost"
                         onClick={() => router.push(`/staff/tickets?customer=${customer.email}`)}
                       >
-                        View Tickets
+                        {tTable('viewTickets')}
                       </Button>
                     </TableCell>
                   </TableRow>

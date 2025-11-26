@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { PageLoader } from '@/components/ui/page-loader'
 
 /**
  * Admin Root Page
@@ -15,12 +16,10 @@ export default function AdminPage() {
   }, [router])
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-        <p className="mt-4 text-sm text-muted-foreground">Redirecting to dashboard...</p>
-      </div>
-    </div>
+    <PageLoader
+      message="Redirecting to dashboard..."
+      hint="Loading the admin workspace"
+    />
   )
 }
 

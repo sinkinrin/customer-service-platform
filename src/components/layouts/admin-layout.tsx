@@ -2,7 +2,8 @@
 
 import { ReactNode, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   LayoutDashboard,
   Users,
@@ -25,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
 
 interface AdminLayoutProps {
@@ -39,39 +41,6 @@ interface AdminLayoutProps {
   systemStatus?: "healthy" | "warning" | "error"
 }
 
-const navigation = [
-  {
-    name: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Users",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    name: "Tickets",
-    href: "/admin/tickets",
-    icon: Ticket,
-  },
-  {
-    name: "FAQ Management",
-    href: "/admin/faq",
-    icon: HelpCircle,
-  },
-  {
-    name: "Business Types",
-    href: "/admin/business-types",
-    icon: Briefcase,
-  },
-  {
-    name: "System Settings",
-    href: "/admin/settings",
-    icon: Settings,
-  },
-]
-
 export function AdminLayout({
   children,
   user,
@@ -80,6 +49,42 @@ export function AdminLayout({
 }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const t = useTranslations('nav')
+  const tCommon = useTranslations('common')
+
+  const navigation = [
+    {
+      name: t('dashboard'),
+      href: "/admin",
+      icon: LayoutDashboard,
+    },
+    {
+      name: t('users'),
+      href: "/admin/users",
+      icon: Users,
+    },
+    {
+      name: t('tickets'),
+      href: "/admin/tickets",
+      icon: Ticket,
+    },
+    {
+      name: t('faqManagement'),
+      href: "/admin/faq",
+      icon: HelpCircle,
+    },
+    {
+      name: t('businessTypes'),
+      href: "/admin/business-types",
+      icon: Briefcase,
+    },
+    {
+      name: t('systemSettings'),
+      href: "/admin/settings",
+      icon: Settings,
+    },
+  ]
 
   const getStatusColor = () => {
     switch (systemStatus) {
@@ -97,13 +102,13 @@ export function AdminLayout({
   const getStatusText = () => {
     switch (systemStatus) {
       case "healthy":
-        return "All Systems Operational"
+        return tCommon('status.allSystemsOperational')
       case "warning":
-        return "Minor Issues Detected"
+        return tCommon('status.minorIssuesDetected')
       case "error":
-        return "System Error"
+        return tCommon('status.systemError')
       default:
-        return "Unknown Status"
+        return tCommon('status.unknownStatus')
     }
   }
 
@@ -128,9 +133,9 @@ export function AdminLayout({
         <div className="flex items-center justify-between h-16 px-6 border-b flex-shrink-0">
           <Link href="/admin" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">CS</span>
+              <span className="text-primary-foreground font-bold text-lg">{t('brandShort')}</span>
             </div>
-            <span className="font-semibold">Admin Portal</span>
+            <span className="font-semibold">{tCommon('layout.adminPortal')}</span>
           </Link>
           <Button
             variant="ghost"
@@ -146,7 +151,7 @@ export function AdminLayout({
         <div className="px-4 py-4 border-b flex-shrink-0">
           <div className="flex items-center space-x-2 text-sm">
             <Activity className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">System Status:</span>
+            <span className="text-muted-foreground">{tCommon('layout.systemStatus')}</span>
           </div>
           <div className="flex items-center space-x-2 mt-2">
             <div className={cn("h-2 w-2 rounded-full", getStatusColor())} />
@@ -165,12 +170,15 @@ export function AdminLayout({
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch
                 className={cn(
                   "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
+                onMouseEnter={() => router.prefetch(item.href)}
+                onFocus={() => router.prefetch(item.href)}
                 onClick={() => setSidebarOpen(false)}
               >
                 <Icon className="h-5 w-5" />
@@ -195,27 +203,27 @@ export function AdminLayout({
                 </Avatar>
                 <div className="flex flex-col items-start flex-1 min-w-0">
                   <p className="text-sm font-medium truncate w-full">
-                    {user.name || "Admin"}
+                    {user.name || tCommon('layout.administrator')}
                   </p>
                   <p className="text-xs text-muted-foreground truncate w-full">
-                    Administrator
+                    {tCommon('layout.administrator')}
                   </p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 mb-2">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{tCommon('layout.myAccount')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/admin/profile">Profile Settings</Link>
+                <Link href="/admin/profile">{tCommon('layout.profileSettings')}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/admin/settings">System Settings</Link>
+                <Link href="/admin/settings">{tCommon('layout.systemSettings')}</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onLogout} className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
-                Log out
+                {tCommon('layout.logOut')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -242,7 +250,7 @@ export function AdminLayout({
             <Button variant="outline" size="sm" asChild>
               <Link href="/admin/users">
                 <Users className="mr-2 h-4 w-4" />
-                Manage Users
+                {tCommon('layout.manageUsers')}
               </Link>
             </Button>
           </div>
@@ -250,7 +258,9 @@ export function AdminLayout({
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6">
-          {children}
+          <PageTransition key={pathname}>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>

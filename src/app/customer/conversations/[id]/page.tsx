@@ -18,10 +18,15 @@ import { Loading } from '@/components/common/loading'
 import { useSSE } from '@/lib/hooks/use-sse'
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useTranslations } from 'next-intl'
 
 type ConversationMode = 'ai' | 'human'
 
 export default function ConversationDetailPage() {
+  const t = useTranslations('customer.conversations.detail')
+  const tPlaceholders = useTranslations('customer.conversations.placeholders')
+  const tToast = useTranslations('toast.customer.conversations')
+
   const params = useParams()
   const conversationId = params.id as string
 
@@ -64,7 +69,7 @@ export default function ConversationDetailPage() {
         setMode('human')
         fetchConversationById(conversationId)
         fetchMessages(conversationId)
-        toast.success('已成功转接至人工客服')
+        toast.success(tToast('transferSuccess'))
       }
 
       // Handle new message - only in human mode to avoid conflicts with AI messages
@@ -225,17 +230,17 @@ export default function ConversationDetailPage() {
 
       // Provide helpful error messages based on error type
       if (error.message?.includes('FastGPT')) {
-        toast.error('AI服务暂时不可用，请转人工客服获取帮助', {
+        toast.error(tToast('aiUnavailable'), {
           duration: 5000,
           action: {
-            label: '转人工',
+            label: tToast('actionLabel.transferToHuman'),
             onClick: () => setShowTransferDialog(true),
           },
         })
       } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        toast.error('网络连接失败，请检查网络后重试')
+        toast.error(tToast('networkError'))
       } else {
-        toast.error('AI响应失败，请重试或转人工客服')
+        toast.error(tToast('aiError'))
       }
     } finally {
       setIsAiLoading(false)
@@ -252,7 +257,7 @@ export default function ConversationDetailPage() {
       await sendMessage(conversationId, content, messageType, metadata)
     } catch (error) {
       console.error('Error sending message:', error)
-      toast.error('Failed to send message')
+      toast.error(tToast('sendError'))
     }
   }
 
@@ -297,11 +302,11 @@ export default function ConversationDetailPage() {
       await fetchConversationById(conversationId)
       await fetchMessages(conversationId)
 
-      toast.success('已成功转接至人工客服')
+      toast.success(tToast('transferSuccess'))
 
     } catch (error) {
       console.error('Transfer error:', error)
-      toast.error('转接失败，请重试')
+      toast.error(tToast('transferError'))
     } finally {
       setIsTransferring(false)
     }
@@ -333,18 +338,18 @@ export default function ConversationDetailPage() {
       // Fetch updated conversation
       await fetchConversationById(conversationId)
 
-      toast.success('已切换至AI助手')
+      toast.success(tToast('switchToAISuccess'))
 
     } catch (error) {
       console.error('Switch to AI error:', error)
-      toast.error('切换失败，请重试')
+      toast.error(tToast('switchToAIError'))
     } finally {
       setIsTransferring(false)
     }
   }
 
   if (mode === 'human' && !activeConversation && isLoadingMessages) {
-    return <Loading fullScreen text="Loading conversation..." />
+    return <Loading fullScreen text={t('loadingText')} />
   }
 
   const staffName = activeConversation?.staff?.full_name
@@ -365,7 +370,7 @@ export default function ConversationDetailPage() {
         updated_at: msg.timestamp,
         sender: {
           id: msg.role === 'user' ? 'user' : 'ai',
-          full_name: msg.role === 'user' ? '我' : 'AI助手',
+          full_name: msg.role === 'user' ? t('me') : t('aiAssistant'),
           avatar_url: undefined,
           role: msg.role === 'user' ? ('customer' as const) : ('staff' as const),
         },
@@ -379,7 +384,7 @@ export default function ConversationDetailPage() {
         <Alert variant="destructive" className="mx-auto mb-0 mt-2 w-full max-w-6xl rounded-lg px-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Real-time updates unavailable: {sseError.message}
+            {t('sseError', { error: sseError.message })}
           </AlertDescription>
         </Alert>
       )}
@@ -388,7 +393,7 @@ export default function ConversationDetailPage() {
       {mode === 'human' && showNewMessageNotification && (
         <Alert className="mx-auto mb-0 mt-2 w-full max-w-6xl rounded-lg border-blue-200 bg-blue-50 px-4 dark:border-blue-800 dark:bg-blue-950">
           <AlertDescription className="text-blue-900 dark:text-blue-100">
-            New message received - scroll down to view
+            {t('newMessageNotification')}
           </AlertDescription>
         </Alert>
       )}
@@ -437,10 +442,10 @@ export default function ConversationDetailPage() {
               disabled={isClosed || isAiLoading}
               placeholder={
                 mode === 'ai'
-                  ? 'Ask the AI assistant...'
+                  ? tPlaceholders('aiMode')
                   : conversationStatus === 'waiting'
-                  ? 'Waiting for an agent...'
-                  : 'Type a message...'
+                  ? tPlaceholders('waitingMode')
+                  : tPlaceholders('activeMode')
               }
             />
           </div>
@@ -451,7 +456,7 @@ export default function ConversationDetailPage() {
         <div className="sticky bottom-0 z-20 border-t bg-muted p-4">
           <div className="mx-auto w-full max-w-4xl text-center">
             <p className="text-sm text-muted-foreground">
-              Conversation is closed. Please start a new chat to continue.
+              {t('closedMessage')}
             </p>
           </div>
         </div>

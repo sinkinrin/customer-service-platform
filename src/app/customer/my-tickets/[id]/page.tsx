@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -18,12 +19,15 @@ export default function CustomerTicketDetailPage() {
   const params = useParams()
   const router = useRouter()
   const ticketId = params.id as string
-  
+  const t = useTranslations('customer.myTickets')
+  const tDetail = useTranslations('customer.myTickets.detail')
+  const tToast = useTranslations('toast.customer.tickets')
+
   const [ticket, setTicket] = useState<ZammadTicket | null>(null)
   const [articles, setArticles] = useState<TicketArticle[]>([])
   const [replyText, setReplyText] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  
+
   const { fetchTicketById, fetchArticles, isLoading } = useTicket()
 
   useEffect(() => {
@@ -46,7 +50,7 @@ export default function CustomerTicketDetailPage() {
 
   const handleReply = async () => {
     if (!replyText.trim()) {
-      toast.error('请输入回复内容')
+      toast.error(tToast('replyRequired'))
       return
     }
 
@@ -68,15 +72,15 @@ export default function CustomerTicketDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || '发送回复失败')
+        throw new Error(errorData.error || tToast('replyError'))
       }
 
-      toast.success('回复已发送')
+      toast.success(tToast('replySent'))
       setReplyText('')
       await loadArticles()
     } catch (error: any) {
       console.error('Failed to send reply:', error)
-      toast.error(error.message || '发送回复失败')
+      toast.error(error.message || tToast('replyError'))
     } finally {
       setSubmitting(false)
     }
@@ -84,10 +88,10 @@ export default function CustomerTicketDetailPage() {
 
   const getStatusBadge = (state: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string }> = {
-      'new': { variant: 'default', label: '新建' },
-      'open': { variant: 'default', label: '处理中' },
-      'pending': { variant: 'secondary', label: '等待回复' },
-      'closed': { variant: 'outline', label: '已关闭' },
+      'new': { variant: 'default', label: t('statusLabels.new') },
+      'open': { variant: 'default', label: t('statusLabels.open') },
+      'pending': { variant: 'secondary', label: t('statusLabels.pending') },
+      'closed': { variant: 'outline', label: t('statusLabels.closed') },
     }
     const config = variants[state] || { variant: 'default', label: state }
     return <Badge variant={config.variant}>{config.label}</Badge>
@@ -95,10 +99,10 @@ export default function CustomerTicketDetailPage() {
 
   const getPriorityBadge = (priority: number) => {
     const variants: Record<number, { variant: 'default' | 'secondary' | 'destructive', label: string }> = {
-      1: { variant: 'secondary', label: '低' },
-      2: { variant: 'default', label: '中' },
-      3: { variant: 'destructive', label: '高' },
-      4: { variant: 'destructive', label: '紧急' },
+      1: { variant: 'secondary', label: t('priorityLabels.1') },
+      2: { variant: 'default', label: t('priorityLabels.2') },
+      3: { variant: 'destructive', label: t('priorityLabels.3') },
+      4: { variant: 'destructive', label: t('priorityLabels.4') },
     }
     const config = variants[priority] || { variant: 'default', label: String(priority) }
     return <Badge variant={config.variant}>{config.label}</Badge>
@@ -131,20 +135,20 @@ export default function CustomerTicketDetailPage() {
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          返回工单列表
+          {tDetail('backToList')}
         </Button>
-        
+
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">{ticket.title}</h1>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Tag className="h-4 w-4" />
-                工单编号: #{ticket.number}
+                {tDetail('ticketNumber')}: #{ticket.number}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                创建时间: {format(new Date(ticket.created_at), 'yyyy-MM-dd HH:mm')}
+                {tDetail('createdAt')}: {format(new Date(ticket.created_at), 'yyyy-MM-dd HH:mm')}
               </span>
             </div>
           </div>
@@ -158,24 +162,24 @@ export default function CustomerTicketDetailPage() {
       {/* Ticket Details */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>工单信息</CardTitle>
+          <CardTitle>{tDetail('infoTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">状态</p>
+              <p className="text-sm font-medium text-muted-foreground">{tDetail('status')}</p>
               <p className="mt-1">{getStatusBadge(ticket.state)}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">优先级</p>
+              <p className="text-sm font-medium text-muted-foreground">{tDetail('priority')}</p>
               <p className="mt-1">{getPriorityBadge(ticket.priority_id)}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">创建时间</p>
+              <p className="text-sm font-medium text-muted-foreground">{tDetail('createdAt')}</p>
               <p className="mt-1">{format(new Date(ticket.created_at), 'yyyy-MM-dd HH:mm:ss')}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">最后更新</p>
+              <p className="text-sm font-medium text-muted-foreground">{tDetail('updatedAt')}</p>
               <p className="mt-1">{format(new Date(ticket.updated_at), 'yyyy-MM-dd HH:mm:ss')}</p>
             </div>
           </div>
@@ -187,15 +191,15 @@ export default function CustomerTicketDetailPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Send className="h-5 w-5" />
-            对话记录
+            {tDetail('conversationTitle')}
           </CardTitle>
           <CardDescription>
-            共 {articles.length} 条消息
+            {tDetail('messageCount', { count: articles.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {articles.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">暂无对话记录</p>
+            <p className="text-center text-muted-foreground py-8">{tDetail('noMessages')}</p>
           ) : (
             <div className="space-y-4">
               {articles.map((article, index) => (
@@ -206,10 +210,10 @@ export default function CustomerTicketDetailPage() {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">
-                          {article.from || '未知用户'}
+                          {article.from || tDetail('unknownUser')}
                         </span>
                         {article.internal && (
-                          <Badge variant="secondary" className="text-xs">内部</Badge>
+                          <Badge variant="secondary" className="text-xs">{tDetail('internal')}</Badge>
                         )}
                       </div>
                       <span className="text-sm text-muted-foreground">
@@ -236,9 +240,9 @@ export default function CustomerTicketDetailPage() {
       {ticket.state !== 'closed' && (
         <Card>
           <CardHeader>
-            <CardTitle>添加回复</CardTitle>
+            <CardTitle>{tDetail('addReply')}</CardTitle>
             <CardDescription>
-              您的回复将发送给技术支持团队
+              {tDetail('replyDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -246,13 +250,13 @@ export default function CustomerTicketDetailPage() {
               <Textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                placeholder="请输入您的回复..."
+                placeholder={tDetail('replyPlaceholder')}
                 rows={6}
                 maxLength={2000}
               />
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
-                  {replyText.length}/2000 字符
+                  {tDetail('characterCount', { count: replyText.length, max: 2000 })}
                 </p>
                 <Button
                   onClick={handleReply}
@@ -261,12 +265,12 @@ export default function CustomerTicketDetailPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      发送中...
+                      {tDetail('sending')}
                     </>
                   ) : (
                     <>
                       <Send className="mr-2 h-4 w-4" />
-                      发送回复
+                      {tDetail('sendReply')}
                     </>
                   )}
                 </Button>
@@ -280,7 +284,7 @@ export default function CustomerTicketDetailPage() {
         <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
           <CardContent className="pt-6">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              此工单已关闭。如需继续讨论，请创建新工单。
+              {tDetail('closedMessage')}
             </p>
           </CardContent>
         </Card>

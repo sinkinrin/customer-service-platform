@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -26,6 +27,8 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function AdminTicketDetailPage() {
+  const t = useTranslations('admin.ticketDetail')
+  const tToast = useTranslations('toast.admin.ticketDetail')
   const params = useParams()
   const router = useRouter()
   const ticketId = params.id as string
@@ -61,23 +64,23 @@ export default function AdminTicketDetailPage() {
     const updated = await updateTicket(ticketId, updates)
     if (updated) {
       setTicket(updated)
-      toast.success('Ticket updated successfully')
+      toast.success(tToast('updateSuccess'))
     }
   }
 
   const handleAddNote = async (note: string, internal: boolean) => {
     // Generate a temporary message ID
     const tempMessageId = `temp-${Date.now()}`
-    
+
     const article = await addArticle(ticketId, tempMessageId, {
       subject: ticket?.title || 'Note',
       body: note,
       internal,
     })
-    
+
     if (article) {
       setArticles([...articles, article])
-      toast.success(internal ? 'Internal note added' : 'Reply added')
+      toast.success(internal ? tToast('noteAdded') : tToast('replyAdded'))
     }
   }
 
@@ -92,11 +95,11 @@ export default function AdminTicketDetailPage() {
         throw new Error('Failed to delete ticket')
       }
 
-      toast.success('Ticket deleted successfully')
+      toast.success(tToast('deleteSuccess'))
       router.push('/admin/tickets')
     } catch (error) {
       console.error('Delete ticket error:', error)
-      toast.error('Failed to delete ticket')
+      toast.error(tToast('deleteError'))
     } finally {
       setDeleting(false)
     }
@@ -114,14 +117,14 @@ export default function AdminTicketDetailPage() {
   if (!ticket) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Ticket not found</p>
+        <p className="text-muted-foreground">{t('notFound')}</p>
         <Button
           variant="outline"
           onClick={() => router.push('/admin/tickets')}
           className="mt-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tickets
+          {t('backToTickets')}
         </Button>
       </div>
     )
@@ -138,12 +141,12 @@ export default function AdminTicketDetailPage() {
             onClick={() => router.push('/admin/tickets')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('back')}
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Ticket #{ticket.number}</h1>
+            <h1 className="text-2xl font-bold">{t('ticketNumber', { number: ticket.number })}</h1>
             <p className="text-sm text-muted-foreground">
-              Created {format(new Date(ticket.created_at), 'PPp')}
+              {t('created', { date: format(new Date(ticket.created_at), 'PPp') })}
             </p>
           </div>
         </div>
@@ -151,21 +154,20 @@ export default function AdminTicketDetailPage() {
           <AlertDialogTrigger asChild>
             <Button variant="destructive" size="sm" disabled={deleting}>
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete Ticket
+              {t('deleteButton')}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the ticket
-                and all associated articles.
+                {t('deleteDialog.description')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                Delete
+                {t('deleteDialog.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -183,13 +185,13 @@ export default function AdminTicketDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
-                Conversation ({articles.length})
+                {t('conversation', { count: articles.length })}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {articles.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
-                  No articles yet
+                  {t('noArticles')}
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -206,7 +208,7 @@ export default function AdminTicketDetailPage() {
                           </div>
                           {article.internal && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                              Internal
+                              {t('internalBadge')}
                             </span>
                           )}
                         </div>

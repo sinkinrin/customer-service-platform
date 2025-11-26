@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Format response
-    const items = articles.map(article => {
+    const items = articles.map((article: typeof articles[number]) => {
       const translation = article.translations[0]
       return {
         id: article.id,
@@ -62,8 +62,8 @@ export async function GET(request: NextRequest) {
         content: translation?.content || '',
         is_active: article.isActive,
         views: article.views,
-        helpful: article.ratings.filter(r => r.isHelpful).length,
-        not_helpful: article.ratings.filter(r => !r.isHelpful).length,
+        helpful: article.ratings.filter((r: { isHelpful: boolean }) => r.isHelpful).length,
+        not_helpful: article.ratings.filter((r: { isHelpful: boolean }) => !r.isHelpful).length,
         created_at: article.createdAt.toISOString(),
         updated_at: article.updatedAt.toISOString(),
       }

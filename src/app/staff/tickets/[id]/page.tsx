@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -15,6 +16,8 @@ import { format } from 'date-fns'
 import { toast } from 'sonner'
 
 export default function StaffTicketDetailPage() {
+  const t = useTranslations('staff.tickets.detail')
+  const tToast = useTranslations('toast.staff.tickets')
   const params = useParams()
   const router = useRouter()
   const ticketId = params.id as string
@@ -49,7 +52,7 @@ export default function StaffTicketDetailPage() {
     const updated = await updateTicket(ticketId, updates)
     if (updated) {
       setTicket(updated)
-      toast.success('Ticket updated successfully')
+      toast.success(tToast('updateSuccess'))
     }
   }
 
@@ -65,7 +68,7 @@ export default function StaffTicketDetailPage() {
 
     if (article) {
       setArticles([...articles, article])
-      toast.success(internal ? 'Internal note added' : 'Reply added')
+      toast.success(tToast('noteAdded'))
     }
   }
 
@@ -81,14 +84,14 @@ export default function StaffTicketDetailPage() {
   if (!ticket) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Ticket not found</p>
+        <p className="text-muted-foreground">{t('ticketNotFound')}</p>
         <Button
           variant="outline"
           onClick={() => router.push('/staff/tickets')}
           className="mt-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tickets
+          {t('backToTickets')}
         </Button>
       </div>
     )
@@ -105,12 +108,12 @@ export default function StaffTicketDetailPage() {
             onClick={() => router.push('/staff/tickets')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('back')}
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Ticket #{ticket.number}</h1>
+            <h1 className="text-2xl font-bold">{t('ticketNumber', { number: ticket.number })}</h1>
             <p className="text-sm text-muted-foreground">
-              Created {format(new Date(ticket.created_at), 'PPp')}
+              {t('created', { date: format(new Date(ticket.created_at), 'PPp') })}
             </p>
           </div>
         </div>
@@ -127,13 +130,13 @@ export default function StaffTicketDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
-                Conversation ({articles.length})
+                {t('conversationCount', { count: articles.length })}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {articles.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
-                  No articles yet
+                  {t('noArticles')}
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -150,7 +153,7 @@ export default function StaffTicketDetailPage() {
                           </div>
                           {article.internal && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                              Internal
+                              {t('internalBadge')}
                             </span>
                           )}
                         </div>

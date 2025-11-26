@@ -3,15 +3,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Settings } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export default function BusinessTypesPage() {
+  const t = useTranslations('admin.businessTypes')
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Business Types</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('pageTitle')}</h1>
           <p className="text-muted-foreground">
-            Manage business types for conversation categorization
+            {t('pageDescription')}
           </p>
         </div>
         <Button disabled>
@@ -22,19 +25,17 @@ export default function BusinessTypesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Business Type Management</CardTitle>
+          <CardTitle>{t('managementTitle')}</CardTitle>
           <CardDescription>
-            Configure business types to categorize customer conversations
+            {t('managementDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Settings className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('comingSoon')}</h3>
             <p className="text-muted-foreground max-w-md">
-              Business type management functionality is currently under development. 
-              This feature will allow you to create and manage different business types 
-              for better conversation categorization.
+              {t('comingSoonDescription')}
             </p>
           </div>
         </CardContent>
@@ -42,32 +43,32 @@ export default function BusinessTypesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>What are Business Types?</CardTitle>
+          <CardTitle>{t('whatAreBusinessTypes')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h4 className="font-medium mb-2">Purpose</h4>
+            <h4 className="font-medium mb-2">{t('purpose')}</h4>
             <p className="text-sm text-muted-foreground">
-              Business types help categorize customer conversations based on the nature 
+              Business types help categorize customer conversations based on the nature
               of their inquiry (e.g., Sales, Support, Billing, Technical).
             </p>
           </div>
           <div>
-            <h4 className="font-medium mb-2">Benefits</h4>
+            <h4 className="font-medium mb-2">{t('benefits')}</h4>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-              <li>Better conversation routing to specialized teams</li>
-              <li>Improved analytics and reporting</li>
-              <li>Enhanced customer experience through targeted support</li>
-              <li>Streamlined workflow management</li>
+              <li>{t('benefitsList.routing')}</li>
+              <li>{t('benefitsList.analytics')}</li>
+              <li>{t('benefitsList.customerExperience')}</li>
+              <li>{t('benefitsList.workflow')}</li>
             </ul>
           </div>
           <div>
-            <h4 className="font-medium mb-2">Planned Features</h4>
+            <h4 className="font-medium mb-2">{t('plannedFeatures')}</h4>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-              <li>Create and edit business types</li>
-              <li>Assign default staff teams to business types</li>
-              <li>Set priority levels and SLA targets</li>
-              <li>Configure automated routing rules</li>
+              <li>{t('featuresList.createEdit')}</li>
+              <li>{t('featuresList.assignTeams')}</li>
+              <li>{t('featuresList.setSLA')}</li>
+              <li>{t('featuresList.automatedRouting')}</li>
             </ul>
           </div>
         </CardContent>

@@ -5,13 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TicketStats } from '@/components/dashboard/ticket-stats'
 import { RecentTickets } from '@/components/dashboard/recent-tickets'
+import { PageTransition } from '@/components/ui/page-transition'
 import { Plus, Search, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTicket } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
+import { useTranslations } from 'next-intl'
 
 export default function StaffDashboardPage() {
   const router = useRouter()
+  const t = useTranslations('staff.dashboard')
+  const tActions = useTranslations('staff.dashboard.actions')
+  const tQuick = useTranslations('staff.dashboard.quickActions')
+  const tHelp = useTranslations('staff.dashboard.helpCard')
   const [stats, setStats] = useState({ open: 0, pending: 0, resolved: 0, closed: 0 })
   const [recentTickets, setRecentTickets] = useState<ZammadTicket[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -43,20 +49,20 @@ export default function StaffDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageTransition className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Staff Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Welcome back! Here&apos;s an overview of your tickets.</p>
+          <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
+          <p className="text-muted-foreground mt-2">{t('welcomeMessage')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push('/staff/tickets')}>
             <Search className="h-4 w-4 mr-2" />
-            Search Tickets
+            {tActions('searchTickets')}
           </Button>
           <Button variant="outline" onClick={() => router.push('/staff/knowledge')}>
             <BookOpen className="h-4 w-4 mr-2" />
-            Knowledge Base
+            {tActions('knowledgeBase')}
           </Button>
         </div>
       </div>
@@ -70,38 +76,38 @@ export default function StaffDashboardPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>{tQuick('title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Button className="w-full justify-start" variant="outline" onClick={() => router.push('/staff/tickets')}>
                 <Search className="h-4 w-4 mr-2" />
-                View All Tickets
+                {tActions('viewAllTickets')}
               </Button>
               <Button className="w-full justify-start" variant="outline" onClick={() => router.push('/staff/tickets?status=open')}>
                 <Plus className="h-4 w-4 mr-2" />
-                Open Tickets
+                {tActions('openTickets')}
               </Button>
               <Button className="w-full justify-start" variant="outline" onClick={() => router.push('/staff/knowledge')}>
                 <BookOpen className="h-4 w-4 mr-2" />
-                Browse Knowledge Base
+                {tActions('browseKnowledgeBase')}
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Need Help?</CardTitle>
+              <CardTitle>{tHelp('title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-sm text-muted-foreground">Check out our knowledge base for common questions and solutions.</p>
+              <p className="text-sm text-muted-foreground">{tHelp('description')}</p>
               <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/staff/knowledge')}>
-                Browse Articles →
+                {tActions('browseArticles')}
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
-    </div>
+    </PageTransition>
   )
 }
 

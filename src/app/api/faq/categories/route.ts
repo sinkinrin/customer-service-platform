@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     })
 
     return successResponse({
-      categories: categories.map((cat) => ({
+      categories: categories.map((cat: typeof categories[number]) => ({
         id: cat.id,
         name: cat.name,
         description: cat.description,

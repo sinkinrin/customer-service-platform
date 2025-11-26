@@ -8,6 +8,7 @@ import { Clock, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useTranslations } from 'next-intl'
 
 interface TicketListProps {
   tickets: ZammadTicket[]
@@ -80,6 +81,8 @@ const getPriorityColor = (priority: string | undefined) => {
 export function TicketList({ tickets, isLoading }: TicketListProps) {
   const router = useRouter()
   const { user } = useAuth()
+  const t = useTranslations('tickets')
+  const tCommon = useTranslations('common.status')
 
   // Determine the base path based on user role
   const getTicketDetailPath = (ticketId: number) => {
@@ -117,9 +120,9 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">No tickets found</p>
+          <p className="text-lg font-medium text-muted-foreground">{t('empty.noTicketsFound')}</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Try adjusting your search or filters
+            {t('empty.adjustFilters')}
           </p>
         </CardContent>
       </Card>
@@ -141,7 +144,7 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
                   #{ticket.number} - {ticket.title}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Customer: {ticket.customer}
+                  {t('details.customer')}: {ticket.customer}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2 ml-4">
@@ -158,8 +161,8 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
           <CardContent>
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div className="flex items-center gap-4">
-                <span>Group: {ticket.group}</span>
-                {ticket.owner_id && <span>Assigned</span>}
+                <span>{t('details.group')}: {ticket.group}</span>
+                {ticket.owner_id && <span>{tCommon('assigned')}</span>}
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />

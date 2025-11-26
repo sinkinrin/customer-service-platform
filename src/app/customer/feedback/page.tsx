@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,8 @@ import { useAuth } from '@/lib/hooks/use-auth'
 export default function FeedbackPage() {
   const router = useRouter()
   const { user } = useAuth()
+  const t = useTranslations('customer.feedback')
+  const tToast = useTranslations('toast.customer.feedback')
   const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -27,7 +30,7 @@ export default function FeedbackPage() {
     e.preventDefault()
     
     if (!user?.email) {
-      toast.error('Please login to submit feedback')
+      toast.error(tToast('loginRequired'))
       return
     }
 
@@ -37,13 +40,13 @@ export default function FeedbackPage() {
       // Create a ticket with "Feedback" tag
       const ticketData = {
         conversationId: crypto.randomUUID(),
-        title: `[建议] ${formData.title}`,
+        title: `[Feedback] ${formData.title}`,
         group: 'Support',
         customer: user.email,
         priority_id: 1, // Low priority for feedback
         article: {
           subject: formData.title,
-          body: `类别: ${getCategoryLabel(formData.category)}\n\n${formData.description}\n\n联系方式: ${formData.contact}`,
+          body: `Category: ${getCategoryLabel(formData.category)}\n\n${formData.description}\n\nContact: ${formData.contact}`,
           type: 'web' as const,
           internal: false,
         },
@@ -60,11 +63,11 @@ export default function FeedbackPage() {
         throw new Error(error.error || 'Failed to submit feedback')
       }
 
-      toast.success('感谢您的建议！我们会认真考虑。')
+      toast.success(tToast('submitSuccess'))
       router.push('/customer/my-tickets')
     } catch (error: any) {
       console.error('Failed to submit feedback:', error)
-      toast.error(error.message || 'Failed to submit feedback')
+      toast.error(error.message || tToast('submitError'))
     } finally {
       setLoading(false)
     }
@@ -72,10 +75,10 @@ export default function FeedbackPage() {
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
-      feature: '功能建议',
-      improvement: '改进建议',
-      ui: '界面优化',
-      other: '其他建议',
+      feature: t('categories.feature'),
+      improvement: t('categories.improvement'),
+      ui: t('categories.ui'),
+      other: t('categories.other'),
     }
     return labels[category] || category
   }
@@ -85,25 +88,25 @@ export default function FeedbackPage() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <Lightbulb className="h-8 w-8 text-yellow-500" />
-          <h1 className="text-3xl font-bold">提交建议</h1>
+          <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
         </div>
         <p className="text-muted-foreground">
-          您的建议对我们非常重要，帮助我们不断改进产品和服务
+          {t('pageDescription')}
         </p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>建议信息</CardTitle>
+            <CardTitle>{t('formTitle')}</CardTitle>
             <CardDescription>
-              请详细描述您的建议，我们会认真评估并考虑实施
+              {t('formDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Category */}
             <div className="space-y-2">
-              <Label htmlFor="category">建议类别 *</Label>
+              <Label htmlFor="category">{t('categoryLabel')}</Label>
               <select
                 id="category"
                 value={formData.category}
@@ -111,58 +114,58 @@ export default function FeedbackPage() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 required
               >
-                <option value="feature">功能建议</option>
-                <option value="improvement">改进建议</option>
-                <option value="ui">界面优化</option>
-                <option value="other">其他建议</option>
+                <option value="feature">{t('categories.feature')}</option>
+                <option value="improvement">{t('categories.improvement')}</option>
+                <option value="ui">{t('categories.ui')}</option>
+                <option value="other">{t('categories.other')}</option>
               </select>
             </div>
 
             {/* Title */}
             <div className="space-y-2">
-              <Label htmlFor="title">建议标题 *</Label>
+              <Label htmlFor="title">{t('titleLabel')}</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="简要概括您的建议"
+                placeholder={t('titlePlaceholder')}
                 required
                 maxLength={200}
               />
               <p className="text-xs text-muted-foreground">
-                {formData.title.length}/200 字符
+                {t('characterCount', { count: formData.title.length, max: 200 })}
               </p>
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">详细描述 *</Label>
+              <Label htmlFor="description">{t('descriptionLabel')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="请详细描述您的建议，包括：&#10;1. 建议的具体内容&#10;2. 为什么需要这个改进&#10;3. 预期的效果或好处"
+                placeholder={t('descriptionPlaceholder')}
                 rows={8}
                 required
                 maxLength={1200}
               />
               <p className="text-xs text-muted-foreground">
-                {formData.description.length}/1200 字符
+                {t('characterCount', { count: formData.description.length, max: 1200 })}
               </p>
             </div>
 
             {/* Contact */}
             <div className="space-y-2">
-              <Label htmlFor="contact">联系方式</Label>
+              <Label htmlFor="contact">{t('contactLabel')}</Label>
               <Input
                 id="contact"
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                placeholder="邮箱或电话（可选）"
+                placeholder={t('contactPlaceholder')}
                 maxLength={100}
               />
               <p className="text-xs text-muted-foreground">
-                如果我们需要进一步了解您的建议，可能会通过此方式联系您
+                {t('contactHelp')}
               </p>
             </div>
 
@@ -174,18 +177,18 @@ export default function FeedbackPage() {
                 onClick={() => router.back()}
                 disabled={loading}
               >
-                取消
+                {t('actions.cancel')}
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    提交中...
+                    {t('actions.submitting')}
                   </>
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" />
-                    提交建议
+                    {t('actions.submit')}
                   </>
                 )}
               </Button>
@@ -197,13 +200,13 @@ export default function FeedbackPage() {
       {/* Tips */}
       <Card className="mt-6 border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">
         <CardHeader>
-          <CardTitle className="text-blue-900 dark:text-blue-100">💡 提示</CardTitle>
+          <CardTitle className="text-blue-900 dark:text-blue-100">{t('tips.title')}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-          <p>• 请尽可能详细地描述您的建议，这将帮助我们更好地理解您的需求</p>
-          <p>• 如果您的建议涉及具体的功能或界面，可以提供截图或示例</p>
-          <p>• 我们会定期评估所有建议，优先实施最有价值的改进</p>
-          <p>• 您可以在&quot;我的工单&quot;中查看建议的处理进度</p>
+          <p>{t('tips.tip1')}</p>
+          <p>{t('tips.tip2')}</p>
+          <p>{t('tips.tip3')}</p>
+          <p>{t('tips.tip4')}</p>
         </CardContent>
       </Card>
     </div>

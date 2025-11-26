@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   MessageSquare,
   Ticket,
@@ -24,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
 import { UnreadBadge } from "@/components/ui/unread-badge"
 
@@ -41,31 +43,6 @@ interface StaffLayoutProps {
   ticketCount?: number
 }
 
-const navigation = [
-  {
-    name: "Conversations",
-    href: "/staff/conversations",
-    icon: MessageSquare,
-    badge: "conversationCount",
-  },
-  {
-    name: "Tickets",
-    href: "/staff/tickets",
-    icon: Ticket,
-    badge: "ticketCount",
-  },
-  {
-    name: "Customers",
-    href: "/staff/customers",
-    icon: Users,
-  },
-  {
-    name: "Settings",
-    href: "/staff/settings",
-    icon: Settings,
-  },
-]
-
 export function StaffLayout({
   children,
   user,
@@ -73,9 +50,37 @@ export function StaffLayout({
   conversationCount = 0,
   ticketCount = 0,
 }: StaffLayoutProps) {
+  const t = useTranslations('auth.layout')
+  const tCommon = useTranslations('common')
+  const tNav = useTranslations('nav')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
+
+  const navigation = [
+    {
+      name: tNav('conversations'),
+      href: "/staff/conversations",
+      icon: MessageSquare,
+      badge: "conversationCount",
+    },
+    {
+      name: tNav('tickets'),
+      href: "/staff/tickets",
+      icon: Ticket,
+      badge: "ticketCount",
+    },
+    {
+      name: tNav('customers'),
+      href: "/staff/customers",
+      icon: Users,
+    },
+    {
+      name: tNav('settings'),
+      href: "/staff/settings",
+      icon: Settings,
+    },
+  ]
 
   // Fetch unread count
   useEffect(() => {
@@ -125,9 +130,9 @@ export function StaffLayout({
         <div className="flex items-center justify-between h-16 px-6 border-b flex-shrink-0">
           <Link href="/staff" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">CS</span>
+              <span className="text-primary-foreground font-bold text-lg">{t('brandShort')}</span>
             </div>
-            <span className="font-semibold">Staff Portal</span>
+            <span className="font-semibold">{tCommon('layout.staffPortal')}</span>
           </Link>
           <Button
             variant="ghost"
@@ -200,18 +205,18 @@ export function StaffLayout({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 mb-2">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{tCommon('layout.myAccount')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/staff/profile">Profile Settings</Link>
+                <Link href="/staff/profile">{tCommon('layout.profileSettings')}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/staff/settings">Preferences</Link>
+                <Link href="/staff/settings">{tCommon('layout.preferences')}</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onLogout} className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
-                Log out
+                {tCommon('layout.logOut')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -244,7 +249,9 @@ export function StaffLayout({
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6">
-          {children}
+          <PageTransition key={pathname}>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>

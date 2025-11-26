@@ -27,22 +27,101 @@
       "es": "Español",
       "ru": "Русский",
       "pt": "Português"
+    },
+    "actions": {
+      "viewDetails": "Подробнее",
+      "viewAll": "Показать все",
+      "loadMore": "Загрузить ещё",
+      "refresh": "Обновить",
+      "goBack": "Вернуться"
+    },
+    "status": {
+      "active": "Активный",
+      "inactive": "Неактивный",
+      "pending": "В ожидании",
+      "completed": "Завершён",
+      "operational": "Работает",
+      "healthy": "Исправен",
+      "connected": "Подключён",
+      "notConfigured": "Не настроен",
+      "assigned": "Назначен",
+      "allSystemsOperational": "Все системы работают",
+      "minorIssuesDetected": "Обнаружены незначительные проблемы",
+      "systemError": "Системная ошибка",
+      "unknownStatus": "Неизвестный статус"
+    },
+    "time": {
+      "ago": "назад",
+      "justNow": "Только что",
+      "minutes": "минут",
+      "hours": "часов",
+      "days": "дней"
+    },
+    "layout": {
+      "adminPortal": "Портал администратора",
+      "staffPortal": "Портал сотрудника",
+      "customerService": "Служба поддержки",
+      "systemStatus": "Состояние системы:",
+      "myAccount": "Мой аккаунт",
+      "profileSettings": "Настройки профиля",
+      "preferences": "Предпочтения",
+      "systemSettings": "Системные настройки",
+      "notifications": "Уведомления",
+      "logOut": "Выйти",
+      "signOut": "Выйти",
+      "login": "Войти",
+      "signup": "Зарегистрироваться",
+      "administrator": "Администратор",
+      "manageUsers": "Управление пользователями"
+    },
+    "empty": {
+      "noResults": "Результаты не найдены",
+      "noDataAvailable": "Нет доступных данных",
+      "tryAdjustingFilters": "Попробуйте изменить параметры поиска или фильтры"
+    },
+    "errorBoundary": {
+      "title": "Что-то пошло не так",
+      "description": "Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова.",
+      "tryAgain": "Попробовать снова",
+      "goHome": "На главную"
+    },
+    "aria": {
+      "loading": "Загрузка"
     }
   },
   "nav": {
     "dashboard": "Панель управления",
     "conversations": "Беседы",
     "faq": "Часто задаваемые вопросы",
+    "faqManagement": "Управление FAQ",
     "tickets": "Заявки",
     "knowledgeBase": "База знаний",
     "users": "Пользователи",
     "settings": "Настройки",
+    "systemSettings": "Системные настройки",
     "logout": "Выход",
-    "profile": "Профиль"
+    "profile": "Профиль",
+    "customers": "Клиенты",
+    "myTickets": "Мои заявки",
+    "feedback": "Отзывы",
+    "complaints": "Жалобы",
+    "businessTypes": "Типы бизнеса",
+    "customer": {
+      "helpCenter": "Справочный центр",
+      "liveChat": "Онлайн-чат",
+      "ticketManagement": "Управление заявками",
+      "submitTicket": "Создать заявку",
+      "myTickets": "Мои заявки",
+      "feedbackComplaints": "Отзывы и жалобы",
+      "submitFeedback": "Отправить отзыв",
+      "submitComplaint": "Подать жалобу"
+    }
   },
   "auth": {
     "login": "Вход",
     "register": "Регистрация",
+    "signIn": "Войти",
+    "signUp": "Зарегистрироваться",
     "email": "Электронная почта",
     "password": "Пароль",
     "confirmPassword": "Подтвердите пароль",
@@ -63,7 +142,36 @@
     "passwordRequired": "Пароль обязателен",
     "passwordMinLength": "Пароль должен содержать не менее 6 символов",
     "passwordMismatch": "Пароли не совпадают",
-    "fullNameRequired": "Полное имя обязательно"
+    "fullNameRequired": "Полное имя обязательно",
+    "loginPage": {
+      "title": "Войти",
+      "description": "Введите email и пароль для доступа к аккаунту",
+      "redirecting": "Перенаправление...",
+      "redirectingDescription": "Переход к панели управления",
+      "emailPlaceholder": "имя@пример.com",
+      "passwordPlaceholder": "********"
+    },
+    "registerPage": {
+      "title": "Регистрация отключена",
+      "description": "Публичная регистрация недоступна для этой системы",
+      "policyTitle": "Политика создания аккаунта:",
+      "policyDescription": "Учетные записи пользователей должны создаваться системными администраторами. Если вам нужен аккаунт, пожалуйста, свяжитесь с администратором.",
+      "howToTitle": "Как получить аккаунт:",
+      "step1": "Свяжитесь с системным администратором",
+      "step2": "Предоставьте свой адрес электронной почты и необходимую информацию",
+      "step3": "Дождитесь создания аккаунта администратором",
+      "step4": "Вы получите учетные данные для входа по электронной почте"
+    },
+    "layout": {
+      "brandShort": "СП",
+      "brandName": "Служба поддержки"
+    },
+    "accessDenied": {
+      "title": "Доступ запрещён",
+      "description": "У вас нет разрешения на доступ к этой странице.",
+      "yourRole": "Ваша роль:",
+      "goBack": "Назад"
+    }
   },
   "dashboard": {
     "welcome": "Добро пожаловать",
@@ -100,19 +208,41 @@
   },
   "faq": {
     "title": "Часто задаваемые вопросы",
+    "helpCenter": "Справочный центр",
+    "helpDescription": "Найдите ответы на часто задаваемые вопросы и получите помощь",
     "searchPlaceholder": "Поиск ответов...",
+    "searchArticlesPlaceholder": "Поиск справочных статей...",
+    "searchHelpPlaceholder": "Поиск справки...",
+    "searchTab": "Поиск",
+    "browseTab": "Просмотр по категориям",
     "categories": "Категории",
     "allCategories": "Все категории",
+    "browseAllFaqItems": "Просмотреть все статьи FAQ",
+    "noCategoriesAvailable": "Нет доступных категорий",
+    "home": "Главная",
+    "allArticles": "Все статьи",
+    "articles": "Статьи",
     "popularArticles": "Популярные статьи",
     "relatedArticles": "Связанные статьи",
-    "helpful": "Была ли эта статья полезной?",
+    "searchResults": "Результаты поиска",
+    "noResults": "Ничего не найдено",
+    "noArticlesFound": "Статьи не найдены",
+    "noArticlesAvailable": "Нет доступных статей",
+    "tryDifferentKeywords": "Попробуйте другие ключевые слова или просмотрите категории",
+    "checkBackLater": "Загляните позже для просмотра полезных статей",
+    "noCategoryArticles": "В этой категории пока нет статей",
+    "backToHelpCenter": "Вернуться в справочный центр",
+    "loadingArticle": "Загрузка статьи...",
+    "helpful": "Было ли это полезно?",
+    "wasHelpful": "Была ли эта статья полезной?",
     "yes": "Да",
     "no": "Нет",
     "thankYou": "Спасибо за ваш отзыв!",
-    "noResults": "Статьи не найдены",
-    "browseByCategory": "Просмотр по категориям",
-    "searchResults": "Результаты поиска",
-    "viewCount": "просмотров"
+    "stillNeedHelp": "Всё ещё нужна помощь?",
+    "contactDescription": "Свяжитесь с нашей службой поддержки для получения персональной помощи",
+    "contactSupport": "Связаться с поддержкой",
+    "viewCount": "просмотров",
+    "helpfulCount": "полезно"
   },
   "tickets": {
     "title": "Заявки",
@@ -138,29 +268,186 @@
       "high": "Высокий",
       "urgent": "Срочный"
     },
-    "details": "Детали заявки",
+    "details": {
+      "title": "Детали заявки",
+      "customer": "Клиент",
+      "group": "Группа",
+      "created": "Создано",
+      "lastUpdated": "Последнее обновление",
+      "assignedTo": "Назначено",
+      "ownerId": "ID владельца: {id}",
+      "priority": "Приоритет",
+      "state": "Состояние",
+      "ticketStatus": "Статус заявки",
+      "saveChanges": "Сохранить изменения",
+      "cancel": "Отмена",
+      "pendingReminder": "Выберите, когда заявка должна быть автоматически обновлена",
+      "pendingUntil": "Ожидание до *",
+      "selectPendingTime": "Пожалуйста, выберите время ожидания для этого состояния.",
+      "addNote": "Добавить заметку",
+      "noteContent": "Содержание заметки",
+      "notePlaceholder": "Добавьте заметку или ответ к этой заявке...",
+      "internalNoteCheckbox": "Внутренняя заметка (не видна клиенту)",
+      "promise": "Обещание",
+      "ticketNumber": "Заявка #{number}",
+      "states": {
+        "new": "Новая",
+        "open": "Открыта",
+        "pendingReminder": "Ожидание напоминания",
+        "pendingClose": "Ожидание закрытия",
+        "closed": "Закрыта"
+      },
+      "priorities": {
+        "low": "Низкий",
+        "normal": "Обычный",
+        "high": "Высокий"
+      }
+    },
     "articles": "Статьи",
     "addArticle": "Добавить статью",
     "internalNote": "Внутренняя заметка",
-    "publicReply": "Публичный ответ"
+    "publicReply": "Публичный ответ",
+    "empty": {
+      "noTicketsFound": "Заявки не найдены",
+      "adjustFilters": "Попробуйте изменить параметры поиска или фильтры"
+    }
   },
   "admin": {
+    "dashboard": {
+      "pageTitle": "Панель администратора",
+      "welcome": "Добро пожаловать, {name}",
+      "overview": "Обзор производительности вашей платформы",
+      "stats": {
+        "totalUsers": "Всего пользователей",
+        "totalTickets": "Всего заявок",
+        "openTickets": "Открытые заявки",
+        "closedTickets": "Закрытые заявки",
+        "registeredUsers": "Зарегистрированные пользователи",
+        "allRegions": "Все регионы",
+        "needsAttention": "Требует внимания",
+        "resolved": "Решено"
+      },
+      "regionalDistribution": {
+        "title": "Распределение заявок по регионам",
+        "description": "Количество заявок по регионам обслуживания",
+        "noData": "Нет данных по регионам",
+        "open": "открыто",
+        "closed": "закрыто",
+        "total": "всего"
+      },
+      "quickActions": {
+        "title": "Быстрые действия",
+        "description": "Эффективное управление платформой",
+        "createUser": "Создать пользователя",
+        "viewAllTickets": "Все заявки",
+        "manageFAQ": "Управление FAQ",
+        "systemSettings": "Системные настройки"
+      },
+      "recentActivity": {
+        "title": "Последняя активность по заявкам",
+        "description": "Последние обновления заявок по всем регионам",
+        "noActivity": "Нет недавней активности"
+      },
+      "systemHealth": {
+        "title": "Состояние системы",
+        "description": "Текущий статус системы",
+        "apiStatus": "Статус API",
+        "database": "База данных",
+        "zammadIntegration": "Интеграция с Zammad",
+        "fastgpt": "FastGPT"
+      },
+      "platformMetrics": {
+        "title": "Метрики платформы",
+        "description": "Ключевые показатели эффективности",
+        "avgResponseTime": "Среднее время ответа",
+        "resolutionRate": "Процент решения",
+        "customerSatisfaction": "Удовлетворённость клиентов",
+        "uptime": "Время работы",
+        "satisfactionRate": "Уровень удовлетворённости",
+        "resolvedTickets": "Решённые заявки",
+        "activeUsers": "Активные пользователи"
+      }
+    },
     "users": {
-      "title": "Управление пользователями",
+      "pageTitle": "Управление пользователями",
+      "pageDescription": "Управление учётными записями, ролями и правами доступа",
+      "title": "Пользователи",
+      "searchDescription": "Поиск и фильтрация пользователей",
+      "createButton": "Создать пользователя",
       "newUser": "Новый пользователь",
-      "searchPlaceholder": "Поиск пользователей...",
+      "searchPlaceholder": "Поиск по имени или email...",
+      "filterPlaceholder": "Фильтр по роли",
       "noUsers": "Пользователи не найдены",
       "role": "Роль",
       "status": "Статус",
-      "createdAt": "Создано",
+      "createdAt": "Дата создания",
       "actions": "Действия",
       "editUser": "Редактировать пользователя",
       "deleteUser": "Удалить пользователя",
       "confirmDelete": "Вы уверены, что хотите удалить этого пользователя?",
+      "filters": {
+        "allRoles": "Все роли"
+      },
+      "form": {
+        "emailRequired": "Адрес электронной почты *",
+        "emailLabel": "Адрес электронной почты",
+        "emailPlaceholder": "user@example.com",
+        "fullNameLabel": "Полное имя *",
+        "fullNamePlaceholder": "Иван Иванов",
+        "roleLabel": "Роль *",
+        "passwordLabel": "Пароль *",
+        "passwordPlaceholder": "Минимум 8 символов",
+        "passwordHint": "Пароль должен содержать не менее 8 символов",
+        "regionLabel": "Регион *",
+        "phoneLabel": "Номер телефона (необязательно)",
+        "phonePlaceholder": "+7 999 000 0000",
+        "languageLabel": "Предпочитаемый язык"
+      },
+      "table": {
+        "name": "Имя",
+        "email": "Email",
+        "role": "Роль",
+        "phone": "Телефон",
+        "status": "Статус",
+        "createdAt": "Дата создания",
+        "actions": "Действия"
+      },
+      "pagination": {
+        "showing": "Показано {start} - {end} из {total} пользователей",
+        "previous": "Назад",
+        "next": "Далее"
+      },
+      "editDialog": {
+        "title": "Редактировать пользователя",
+        "description": "Обновить информацию и роль пользователя",
+        "name": "Имя",
+        "email": "Email",
+        "role": "Роль",
+        "phone": "Телефон",
+        "cancel": "Отмена",
+        "save": "Сохранить"
+      },
+      "createPage": {
+        "title": "Создание пользователя",
+        "description": "Добавить нового пользователя с назначением роли и региона",
+        "backToUsers": "Вернуться к пользователям",
+        "createButton": "Создать пользователя",
+        "cancel": "Отмена",
+        "cardTitle": "Информация о пользователе",
+        "cardDescription": "Заполните данные пользователя. Все поля обязательны."
+      },
       "roles": {
         "customer": "Клиент",
         "staff": "Сотрудник",
-        "admin": "Администратор"
+        "admin": "Администратор",
+        "customerDesc": "Клиент (конечный пользователь)",
+        "staffDesc": "Сотрудник (поддержка)",
+        "adminDesc": "Администратор",
+        "customerPermission": "Может создавать заявки и просматривать свои заявки",
+        "staffPermission": "Может обрабатывать заявки в своём регионе",
+        "adminPermission": "Полный доступ ко всем функциям и регионам",
+        "staffRegionHint": "Сотрудник имеет доступ только к заявкам своего региона",
+        "customerRegionHint": "Заявки клиента будут назначены этому региону"
       },
       "statusOptions": {
         "active": "Активный",
@@ -168,8 +455,11 @@
       }
     },
     "faq": {
+      "pageTitle": "Управление FAQ",
+      "pageDescription": "Управление статьями FAQ из базы знаний Zammad",
       "title": "Управление FAQ",
       "newArticle": "Новая статья",
+      "createFAQ": "Создать FAQ",
       "editArticle": "Редактировать статью",
       "deleteArticle": "Удалить статью",
       "confirmDelete": "Вы уверены, что хотите удалить эту статью?",
@@ -178,18 +468,758 @@
       "addTranslation": "Добавить перевод",
       "language": "Язык",
       "title_field": "Заголовок",
+      "titleRequired": "Заголовок *",
+      "titlePlaceholder": "Введите заголовок статьи",
       "content": "Содержание",
+      "contentRequired": "Содержание *",
+      "contentPlaceholder": "Введите содержание статьи",
       "keywords": "Ключевые слова",
       "published": "Опубликовано",
-      "draft": "Черновик"
+      "draft": "Черновик",
+      "archived": "В архиве",
+      "filters": "Фильтры",
+      "searchPlaceholder": "Поиск по заголовку или содержанию...",
+      "allCategories": "Все категории",
+      "allStates": "Все состояния",
+      "sortBy": "Сортировать по",
+      "sortOptions": {
+        "lastUpdated": "Последнее обновление",
+        "createdDate": "Дата создания",
+        "titleAZ": "Заголовок (А-Я)",
+        "mostViewed": "Самые просматриваемые",
+        "mostLiked": "Самые популярные"
+      },
+      "table": {
+        "title": "Заголовок",
+        "category": "Категория",
+        "state": "Состояние",
+        "views": "Просмотры",
+        "likes": "Лайки",
+        "updated": "Обновлено",
+        "actions": "Действия"
+      },
+      "actions": {
+        "publish": "Опубликовать",
+        "unpublish": "Снять с публикации",
+        "edit": "Редактировать",
+        "delete": "Удалить"
+      },
+      "faqItems": "Статьи FAQ",
+      "itemsFound": "Найдено {count} статей",
+      "showingResults": "Показано {showing} из {total} статей FAQ",
+      "noItemsFound": "Статьи FAQ не найдены",
+      "pagination": {
+        "page": "Страница {current} из {total} ({count} статей)",
+        "previous": "Назад",
+        "next": "Далее"
+      },
+      "deleteDialog": {
+        "title": "Вы уверены?",
+        "description": "Статья FAQ \"{title}\" будет удалена безвозвратно. Это действие нельзя отменить.",
+        "cancel": "Отмена",
+        "delete": "Удалить"
+      },
+      "form": {
+        "title": "Заголовок *",
+        "titlePlaceholder": "Введите заголовок статьи",
+        "content": "Содержание *",
+        "contentPlaceholder": "Введите содержание статьи",
+        "contentPlaceholderMarkdown": "Введите содержание статьи (поддерживается Markdown)",
+        "category": "Категория *",
+        "cancel": "Отмена",
+        "create": "Создать статью",
+        "save": "Сохранить изменения",
+        "loadingCategories": "Загрузка категорий...",
+        "noCategories": "Нет доступных категорий",
+        "publishImmediately": "Опубликовать сразу",
+        "translations": "Переводы *",
+        "keywordsLabel": "Ключевые слова (через запятую)",
+        "keywordsPlaceholder": "слово1, слово2, слово3",
+        "slugLabel": "Slug (необязательно)",
+        "slugPlaceholder": "slug-статьи",
+        "validationError": "Укажите хотя бы один перевод"
+      },
+      "dialog": {
+        "createTitle": "Создание статьи FAQ",
+        "editTitle": "Редактирование статьи FAQ",
+        "createDescription": "Создайте новую статью FAQ с поддержкой нескольких языков",
+        "editDescription": "Обновите информацию о статье FAQ"
+      }
+    },
+    "businessTypes": {
+      "pageTitle": "Типы бизнеса",
+      "pageDescription": "Управление типами бизнеса для категоризации бесед",
+      "managementTitle": "Управление типами бизнеса",
+      "managementDescription": "Настройка типов бизнеса для категоризации бесед с клиентами",
+      "comingSoon": "Скоро",
+      "comingSoonDescription": "Функционал управления типами бизнеса находится в разработке. Эта функция позволит создавать и управлять различными типами бизнеса для лучшей категоризации бесед.",
+      "whatAreBusinessTypes": "Что такое типы бизнеса?",
+      "purpose": "Назначение",
+      "benefits": "Преимущества",
+      "benefitsList": {
+        "routing": "Улучшенная маршрутизация бесед к специализированным командам",
+        "analytics": "Улучшенная аналитика и отчётность",
+        "customerExperience": "Повышение качества обслуживания клиентов через целевую поддержку",
+        "workflow": "Оптимизация управления рабочим процессом"
+      },
+      "plannedFeatures": "Планируемые функции",
+      "featuresList": {
+        "createEdit": "Создание и редактирование типов бизнеса",
+        "assignTeams": "Назначение команд сотрудников по умолчанию",
+        "setSLA": "Установка уровней приоритета и целей SLA",
+        "automatedRouting": "Настройка правил автоматической маршрутизации"
+      }
     },
     "settings": {
+      "pageTitle": "Системные настройки",
+      "pageDescription": "Управление системными настройками и конфигурацией",
       "title": "Системные настройки",
       "general": "Общие",
-      "businessTypes": "Типы бизнеса",
+      "businessTypes": {
+        "title": "Типы бизнеса",
+        "description": "Управление типами бизнеса для категоризации бесед",
+        "table": {
+          "name": "Название",
+          "description": "Описание",
+          "createdAt": "Дата создания"
+        },
+        "noTypes": "Типы бизнеса не настроены"
+      },
+      "systemConfig": {
+        "title": "Конфигурация системы",
+        "description": "Общие системные настройки и параметры",
+        "defaultLanguage": {
+          "title": "Язык по умолчанию",
+          "description": "Язык по умолчанию для новых пользователей"
+        },
+        "sessionTimeout": {
+          "title": "Таймаут сессии",
+          "description": "Время истечения сессии пользователя"
+        },
+        "emailNotifications": {
+          "title": "Email-уведомления",
+          "description": "Настройка уведомлений по электронной почте"
+        },
+        "configure": "Настроить"
+      },
       "notifications": "Уведомления",
       "saveSuccess": "Настройки успешно сохранены",
-      "saveError": "Не удалось сохранить настройки"
+      "saveError": "Не удалось сохранить настройки",
+      "loadError": "Не удалось загрузить настройки"
+    },
+    "tickets": {
+      "pageTitle": "Управление заявками",
+      "pageDescription": "Просмотр и управление всеми заявками клиентов по всем регионам",
+      "status": {
+        "newUpdates": "Новые обновления",
+        "live": "Онлайн",
+        "connecting": "Подключение...",
+        "offline": "Офлайн"
+      },
+      "search": {
+        "placeholder": "Поиск заявок по номеру, заголовку или клиенту...",
+        "button": "Поиск"
+      },
+      "filters": {
+        "allRegions": "Все регионы",
+        "allPriorities": "Все приоритеты",
+        "priority": {
+          "low": "Низкий",
+          "normal": "Обычный",
+          "high": "Высокий"
+        }
+      },
+      "actions": {
+        "export": "Экспорт"
+      },
+      "tabs": {
+        "all": "Все заявки",
+        "open": "Открытые",
+        "pending": "В ожидании",
+        "closed": "Закрытые"
+      }
+    },
+    "ticketDetail": {
+      "notFound": "Заявка не найдена",
+      "backToTickets": "Вернуться к заявкам",
+      "back": "Назад",
+      "ticketNumber": "Заявка #{number}",
+      "created": "Создано {date}",
+      "deleteButton": "Удалить заявку",
+      "deleteDialog": {
+        "title": "Вы уверены?",
+        "description": "Это действие нельзя отменить. Заявка и все связанные статьи будут удалены безвозвратно.",
+        "cancel": "Отмена",
+        "delete": "Удалить"
+      },
+      "conversation": "Переписка ({count})",
+      "noArticles": "Пока нет статей",
+      "internalBadge": "Внутренняя"
+    }
+  },
+  "customer": {
+    "dashboard": {
+      "pageTitle": "Панель клиента",
+      "title": "Центр обслуживания клиентов",
+      "welcome": "С возвращением",
+      "welcomeMessage": "Добро пожаловать на платформу обслуживания клиентов. Мы здесь, чтобы помочь.",
+      "myTickets": "Мои заявки",
+      "recentConversations": "Последние беседы",
+      "quickActions": {
+        "liveChat": {
+          "title": "Онлайн-чат",
+          "description": "Общайтесь с поддержкой в реальном времени"
+        },
+        "knowledgeBase": {
+          "title": "База знаний",
+          "description": "Найдите ответы на часто задаваемые вопросы"
+        },
+        "myTickets": {
+          "title": "Мои заявки",
+          "description": "Просмотр и управление заявками в поддержку"
+        },
+        "submitFeedback": {
+          "title": "Отправить отзыв",
+          "description": "Поделитесь своими предложениями и мнениями"
+        }
+      },
+      "getStarted": {
+        "title": "Начать",
+        "subtitle": "Выберите способ получения помощи",
+        "liveChat": {
+          "title": "Онлайн-чат",
+          "description": "Получите мгновенную помощь через онлайн-чат. Наш ИИ-ассистент и живые операторы готовы помочь.",
+          "button": "Начать чат"
+        },
+        "knowledgeBase": {
+          "title": "Просмотр базы знаний",
+          "description": "Ищите в базе знаний ответы на частые вопросы для быстрого решения проблем.",
+          "button": "Просмотр FAQ"
+        },
+        "ticket": {
+          "title": "Создать заявку",
+          "description": "Нужно зафиксировать детали? Создайте заявку и отслеживайте прогресс.",
+          "button": "Создать заявку"
+        }
+      }
+    },
+    "myTickets": {
+      "title": "Мои заявки",
+      "subtitle": "Просмотр и управление вашими заявками в поддержку",
+      "listTitle": "Список заявок",
+      "listDescription": "Всего у вас {count} заявок",
+      "searchPlaceholder": "Поиск по номеру или заголовку заявки...",
+      "pageTitle": "Мои заявки",
+      "createTicket": "Создать заявку",
+      "noTickets": "Заявок пока нет",
+      "toast": {
+        "loadError": "Не удалось загрузить заявки"
+      },
+      "empty": {
+        "title": "Заявки не найдены",
+        "noResults": "Нет заявок, соответствующих поиску",
+        "description": "Вы ещё не создавали заявок",
+        "hint": "Нажмите кнопку выше, чтобы создать первую заявку"
+      },
+      "table": {
+        "id": "Номер заявки",
+        "title": "Заголовок",
+        "status": "Статус",
+        "priority": "Приоритет",
+        "replies": "Ответы",
+        "created": "Создано",
+        "updated": "Обновлено",
+        "actions": "Действия",
+        "view": "Просмотр",
+        "loading": "Загрузка...",
+        "loadMore": "Загрузить ещё"
+      },
+      "status": {
+        "1": "Новая",
+        "2": "Открыта",
+        "3": "Ожидание ответа",
+        "4": "Закрыта",
+        "unknown": "Неизвестно"
+      },
+      "priority": {
+        "1": "Низкий",
+        "2": "Средний",
+        "3": "Высокий",
+        "4": "Срочный",
+        "unknown": "Неизвестно"
+      },
+      "createPageTitle": "Создание заявки",
+      "createPageDescription": "Возникли проблемы? Создайте заявку, и наша команда поддержки быстро вам поможет.",
+      "detailPageTitle": "Детали заявки",
+      "backToList": "Вернуться к списку заявок",
+      "ticketNumber": "Заявка #",
+      "createdAt": "Создано",
+      "updatedAt": "Последнее обновление",
+      "status": "Статус",
+      "priority": "Приоритет",
+      "conversation": "История переписки",
+      "messageCount": "{count} сообщений",
+      "noConversation": "Истории переписки пока нет",
+      "ticketInfo": "Информация о заявке",
+      "charactersCount": "{count}/{max} символов",
+      "create": {
+        "formTitle": "Детали заявки",
+        "formDescription": "Опишите проблему подробно, чтобы мы могли решить её быстрее.",
+        "characterCount": "{count} / {max}",
+        "fileSizeLimit": "Поддерживаются изображения, PDF, документы. Макс. 5 файлов по 512МБ каждый.",
+        "detailsTitle": "Детали заявки",
+        "detailsDescription": "Опишите проблему подробно, чтобы мы могли решить её быстрее.",
+        "categoryLabel": "Категория продукта *",
+        "categoryPlaceholder": "Выберите категорию продукта",
+        "modelLabel": "Модель продукта *",
+        "modelPlaceholder": "Выберите модель продукта",
+        "priorityLabel": "Приоритет *",
+        "priorities": {
+          "1": "Низкий - вопрос по использованию продукта",
+          "2": "Средний - общая проблема",
+          "3": "Высокий - влияет на бизнес",
+          "4": "Срочный - простой бизнеса"
+        },
+        "titleLabel": "Заголовок проблемы *",
+        "titlePlaceholder": "Кратко опишите вашу проблему",
+        "descriptionLabel": "Описание проблемы *",
+        "descriptionPlaceholder": "Опишите проблему подробно, включая:\n1. Когда и как часто она возникает\n2. Сообщения об ошибках или поведение\n3. Шаги, которые вы уже предприняли\n4. Влияние на ваш бизнес",
+        "attachmentsLabel": "Вложения (необязательно)",
+        "selectFiles": "Выбрать файлы",
+        "uploadInfo": "Поддерживаются изображения, PDF, документы. Максимум 5 файлов по 512 МБ каждый.",
+        "actions": {
+          "cancel": "Отмена",
+          "submitting": "Отправка...",
+          "submit": "Создать заявку"
+        },
+        "tips": {
+          "title": "Советы",
+          "tip1": "- Предоставьте как можно больше деталей, чтобы мы могли быстро определить проблему.",
+          "tip2": "- Скриншоты или логи ошибок значительно помогают в диагностике.",
+          "tip3": "- Укажите, когда возникает проблема (постоянно, периодически, после определённых действий).",
+          "tip4": "- Вы можете отслеживать статус заявки и отвечать команде поддержки в разделе \"Мои заявки\"."
+        }
+      },
+      "detail": {
+        "backToList": "Вернуться к списку заявок",
+        "ticketNumber": "Номер заявки",
+        "createdAt": "Дата создания",
+        "infoTitle": "Информация о заявке",
+        "status": "Статус",
+        "priority": "Приоритет",
+        "updatedAt": "Последнее обновление",
+        "conversationTitle": "История переписки",
+        "messageCount": "{count} сообщений",
+        "noMessages": "Истории переписки пока нет",
+        "unknownUser": "Неизвестный пользователь",
+        "internal": "Внутренняя",
+        "addReply": "Добавить ответ",
+        "replyDescription": "Ваш ответ будет отправлен команде поддержки",
+        "replyPlaceholder": "Введите ваш ответ...",
+        "characterCount": "{count}/{max} символов",
+        "sending": "Отправка...",
+        "sendReply": "Отправить ответ",
+        "closedMessage": "Эта заявка закрыта. Пожалуйста, создайте новую заявку для продолжения обсуждения."
+      },
+      "statusLabels": {
+        "new": "Новая",
+        "open": "В работе",
+        "pending": "Ожидание ответа",
+        "closed": "Закрыта"
+      },
+      "priorityLabels": {
+        "1": "Низкий",
+        "2": "Средний",
+        "3": "Высокий",
+        "4": "Срочный"
+      }
+    },
+    "settings": {
+      "pageTitle": "Настройки",
+      "pageDescription": "Управление настройками аккаунта и предпочтениями",
+      "personalInfo": {
+        "title": "Личная информация",
+        "description": "Обновите информацию вашего профиля",
+        "fullNameLabel": "Полное имя",
+        "fullNamePlaceholder": "Введите ваше имя",
+        "emailLabel": "Email",
+        "phoneLabel": "Телефон",
+        "phonePlaceholder": "Введите номер телефона",
+        "languageLabel": "Язык",
+        "saving": "Сохранение...",
+        "saveChanges": "Сохранить изменения"
+      },
+      "notifications": {
+        "title": "Настройки уведомлений",
+        "description": "Управление способами получения уведомлений",
+        "email": {
+          "label": "Email-уведомления",
+          "description": "Получать уведомления о важных обновлениях по email"
+        },
+        "desktop": {
+          "label": "Уведомления на рабочем столе",
+          "description": "Показывать уведомления в браузере"
+        },
+        "ticketUpdates": {
+          "label": "Обновления заявок",
+          "description": "Уведомлять при изменении статуса заявки"
+        },
+        "conversationReplies": {
+          "label": "Ответы в беседах",
+          "description": "Уведомлять о новых сообщениях"
+        },
+        "promotions": {
+          "label": "Акции",
+          "description": "Получать обновления о продуктах и рекламные материалы"
+        },
+        "saving": "Сохранение...",
+        "saveChanges": "Сохранить изменения"
+      },
+      "security": {
+        "title": "Настройки безопасности",
+        "description": "Измените пароль для защиты вашего аккаунта",
+        "currentPasswordLabel": "Текущий пароль",
+        "currentPasswordPlaceholder": "Введите текущий пароль",
+        "newPasswordLabel": "Новый пароль",
+        "newPasswordPlaceholder": "Введите новый пароль (минимум 8 символов)",
+        "confirmPasswordLabel": "Подтверждение нового пароля",
+        "confirmPasswordPlaceholder": "Введите новый пароль ещё раз",
+        "updating": "Обновление...",
+        "updatePassword": "Обновить пароль"
+      },
+      "toast": {
+        "personalInfoUpdated": "Личная информация обновлена",
+        "updateFailed": "Не удалось обновить, попробуйте снова",
+        "notificationsUpdated": "Настройки уведомлений обновлены",
+        "passwordMismatch": "Новый пароль и подтверждение не совпадают",
+        "passwordTooShort": "Пароль должен содержать минимум 8 символов",
+        "passwordUpdated": "Пароль обновлён",
+        "passwordUpdateFailed": "Не удалось обновить пароль, попробуйте снова"
+      }
+    },
+    "feedback": {
+      "pageTitle": "Отправить отзыв",
+      "pageDescription": "Ваши предложения важны и помогают нам постоянно улучшаться.",
+      "formTitle": "Детали отзыва",
+      "formDescription": "Пожалуйста, опишите ваше предложение, чтобы мы могли оценить и рассмотреть его реализацию.",
+      "categoryLabel": "Категория отзыва *",
+      "categories": {
+        "feature": "Запрос функции",
+        "improvement": "Предложение по улучшению",
+        "ui": "Улучшение UI/UX",
+        "other": "Другое предложение"
+      },
+      "titleLabel": "Заголовок отзыва *",
+      "titlePlaceholder": "Кратко изложите ваше предложение",
+      "descriptionLabel": "Подробное описание *",
+      "descriptionPlaceholder": "Пожалуйста, опишите ваше предложение подробно, включая:\n1. Что вы хотите изменить\n2. Почему это улучшение необходимо\n3. Ожидаемые результаты или преимущества",
+      "contactLabel": "Контакт *",
+      "contactPlaceholder": "Email или телефон",
+      "contactHelp": "Если нам понадобятся дополнительные детали о вашем предложении, мы свяжемся с вами этим способом.",
+      "characterCount": "{count}/{max} символов",
+      "actions": {
+        "cancel": "Отмена",
+        "submitting": "Отправка...",
+        "submit": "Отправить отзыв"
+      },
+      "tips": {
+        "title": "Советы",
+        "tip1": "- Будьте максимально детальны, чтобы мы чётко поняли ваши потребности.",
+        "tip2": "- Если ваше предложение касается конкретной функции или UI, скриншоты или примеры помогут.",
+        "tip3": "- Мы регулярно рассматриваем все предложения и приоритизируем наиболее ценные улучшения.",
+        "tip4": "- Вы можете отслеживать статус предложения в разделе \"Мои заявки\"."
+      }
+    },
+    "conversations": {
+      "starting": {
+        "title": "Начало беседы",
+        "connectingMessage": "Пожалуйста, подождите, пока мы подключим вас к поддержке...",
+        "redirectingMessage": "Перенаправление к вашей беседе..."
+      },
+      "detail": {
+        "loadingText": "Загрузка беседы...",
+        "me": "Я",
+        "aiAssistant": "ИИ-ассистент",
+        "newMessageNotification": "Получено новое сообщение - прокрутите вниз для просмотра",
+        "sseError": "Обновления в реальном времени недоступны: {error}",
+        "closedMessage": "Беседа закрыта. Пожалуйста, начните новый чат для продолжения."
+      },
+      "placeholders": {
+        "aiMode": "Спросите ИИ-ассистента...",
+        "waitingMode": "Ожидание оператора...",
+        "activeMode": "Введите сообщение..."
+      },
+      "actions": {
+        "transferLabel": "Перевести на оператора"
+      }
+    }
+  },
+  "staff": {
+    "loading": {
+      "message": "Загрузка инструментов сотрудника...",
+      "hint": "Синхронизация бесед и заявок"
+    },
+    "dashboard": {
+      "pageTitle": "Панель сотрудника",
+      "welcome": "Добро пожаловать, {name}",
+      "welcomeMessage": "С возвращением! Вот обзор ваших заявок.",
+      "stats": {
+        "assignedTickets": "Назначенные заявки",
+        "activeConversations": "Активные беседы",
+        "resolvedToday": "Решено сегодня",
+        "avgResponseTime": "Среднее время ответа"
+      },
+      "actions": {
+        "searchTickets": "Поиск заявок",
+        "knowledgeBase": "База знаний",
+        "viewAllTickets": "Все заявки",
+        "openTickets": "Открытые заявки",
+        "browseKnowledgeBase": "Просмотр базы знаний",
+        "browseArticles": "Просмотр статей →"
+      },
+      "quickActions": {
+        "title": "Быстрые действия"
+      },
+      "helpCard": {
+        "title": "Нужна помощь?",
+        "description": "Загляните в базу знаний для ответов на частые вопросы и решений."
+      }
+    },
+    "customers": {
+      "pageTitle": "Клиенты",
+      "pageDescription": "Просмотр и управление информацией о клиентах",
+      "stats": {
+        "totalCustomers": "Всего клиентов",
+        "withPhone": "С телефоном",
+        "regions": "Регионы"
+      },
+      "filter": {
+        "title": "Фильтр клиентов",
+        "description": "Поиск и фильтрация списка клиентов",
+        "searchPlaceholder": "Поиск по имени, email или телефону...",
+        "regionPlaceholder": "Регион",
+        "allRegions": "Все регионы",
+        "refresh": "Обновить"
+      },
+      "list": {
+        "title": "Список клиентов",
+        "found": "Найдено {count} клиентов",
+        "loading": "Загрузка клиентов...",
+        "noCustomers": "Клиенты не найдены",
+        "adjustSearch": "Попробуйте изменить критерии поиска",
+        "noData": "Нет доступных клиентов"
+      },
+      "table": {
+        "customer": "Клиент",
+        "email": "Email",
+        "phone": "Телефон",
+        "region": "Регион",
+        "language": "Язык",
+        "joined": "Зарегистрирован",
+        "actions": "Действия",
+        "viewTickets": "Просмотр заявок",
+        "unknown": "Неизвестно"
+      }
+    },
+    "settings": {
+      "pageTitle": "Настройки",
+      "pageDescription": "Управление настройками аккаунта и предпочтениями",
+      "saving": "Сохранение...",
+      "save": "Сохранить изменения",
+      "personalInfo": {
+        "title": "Информация профиля",
+        "description": "Обновите вашу личную информацию",
+        "fullNameLabel": "Полное имя",
+        "fullNamePlaceholder": "Введите ваше полное имя",
+        "emailLabel": "Email",
+        "emailHint": "Email нельзя изменить",
+        "phoneLabel": "Номер телефона",
+        "phonePlaceholder": "+7 (999) 000-0000",
+        "languageLabel": "Язык",
+        "changeAvatar": "Изменить аватар",
+        "avatarHint": "JPG, PNG или GIF. Максимум 2 МБ"
+      },
+      "notifications": {
+        "title": "Уведомления",
+        "description": "Настройка способов получения уведомлений",
+        "emailLabel": "Email-уведомления",
+        "emailDescription": "Получать уведомления по email",
+        "desktopLabel": "Уведомления на рабочем столе",
+        "desktopDescription": "Показывать уведомления об обновлениях",
+        "newTicketLabel": "Оповещения о новых заявках",
+        "newTicketDescription": "Уведомлять о назначении новых заявок",
+        "newMessageLabel": "Оповещения о новых сообщениях",
+        "newMessageDescription": "Уведомлять о новых сообщениях в беседах"
+      },
+      "preferences": {
+        "title": "Рабочие предпочтения",
+        "description": "Настройка рабочих параметров",
+        "autoAssignLabel": "Автоназначение заявок",
+        "autoAssignDescription": "Автоматически получать новые заявки",
+        "showClosedLabel": "Показывать закрытые заявки",
+        "showClosedDescription": "Отображать закрытые заявки в списке",
+        "defaultViewLabel": "Вид по умолчанию",
+        "listView": "Список",
+        "gridView": "Сетка"
+      },
+      "security": {
+        "title": "Безопасность",
+        "description": "Управление безопасностью аккаунта",
+        "changePasswordLabel": "Изменить пароль",
+        "passwordDisabledHint": "Управление паролем отключено в демо-режиме"
+      },
+      "toast": {
+        "saveSuccess": "Настройки успешно сохранены!",
+        "saveError": "Не удалось сохранить настройки"
+      }
+    },
+    "conversations": {
+      "pageTitle": "Управление беседами",
+      "pageDescription": "Управление беседами с клиентами и оказание поддержки",
+      "stats": {
+        "total": "Все беседы",
+        "waiting": "Ожидание",
+        "active": "Активные",
+        "closed": "Закрытые"
+      },
+      "filter": {
+        "title": "Фильтр бесед",
+        "description": "Поиск и фильтрация списка бесед",
+        "searchPlaceholder": "Поиск по имени клиента, email или ID беседы...",
+        "statusPlaceholder": "Статус",
+        "allStatuses": "Все статусы"
+      },
+      "list": {
+        "title": "Список бесед",
+        "subtitle": "Найдено {count} бесед",
+        "loading": "Загрузка бесед...",
+        "empty": {
+          "title": "Нет бесед",
+          "subtitle": "Пока нет бесед с клиентами",
+          "filterSubtitle": "Попробуйте изменить критерии поиска"
+        }
+      },
+      "sse": {
+        "live": "🟢 Обновления в реальном времени",
+        "offline": "🔴 Офлайн",
+        "error": "Ошибка соединения"
+      },
+      "card": {
+        "unknown": "Неизвестный клиент",
+        "noEmail": "Нет email",
+        "status": {
+          "waiting": "Ожидание",
+          "active": "Активная",
+          "closed": "Закрыта"
+        },
+        "mode": {
+          "ai": "ИИ",
+          "human": "Оператор"
+        },
+        "messageCount": "{count} сообщений",
+        "assignedStaff": "Назначенный сотрудник",
+        "unassigned": "Не назначен",
+        "lastActivity": "Последняя активность",
+        "noActivity": "Нет активности",
+        "createdTime": "Время создания",
+        "viewButton": "Просмотр беседы"
+      },
+      "notification": {
+        "newTransfer": "Новая переведённая беседа",
+        "transferReason": "Причина: {reason}"
+      },
+      "messageInput": {
+        "placeholder": "Введите сообщение...",
+        "send": "Отправить",
+        "sending": "Отправка..."
+      },
+      "transfer": {
+        "requestHuman": "Запросить оператора",
+        "transferReason": "Причина перевода"
+      },
+      "detail": {
+        "notFound": {
+          "title": "Беседа не найдена",
+          "description": "Беседа, которую вы ищете, не существует.",
+          "backButton": "Вернуться к беседам"
+        },
+        "sseError": "Обновления в реальном времени недоступны: {message}",
+        "newMessageNotification": "Получено новое сообщение - прокрутите вниз для просмотра",
+        "header": {
+          "backButton": "Назад",
+          "title": "Беседа с {name}",
+          "titleFallback": "Клиент",
+          "connected": "🟢 Подключён",
+          "closeButton": "Закрыть беседу"
+        },
+        "input": {
+          "placeholder": "Введите ваш ответ..."
+        },
+        "closed": {
+          "message": "Беседа закрыта"
+        },
+        "customer": {
+          "title": "Информация о клиенте",
+          "unknown": "Неизвестный клиент",
+          "noEmail": "Нет email",
+          "customerId": "ID клиента:"
+        },
+        "details": {
+          "title": "Детали беседы",
+          "status": "Статус:",
+          "mode": "Режим:",
+          "messageCount": "Количество сообщений:",
+          "createdTime": "Время создания:",
+          "updatedTime": "Время обновления:",
+          "transferredTime": "Время перевода:",
+          "transferReason": "Причина перевода:",
+          "statusWaiting": "Ожидание",
+          "statusActive": "Активная",
+          "statusClosed": "Закрыта",
+          "modeAI": "ИИ",
+          "modeHuman": "Оператор"
+        },
+        "quickActions": {
+          "title": "Быстрые действия",
+          "viewHistory": "История клиента",
+          "createTicket": "Создать заявку",
+          "addNote": "Добавить внутреннюю заметку"
+        }
+      }
+    },
+    "tickets": {
+      "pageTitle": "Заявки",
+      "pageDescription": "Управление и отслеживание заявок клиентов",
+      "status": {
+        "newUpdates": "Новые обновления",
+        "live": "Онлайн",
+        "connecting": "Подключение...",
+        "offline": "Офлайн"
+      },
+      "search": {
+        "placeholder": "Поиск заявок по номеру, заголовку или клиенту...",
+        "button": "Поиск"
+      },
+      "filters": {
+        "button": "Фильтры"
+      },
+      "tabs": {
+        "all": "Все заявки",
+        "open": "Открытые",
+        "pending": "В ожидании",
+        "closed": "Закрытые"
+      },
+      "detail": {
+        "ticketNotFound": "Заявка не найдена",
+        "backToTickets": "Вернуться к заявкам",
+        "back": "Назад",
+        "ticketNumber": "Заявка #{number}",
+        "created": "Создано {date}",
+        "conversation": "Переписка",
+        "conversationCount": "Переписка ({count})",
+        "noArticles": "Пока нет статей",
+        "internalBadge": "Внутренняя"
+      }
     }
   },
   "settings": {
@@ -202,51 +1232,51 @@
     "changePassword": "Изменить пароль",
     "currentPassword": "Текущий пароль",
     "newPassword": "Новый пароль",
-    "emailNotifications": "Email уведомления",
-    "pushNotifications": "Push уведомления",
+    "emailNotifications": "Email-уведомления",
+    "pushNotifications": "Push-уведомления",
     "selectLanguage": "Выбрать язык",
     "ai": {
-      "title": "AI Auto-Reply",
-      "description": "Configure AI auto replies to help the support team respond faster",
-      "enableLabel": "Enable AI auto-reply",
-      "enableHint": "When enabled, the system uses AI to provide an initial response to customers",
-      "modelLabel": "AI model",
-      "modelHint": "Name of the AI model (for example gpt-3.5-turbo or gpt-4)",
-      "temperatureLabel": "Temperature",
-      "temperatureHint": "Controls randomness of replies (0-2, recommended 0.7)",
-      "promptLabel": "System prompt",
-      "promptPlaceholder": "You are a professional support assistant...",
-      "promptHint": "Define the AI role and response style",
+      "title": "ИИ-автоответы",
+      "description": "Настройка ИИ-автоответов для ускорения работы службы поддержки",
+      "enableLabel": "Включить ИИ-автоответы",
+      "enableHint": "При включении система использует ИИ для первичного ответа клиентам",
+      "modelLabel": "Модель ИИ",
+      "modelHint": "Название модели ИИ (например gpt-3.5-turbo или gpt-4)",
+      "temperatureLabel": "Температура",
+      "temperatureHint": "Контролирует случайность ответов (0-2, рекомендуется 0.7)",
+      "promptLabel": "Системный промпт",
+      "promptPlaceholder": "Вы профессиональный ассистент поддержки...",
+      "promptHint": "Определите роль ИИ и стиль ответов",
       "fastgpt": {
-        "title": "FastGPT configuration",
-        "url": "FastGPT URL",
-        "urlHint": "FastGPT server URL",
-        "appId": "FastGPT app ID",
-        "appIdHint": "FastGPT app ID",
-        "apiKey": "FastGPT API key",
-        "apiKeyHint": "FastGPT API key"
+        "title": "Конфигурация FastGPT",
+        "url": "URL FastGPT",
+        "urlHint": "URL сервера FastGPT",
+        "appId": "ID приложения FastGPT",
+        "appIdHint": "ID приложения FastGPT",
+        "apiKey": "API-ключ FastGPT",
+        "apiKeyHint": "API-ключ FastGPT"
       },
       "save": {
-        "label": "Save settings",
-        "saving": "Saving..."
+        "label": "Сохранить настройки",
+        "saving": "Сохранение..."
       },
       "test": {
-        "label": "Test FastGPT connection",
-        "testing": "Testing...",
-        "success": "Connection test succeeded",
-        "error": "Connection test failed",
-        "missingConfig": "Enable AI and complete the FastGPT fields before testing",
-        "resultSuccess": "Connection succeeded",
-        "resultFail": "Connection failed",
-        "responseTime": "Response time: {ms}ms",
-        "testReply": "AI test reply:",
-        "genericError": "Test failed",
-        "networkError": "Network error, please check your connection"
+        "label": "Тест подключения FastGPT",
+        "testing": "Тестирование...",
+        "success": "Тест подключения успешен",
+        "error": "Тест подключения не пройден",
+        "missingConfig": "Включите ИИ и заполните поля FastGPT перед тестированием",
+        "resultSuccess": "Подключение успешно",
+        "resultFail": "Подключение не удалось",
+        "responseTime": "Время ответа: {ms}мс",
+        "testReply": "Тестовый ответ ИИ:",
+        "genericError": "Тест не пройден",
+        "networkError": "Ошибка сети, проверьте подключение"
       },
-      "saveSuccess": "AI settings saved successfully",
-      "saveError": "Failed to save AI settings",
-      "loadError": "Failed to load AI settings",
-      "loadErrorGeneral": "Failed to fetch AI settings"
+      "saveSuccess": "Настройки ИИ успешно сохранены",
+      "saveError": "Не удалось сохранить настройки ИИ",
+      "loadError": "Не удалось загрузить настройки ИИ",
+      "loadErrorGeneral": "Не удалось получить настройки ИИ"
     }
   },
   "errors": {
@@ -264,100 +1294,361 @@
     "maxLength": "Должно быть не более {max} символов",
     "passwordMismatch": "Пароли не совпадают"
   },
+  "toast": {
+    "admin": {
+      "users": {
+        "createSuccess": "Пользователь успешно создан!",
+        "createError": "Не удалось создать пользователя",
+        "validationError": "Ошибка валидации",
+        "updateSuccess": "Пользователь успешно обновлён",
+        "updateError": "Не удалось обновить пользователя",
+        "loadError": "Не удалось загрузить пользователей",
+        "deleteSuccess": "Пользователь удалён",
+        "deleteError": "Не удалось удалить пользователя"
+      },
+      "faq": {
+        "createSuccess": "Статья успешно создана!",
+        "createError": "Не удалось создать статью",
+        "updateSuccess": "Статья успешно обновлена!",
+        "updateError": "Не удалось обновить статью",
+        "deleteSuccess": "Статья FAQ успешно удалена",
+        "deleteError": "Не удалось удалить статью FAQ",
+        "loadError": "Не удалось загрузить статьи FAQ",
+        "published": "Статья FAQ успешно опубликована",
+        "unpublished": "Статья FAQ снята с публикации",
+        "toggleError": "Не удалось обновить статью FAQ"
+      },
+      "settings": {
+        "saveSuccess": "Настройки успешно сохранены",
+        "saveError": "Не удалось сохранить настройки"
+      },
+      "tickets": {
+        "ticketCreated": "Новая заявка создана",
+        "ticketUpdated": "Заявка обновлена",
+        "ticketDeleted": "Заявка удалена",
+        "ticketChanged": "Заявка изменена"
+      },
+      "ticketDetail": {
+        "updateSuccess": "Заявка успешно обновлена",
+        "noteAdded": "Внутренняя заметка добавлена",
+        "replyAdded": "Ответ добавлен",
+        "deleteSuccess": "Заявка успешно удалена",
+        "deleteError": "Не удалось удалить заявку"
+      }
+    },
+    "customer": {
+      "tickets": {
+        "createSuccess": "Заявка успешно создана!",
+        "createError": "Не удалось создать заявку",
+        "updateSuccess": "Заявка успешно обновлена!",
+        "loginRequired": "Пожалуйста, войдите для создания заявки",
+        "selectProduct": "Пожалуйста, выберите категорию и модель продукта.",
+        "maxFilesExceeded": "Можно загрузить не более 5 вложений.",
+        "fileSizeExceeded": "Каждый файл должен быть не более 512 МБ.",
+        "loadError": "Не удалось загрузить заявки",
+        "replyRequired": "Пожалуйста, введите текст ответа",
+        "replySent": "Ответ отправлен",
+        "replyError": "Не удалось отправить ответ"
+      },
+      "complaints": {
+        "submitSuccess": "Ваша жалоба отправлена",
+        "submitError": "Не удалось отправить жалобу"
+      },
+      "feedback": {
+        "submitSuccess": "Спасибо за ваше предложение! Мы его рассмотрим.",
+        "submitError": "Не удалось отправить отзыв",
+        "loginRequired": "Пожалуйста, войдите для отправки отзыва"
+      },
+      "settings": {
+        "saveSuccess": "Настройки успешно сохранены",
+        "saveError": "Не удалось сохранить"
+      },
+      "faq": {
+        "categoriesError": "Не удалось загрузить категории",
+        "popularError": "Не удалось загрузить популярные FAQ",
+        "searchError": "Не удалось выполнить поиск FAQ",
+        "loadError": "Не удалось загрузить FAQ",
+        "articleError": "Не удалось загрузить статью",
+        "feedbackSuccess": "Спасибо за ваш отзыв!",
+        "feedbackError": "Не удалось отправить отзыв"
+      },
+      "conversations": {
+        "loadError": "Не удалось загрузить беседы",
+        "startError": "Не удалось начать беседу",
+        "sendError": "Не удалось отправить сообщение",
+        "transferSuccess": "Успешно переведено на оператора",
+        "transferError": "Перевод не удался, попробуйте снова",
+        "switchToAISuccess": "Переключено на ИИ-ассистента",
+        "switchToAIError": "Переключение не удалось, попробуйте снова",
+        "aiUnavailable": "ИИ-сервис временно недоступен, переведите на оператора",
+        "networkError": "Сетевое соединение не удалось, проверьте и повторите попытку",
+        "aiError": "Ответ ИИ не получен, попробуйте снова или переведите на оператора",
+        "actionLabel": {
+          "transferToHuman": "Перевести на оператора"
+        }
+      }
+    },
+    "staff": {
+      "conversations": {
+        "sendSuccess": "Сообщение отправлено",
+        "sendError": "Не удалось отправить сообщение",
+        "transferSuccess": "Беседа переведена",
+        "transferError": "Не удалось перевести беседу",
+        "aiUnavailable": "ИИ-сервис временно недоступен, переведите на оператора",
+        "loadError": "Не удалось загрузить беседы",
+        "sseUnavailable": "Обновления в реальном времени недоступны",
+        "closeSuccess": "Беседа закрыта",
+        "closeError": "Не удалось закрыть беседу"
+      },
+      "tickets": {
+        "updateSuccess": "Заявка успешно обновлена!",
+        "updateError": "Не удалось обновить заявку",
+        "noteAdded": "Заметка успешно добавлена",
+        "ticketUpdated": "Заявка обновлена - обновите для просмотра изменений"
+      },
+      "customers": {
+        "loadError": "Не удалось загрузить клиентов"
+      }
+    },
+    "components": {
+      "messageInput": {
+        "sendError": "Не удалось отправить сообщение",
+        "fileSizeError": "Размер файла должен быть менее 10 МБ"
+      }
+    }
+  },
   "complaints": {
-    "title": "Submit complaint",
-    "subtitle": "We value every customer's feedback; your complaint will be handled promptly.",
-    "detailsTitle": "Complaint details",
-    "detailsDescription": "Please describe your complaint in detail. We will investigate and respond quickly.",
+    "title": "Подать жалобу",
+    "subtitle": "Мы ценим отзывы каждого клиента; ваша жалоба будет рассмотрена оперативно.",
+    "detailsTitle": "Детали жалобы",
+    "detailsDescription": "Пожалуйста, подробно опишите вашу жалобу. Мы проведём расследование и быстро ответим.",
     "category": {
-      "label": "Complaint category *",
+      "label": "Категория жалобы *",
       "options": {
-        "service": "Service quality",
-        "product": "Product quality",
-        "delivery": "Delivery issue",
-        "billing": "Billing issue",
-        "other": "Other complaint"
+        "service": "Качество обслуживания",
+        "product": "Качество продукта",
+        "delivery": "Проблема с доставкой",
+        "billing": "Проблема с оплатой",
+        "other": "Другая жалоба"
       }
     },
     "severity": {
-      "label": "Severity *",
+      "label": "Серьёзность *",
       "options": {
-        "1": "Low - minor inconvenience",
-        "2": "Medium - standard issue",
-        "3": "High - major impact",
-        "4": "Urgent - critical issue"
+        "1": "Низкая - незначительное неудобство",
+        "2": "Средняя - стандартная проблема",
+        "3": "Высокая - значительное влияние",
+        "4": "Срочная - критическая проблема"
       }
     },
     "titleField": {
-      "label": "Complaint title *",
-      "placeholder": "Briefly summarize your complaint",
-      "help": "{count}/200 characters"
+      "label": "Заголовок жалобы *",
+      "placeholder": "Кратко изложите вашу жалобу",
+      "help": "{count}/200 символов"
     },
     "descriptionField": {
-      "label": "Detailed description *",
-      "placeholder": "Please describe the complaint in detail, including:&#10;1. When and where the issue happened&#10;2. People or products involved&#10;3. The specific issue and its impact&#10;4. Your expected resolution",
-      "help": "{count}/1200 characters"
+      "label": "Подробное описание *",
+      "placeholder": "Пожалуйста, опишите жалобу подробно, включая:&#10;1. Когда и где произошла проблема&#10;2. Вовлечённые лица или продукты&#10;3. Конкретная проблема и её влияние&#10;4. Ваше ожидаемое решение",
+      "help": "{count}/1200 символов"
     },
     "contactField": {
-      "label": "Contact method *",
-      "placeholder": "Email or phone",
-      "help": "We will contact you via this method to follow up on your complaint."
+      "label": "Способ связи *",
+      "placeholder": "Email или телефон",
+      "help": "Мы свяжемся с вами этим способом для уточнения деталей жалобы."
     },
     "actions": {
-      "cancel": "Cancel",
-      "submit": "Submit complaint",
-      "submitting": "Submitting..."
+      "cancel": "Отмена",
+      "submit": "Отправить жалобу",
+      "submitting": "Отправка..."
     },
-    "success": "Your complaint has been submitted. We will process it as soon as possible.",
-    "warningsTitle": "Important notes",
+    "success": "Ваша жалоба отправлена. Мы обработаем её в кратчайшие сроки.",
+    "warningsTitle": "Важные примечания",
     "warnings": [
-      "Please provide accurate information so we can handle your complaint effectively.",
-      "We will provide an initial response within 24 hours of receiving your complaint.",
-      "Urgent complaints are prioritized for rapid resolution.",
-      "You can check complaint updates and replies under \"My Tickets.\"",
-      "If you have any questions, contact us via live chat at any time."
+      "Пожалуйста, предоставьте точную информацию для эффективной обработки жалобы.",
+      "Мы предоставим первичный ответ в течение 24 часов после получения жалобы.",
+      "Срочные жалобы приоритизируются для быстрого решения.",
+      "Вы можете отслеживать обновления и ответы по жалобе в разделе \"Мои заявки\".",
+      "Если у вас есть вопросы, свяжитесь с нами через онлайн-чат в любое время."
     ],
-    "ticketPrefix": "[Complaint]",
-    "loginRequired": "Please login to submit a complaint"
+    "ticketPrefix": "[Жалоба]",
+    "loginRequired": "Пожалуйста, войдите для подачи жалобы"
   },
   "myTickets": {
-    "title": "My tickets",
-    "subtitle": "View and manage all tickets you have submitted",
-    "listTitle": "Ticket list",
-    "listDescription": "Total {count} tickets",
-    "searchPlaceholder": "Search ticket title or number...",
+    "title": "Мои заявки",
+    "subtitle": "Просмотр и управление всеми вашими заявками",
+    "listTitle": "Список заявок",
+    "listDescription": "Всего {count} заявок",
+    "searchPlaceholder": "Поиск по заголовку или номеру заявки...",
     "empty": {
-      "title": "No tickets yet",
-      "description": "You have not submitted any tickets yet",
-      "noResults": "No matching tickets found",
-      "hint": "Please create a ticket via live chat."
+      "title": "Заявок пока нет",
+      "description": "Вы ещё не отправляли заявок",
+      "noResults": "Не найдено подходящих заявок",
+      "hint": "Пожалуйста, создайте заявку через онлайн-чат."
     },
     "table": {
-      "id": "Ticket ID",
-      "title": "Title",
-      "status": "Status",
-      "priority": "Priority",
-      "replies": "Replies",
-      "created": "Created",
-      "updated": "Updated",
-      "actions": "Actions",
-      "view": "View details",
-      "loadMore": "Load more",
-      "loading": "Loading..."
+      "id": "ID заявки",
+      "title": "Заголовок",
+      "status": "Статус",
+      "priority": "Приоритет",
+      "replies": "Ответы",
+      "created": "Создано",
+      "updated": "Обновлено",
+      "actions": "Действия",
+      "view": "Подробнее",
+      "loadMore": "Загрузить ещё",
+      "loading": "Загрузка..."
     },
     "priority": {
-      "1": "Low",
-      "2": "Medium",
-      "3": "High",
-      "4": "Urgent",
-      "unknown": "Unknown"
+      "1": "Низкий",
+      "2": "Средний",
+      "3": "Высокий",
+      "4": "Срочный",
+      "unknown": "Неизвестно"
     },
     "status": {
-      "1": "New",
-      "2": "In progress",
-      "3": "Waiting reply",
-      "4": "Closed",
-      "unknown": "Unknown"
+      "1": "Новая",
+      "2": "В работе",
+      "3": "Ожидание ответа",
+      "4": "Закрыта",
+      "unknown": "Неизвестно"
+    }
+  },
+  "components": {
+    "conversation": {
+      "header": {
+        "aiAssistant": "ИИ-ассистент",
+        "waitingAssignment": "Ожидание назначения",
+        "aiMode": "ИИ-чат",
+        "humanMode": "Оператор",
+        "ariaLabels": {
+          "aiChat": "ИИ-чат",
+          "connected": "Подключён",
+          "connecting": "Подключение...",
+          "disconnected": "Отключён"
+        },
+        "buttons": {
+          "transferring": "Перевод...",
+          "switchToHuman": "К оператору",
+          "switchingToHuman": "Переключение...",
+          "switchToAI": "К ИИ",
+          "switchingToAI": "Переключение...",
+          "transferToHuman": "Перевести на оператора"
+        }
+      },
+      "messageInput": {
+        "placeholder": "Введите сообщение...",
+        "enterToSend": "Enter для отправки",
+        "shiftEnterNewLine": "Shift+Enter = новая строка",
+        "attachFile": "Прикрепить файл",
+        "sendMessage": "Отправить сообщение"
+      },
+      "messageList": {
+        "unsupportedType": "Неподдерживаемый тип сообщения",
+        "noMessages": "Сообщений пока нет",
+        "noMessagesHint": "Начните беседу, отправив сообщение",
+        "staff": "Сотрудник",
+        "admin": "Администратор"
+      },
+      "transferDialog": {
+        "title": "Перевод на оператора",
+        "description": "Вы собираетесь перевести беседу с ИИ-ассистента на живого оператора. Оператор сможет просмотреть всю историю беседы для лучшей помощи.",
+        "reasonLabel": "Описание проблемы (необязательно)",
+        "reasonPlaceholder": "Пожалуйста, кратко опишите проблему, с которой вам нужна помощь. Это поможет оператору решить вашу проблему быстрее...",
+        "charCount": "{count} / 300",
+        "continueInWindow": "✓ Вы продолжите беседу в текущем окне без переключения",
+        "cancel": "Отмена",
+        "confirming": "Перевод...",
+        "confirm": "Подтвердить перевод"
+      },
+      "aiHistory": {
+        "title": "История ИИ-чата",
+        "collapse": "Свернуть",
+        "expand": "Развернуть"
+      }
+    }
+  },
+  "marketing": {
+    "hero": {
+      "title": "Преобразуйте ваше обслуживание клиентов",
+      "subtitle": "Платформа на базе ИИ для безупречной поддержки и взаимодействия с клиентами",
+      "startFreeTrial": "Начать бесплатный период",
+      "watchDemo": "Смотреть демо",
+      "noCreditCard": "Банковская карта не требуется"
+    }
+  },
+  "landing": {
+    "loading": {
+      "title": "Загрузка панели...",
+      "verifying": "Проверка учётных данных"
+    },
+    "brand": "FleetCommand",
+    "nav": {
+      "solutions": "Решения",
+      "pricing": "Цены",
+      "resources": "Ресурсы",
+      "company": "Компания",
+      "login": "Войти",
+      "getStarted": "Начать"
+    },
+    "hero": {
+      "titlePart1": "Современное управление автопарком",
+      "titlePart2": "Упрощённое",
+      "description": "Отслеживайте, управляйте и оптимизируйте операции автопарка с помощью нашей комплексной платформы. Аналитика в реальном времени для лучших решений.",
+      "startFreeTrial": "Начать бесплатный период",
+      "watchDemo": "Смотреть демо",
+      "freeTrial": "14 дней бесплатно",
+      "noCreditCard": "Банковская карта не требуется"
+    },
+    "features": {
+      "title": "Всё необходимое для управления автопарком",
+      "description": "Мощные функции, разработанные для снижения затрат, повышения безопасности и увеличения операционной эффективности.",
+      "realTimeTracking": {
+        "name": "Отслеживание в реальном времени",
+        "description": "Мониторинг местоположения и статуса автопарка в реальном времени с продвинутой GPS-интеграцией."
+      },
+      "performanceAnalytics": {
+        "name": "Аналитика производительности",
+        "description": "Подробная аналитика расхода топлива, поведения водителей и потребностей в обслуживании."
+      },
+      "safetyCompliance": {
+        "name": "Безопасность и соответствие",
+        "description": "Автоматическое обеспечение соответствия вашего автопарка всем нормативным требованиям и стандартам безопасности."
+      },
+      "maintenanceScheduling": {
+        "name": "Планирование обслуживания",
+        "description": "Автоматические оповещения и планирование технического обслуживания для предотвращения простоев."
+      }
+    },
+    "cta": {
+      "title": "Готовы оптимизировать операции автопарка?",
+      "description": "Присоединяйтесь к более чем 2 000 компаний, использующих FleetCommand для снижения затрат и повышения безопасности.",
+      "button": "Начать бесплатный период",
+      "noCreditCard": "Банковская карта не требуется. 14 дней бесплатно."
+    },
+    "footer": {
+      "copyright": "© 2025 FleetCommand Inc. Все права защищены."
+    }
+  },
+  "dashboardComponents": {
+    "recentActivity": {
+      "title": "Недавняя активность",
+      "noActivity": "Нет недавней активности",
+      "noActivityHint": "Ваши последние беседы и сообщения будут отображаться здесь",
+      "activity": {
+        "newMessage": "Новое сообщение",
+        "statusChanged": "Статус изменён на {status}",
+        "assigned": "Беседа назначена",
+        "default": "Активность"
+      }
+    },
+    "recentTickets": {
+      "title": "Последние заявки",
+      "noTickets": "Нет последних заявок"
+    }
+  },
+  "layouts": {
+    "navbar": {
+      "notifications": "Уведомления"
     }
   }
 }

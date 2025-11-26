@@ -11,6 +11,7 @@ export interface TicketArticle {
   internal: boolean
   created_at: string
   created_by: string
+  from?: string
 }
 
 export interface SearchTicketsResult {

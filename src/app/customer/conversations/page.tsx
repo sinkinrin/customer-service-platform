@@ -12,8 +12,12 @@ import { useConversation } from '@/lib/hooks/use-conversation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 export default function ConversationsPage() {
+  const t = useTranslations('customer.conversations.starting')
+  const tToast = useTranslations('toast.customer.conversations')
+
   const router = useRouter()
   const { conversations, fetchConversations, createConversation } = useConversation()
   const [isProcessing, setIsProcessing] = useState(true)
@@ -33,7 +37,7 @@ export default function ConversationsPage() {
         setConversationsLoaded(true)
       } catch (error) {
         console.error('Error fetching conversations:', error)
-        toast.error('Failed to load conversations')
+        toast.error(tToast('loadError'))
         setIsProcessing(false)
       }
     }
@@ -67,7 +71,7 @@ export default function ConversationsPage() {
         }
       } catch (error) {
         console.error('Error handling conversation:', error)
-        toast.error('Failed to start conversation')
+        toast.error(tToast('startError'))
         setIsProcessing(false)
       }
     }
@@ -81,22 +85,22 @@ export default function ConversationsPage() {
         <CardHeader>
           <div className="flex items-center justify-center mb-4">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <MessageSquare className="h-8 w-8 text-primary animate-pulse" />
+              <MessageSquare className="h-8 w-8 text-primary animate-pulse motion-reduce:animate-none" />
             </div>
           </div>
-          <CardTitle className="text-center">Starting Conversation</CardTitle>
+          <CardTitle className="text-center">{t('title')}</CardTitle>
           <CardDescription className="text-center">
             {isProcessing
-              ? 'Please wait while we connect you to support...'
-              : 'Redirecting to your conversation...'}
+              ? t('connectingMessage')
+              : t('redirectingMessage')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex justify-center">
             <div className="flex space-x-2">
-              <div className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none" style={{ animationDelay: '0ms' }} />
+              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none" style={{ animationDelay: '150ms' }} />
+              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         </CardContent>

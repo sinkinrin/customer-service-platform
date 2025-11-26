@@ -1,5 +1,5 @@
 import { getRequestConfig } from 'next-intl/server'
-import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 // Supported locales
 export const locales = ['en', 'zh-CN', 'fr', 'es', 'ru', 'pt'] as const
@@ -16,10 +16,15 @@ export const localeNames: Record<Locale, string> = {
   pt: 'Português',
 }
 
-export default getRequestConfig(async ({ locale }) => {
-  // Reject invalid locales instead of silently falling back to default
-  if (!locale || !locales.includes(locale as Locale)) {
-    notFound()
+export default getRequestConfig(async () => {
+  // Try to get locale from NEXT_LOCALE cookie
+  const cookieStore = await cookies()
+  const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value as Locale | undefined
+
+  // Validate locale and fall back to default if invalid
+  let locale: Locale = defaultLocale
+  if (cookieLocale && locales.includes(cookieLocale)) {
+    locale = cookieLocale
   }
 
   return {

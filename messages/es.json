@@ -27,22 +27,101 @@
       "es": "Español",
       "ru": "Русский",
       "pt": "Português"
+    },
+    "actions": {
+      "viewDetails": "Ver detalles",
+      "viewAll": "Ver todo",
+      "loadMore": "Cargar más",
+      "refresh": "Actualizar",
+      "goBack": "Volver"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "pending": "Pendiente",
+      "completed": "Completado",
+      "operational": "Operativo",
+      "healthy": "Saludable",
+      "connected": "Conectado",
+      "notConfigured": "No configurado",
+      "assigned": "Asignado",
+      "allSystemsOperational": "Todos los sistemas operativos",
+      "minorIssuesDetected": "Problemas menores detectados",
+      "systemError": "Error del sistema",
+      "unknownStatus": "Estado desconocido"
+    },
+    "time": {
+      "ago": "hace",
+      "justNow": "Justo ahora",
+      "minutes": "minutos",
+      "hours": "horas",
+      "days": "días"
+    },
+    "layout": {
+      "adminPortal": "Portal de administrador",
+      "staffPortal": "Portal del personal",
+      "customerService": "Servicio al cliente",
+      "systemStatus": "Estado del sistema:",
+      "myAccount": "Mi cuenta",
+      "profileSettings": "Configuración del perfil",
+      "preferences": "Preferencias",
+      "systemSettings": "Configuración del sistema",
+      "notifications": "Notificaciones",
+      "logOut": "Cerrar sesión",
+      "signOut": "Cerrar sesión",
+      "login": "Iniciar sesión",
+      "signup": "Registrarse",
+      "administrator": "Administrador",
+      "manageUsers": "Gestionar usuarios"
+    },
+    "empty": {
+      "noResults": "No se encontraron resultados",
+      "noDataAvailable": "No hay datos disponibles",
+      "tryAdjustingFilters": "Intenta ajustar tu búsqueda o filtros"
+    },
+    "errorBoundary": {
+      "title": "Algo salió mal",
+      "description": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+      "tryAgain": "Intentar de nuevo",
+      "goHome": "Ir al inicio"
+    },
+    "aria": {
+      "loading": "Cargando"
     }
   },
   "nav": {
     "dashboard": "Panel",
     "conversations": "Conversaciones",
     "faq": "Preguntas frecuentes",
+    "faqManagement": "Gestión de FAQ",
     "tickets": "Tickets",
     "knowledgeBase": "Base de conocimientos",
     "users": "Usuarios",
     "settings": "Configuración",
+    "systemSettings": "Configuración del sistema",
     "logout": "Cerrar sesión",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "customers": "Clientes",
+    "myTickets": "Mis tickets",
+    "feedback": "Comentarios",
+    "complaints": "Quejas",
+    "businessTypes": "Tipos de negocio",
+    "customer": {
+      "helpCenter": "Centro de ayuda",
+      "liveChat": "Chat en vivo",
+      "ticketManagement": "Gestión de tickets",
+      "submitTicket": "Enviar ticket",
+      "myTickets": "Mis tickets",
+      "feedbackComplaints": "Comentarios y quejas",
+      "submitFeedback": "Enviar comentario",
+      "submitComplaint": "Enviar queja"
+    }
   },
   "auth": {
     "login": "Iniciar sesión",
     "register": "Registrarse",
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse",
     "email": "Correo electrónico",
     "password": "Contraseña",
     "confirmPassword": "Confirmar contraseña",
@@ -53,7 +132,7 @@
     "loginButton": "Iniciar sesión",
     "registerButton": "Registrarse",
     "loggingIn": "Iniciando sesión...",
-    "registering": "Registrando...",
+    "registering": "Creando cuenta...",
     "loginSuccess": "¡Inicio de sesión exitoso!",
     "registerSuccess": "¡Registro exitoso! Por favor, verifique su correo electrónico.",
     "loginError": "Correo electrónico o contraseña inválidos",
@@ -63,7 +142,36 @@
     "passwordRequired": "La contraseña es obligatoria",
     "passwordMinLength": "La contraseña debe tener al menos 6 caracteres",
     "passwordMismatch": "Las contraseñas no coinciden",
-    "fullNameRequired": "El nombre completo es obligatorio"
+    "fullNameRequired": "El nombre completo es obligatorio",
+    "loginPage": {
+      "title": "Iniciar sesión",
+      "description": "Ingrese su correo electrónico y contraseña para acceder a su cuenta",
+      "redirecting": "Redirigiendo...",
+      "redirectingDescription": "Llevándolo a su panel",
+      "emailPlaceholder": "nombre@ejemplo.com",
+      "passwordPlaceholder": "********"
+    },
+    "registerPage": {
+      "title": "Registro deshabilitado",
+      "description": "El registro público no está disponible para este sistema",
+      "policyTitle": "Política de creación de cuenta:",
+      "policyDescription": "Las cuentas de usuario deben ser creadas por los administradores del sistema. Si necesita una cuenta, por favor contacte a su administrador.",
+      "howToTitle": "Cómo obtener una cuenta:",
+      "step1": "Contacte a su administrador del sistema",
+      "step2": "Proporcione su dirección de correo electrónico e información requerida",
+      "step3": "Espere a que el administrador cree su cuenta",
+      "step4": "Recibirá sus credenciales de inicio de sesión por correo electrónico"
+    },
+    "layout": {
+      "brandShort": "SC",
+      "brandName": "Servicio al Cliente"
+    },
+    "accessDenied": {
+      "title": "Acceso denegado",
+      "description": "No tiene permiso para acceder a esta página.",
+      "yourRole": "Su rol:",
+      "goBack": "Volver"
+    }
   },
   "dashboard": {
     "welcome": "Bienvenido de nuevo",
@@ -100,19 +208,41 @@
   },
   "faq": {
     "title": "Preguntas frecuentes",
+    "helpCenter": "Centro de ayuda",
+    "helpDescription": "Encuentra respuestas a preguntas comunes y obtén ayuda",
     "searchPlaceholder": "Buscar respuestas...",
+    "searchArticlesPlaceholder": "Buscar artículos de ayuda...",
+    "searchHelpPlaceholder": "Buscar ayuda...",
+    "searchTab": "Buscar",
+    "browseTab": "Explorar por categoría",
     "categories": "Categorías",
     "allCategories": "Todas las categorías",
+    "browseAllFaqItems": "Explorar todos los artículos de FAQ",
+    "noCategoriesAvailable": "No hay categorías disponibles",
+    "home": "Inicio",
+    "allArticles": "Todos los artículos",
+    "articles": "Artículos",
     "popularArticles": "Artículos populares",
     "relatedArticles": "Artículos relacionados",
-    "helpful": "¿Fue útil este artículo?",
+    "searchResults": "Resultados de búsqueda",
+    "noResults": "No se encontraron resultados",
+    "noArticlesFound": "No se encontraron artículos",
+    "noArticlesAvailable": "No hay artículos disponibles",
+    "tryDifferentKeywords": "Prueba con diferentes palabras clave o explora por categoría",
+    "checkBackLater": "Vuelve más tarde para ver artículos útiles",
+    "noCategoryArticles": "Esta categoría aún no tiene artículos",
+    "backToHelpCenter": "Volver al centro de ayuda",
+    "loadingArticle": "Cargando artículo...",
+    "helpful": "¿Fue útil?",
+    "wasHelpful": "¿Fue útil este artículo?",
     "yes": "Sí",
     "no": "No",
-    "thankYou": "¡Gracias por su comentario!",
-    "noResults": "No se encontraron artículos",
-    "browseByCategory": "Explorar por categoría",
-    "searchResults": "Resultados de búsqueda",
-    "viewCount": "vistas"
+    "thankYou": "¡Gracias por tu comentario!",
+    "stillNeedHelp": "¿Aún necesitas ayuda?",
+    "contactDescription": "Contacta a nuestro equipo de soporte para asistencia personalizada",
+    "contactSupport": "Contactar soporte",
+    "viewCount": "vistas",
+    "helpfulCount": "útil"
   },
   "tickets": {
     "title": "Tickets",
@@ -138,17 +268,115 @@
       "high": "Alta",
       "urgent": "Urgente"
     },
-    "details": "Detalles del ticket",
+    "details": {
+      "title": "Detalles del ticket",
+      "customer": "Cliente",
+      "group": "Grupo",
+      "created": "Creado",
+      "lastUpdated": "Última actualización",
+      "assignedTo": "Asignado a",
+      "ownerId": "ID del propietario: {id}",
+      "priority": "Prioridad",
+      "state": "Estado",
+      "ticketStatus": "Estado del ticket",
+      "saveChanges": "Guardar cambios",
+      "cancel": "Cancelar",
+      "pendingReminder": "Seleccione cuándo este ticket debe actualizarse automáticamente",
+      "pendingUntil": "Pendiente hasta *",
+      "selectPendingTime": "Por favor seleccione un tiempo de espera para este estado.",
+      "addNote": "Agregar nota",
+      "noteContent": "Contenido de la nota",
+      "notePlaceholder": "Agregar una nota o respuesta a este ticket...",
+      "internalNoteCheckbox": "Nota interna (no visible para el cliente)",
+      "promise": "Promesa",
+      "ticketNumber": "Ticket #{number}",
+      "states": {
+        "new": "Nuevo",
+        "open": "Abierto",
+        "pendingReminder": "Recordatorio pendiente",
+        "pendingClose": "Cierre pendiente",
+        "closed": "Cerrado"
+      },
+      "priorities": {
+        "low": "Baja",
+        "normal": "Normal",
+        "high": "Alta"
+      }
+    },
     "articles": "Artículos",
     "addArticle": "Agregar artículo",
     "internalNote": "Nota interna",
-    "publicReply": "Respuesta pública"
+    "publicReply": "Respuesta pública",
+    "empty": {
+      "noTicketsFound": "No se encontraron tickets",
+      "adjustFilters": "Intenta ajustar tu búsqueda o filtros"
+    }
   },
   "admin": {
+    "dashboard": {
+      "pageTitle": "Panel de administrador",
+      "welcome": "Bienvenido, {name}",
+      "overview": "Aquí hay un resumen del rendimiento de tu plataforma",
+      "stats": {
+        "totalUsers": "Usuarios totales",
+        "totalTickets": "Tickets totales",
+        "openTickets": "Tickets abiertos",
+        "closedTickets": "Tickets cerrados",
+        "registeredUsers": "Usuarios registrados",
+        "allRegions": "Todas las regiones",
+        "needsAttention": "Requiere atención",
+        "resolved": "Resueltos"
+      },
+      "regionalDistribution": {
+        "title": "Distribución regional de tickets",
+        "description": "Conteo de tickets por región de servicio",
+        "noData": "No hay datos regionales disponibles",
+        "open": "abiertos",
+        "closed": "cerrados",
+        "total": "total"
+      },
+      "quickActions": {
+        "title": "Acciones rápidas",
+        "description": "Gestiona tu plataforma eficientemente",
+        "createUser": "Crear usuario",
+        "viewAllTickets": "Ver todos los tickets",
+        "manageFAQ": "Gestionar FAQ",
+        "systemSettings": "Configuración del sistema"
+      },
+      "recentActivity": {
+        "title": "Actividad reciente de tickets",
+        "description": "Últimas actualizaciones de tickets en todas las regiones",
+        "noActivity": "Sin actividad reciente"
+      },
+      "systemHealth": {
+        "title": "Estado del sistema",
+        "description": "Estado actual del sistema",
+        "apiStatus": "Estado de la API",
+        "database": "Base de datos",
+        "zammadIntegration": "Integración Zammad",
+        "fastgpt": "FastGPT"
+      },
+      "platformMetrics": {
+        "title": "Métricas de la plataforma",
+        "description": "Indicadores clave de rendimiento",
+        "avgResponseTime": "Tiempo de respuesta promedio",
+        "resolutionRate": "Tasa de resolución",
+        "customerSatisfaction": "Satisfacción del cliente",
+        "uptime": "Tiempo de actividad",
+        "satisfactionRate": "Tasa de satisfacción",
+        "resolvedTickets": "Tickets resueltos",
+        "activeUsers": "Usuarios activos"
+      }
+    },
     "users": {
-      "title": "Gestión de usuarios",
+      "pageTitle": "Gestión de usuarios",
+      "pageDescription": "Gestionar cuentas de usuario, roles y permisos",
+      "title": "Usuarios",
+      "searchDescription": "Buscar y filtrar usuarios",
+      "createButton": "Crear usuario",
       "newUser": "Nuevo usuario",
-      "searchPlaceholder": "Buscar usuarios...",
+      "searchPlaceholder": "Buscar por nombre o correo...",
+      "filterPlaceholder": "Filtrar por rol",
       "noUsers": "No se encontraron usuarios",
       "role": "Rol",
       "status": "Estado",
@@ -157,10 +385,69 @@
       "editUser": "Editar usuario",
       "deleteUser": "Eliminar usuario",
       "confirmDelete": "¿Está seguro de que desea eliminar este usuario?",
+      "filters": {
+        "allRoles": "Todos los roles"
+      },
+      "form": {
+        "emailRequired": "Correo electrónico *",
+        "emailLabel": "Correo electrónico",
+        "emailPlaceholder": "usuario@ejemplo.com",
+        "fullNameLabel": "Nombre completo *",
+        "fullNamePlaceholder": "Juan Pérez",
+        "roleLabel": "Rol *",
+        "passwordLabel": "Contraseña *",
+        "passwordPlaceholder": "Mínimo 8 caracteres",
+        "passwordHint": "La contraseña debe tener al menos 8 caracteres",
+        "regionLabel": "Región *",
+        "phoneLabel": "Número de teléfono (opcional)",
+        "phonePlaceholder": "+34 600 000 000",
+        "languageLabel": "Idioma preferido"
+      },
+      "table": {
+        "name": "Nombre",
+        "email": "Correo",
+        "role": "Rol",
+        "phone": "Teléfono",
+        "status": "Estado",
+        "createdAt": "Creado el",
+        "actions": "Acciones"
+      },
+      "pagination": {
+        "showing": "Mostrando {start} a {end} de {total} usuarios",
+        "previous": "Anterior",
+        "next": "Siguiente"
+      },
+      "editDialog": {
+        "title": "Editar usuario",
+        "description": "Actualizar información y rol del usuario",
+        "name": "Nombre",
+        "email": "Correo",
+        "role": "Rol",
+        "phone": "Teléfono",
+        "cancel": "Cancelar",
+        "save": "Guardar"
+      },
+      "createPage": {
+        "title": "Crear nuevo usuario",
+        "description": "Agregar un nuevo usuario al sistema con asignación de rol y región",
+        "backToUsers": "Volver a usuarios",
+        "createButton": "Crear usuario",
+        "cancel": "Cancelar",
+        "cardTitle": "Información del usuario",
+        "cardDescription": "Complete los detalles del usuario. Todos los campos son obligatorios."
+      },
       "roles": {
         "customer": "Cliente",
         "staff": "Personal",
-        "admin": "Administrador"
+        "admin": "Administrador",
+        "customerDesc": "Cliente (usuario final)",
+        "staffDesc": "Personal (soporte)",
+        "adminDesc": "Administrador",
+        "customerPermission": "Puede crear tickets y ver sus propios tickets",
+        "staffPermission": "Puede gestionar tickets en su región asignada",
+        "adminPermission": "Acceso completo a todas las funciones y regiones",
+        "staffRegionHint": "El personal solo puede acceder a tickets de su región asignada",
+        "customerRegionHint": "Los tickets del cliente serán asignados a esta región"
       },
       "statusOptions": {
         "active": "Activo",
@@ -168,8 +455,11 @@
       }
     },
     "faq": {
+      "pageTitle": "Gestión de FAQ",
+      "pageDescription": "Gestionar artículos de FAQ desde la base de conocimientos de Zammad",
       "title": "Gestión de FAQ",
       "newArticle": "Nuevo artículo",
+      "createFAQ": "Crear FAQ",
       "editArticle": "Editar artículo",
       "deleteArticle": "Eliminar artículo",
       "confirmDelete": "¿Está seguro de que desea eliminar este artículo?",
@@ -178,18 +468,758 @@
       "addTranslation": "Agregar traducción",
       "language": "Idioma",
       "title_field": "Título",
+      "titleRequired": "Título *",
+      "titlePlaceholder": "Ingrese el título del artículo",
       "content": "Contenido",
+      "contentRequired": "Contenido *",
+      "contentPlaceholder": "Ingrese el contenido del artículo",
       "keywords": "Palabras clave",
       "published": "Publicado",
-      "draft": "Borrador"
+      "draft": "Borrador",
+      "archived": "Archivado",
+      "filters": "Filtros",
+      "searchPlaceholder": "Buscar por título o contenido...",
+      "allCategories": "Todas las categorías",
+      "allStates": "Todos los estados",
+      "sortBy": "Ordenar por",
+      "sortOptions": {
+        "lastUpdated": "Última actualización",
+        "createdDate": "Fecha de creación",
+        "titleAZ": "Título (A-Z)",
+        "mostViewed": "Más visto",
+        "mostLiked": "Más gustado"
+      },
+      "table": {
+        "title": "Título",
+        "category": "Categoría",
+        "state": "Estado",
+        "views": "Vistas",
+        "likes": "Me gusta",
+        "updated": "Actualizado",
+        "actions": "Acciones"
+      },
+      "actions": {
+        "publish": "Publicar",
+        "unpublish": "Despublicar",
+        "edit": "Editar",
+        "delete": "Eliminar"
+      },
+      "faqItems": "Artículos de FAQ",
+      "itemsFound": "{count} artículos encontrados",
+      "showingResults": "Mostrando {showing} de {total} artículos de FAQ",
+      "noItemsFound": "No se encontraron artículos de FAQ",
+      "pagination": {
+        "page": "Página {current} de {total} ({count} artículos)",
+        "previous": "Anterior",
+        "next": "Siguiente"
+      },
+      "deleteDialog": {
+        "title": "¿Está seguro?",
+        "description": "Esto eliminará permanentemente el artículo de FAQ \"{title}\". Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "delete": "Eliminar"
+      },
+      "form": {
+        "title": "Título *",
+        "titlePlaceholder": "Ingrese el título del artículo",
+        "content": "Contenido *",
+        "contentPlaceholder": "Ingrese el contenido del artículo",
+        "contentPlaceholderMarkdown": "Ingrese el contenido del artículo (se admite Markdown)",
+        "category": "Categoría *",
+        "cancel": "Cancelar",
+        "create": "Crear artículo",
+        "save": "Guardar cambios",
+        "loadingCategories": "Cargando categorías...",
+        "noCategories": "No hay categorías disponibles",
+        "publishImmediately": "Publicar inmediatamente",
+        "translations": "Traducciones *",
+        "keywordsLabel": "Palabras clave (separadas por comas)",
+        "keywordsPlaceholder": "palabra1, palabra2, palabra3",
+        "slugLabel": "Slug (opcional)",
+        "slugPlaceholder": "slug-del-articulo",
+        "validationError": "Por favor proporcione al menos una traducción"
+      },
+      "dialog": {
+        "createTitle": "Crear artículo de FAQ",
+        "editTitle": "Editar artículo de FAQ",
+        "createDescription": "Crear un nuevo artículo de FAQ con soporte multiidioma",
+        "editDescription": "Actualizar la información del artículo de FAQ"
+      }
+    },
+    "businessTypes": {
+      "pageTitle": "Tipos de negocio",
+      "pageDescription": "Gestionar tipos de negocio para categorización de conversaciones",
+      "managementTitle": "Gestión de tipos de negocio",
+      "managementDescription": "Configurar tipos de negocio para categorizar conversaciones de clientes",
+      "comingSoon": "Próximamente",
+      "comingSoonDescription": "La funcionalidad de gestión de tipos de negocio está actualmente en desarrollo. Esta función le permitirá crear y gestionar diferentes tipos de negocio para una mejor categorización de conversaciones.",
+      "whatAreBusinessTypes": "¿Qué son los tipos de negocio?",
+      "purpose": "Propósito",
+      "benefits": "Beneficios",
+      "benefitsList": {
+        "routing": "Mejor enrutamiento de conversaciones a equipos especializados",
+        "analytics": "Análisis y reportes mejorados",
+        "customerExperience": "Experiencia del cliente mejorada a través de soporte dirigido",
+        "workflow": "Gestión de flujo de trabajo optimizada"
+      },
+      "plannedFeatures": "Funciones planificadas",
+      "featuresList": {
+        "createEdit": "Crear y editar tipos de negocio",
+        "assignTeams": "Asignar equipos de personal predeterminados a tipos de negocio",
+        "setSLA": "Establecer niveles de prioridad y objetivos de SLA",
+        "automatedRouting": "Configurar reglas de enrutamiento automático"
+      }
     },
     "settings": {
+      "pageTitle": "Configuración del sistema",
+      "pageDescription": "Gestionar configuraciones del sistema",
       "title": "Configuración del sistema",
       "general": "General",
-      "businessTypes": "Tipos de negocio",
+      "businessTypes": {
+        "title": "Tipos de negocio",
+        "description": "Gestionar tipos de negocio para categorización de conversaciones",
+        "table": {
+          "name": "Nombre",
+          "description": "Descripción",
+          "createdAt": "Creado el"
+        },
+        "noTypes": "No hay tipos de negocio configurados"
+      },
+      "systemConfig": {
+        "title": "Configuración del sistema",
+        "description": "Configuración general del sistema y parámetros",
+        "defaultLanguage": {
+          "title": "Idioma predeterminado",
+          "description": "Idioma predeterminado para nuevos usuarios"
+        },
+        "sessionTimeout": {
+          "title": "Tiempo de sesión",
+          "description": "Duración del tiempo de espera de la sesión del usuario"
+        },
+        "emailNotifications": {
+          "title": "Notificaciones por correo",
+          "description": "Configurar notificaciones por correo electrónico"
+        },
+        "configure": "Configurar"
+      },
       "notifications": "Notificaciones",
       "saveSuccess": "Configuración guardada correctamente",
-      "saveError": "Error al guardar la configuración"
+      "saveError": "Error al guardar la configuración",
+      "loadError": "Error al cargar la configuración"
+    },
+    "tickets": {
+      "pageTitle": "Gestión de tickets",
+      "pageDescription": "Ver y gestionar todos los tickets de soporte de todas las regiones",
+      "status": {
+        "newUpdates": "Nuevas actualizaciones",
+        "live": "En vivo",
+        "connecting": "Conectando...",
+        "offline": "Sin conexión"
+      },
+      "search": {
+        "placeholder": "Buscar tickets por número, título o cliente...",
+        "button": "Buscar"
+      },
+      "filters": {
+        "allRegions": "Todas las regiones",
+        "allPriorities": "Todas las prioridades",
+        "priority": {
+          "low": "Baja",
+          "normal": "Normal",
+          "high": "Alta"
+        }
+      },
+      "actions": {
+        "export": "Exportar"
+      },
+      "tabs": {
+        "all": "Todos los tickets",
+        "open": "Abiertos",
+        "pending": "Pendientes",
+        "closed": "Cerrados"
+      }
+    },
+    "ticketDetail": {
+      "notFound": "Ticket no encontrado",
+      "backToTickets": "Volver a tickets",
+      "back": "Volver",
+      "ticketNumber": "Ticket #{number}",
+      "created": "Creado {date}",
+      "deleteButton": "Eliminar ticket",
+      "deleteDialog": {
+        "title": "¿Está seguro?",
+        "description": "Esta acción no se puede deshacer. Esto eliminará permanentemente el ticket y todos los artículos asociados.",
+        "cancel": "Cancelar",
+        "delete": "Eliminar"
+      },
+      "conversation": "Conversación ({count})",
+      "noArticles": "Sin artículos aún",
+      "internalBadge": "Interno"
+    }
+  },
+  "customer": {
+    "dashboard": {
+      "pageTitle": "Panel del cliente",
+      "title": "Centro de servicio al cliente",
+      "welcome": "Bienvenido de nuevo",
+      "welcomeMessage": "Bienvenido a la plataforma de servicio al cliente. Estamos aquí para ayudar.",
+      "myTickets": "Mis tickets",
+      "recentConversations": "Conversaciones recientes",
+      "quickActions": {
+        "liveChat": {
+          "title": "Chat en vivo",
+          "description": "Chatea con soporte en tiempo real"
+        },
+        "knowledgeBase": {
+          "title": "Base de conocimientos",
+          "description": "Encuentra respuestas a preguntas comunes"
+        },
+        "myTickets": {
+          "title": "Mis tickets",
+          "description": "Ver y gestionar tickets de soporte"
+        },
+        "submitFeedback": {
+          "title": "Enviar comentarios",
+          "description": "Comparte tus sugerencias y opiniones"
+        }
+      },
+      "getStarted": {
+        "title": "Comenzar",
+        "subtitle": "Elige cómo quieres obtener ayuda",
+        "liveChat": {
+          "title": "Chat en vivo",
+          "description": "Obtén ayuda instantánea a través del chat en vivo. Nuestro asistente de IA y agentes humanos están listos para ayudar.",
+          "button": "Iniciar chat"
+        },
+        "knowledgeBase": {
+          "title": "Explorar base de conocimientos",
+          "description": "Busca en la base de conocimientos respuestas comunes para resolver problemas rápidamente.",
+          "button": "Explorar FAQ"
+        },
+        "ticket": {
+          "title": "Enviar un ticket",
+          "description": "¿Necesitas registrar detalles? Crea un ticket y sigue el progreso.",
+          "button": "Crear ticket"
+        }
+      }
+    },
+    "myTickets": {
+      "title": "Mis tickets",
+      "subtitle": "Ver y gestionar tus tickets de soporte",
+      "listTitle": "Lista de tickets",
+      "listDescription": "Tienes {count} tickets en total",
+      "searchPlaceholder": "Buscar por número de ticket o título...",
+      "pageTitle": "Mis tickets",
+      "createTicket": "Crear ticket",
+      "noTickets": "Aún no hay tickets",
+      "toast": {
+        "loadError": "Error al cargar tickets"
+      },
+      "empty": {
+        "title": "No se encontraron tickets",
+        "noResults": "Ningún ticket coincide con tu búsqueda",
+        "description": "Aún no has creado ningún ticket",
+        "hint": "Haz clic en el botón de arriba para crear tu primer ticket"
+      },
+      "table": {
+        "id": "Número de ticket",
+        "title": "Título",
+        "status": "Estado",
+        "priority": "Prioridad",
+        "replies": "Respuestas",
+        "created": "Creado",
+        "updated": "Última actualización",
+        "actions": "Acciones",
+        "view": "Ver",
+        "loading": "Cargando...",
+        "loadMore": "Cargar más"
+      },
+      "status": {
+        "1": "Nuevo",
+        "2": "Abierto",
+        "3": "Pendiente",
+        "4": "Cerrado",
+        "unknown": "Desconocido"
+      },
+      "priority": {
+        "1": "Baja",
+        "2": "Media",
+        "3": "Alta",
+        "4": "Urgente",
+        "unknown": "Desconocida"
+      },
+      "createPageTitle": "Enviar ticket",
+      "createPageDescription": "¿Tienes problemas? Envía un ticket y nuestro equipo de soporte te ayudará rápidamente.",
+      "detailPageTitle": "Detalles del ticket",
+      "backToList": "Volver a la lista de tickets",
+      "ticketNumber": "Ticket #",
+      "createdAt": "Creado",
+      "updatedAt": "Última actualización",
+      "status": "Estado",
+      "priority": "Prioridad",
+      "conversation": "Historial de conversación",
+      "messageCount": "{count} mensajes",
+      "noConversation": "Aún no hay historial de conversación",
+      "ticketInfo": "Información del ticket",
+      "charactersCount": "{count}/{max} caracteres",
+      "create": {
+        "formTitle": "Detalles del ticket",
+        "formDescription": "Describe el problema en detalle para que podamos resolverlo más rápido.",
+        "characterCount": "{count} / {max}",
+        "fileSizeLimit": "Compatible con imágenes, PDF, documentos. Máx. 5 archivos, 512MB cada uno.",
+        "detailsTitle": "Detalles del ticket",
+        "detailsDescription": "Describe el problema en detalle para que podamos resolverlo más rápido.",
+        "categoryLabel": "Categoría del producto *",
+        "categoryPlaceholder": "Por favor selecciona una categoría de producto",
+        "modelLabel": "Modelo del producto *",
+        "modelPlaceholder": "Por favor selecciona un modelo de producto",
+        "priorityLabel": "Prioridad *",
+        "priorities": {
+          "1": "Baja - pregunta sobre uso del producto",
+          "2": "Media - problema general",
+          "3": "Alta - impacto en el negocio",
+          "4": "Urgente - interrupción del negocio"
+        },
+        "titleLabel": "Título del problema *",
+        "titlePlaceholder": "Describe brevemente tu problema",
+        "descriptionLabel": "Descripción del problema *",
+        "descriptionPlaceholder": "Describe el problema en detalle, incluyendo:\n1. Cuándo y con qué frecuencia ocurre\n2. Mensajes de error o comportamiento\n3. Pasos de solución que has intentado\n4. Impacto en tu negocio",
+        "attachmentsLabel": "Archivos adjuntos (opcional)",
+        "selectFiles": "Seleccionar archivos",
+        "uploadInfo": "Admite imágenes, PDF, documentos. Máximo 5 archivos, 512MB cada uno.",
+        "actions": {
+          "cancel": "Cancelar",
+          "submitting": "Enviando...",
+          "submit": "Enviar ticket"
+        },
+        "tips": {
+          "title": "Consejos",
+          "tip1": "- Proporciona tantos detalles como sea posible para que podamos identificar rápidamente el problema.",
+          "tip2": "- Las capturas de pantalla o registros de errores ayudan mucho a nuestra resolución de problemas.",
+          "tip3": "- Especifica cuándo ocurre el problema (siempre, intermitentemente, después de acciones específicas).",
+          "tip4": "- Puedes rastrear el estado del ticket y responder al equipo de soporte en \"Mis tickets\"."
+        }
+      },
+      "detail": {
+        "backToList": "Volver a la lista de tickets",
+        "ticketNumber": "Número de ticket",
+        "createdAt": "Creado el",
+        "infoTitle": "Información del ticket",
+        "status": "Estado",
+        "priority": "Prioridad",
+        "updatedAt": "Última actualización",
+        "conversationTitle": "Historial de conversación",
+        "messageCount": "{count} mensajes",
+        "noMessages": "Aún no hay historial de conversación",
+        "unknownUser": "Usuario desconocido",
+        "internal": "Interno",
+        "addReply": "Agregar respuesta",
+        "replyDescription": "Tu respuesta será enviada al equipo de soporte",
+        "replyPlaceholder": "Ingresa tu respuesta...",
+        "characterCount": "{count}/{max} caracteres",
+        "sending": "Enviando...",
+        "sendReply": "Enviar respuesta",
+        "closedMessage": "Este ticket está cerrado. Por favor crea un nuevo ticket para continuar la discusión."
+      },
+      "statusLabels": {
+        "new": "Nuevo",
+        "open": "En progreso",
+        "pending": "Esperando respuesta",
+        "closed": "Cerrado"
+      },
+      "priorityLabels": {
+        "1": "Baja",
+        "2": "Media",
+        "3": "Alta",
+        "4": "Urgente"
+      }
+    },
+    "settings": {
+      "pageTitle": "Configuración",
+      "pageDescription": "Gestiona la configuración y preferencias de tu cuenta",
+      "personalInfo": {
+        "title": "Información personal",
+        "description": "Actualiza tu información de perfil personal",
+        "fullNameLabel": "Nombre completo",
+        "fullNamePlaceholder": "Por favor ingresa tu nombre",
+        "emailLabel": "Correo electrónico",
+        "phoneLabel": "Teléfono",
+        "phonePlaceholder": "Por favor ingresa tu número de teléfono",
+        "languageLabel": "Idioma",
+        "saving": "Guardando...",
+        "saveChanges": "Guardar cambios"
+      },
+      "notifications": {
+        "title": "Configuración de notificaciones",
+        "description": "Gestiona cómo recibes notificaciones",
+        "email": {
+          "label": "Notificaciones por correo",
+          "description": "Recibir notificaciones por correo para actualizaciones importantes"
+        },
+        "desktop": {
+          "label": "Notificaciones de escritorio",
+          "description": "Mostrar notificaciones de escritorio en tu navegador"
+        },
+        "ticketUpdates": {
+          "label": "Actualizaciones de tickets",
+          "description": "Notificarme cuando cambie el estado del ticket"
+        },
+        "conversationReplies": {
+          "label": "Respuestas de conversaciones",
+          "description": "Notificarme cuando reciba nuevos mensajes"
+        },
+        "promotions": {
+          "label": "Promociones",
+          "description": "Recibir actualizaciones de productos e información promocional"
+        },
+        "saving": "Guardando...",
+        "saveChanges": "Guardar cambios"
+      },
+      "security": {
+        "title": "Configuración de seguridad",
+        "description": "Cambia tu contraseña para proteger tu cuenta",
+        "currentPasswordLabel": "Contraseña actual",
+        "currentPasswordPlaceholder": "Por favor ingresa tu contraseña actual",
+        "newPasswordLabel": "Nueva contraseña",
+        "newPasswordPlaceholder": "Por favor ingresa una nueva contraseña (mínimo 8 caracteres)",
+        "confirmPasswordLabel": "Confirmar nueva contraseña",
+        "confirmPasswordPlaceholder": "Por favor ingresa la nueva contraseña de nuevo",
+        "updating": "Actualizando...",
+        "updatePassword": "Actualizar contraseña"
+      },
+      "toast": {
+        "personalInfoUpdated": "Información personal actualizada",
+        "updateFailed": "Error en la actualización, por favor intenta de nuevo",
+        "notificationsUpdated": "Configuración de notificaciones actualizada",
+        "passwordMismatch": "La nueva contraseña y la confirmación no coinciden",
+        "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+        "passwordUpdated": "Contraseña actualizada",
+        "passwordUpdateFailed": "Error al actualizar la contraseña, por favor intenta de nuevo"
+      }
+    },
+    "feedback": {
+      "pageTitle": "Enviar comentarios",
+      "pageDescription": "Tus sugerencias son importantes y nos ayudan a mejorar continuamente.",
+      "formTitle": "Detalles del comentario",
+      "formDescription": "Por favor describe tu sugerencia para que podamos evaluarla y considerar implementarla.",
+      "categoryLabel": "Categoría del comentario *",
+      "categories": {
+        "feature": "Solicitud de función",
+        "improvement": "Sugerencia de mejora",
+        "ui": "Mejora de UI/UX",
+        "other": "Otra sugerencia"
+      },
+      "titleLabel": "Título del comentario *",
+      "titlePlaceholder": "Resume brevemente tu sugerencia",
+      "descriptionLabel": "Descripción detallada *",
+      "descriptionPlaceholder": "Por favor describe tu sugerencia en detalle, incluyendo:\n1. Qué te gustaría cambiar\n2. Por qué es necesaria esta mejora\n3. Resultados o beneficios esperados",
+      "contactLabel": "Contacto *",
+      "contactPlaceholder": "Correo electrónico o teléfono",
+      "contactHelp": "Si necesitamos más detalles sobre tu sugerencia, podemos contactarte de esta manera.",
+      "characterCount": "{count}/{max} caracteres",
+      "actions": {
+        "cancel": "Cancelar",
+        "submitting": "Enviando...",
+        "submit": "Enviar comentarios"
+      },
+      "tips": {
+        "title": "Consejos",
+        "tip1": "- Sé lo más detallado posible para que podamos entender claramente tus necesidades.",
+        "tip2": "- Si tu sugerencia involucra una función o UI específica, las capturas de pantalla o ejemplos ayudan.",
+        "tip3": "- Revisamos todas las sugerencias regularmente y priorizamos las mejoras más valiosas.",
+        "tip4": "- Puedes rastrear el estado de la sugerencia en \"Mis tickets\"."
+      }
+    },
+    "conversations": {
+      "starting": {
+        "title": "Iniciando conversación",
+        "connectingMessage": "Por favor espera mientras te conectamos con soporte...",
+        "redirectingMessage": "Redirigiendo a tu conversación..."
+      },
+      "detail": {
+        "loadingText": "Cargando conversación...",
+        "me": "Yo",
+        "aiAssistant": "Asistente de IA",
+        "newMessageNotification": "Nuevo mensaje recibido - desplázate hacia abajo para ver",
+        "sseError": "Actualizaciones en tiempo real no disponibles: {error}",
+        "closedMessage": "La conversación está cerrada. Por favor inicia un nuevo chat para continuar."
+      },
+      "placeholders": {
+        "aiMode": "Pregunta al asistente de IA...",
+        "waitingMode": "Esperando un agente...",
+        "activeMode": "Escribe un mensaje..."
+      },
+      "actions": {
+        "transferLabel": "Transferir a humano"
+      }
+    }
+  },
+  "staff": {
+    "loading": {
+      "message": "Cargando herramientas del personal...",
+      "hint": "Sincronizando conversaciones y tickets"
+    },
+    "dashboard": {
+      "pageTitle": "Panel del personal",
+      "welcome": "Bienvenido, {name}",
+      "welcomeMessage": "¡Bienvenido de nuevo! Aquí hay un resumen de tus tickets.",
+      "stats": {
+        "assignedTickets": "Tickets asignados",
+        "activeConversations": "Conversaciones activas",
+        "resolvedToday": "Resueltos hoy",
+        "avgResponseTime": "Tiempo de respuesta promedio"
+      },
+      "actions": {
+        "searchTickets": "Buscar tickets",
+        "knowledgeBase": "Base de conocimientos",
+        "viewAllTickets": "Ver todos los tickets",
+        "openTickets": "Tickets abiertos",
+        "browseKnowledgeBase": "Explorar base de conocimientos",
+        "browseArticles": "Explorar artículos →"
+      },
+      "quickActions": {
+        "title": "Acciones rápidas"
+      },
+      "helpCard": {
+        "title": "¿Necesitas ayuda?",
+        "description": "Consulta nuestra base de conocimientos para preguntas frecuentes y soluciones."
+      }
+    },
+    "customers": {
+      "pageTitle": "Clientes",
+      "pageDescription": "Ver y gestionar información de clientes",
+      "stats": {
+        "totalCustomers": "Total de clientes",
+        "withPhone": "Con teléfono",
+        "regions": "Regiones"
+      },
+      "filter": {
+        "title": "Filtrar clientes",
+        "description": "Buscar y filtrar lista de clientes",
+        "searchPlaceholder": "Buscar por nombre, correo o teléfono...",
+        "regionPlaceholder": "Región",
+        "allRegions": "Todas las regiones",
+        "refresh": "Actualizar"
+      },
+      "list": {
+        "title": "Lista de clientes",
+        "found": "{count} cliente(s) encontrado(s)",
+        "loading": "Cargando clientes...",
+        "noCustomers": "No se encontraron clientes",
+        "adjustSearch": "Intenta ajustar tus criterios de búsqueda",
+        "noData": "No hay clientes disponibles"
+      },
+      "table": {
+        "customer": "Cliente",
+        "email": "Correo",
+        "phone": "Teléfono",
+        "region": "Región",
+        "language": "Idioma",
+        "joined": "Registrado",
+        "actions": "Acciones",
+        "viewTickets": "Ver tickets",
+        "unknown": "Desconocido"
+      }
+    },
+    "settings": {
+      "pageTitle": "Configuración",
+      "pageDescription": "Gestiona la configuración y preferencias de tu cuenta",
+      "saving": "Guardando...",
+      "save": "Guardar cambios",
+      "personalInfo": {
+        "title": "Información del perfil",
+        "description": "Actualiza tu información personal",
+        "fullNameLabel": "Nombre completo",
+        "fullNamePlaceholder": "Ingresa tu nombre completo",
+        "emailLabel": "Correo electrónico",
+        "emailHint": "El correo no se puede cambiar",
+        "phoneLabel": "Número de teléfono",
+        "phonePlaceholder": "+34 600 000 000",
+        "languageLabel": "Idioma",
+        "changeAvatar": "Cambiar avatar",
+        "avatarHint": "JPG, PNG o GIF. Tamaño máximo 2MB"
+      },
+      "notifications": {
+        "title": "Notificaciones",
+        "description": "Configura cómo recibes notificaciones",
+        "emailLabel": "Notificaciones por correo",
+        "emailDescription": "Recibir notificaciones por correo electrónico",
+        "desktopLabel": "Notificaciones de escritorio",
+        "desktopDescription": "Mostrar notificaciones de escritorio para actualizaciones",
+        "newTicketLabel": "Alertas de nuevos tickets",
+        "newTicketDescription": "Ser notificado cuando se asignen nuevos tickets",
+        "newMessageLabel": "Alertas de nuevos mensajes",
+        "newMessageDescription": "Ser notificado sobre nuevos mensajes de conversación"
+      },
+      "preferences": {
+        "title": "Preferencias de trabajo",
+        "description": "Configura tu entorno de trabajo",
+        "autoAssignLabel": "Asignación automática de tickets",
+        "autoAssignDescription": "Recibir automáticamente nuevos tickets",
+        "showClosedLabel": "Mostrar tickets cerrados",
+        "showClosedDescription": "Mostrar tickets cerrados en la lista",
+        "defaultViewLabel": "Vista predeterminada",
+        "listView": "Lista",
+        "gridView": "Cuadrícula"
+      },
+      "security": {
+        "title": "Seguridad",
+        "description": "Gestiona la seguridad de tu cuenta",
+        "changePasswordLabel": "Cambiar contraseña",
+        "passwordDisabledHint": "La gestión de contraseñas está actualmente deshabilitada en modo demo"
+      },
+      "toast": {
+        "saveSuccess": "¡Configuración guardada correctamente!",
+        "saveError": "Error al guardar configuración"
+      }
+    },
+    "conversations": {
+      "pageTitle": "Gestión de conversaciones",
+      "pageDescription": "Gestiona conversaciones de clientes y proporciona soporte",
+      "stats": {
+        "total": "Todas las conversaciones",
+        "waiting": "En espera",
+        "active": "Activas",
+        "closed": "Cerradas"
+      },
+      "filter": {
+        "title": "Filtrar conversaciones",
+        "description": "Buscar y filtrar lista de conversaciones",
+        "searchPlaceholder": "Buscar por nombre del cliente, correo o ID de conversación...",
+        "statusPlaceholder": "Estado",
+        "allStatuses": "Todos los estados"
+      },
+      "list": {
+        "title": "Lista de conversaciones",
+        "subtitle": "Se encontraron {count} conversaciones",
+        "loading": "Cargando conversaciones...",
+        "empty": {
+          "title": "Sin conversaciones",
+          "subtitle": "Aún no hay conversaciones de clientes",
+          "filterSubtitle": "Intenta ajustar tus criterios de búsqueda"
+        }
+      },
+      "sse": {
+        "live": "🟢 Actualizaciones en vivo",
+        "offline": "🔴 Sin conexión",
+        "error": "Error de conexión"
+      },
+      "card": {
+        "unknown": "Cliente desconocido",
+        "noEmail": "Sin correo",
+        "status": {
+          "waiting": "En espera",
+          "active": "Activa",
+          "closed": "Cerrada"
+        },
+        "mode": {
+          "ai": "IA",
+          "human": "Humano"
+        },
+        "messageCount": "{count} mensajes",
+        "assignedStaff": "Personal asignado",
+        "unassigned": "Sin asignar",
+        "lastActivity": "Última actividad",
+        "noActivity": "Sin actividad",
+        "createdTime": "Hora de creación",
+        "viewButton": "Ver conversación"
+      },
+      "notification": {
+        "newTransfer": "Nueva conversación transferida",
+        "transferReason": "Razón: {reason}"
+      },
+      "messageInput": {
+        "placeholder": "Escribe tu mensaje...",
+        "send": "Enviar",
+        "sending": "Enviando..."
+      },
+      "transfer": {
+        "requestHuman": "Solicitar agente humano",
+        "transferReason": "Razón de la transferencia"
+      },
+      "detail": {
+        "notFound": {
+          "title": "Conversación no encontrada",
+          "description": "La conversación que buscas no existe.",
+          "backButton": "Volver a conversaciones"
+        },
+        "sseError": "Actualizaciones en tiempo real no disponibles: {message}",
+        "newMessageNotification": "Nuevo mensaje recibido - desplázate hacia abajo para ver",
+        "header": {
+          "backButton": "Volver",
+          "title": "Conversación con {name}",
+          "titleFallback": "Cliente",
+          "connected": "🟢 Conectado",
+          "closeButton": "Cerrar conversación"
+        },
+        "input": {
+          "placeholder": "Escribe tu respuesta..."
+        },
+        "closed": {
+          "message": "Conversación cerrada"
+        },
+        "customer": {
+          "title": "Información del cliente",
+          "unknown": "Cliente desconocido",
+          "noEmail": "Sin correo",
+          "customerId": "ID del cliente:"
+        },
+        "details": {
+          "title": "Detalles de la conversación",
+          "status": "Estado:",
+          "mode": "Modo:",
+          "messageCount": "Cantidad de mensajes:",
+          "createdTime": "Hora de creación:",
+          "updatedTime": "Hora de actualización:",
+          "transferredTime": "Hora de transferencia:",
+          "transferReason": "Razón de transferencia:",
+          "statusWaiting": "En espera",
+          "statusActive": "Activa",
+          "statusClosed": "Cerrada",
+          "modeAI": "IA",
+          "modeHuman": "Humano"
+        },
+        "quickActions": {
+          "title": "Acciones rápidas",
+          "viewHistory": "Ver historial del cliente",
+          "createTicket": "Crear ticket",
+          "addNote": "Agregar nota interna"
+        }
+      }
+    },
+    "tickets": {
+      "pageTitle": "Tickets",
+      "pageDescription": "Gestiona y rastrea tickets de soporte al cliente",
+      "status": {
+        "newUpdates": "Nuevas actualizaciones",
+        "live": "En vivo",
+        "connecting": "Conectando...",
+        "offline": "Sin conexión"
+      },
+      "search": {
+        "placeholder": "Buscar tickets por número, título o cliente...",
+        "button": "Buscar"
+      },
+      "filters": {
+        "button": "Filtros"
+      },
+      "tabs": {
+        "all": "Todos los tickets",
+        "open": "Abiertos",
+        "pending": "Pendientes",
+        "closed": "Cerrados"
+      },
+      "detail": {
+        "ticketNotFound": "Ticket no encontrado",
+        "backToTickets": "Volver a tickets",
+        "back": "Volver",
+        "ticketNumber": "Ticket #{number}",
+        "created": "Creado {date}",
+        "conversation": "Conversación",
+        "conversationCount": "Conversación ({count})",
+        "noArticles": "Sin artículos aún",
+        "internalBadge": "Interno"
+      }
     }
   },
   "settings": {
@@ -206,47 +1236,47 @@
     "pushNotifications": "Notificaciones push",
     "selectLanguage": "Seleccionar idioma",
     "ai": {
-      "title": "AI Auto-Reply",
-      "description": "Configure AI auto replies to help the support team respond faster",
-      "enableLabel": "Enable AI auto-reply",
-      "enableHint": "When enabled, the system uses AI to provide an initial response to customers",
-      "modelLabel": "AI model",
-      "modelHint": "Name of the AI model (for example gpt-3.5-turbo or gpt-4)",
-      "temperatureLabel": "Temperature",
-      "temperatureHint": "Controls randomness of replies (0-2, recommended 0.7)",
-      "promptLabel": "System prompt",
-      "promptPlaceholder": "You are a professional support assistant...",
-      "promptHint": "Define the AI role and response style",
+      "title": "Respuesta automática con IA",
+      "description": "Configura respuestas automáticas con IA para ayudar al equipo de soporte a responder más rápido",
+      "enableLabel": "Habilitar respuesta automática con IA",
+      "enableHint": "Cuando está habilitado, el sistema usa IA para proporcionar una respuesta inicial a los clientes",
+      "modelLabel": "Modelo de IA",
+      "modelHint": "Nombre del modelo de IA (por ejemplo gpt-3.5-turbo o gpt-4)",
+      "temperatureLabel": "Temperatura",
+      "temperatureHint": "Controla la aleatoriedad de las respuestas (0-2, recomendado 0.7)",
+      "promptLabel": "Prompt del sistema",
+      "promptPlaceholder": "Eres un asistente de soporte profesional...",
+      "promptHint": "Define el rol de la IA y el estilo de respuesta",
       "fastgpt": {
-        "title": "FastGPT configuration",
-        "url": "FastGPT URL",
-        "urlHint": "FastGPT server URL",
-        "appId": "FastGPT app ID",
-        "appIdHint": "FastGPT app ID",
-        "apiKey": "FastGPT API key",
-        "apiKeyHint": "FastGPT API key"
+        "title": "Configuración de FastGPT",
+        "url": "URL de FastGPT",
+        "urlHint": "URL del servidor FastGPT",
+        "appId": "ID de aplicación FastGPT",
+        "appIdHint": "ID de la aplicación FastGPT",
+        "apiKey": "Clave API de FastGPT",
+        "apiKeyHint": "Clave API de FastGPT"
       },
       "save": {
-        "label": "Save settings",
-        "saving": "Saving..."
+        "label": "Guardar configuración",
+        "saving": "Guardando..."
       },
       "test": {
-        "label": "Test FastGPT connection",
-        "testing": "Testing...",
-        "success": "Connection test succeeded",
-        "error": "Connection test failed",
-        "missingConfig": "Enable AI and complete the FastGPT fields before testing",
-        "resultSuccess": "Connection succeeded",
-        "resultFail": "Connection failed",
-        "responseTime": "Response time: {ms}ms",
-        "testReply": "AI test reply:",
-        "genericError": "Test failed",
-        "networkError": "Network error, please check your connection"
+        "label": "Probar conexión FastGPT",
+        "testing": "Probando...",
+        "success": "Prueba de conexión exitosa",
+        "error": "Prueba de conexión fallida",
+        "missingConfig": "Habilita la IA y completa los campos de FastGPT antes de probar",
+        "resultSuccess": "Conexión exitosa",
+        "resultFail": "Conexión fallida",
+        "responseTime": "Tiempo de respuesta: {ms}ms",
+        "testReply": "Respuesta de prueba de IA:",
+        "genericError": "Prueba fallida",
+        "networkError": "Error de red, por favor verifica tu conexión"
       },
-      "saveSuccess": "AI settings saved successfully",
-      "saveError": "Failed to save AI settings",
-      "loadError": "Failed to load AI settings",
-      "loadErrorGeneral": "Failed to fetch AI settings"
+      "saveSuccess": "Configuración de IA guardada correctamente",
+      "saveError": "Error al guardar configuración de IA",
+      "loadError": "Error al cargar configuración de IA",
+      "loadErrorGeneral": "Error al obtener configuración de IA"
     }
   },
   "errors": {
@@ -264,100 +1294,361 @@
     "maxLength": "Debe tener como máximo {max} caracteres",
     "passwordMismatch": "Las contraseñas no coinciden"
   },
+  "toast": {
+    "admin": {
+      "users": {
+        "createSuccess": "¡Usuario creado correctamente!",
+        "createError": "Error al crear usuario",
+        "validationError": "Error de validación",
+        "updateSuccess": "Usuario actualizado correctamente",
+        "updateError": "Error al actualizar usuario",
+        "loadError": "Error al cargar usuarios",
+        "deleteSuccess": "Usuario eliminado",
+        "deleteError": "Error al eliminar usuario"
+      },
+      "faq": {
+        "createSuccess": "¡Artículo creado correctamente!",
+        "createError": "Error al crear artículo",
+        "updateSuccess": "¡Artículo actualizado correctamente!",
+        "updateError": "Error al actualizar artículo",
+        "deleteSuccess": "Artículo de FAQ eliminado correctamente",
+        "deleteError": "Error al eliminar artículo de FAQ",
+        "loadError": "Error al cargar artículos de FAQ",
+        "published": "Artículo de FAQ publicado correctamente",
+        "unpublished": "Artículo de FAQ despublicado correctamente",
+        "toggleError": "Error al actualizar artículo de FAQ"
+      },
+      "settings": {
+        "saveSuccess": "Configuración guardada correctamente",
+        "saveError": "Error al guardar configuración"
+      },
+      "tickets": {
+        "ticketCreated": "Nuevo ticket creado",
+        "ticketUpdated": "Ticket actualizado",
+        "ticketDeleted": "Ticket eliminado",
+        "ticketChanged": "Ticket modificado"
+      },
+      "ticketDetail": {
+        "updateSuccess": "Ticket actualizado correctamente",
+        "noteAdded": "Nota interna agregada",
+        "replyAdded": "Respuesta agregada",
+        "deleteSuccess": "Ticket eliminado correctamente",
+        "deleteError": "Error al eliminar ticket"
+      }
+    },
+    "customer": {
+      "tickets": {
+        "createSuccess": "¡Ticket creado correctamente!",
+        "createError": "Error al crear ticket",
+        "updateSuccess": "¡Ticket actualizado correctamente!",
+        "loginRequired": "Por favor inicie sesión para crear un ticket",
+        "selectProduct": "Por favor seleccione una categoría y modelo de producto.",
+        "maxFilesExceeded": "Puede subir hasta 5 archivos adjuntos.",
+        "fileSizeExceeded": "Cada archivo debe ser de 512MB o menos.",
+        "loadError": "Error al cargar tickets",
+        "replyRequired": "Por favor ingrese el contenido de la respuesta",
+        "replySent": "Respuesta enviada",
+        "replyError": "Error al enviar respuesta"
+      },
+      "complaints": {
+        "submitSuccess": "Su queja ha sido enviada",
+        "submitError": "Error al enviar queja"
+      },
+      "feedback": {
+        "submitSuccess": "¡Gracias por tu sugerencia! La revisaremos.",
+        "submitError": "Error al enviar comentarios",
+        "loginRequired": "Por favor inicie sesión para enviar comentarios"
+      },
+      "settings": {
+        "saveSuccess": "Configuración guardada correctamente",
+        "saveError": "Error al guardar"
+      },
+      "faq": {
+        "categoriesError": "Error al cargar categorías",
+        "popularError": "Error al cargar FAQ populares",
+        "searchError": "Error al buscar FAQ",
+        "loadError": "Error al cargar FAQ",
+        "articleError": "Error al cargar artículo",
+        "feedbackSuccess": "¡Gracias por tu comentario!",
+        "feedbackError": "Error al enviar comentario"
+      },
+      "conversations": {
+        "loadError": "Error al cargar conversaciones",
+        "startError": "Error al iniciar conversación",
+        "sendError": "Error al enviar mensaje",
+        "transferSuccess": "Transferido correctamente a un agente humano",
+        "transferError": "Error en la transferencia, por favor intenta de nuevo",
+        "switchToAISuccess": "Cambiado al asistente de IA",
+        "switchToAIError": "Error al cambiar, por favor intenta de nuevo",
+        "aiUnavailable": "El servicio de IA no está disponible temporalmente, por favor transfiera a un agente humano",
+        "networkError": "Error de conexión de red, por favor verifica e intenta de nuevo",
+        "aiError": "Error en la respuesta de IA, por favor intenta de nuevo o transfiere a un agente humano",
+        "actionLabel": {
+          "transferToHuman": "Transferir a humano"
+        }
+      }
+    },
+    "staff": {
+      "conversations": {
+        "sendSuccess": "Mensaje enviado",
+        "sendError": "Error al enviar mensaje",
+        "transferSuccess": "Conversación transferida",
+        "transferError": "Error al transferir conversación",
+        "aiUnavailable": "El servicio de IA no está disponible temporalmente, por favor transfiera a un agente humano",
+        "loadError": "Error al cargar conversaciones",
+        "sseUnavailable": "Actualizaciones en tiempo real no disponibles",
+        "closeSuccess": "Conversación cerrada",
+        "closeError": "Error al cerrar conversación"
+      },
+      "tickets": {
+        "updateSuccess": "¡Ticket actualizado correctamente!",
+        "updateError": "Error al actualizar ticket",
+        "noteAdded": "Nota agregada correctamente",
+        "ticketUpdated": "Ticket actualizado - actualiza para ver cambios"
+      },
+      "customers": {
+        "loadError": "Error al cargar clientes"
+      }
+    },
+    "components": {
+      "messageInput": {
+        "sendError": "Error al enviar mensaje",
+        "fileSizeError": "El tamaño del archivo debe ser menor a 10MB"
+      }
+    }
+  },
   "complaints": {
-    "title": "Submit complaint",
-    "subtitle": "We value every customer's feedback; your complaint will be handled promptly.",
-    "detailsTitle": "Complaint details",
-    "detailsDescription": "Please describe your complaint in detail. We will investigate and respond quickly.",
+    "title": "Enviar queja",
+    "subtitle": "Valoramos los comentarios de cada cliente; tu queja será atendida prontamente.",
+    "detailsTitle": "Detalles de la queja",
+    "detailsDescription": "Por favor describe tu queja en detalle. Investigaremos y responderemos rápidamente.",
     "category": {
-      "label": "Complaint category *",
+      "label": "Categoría de la queja *",
       "options": {
-        "service": "Service quality",
-        "product": "Product quality",
-        "delivery": "Delivery issue",
-        "billing": "Billing issue",
-        "other": "Other complaint"
+        "service": "Calidad del servicio",
+        "product": "Calidad del producto",
+        "delivery": "Problema de entrega",
+        "billing": "Problema de facturación",
+        "other": "Otra queja"
       }
     },
     "severity": {
-      "label": "Severity *",
+      "label": "Severidad *",
       "options": {
-        "1": "Low - minor inconvenience",
-        "2": "Medium - standard issue",
-        "3": "High - major impact",
-        "4": "Urgent - critical issue"
+        "1": "Baja - inconveniente menor",
+        "2": "Media - problema estándar",
+        "3": "Alta - impacto mayor",
+        "4": "Urgente - problema crítico"
       }
     },
     "titleField": {
-      "label": "Complaint title *",
-      "placeholder": "Briefly summarize your complaint",
-      "help": "{count}/200 characters"
+      "label": "Título de la queja *",
+      "placeholder": "Resume brevemente tu queja",
+      "help": "{count}/200 caracteres"
     },
     "descriptionField": {
-      "label": "Detailed description *",
-      "placeholder": "Please describe the complaint in detail, including:&#10;1. When and where the issue happened&#10;2. People or products involved&#10;3. The specific issue and its impact&#10;4. Your expected resolution",
-      "help": "{count}/1200 characters"
+      "label": "Descripción detallada *",
+      "placeholder": "Por favor describe la queja en detalle, incluyendo:&#10;1. Cuándo y dónde ocurrió el problema&#10;2. Personas o productos involucrados&#10;3. El problema específico y su impacto&#10;4. Tu resolución esperada",
+      "help": "{count}/1200 caracteres"
     },
     "contactField": {
-      "label": "Contact method *",
-      "placeholder": "Email or phone",
-      "help": "We will contact you via this method to follow up on your complaint."
+      "label": "Método de contacto *",
+      "placeholder": "Correo electrónico o teléfono",
+      "help": "Te contactaremos por este método para dar seguimiento a tu queja."
     },
     "actions": {
-      "cancel": "Cancel",
-      "submit": "Submit complaint",
-      "submitting": "Submitting..."
+      "cancel": "Cancelar",
+      "submit": "Enviar queja",
+      "submitting": "Enviando..."
     },
-    "success": "Your complaint has been submitted. We will process it as soon as possible.",
-    "warningsTitle": "Important notes",
+    "success": "Tu queja ha sido enviada. La procesaremos lo antes posible.",
+    "warningsTitle": "Notas importantes",
     "warnings": [
-      "Please provide accurate information so we can handle your complaint effectively.",
-      "We will provide an initial response within 24 hours of receiving your complaint.",
-      "Urgent complaints are prioritized for rapid resolution.",
-      "You can check complaint updates and replies under \"My Tickets.\"",
-      "If you have any questions, contact us via live chat at any time."
+      "Por favor proporciona información precisa para que podamos manejar tu queja efectivamente.",
+      "Proporcionaremos una respuesta inicial dentro de las 24 horas de recibir tu queja.",
+      "Las quejas urgentes tienen prioridad para resolución rápida.",
+      "Puedes verificar actualizaciones y respuestas de quejas en \"Mis tickets\".",
+      "Si tienes alguna pregunta, contáctanos a través del chat en vivo en cualquier momento."
     ],
-    "ticketPrefix": "[Complaint]",
-    "loginRequired": "Please login to submit a complaint"
+    "ticketPrefix": "[Queja]",
+    "loginRequired": "Por favor inicie sesión para enviar una queja"
   },
   "myTickets": {
-    "title": "My tickets",
-    "subtitle": "View and manage all tickets you have submitted",
-    "listTitle": "Ticket list",
+    "title": "Mis tickets",
+    "subtitle": "Ver y gestionar todos los tickets que has enviado",
+    "listTitle": "Lista de tickets",
     "listDescription": "Total {count} tickets",
-    "searchPlaceholder": "Search ticket title or number...",
+    "searchPlaceholder": "Buscar título o número de ticket...",
     "empty": {
-      "title": "No tickets yet",
-      "description": "You have not submitted any tickets yet",
-      "noResults": "No matching tickets found",
-      "hint": "Please create a ticket via live chat."
+      "title": "Sin tickets aún",
+      "description": "Aún no has enviado ningún ticket",
+      "noResults": "No se encontraron tickets coincidentes",
+      "hint": "Por favor crea un ticket a través del chat en vivo."
     },
     "table": {
-      "id": "Ticket ID",
-      "title": "Title",
-      "status": "Status",
-      "priority": "Priority",
-      "replies": "Replies",
-      "created": "Created",
-      "updated": "Updated",
-      "actions": "Actions",
-      "view": "View details",
-      "loadMore": "Load more",
-      "loading": "Loading..."
+      "id": "ID del ticket",
+      "title": "Título",
+      "status": "Estado",
+      "priority": "Prioridad",
+      "replies": "Respuestas",
+      "created": "Creado",
+      "updated": "Actualizado",
+      "actions": "Acciones",
+      "view": "Ver detalles",
+      "loadMore": "Cargar más",
+      "loading": "Cargando..."
     },
     "priority": {
-      "1": "Low",
-      "2": "Medium",
-      "3": "High",
-      "4": "Urgent",
-      "unknown": "Unknown"
+      "1": "Baja",
+      "2": "Media",
+      "3": "Alta",
+      "4": "Urgente",
+      "unknown": "Desconocida"
     },
     "status": {
-      "1": "New",
-      "2": "In progress",
-      "3": "Waiting reply",
-      "4": "Closed",
-      "unknown": "Unknown"
+      "1": "Nuevo",
+      "2": "En progreso",
+      "3": "Esperando respuesta",
+      "4": "Cerrado",
+      "unknown": "Desconocido"
+    }
+  },
+  "components": {
+    "conversation": {
+      "header": {
+        "aiAssistant": "Asistente de IA",
+        "waitingAssignment": "Esperando asignación",
+        "aiMode": "Chat con IA",
+        "humanMode": "Agente humano",
+        "ariaLabels": {
+          "aiChat": "Chat con IA",
+          "connected": "Conectado",
+          "connecting": "Conectando...",
+          "disconnected": "Desconectado"
+        },
+        "buttons": {
+          "transferring": "Transfiriendo...",
+          "switchToHuman": "Cambiar a humano",
+          "switchingToHuman": "Cambiando...",
+          "switchToAI": "Cambiar a IA",
+          "switchingToAI": "Cambiando...",
+          "transferToHuman": "Transferir a humano"
+        }
+      },
+      "messageInput": {
+        "placeholder": "Escribe un mensaje...",
+        "enterToSend": "Enter para enviar",
+        "shiftEnterNewLine": "Shift+Enter = nueva línea",
+        "attachFile": "Adjuntar archivo",
+        "sendMessage": "Enviar mensaje"
+      },
+      "messageList": {
+        "unsupportedType": "Tipo de mensaje no soportado",
+        "noMessages": "Sin mensajes aún",
+        "noMessagesHint": "Inicia la conversación enviando un mensaje",
+        "staff": "Personal",
+        "admin": "Admin"
+      },
+      "transferDialog": {
+        "title": "Transferir a agente humano",
+        "description": "Estás a punto de transferir del asistente de IA a un agente humano. El agente podrá ver tu historial completo de conversación para mejor asistencia.",
+        "reasonLabel": "Descripción del problema (opcional)",
+        "reasonPlaceholder": "Por favor describe brevemente el problema con el que necesitas ayuda. Esto ayudará al agente a resolver tu problema más rápido...",
+        "charCount": "{count} / 300",
+        "continueInWindow": "✓ Continuarás la conversación en la ventana actual sin cambiar",
+        "cancel": "Cancelar",
+        "confirming": "Transfiriendo...",
+        "confirm": "Confirmar transferencia"
+      },
+      "aiHistory": {
+        "title": "Historial de chat con IA",
+        "collapse": "Contraer",
+        "expand": "Expandir"
+      }
+    }
+  },
+  "marketing": {
+    "hero": {
+      "title": "Transforma tu servicio al cliente",
+      "subtitle": "Plataforma impulsada por IA para soporte al cliente fluido y compromiso",
+      "startFreeTrial": "Comenzar prueba gratuita",
+      "watchDemo": "Ver demostración",
+      "noCreditCard": "No se requiere tarjeta de crédito"
+    }
+  },
+  "landing": {
+    "loading": {
+      "title": "Cargando panel...",
+      "verifying": "Verificando credenciales"
+    },
+    "brand": "FleetCommand",
+    "nav": {
+      "solutions": "Soluciones",
+      "pricing": "Precios",
+      "resources": "Recursos",
+      "company": "Empresa",
+      "login": "Iniciar sesión",
+      "getStarted": "Comenzar"
+    },
+    "hero": {
+      "titlePart1": "Gestión de flotas moderna",
+      "titlePart2": "Simplificada",
+      "description": "Rastrea, gestiona y optimiza las operaciones de tu flota con nuestra plataforma integral. Información en tiempo real para una mejor toma de decisiones.",
+      "startFreeTrial": "Comenzar prueba gratuita",
+      "watchDemo": "Ver demostración",
+      "freeTrial": "14 días de prueba gratuita",
+      "noCreditCard": "No se requiere tarjeta de crédito"
+    },
+    "features": {
+      "title": "Todo lo que necesitas para gestionar tu flota",
+      "description": "Funciones potentes diseñadas para ayudarte a reducir costos, mejorar la seguridad y aumentar la eficiencia operativa.",
+      "realTimeTracking": {
+        "name": "Seguimiento en tiempo real",
+        "description": "Monitorea las ubicaciones y el estado de tu flota en tiempo real con integración GPS avanzada."
+      },
+      "performanceAnalytics": {
+        "name": "Análisis de rendimiento",
+        "description": "Obtén información detallada sobre el uso de combustible, comportamiento del conductor y necesidades de mantenimiento."
+      },
+      "safetyCompliance": {
+        "name": "Seguridad y cumplimiento",
+        "description": "Asegura que tu flota cumpla con todos los requisitos regulatorios y estándares de seguridad automáticamente."
+      },
+      "maintenanceScheduling": {
+        "name": "Programación de mantenimiento",
+        "description": "Alertas automatizadas y programación para el mantenimiento de vehículos para prevenir tiempos de inactividad."
+      }
+    },
+    "cta": {
+      "title": "¿Listo para optimizar las operaciones de tu flota?",
+      "description": "Únete a más de 2,000 empresas que usan FleetCommand para reducir costos y mejorar la seguridad.",
+      "button": "Comienza tu prueba gratuita",
+      "noCreditCard": "No se requiere tarjeta de crédito. 14 días de prueba gratuita."
+    },
+    "footer": {
+      "copyright": "© 2025 FleetCommand Inc. Todos los derechos reservados."
+    }
+  },
+  "dashboardComponents": {
+    "recentActivity": {
+      "title": "Actividad reciente",
+      "noActivity": "Sin actividad reciente",
+      "noActivityHint": "Tus conversaciones y mensajes recientes aparecerán aquí",
+      "activity": {
+        "newMessage": "Nuevo mensaje",
+        "statusChanged": "Estado cambiado a {status}",
+        "assigned": "Conversación asignada",
+        "default": "Actividad"
+      }
+    },
+    "recentTickets": {
+      "title": "Tickets recientes",
+      "noTickets": "Sin tickets recientes"
+    }
+  },
+  "layouts": {
+    "navbar": {
+      "notifications": "Notificaciones"
     }
   }
 }

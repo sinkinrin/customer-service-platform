@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     let filteredArticles = articles
     if (query) {
       const lowerQuery = query.toLowerCase()
-      filteredArticles = articles.filter((article) => {
+      filteredArticles = articles.filter((article: typeof articles[number]) => {
         const translation = article.translations[0]
         if (!translation) return false
 
@@ -116,10 +116,10 @@ export async function GET(request: NextRequest) {
     }
 
     // PERFORMANCE: Calculate ratings in-memory (no extra DB queries)
-    const articlesWithRatings = filteredArticles.map((article) => {
+    const articlesWithRatings = filteredArticles.map((article: typeof articles[number]) => {
       const translation = article.translations[0]
-      const helpfulCount = article.ratings.filter(r => r.isHelpful).length
-      const notHelpfulCount = article.ratings.filter(r => !r.isHelpful).length
+      const helpfulCount = article.ratings.filter((r: { isHelpful: boolean }) => r.isHelpful).length
+      const notHelpfulCount = article.ratings.filter((r: { isHelpful: boolean }) => !r.isHelpful).length
 
       return {
         id: article.id.toString(), // Frontend expects string ID

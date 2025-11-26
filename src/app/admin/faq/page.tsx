@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -48,6 +49,8 @@ interface FAQItem {
 }
 
 export default function FAQManagementPage() {
+  const t = useTranslations('admin.faq')
+  const tToast = useTranslations('toast.admin.faq')
   const [items, setItems] = useState<FAQItem[]>([])
   const [filteredItems, setFilteredItems] = useState<FAQItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -99,7 +102,7 @@ export default function FAQManagementPage() {
       setItems(faqItems)
       setFilteredItems(faqItems)
     } catch (error) {
-      toast.error('Failed to load FAQ items')
+      toast.error(tToast('loadError'))
       console.error(error)
     } finally {
       setLoading(false)
@@ -185,10 +188,10 @@ export default function FAQManagementPage() {
         throw new Error(error.error || 'Failed to delete FAQ item')
       }
 
-      toast.success('FAQ item deleted successfully')
+      toast.success(tToast('deleteSuccess'))
       fetchItems()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete FAQ item')
+      toast.error(error instanceof Error ? error.message : tToast('deleteError'))
       console.error(error)
     } finally {
       setDeleteDialogOpen(false)
@@ -213,10 +216,10 @@ export default function FAQManagementPage() {
         throw new Error(error.error || 'Failed to update FAQ item')
       }
 
-      toast.success(`FAQ item ${newIsActive ? 'published' : 'unpublished'} successfully`)
+      toast.success(newIsActive ? tToast('published') : tToast('unpublished'))
       fetchItems()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update FAQ item')
+      toast.error(error instanceof Error ? error.message : tToast('toggleError'))
       console.error(error)
     }
   }
@@ -235,21 +238,21 @@ export default function FAQManagementPage() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">FAQ Management</h1>
+          <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
           <p className="text-muted-foreground mt-2">
-            Manage FAQ items from Zammad Knowledge Base
+            {t('pageDescription')}
           </p>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          Create FAQ
+          {t('createFAQ')}
         </Button>
       </div>
 
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
+          <CardTitle>{t('filters')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -257,7 +260,7 @@ export default function FAQManagementPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by title or content..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -267,10 +270,10 @@ export default function FAQManagementPage() {
             {/* Category Filter */}
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder={t('allCategories')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">{t('allCategories')}</SelectItem>
                 {categoryOptions.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -282,34 +285,34 @@ export default function FAQManagementPage() {
             {/* State Filter */}
             <Select value={stateFilter} onValueChange={setStateFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="All States" />
+                <SelectValue placeholder={t('allStates')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All States</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
+                <SelectItem value="all">{t('allStates')}</SelectItem>
+                <SelectItem value="published">{t('published')}</SelectItem>
+                <SelectItem value="draft">{t('draft')}</SelectItem>
+                <SelectItem value="archived">{t('archived')}</SelectItem>
               </SelectContent>
             </Select>
 
             {/* Sort By */}
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger>
-                <SelectValue placeholder="Sort By" />
+                <SelectValue placeholder={t('sortBy')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="updated_at">Last Updated</SelectItem>
-                <SelectItem value="created_at">Created Date</SelectItem>
-                <SelectItem value="title">Title (A-Z)</SelectItem>
-                <SelectItem value="views">Most Viewed</SelectItem>
-                <SelectItem value="likes">Most Liked</SelectItem>
+                <SelectItem value="updated_at">{t('sortOptions.lastUpdated')}</SelectItem>
+                <SelectItem value="created_at">{t('sortOptions.createdDate')}</SelectItem>
+                <SelectItem value="title">{t('sortOptions.titleAZ')}</SelectItem>
+                <SelectItem value="views">{t('sortOptions.mostViewed')}</SelectItem>
+                <SelectItem value="likes">{t('sortOptions.mostLiked')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Results Count */}
           <div className="mt-4 text-sm text-muted-foreground">
-            Showing {filteredItems.length} of {items.length} FAQ items
+            {t('showingResults', { showing: filteredItems.length, total: items.length })}
           </div>
         </CardContent>
       </Card>
@@ -317,9 +320,9 @@ export default function FAQManagementPage() {
       {/* FAQ Items Table */}
       <Card>
         <CardHeader>
-          <CardTitle>FAQ Items</CardTitle>
+          <CardTitle>{t('faqItems')}</CardTitle>
           <CardDescription>
-            {filteredItems.length} items found
+            {t('itemsFound', { count: filteredItems.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -329,26 +332,26 @@ export default function FAQManagementPage() {
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No FAQ items found
+              {t('noItemsFound')}
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>State</TableHead>
+                    <TableHead>{t('table.title')}</TableHead>
+                    <TableHead>{t('table.category')}</TableHead>
+                    <TableHead>{t('table.state')}</TableHead>
                     <TableHead className="text-center">
                       <Eye className="h-4 w-4 inline mr-1" />
-                      Views
+                      {t('table.views')}
                     </TableHead>
                     <TableHead className="text-center">
                       <ThumbsUp className="h-4 w-4 inline mr-1" />
-                      Likes
+                      {t('table.likes')}
                     </TableHead>
-                    <TableHead>Updated</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>{t('table.updated')}</TableHead>
+                    <TableHead>{t('table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -387,15 +390,15 @@ export default function FAQManagementPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleTogglePublish(item)}
-                            title={item.state === 'published' ? 'Unpublish' : 'Publish'}
+                            title={item.state === 'published' ? t('actions.unpublish') : t('actions.publish')}
                           >
-                            {item.state === 'published' ? 'Unpublish' : 'Publish'}
+                            {item.state === 'published' ? t('actions.unpublish') : t('actions.publish')}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(item)}
-                            title="Edit"
+                            title={t('actions.edit')}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -406,7 +409,7 @@ export default function FAQManagementPage() {
                               setItemToDelete(item)
                               setDeleteDialogOpen(true)
                             }}
-                            title="Delete"
+                            title={t('actions.delete')}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -420,7 +423,7 @@ export default function FAQManagementPage() {
               {/* Pagination */}
               <div className="flex justify-between items-center mt-4">
                 <div className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages} ({filteredItems.length} items)
+                  {t('pagination.page', { current: currentPage, total: totalPages, count: filteredItems.length })}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -429,7 +432,7 @@ export default function FAQManagementPage() {
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
-                    Previous
+                    {t('pagination.previous')}
                   </Button>
                   <Button
                     variant="outline"
@@ -437,7 +440,7 @@ export default function FAQManagementPage() {
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                   >
-                    Next
+                    {t('pagination.next')}
                   </Button>
                 </div>
               </div>
@@ -450,18 +453,17 @@ export default function FAQManagementPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the FAQ item &quot;{itemToDelete?.title}&quot;.
-              This action cannot be undone.
+              {t('deleteDialog.description', { title: itemToDelete?.title || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setItemToDelete(null)}>
-              Cancel
+              {t('deleteDialog.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
+              {t('deleteDialog.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

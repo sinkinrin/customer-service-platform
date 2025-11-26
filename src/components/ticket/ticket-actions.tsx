@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Save, X, Clock } from 'lucide-react'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
+import { useTranslations } from 'next-intl'
 
 interface TicketActionsProps {
   ticket: ZammadTicket
@@ -28,18 +29,18 @@ interface TicketActionsProps {
   isLoading?: boolean
 }
 
-const STATES = [
-  { value: 'new', label: 'New' },
-  { value: 'open', label: 'Open' },
-  { value: 'pending reminder', label: 'Pending Reminder' },
-  { value: 'pending close', label: 'Pending Close' },
-  { value: 'closed', label: 'Closed' },
+const STATE_KEYS = [
+  { value: 'new', labelKey: 'new' },
+  { value: 'open', labelKey: 'open' },
+  { value: 'pending reminder', labelKey: 'pendingReminder' },
+  { value: 'pending close', labelKey: 'pendingClose' },
+  { value: 'closed', labelKey: 'closed' },
 ]
 
-const PRIORITIES = [
-  { value: '1 low', label: 'Low' },
-  { value: '2 normal', label: 'Normal' },
-  { value: '3 high', label: 'High' },
+const PRIORITY_KEYS = [
+  { value: '1 low', labelKey: 'low' },
+  { value: '2 normal', labelKey: 'normal' },
+  { value: '3 high', labelKey: 'high' },
 ]
 
 export function TicketActions({
@@ -48,6 +49,8 @@ export function TicketActions({
   onAddNote,
   isLoading,
 }: TicketActionsProps) {
+  const t = useTranslations('tickets.details')
+  const tCommon = useTranslations('common')
   const [state, setState] = useState(ticket.state)
   const [priority, setPriority] = useState(ticket.priority)
   const [pendingTime, setPendingTime] = useState('')
@@ -97,7 +100,7 @@ export function TicketActions({
       const stateLower = state.toLowerCase()
       if (stateLower === 'pending reminder' || stateLower === 'pending close') {
         if (!pendingTime) {
-          alert('Please select a pending time for this state.')
+          alert(t('selectPendingTime'))
           return
         }
         // Convert to ISO 8601 format
@@ -134,19 +137,19 @@ export function TicketActions({
       {/* Status and Priority */}
       <Card>
         <CardHeader>
-          <CardTitle>Ticket Status</CardTitle>
+          <CardTitle>{t('ticketStatus')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="state">State</Label>
+            <Label htmlFor="state">{t('state')}</Label>
             <Select value={state} onValueChange={handleStateChange}>
               <SelectTrigger id="state">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATES.map((s) => (
+                {STATE_KEYS.map((s) => (
                   <SelectItem key={s.value} value={s.value}>
-                    {s.label}
+                    {t(`states.${s.labelKey}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -158,7 +161,7 @@ export function TicketActions({
             <div className="space-y-2">
               <Label htmlFor="pending-time" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Pending Until *
+                {t('pendingUntil')}
               </Label>
               <Input
                 id="pending-time"
@@ -170,21 +173,21 @@ export function TicketActions({
                 required
               />
               <p className="text-sm text-muted-foreground">
-                Select when this ticket should be automatically updated
+                {t('pendingReminder')}
               </p>
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="priority">Priority</Label>
+            <Label htmlFor="priority">{t('priority')}</Label>
             <Select value={priority} onValueChange={handlePriorityChange}>
               <SelectTrigger id="priority">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PRIORITIES.map((p) => (
+                {PRIORITY_KEYS.map((p) => (
                   <SelectItem key={p.value} value={p.value}>
-                    {p.label}
+                    {t(`priorities.${p.labelKey}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -199,7 +202,7 @@ export function TicketActions({
                 className="flex-1"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Changes
+                {t('saveChanges')}
               </Button>
               <Button
                 variant="outline"
@@ -207,7 +210,7 @@ export function TicketActions({
                 disabled={isLoading}
               >
                 <X className="h-4 w-4 mr-2" />
-                Cancel
+                {tCommon('cancel')}
               </Button>
             </div>
           )}
@@ -217,14 +220,14 @@ export function TicketActions({
       {/* Add Note */}
       <Card>
         <CardHeader>
-          <CardTitle>Add Note</CardTitle>
+          <CardTitle>{t('addNote')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="note">Note Content</Label>
+            <Label htmlFor="note">{t('noteContent')}</Label>
             <Textarea
               id="note"
-              placeholder="Add a note or reply to this ticket..."
+              placeholder={t('notePlaceholder')}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={4}
@@ -240,7 +243,7 @@ export function TicketActions({
               className="h-4 w-4 rounded border-gray-300"
             />
             <Label htmlFor="internal" className="cursor-pointer">
-              Internal note (not visible to customer)
+              {t('internalNoteCheckbox')}
             </Label>
           </div>
 
@@ -249,7 +252,7 @@ export function TicketActions({
             disabled={!note.trim() || isLoading}
             className="w-full"
           >
-            Add Note
+            {t('addNote')}
           </Button>
         </CardContent>
       </Card>

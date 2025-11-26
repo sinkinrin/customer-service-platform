@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Clock } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
+import { useTranslations } from 'next-intl'
 
 interface RecentTicketsProps {
   tickets: ZammadTicket[]
@@ -30,12 +31,13 @@ const getStatusColor = (state: string) => {
 
 export function RecentTickets({ tickets, isLoading }: RecentTicketsProps) {
   const router = useRouter()
+  const t = useTranslations('dashboardComponents.recentTickets')
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Tickets</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -58,11 +60,11 @@ export function RecentTickets({ tickets, isLoading }: RecentTicketsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Tickets</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center py-8">
-            No recent tickets
+            {t('noTickets')}
           </p>
         </CardContent>
       </Card>
@@ -72,7 +74,7 @@ export function RecentTickets({ tickets, isLoading }: RecentTicketsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Tickets</CardTitle>
+        <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">

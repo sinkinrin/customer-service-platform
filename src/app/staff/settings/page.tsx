@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Save, User, Bell, Globe, Lock, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useTranslations } from 'next-intl'
 
 interface StaffSettings {
   full_name: string
@@ -39,6 +40,13 @@ interface StaffSettings {
 
 export default function StaffSettingsPage() {
   const { user } = useAuth()
+  const t = useTranslations('staff.settings')
+  const tPersonal = useTranslations('staff.settings.personalInfo')
+  const tNotifications = useTranslations('staff.settings.notifications')
+  const tPreferences = useTranslations('staff.settings.preferences')
+  const tSecurity = useTranslations('staff.settings.security')
+  const tToast = useTranslations('staff.settings.toast')
+  const tCommon = useTranslations('common.localeNames')
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<StaffSettings>({
     full_name: '',
@@ -75,10 +83,10 @@ export default function StaffSettingsPage() {
     try {
       // Simulate API call - in production, this would update user settings
       await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success('Settings saved successfully')
+      toast.success(tToast('saveSuccess'))
     } catch (error) {
       console.error('Failed to save settings:', error)
-      toast.error('Failed to save settings')
+      toast.error(tToast('saveError'))
     } finally {
       setSaving(false)
     }
@@ -88,9 +96,9 @@ export default function StaffSettingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
+        <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage your account settings and preferences
+          {t('pageDescription')}
         </p>
       </div>
 
@@ -100,8 +108,8 @@ export default function StaffSettingsPage() {
           <div className="flex items-center gap-4">
             <User className="h-5 w-5" />
             <div>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your personal information</CardDescription>
+              <CardTitle>{tPersonal('title')}</CardTitle>
+              <CardDescription>{tPersonal('description')}</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -114,29 +122,29 @@ export default function StaffSettingsPage() {
             </Avatar>
             <div>
               <Button variant="outline" size="sm" disabled>
-                Change Avatar
+                {tPersonal('changeAvatar')}
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
-                JPG, PNG or GIF. Max size 2MB
+                {tPersonal('avatarHint')}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name</Label>
+              <Label htmlFor="full_name">{tPersonal('fullNameLabel')}</Label>
               <Input
                 id="full_name"
                 value={settings.full_name}
                 onChange={(e) =>
                   setSettings({ ...settings, full_name: e.target.value })
                 }
-                placeholder="Enter your full name"
+                placeholder={tPersonal('fullNamePlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{tPersonal('emailLabel')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -145,12 +153,12 @@ export default function StaffSettingsPage() {
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Email cannot be changed
+                {tPersonal('emailHint')}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">{tPersonal('phoneLabel')}</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -158,12 +166,12 @@ export default function StaffSettingsPage() {
                 onChange={(e) =>
                   setSettings({ ...settings, phone: e.target.value })
                 }
-                placeholder="+1 (555) 000-0000"
+                placeholder={tPersonal('phonePlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
+              <Label htmlFor="language">{tPersonal('languageLabel')}</Label>
               <Select
                 value={settings.language}
                 onValueChange={(value) =>
@@ -175,12 +183,12 @@ export default function StaffSettingsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="zh-CN">简体中文</SelectItem>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="ru">Русский</SelectItem>
-                  <SelectItem value="pt">Português</SelectItem>
+                  <SelectItem value="en">{tCommon('en')}</SelectItem>
+                  <SelectItem value="zh-CN">{tCommon('zh-CN')}</SelectItem>
+                  <SelectItem value="fr">{tCommon('fr')}</SelectItem>
+                  <SelectItem value="es">{tCommon('es')}</SelectItem>
+                  <SelectItem value="ru">{tCommon('ru')}</SelectItem>
+                  <SelectItem value="pt">{tCommon('pt')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -194,9 +202,9 @@ export default function StaffSettingsPage() {
           <div className="flex items-center gap-4">
             <Bell className="h-5 w-5" />
             <div>
-              <CardTitle>Notifications</CardTitle>
+              <CardTitle>{tNotifications('title')}</CardTitle>
               <CardDescription>
-                Configure how you receive notifications
+                {tNotifications('description')}
               </CardDescription>
             </div>
           </div>
@@ -204,9 +212,9 @@ export default function StaffSettingsPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Email Notifications</Label>
+              <Label>{tNotifications('emailLabel')}</Label>
               <p className="text-sm text-muted-foreground">
-                Receive notifications via email
+                {tNotifications('emailDescription')}
               </p>
             </div>
             <Switch
@@ -224,9 +232,9 @@ export default function StaffSettingsPage() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Desktop Notifications</Label>
+              <Label>{tNotifications('desktopLabel')}</Label>
               <p className="text-sm text-muted-foreground">
-                Show desktop notifications for updates
+                {tNotifications('desktopDescription')}
               </p>
             </div>
             <Switch
@@ -244,9 +252,9 @@ export default function StaffSettingsPage() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>New Ticket Alerts</Label>
+              <Label>{tNotifications('newTicketLabel')}</Label>
               <p className="text-sm text-muted-foreground">
-                Get notified when new tickets are assigned
+                {tNotifications('newTicketDescription')}
               </p>
             </div>
             <Switch
@@ -264,9 +272,9 @@ export default function StaffSettingsPage() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>New Message Alerts</Label>
+              <Label>{tNotifications('newMessageLabel')}</Label>
               <p className="text-sm text-muted-foreground">
-                Get notified about new conversation messages
+                {tNotifications('newMessageDescription')}
               </p>
             </div>
             <Switch
@@ -285,15 +293,15 @@ export default function StaffSettingsPage() {
       {/* Preferences Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Preferences</CardTitle>
-          <CardDescription>Customize your work environment</CardDescription>
+          <CardTitle>{tPreferences('title')}</CardTitle>
+          <CardDescription>{tPreferences('description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Auto-assign Tickets</Label>
+              <Label>{tPreferences('autoAssignLabel')}</Label>
               <p className="text-sm text-muted-foreground">
-                Automatically assign new tickets to you
+                {tPreferences('autoAssignDescription')}
               </p>
             </div>
             <Switch
@@ -311,9 +319,9 @@ export default function StaffSettingsPage() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Show Closed Tickets</Label>
+              <Label>{tPreferences('showClosedLabel')}</Label>
               <p className="text-sm text-muted-foreground">
-                Display closed tickets in the main view
+                {tPreferences('showClosedDescription')}
               </p>
             </div>
             <Switch
@@ -330,7 +338,7 @@ export default function StaffSettingsPage() {
           <Separator />
 
           <div className="space-y-2">
-            <Label htmlFor="defaultView">Default View</Label>
+            <Label htmlFor="defaultView">{tPreferences('defaultViewLabel')}</Label>
             <Select
               value={settings.preferences.defaultView}
               onValueChange={(value: 'list' | 'grid') =>
@@ -344,8 +352,8 @@ export default function StaffSettingsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="list">List View</SelectItem>
-                <SelectItem value="grid">Grid View</SelectItem>
+                <SelectItem value="list">{tPreferences('listView')}</SelectItem>
+                <SelectItem value="grid">{tPreferences('gridView')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -358,17 +366,17 @@ export default function StaffSettingsPage() {
           <div className="flex items-center gap-4">
             <Lock className="h-5 w-5" />
             <div>
-              <CardTitle>Security</CardTitle>
-              <CardDescription>Manage your account security</CardDescription>
+              <CardTitle>{tSecurity('title')}</CardTitle>
+              <CardDescription>{tSecurity('description')}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button variant="outline" disabled>
-            Change Password
+            {tSecurity('changePasswordLabel')}
           </Button>
           <p className="text-sm text-muted-foreground">
-            Password management is currently disabled in demo mode
+            {tSecurity('passwordDisabledHint')}
           </p>
         </CardContent>
       </Card>
@@ -379,12 +387,12 @@ export default function StaffSettingsPage() {
           {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              {t('saving')}
             </>
           ) : (
             <>
               <Save className="mr-2 h-4 w-4" />
-              Save Changes
+              {t('save')}
             </>
           )}
         </Button>

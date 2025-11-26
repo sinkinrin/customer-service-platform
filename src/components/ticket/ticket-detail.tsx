@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { User, Calendar, Clock, Tag } from 'lucide-react'
 import { format } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
+import { useTranslations } from 'next-intl'
 
 interface TicketDetailProps {
   ticket: ZammadTicket
@@ -58,13 +59,15 @@ const getPriorityColor = (priority: string | undefined) => {
 }
 
 export function TicketDetail({ ticket }: TicketDetailProps) {
+  const t = useTranslations('tickets.details')
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-2xl">
-              Ticket #{ticket.number}
+              {t('ticketNumber', { number: ticket.number })}
             </CardTitle>
             <p className="text-lg text-muted-foreground mt-2">
               {ticket.title}
@@ -83,13 +86,13 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
       <CardContent>
         <div className="space-y-6">
           <Separator />
-          
+
           {/* Customer Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Customer</p>
+                <p className="text-sm font-medium">{t('customer')}</p>
                 <p className="text-sm text-muted-foreground">{ticket.customer}</p>
               </div>
             </div>
@@ -97,7 +100,7 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
             <div className="flex items-start gap-3">
               <Tag className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Group</p>
+                <p className="text-sm font-medium">{t('group')}</p>
                 <p className="text-sm text-muted-foreground">{ticket.group}</p>
               </div>
             </div>
@@ -110,7 +113,7 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Created</p>
+                <p className="text-sm font-medium">{t('created')}</p>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(ticket.created_at), 'PPpp')}
                 </p>
@@ -120,7 +123,7 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
             <div className="flex items-start gap-3">
               <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Last Updated</p>
+                <p className="text-sm font-medium">{t('lastUpdated')}</p>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(ticket.updated_at), 'PPpp')}
                 </p>
@@ -134,9 +137,9 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
               <div className="flex items-start gap-3">
                 <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Assigned To</p>
+                  <p className="text-sm font-medium">{t('assignedTo')}</p>
                   <p className="text-sm text-muted-foreground">
-                    Owner ID: {ticket.owner_id}
+                    {t('ownerId', { id: ticket.owner_id })}
                   </p>
                 </div>
               </div>

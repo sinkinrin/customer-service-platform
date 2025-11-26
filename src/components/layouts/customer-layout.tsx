@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   HelpCircle,
   MessageSquare,
@@ -23,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
 import { LanguageSelector } from "@/components/language-selector"
 import { UnreadBadge } from "@/components/ui/unread-badge"
@@ -46,38 +48,46 @@ interface NavItem {
   children?: NavItem[]
 }
 
-const navigation: NavItem[] = [
+// Navigation items use translation keys
+const getNavigation = (t: (key: string) => string): NavItem[] => [
   {
-    name: "自助服务",
+    name: t('helpCenter'),
     href: "/customer/faq",
     icon: HelpCircle,
   },
   {
-    name: "在线咨询",
+    name: t('liveChat'),
     href: "/customer/conversations",
     icon: MessageSquare,
   },
   {
-    name: "工单管理",
+    name: t('ticketManagement'),
     icon: FileText,
     children: [
-      { name: "提交工单", href: "/customer/my-tickets/create", icon: FileText },
-      { name: "我的工单", href: "/customer/my-tickets", icon: FileText },
+      { name: t('submitTicket'), href: "/customer/my-tickets/create", icon: FileText },
+      { name: t('myTickets'), href: "/customer/my-tickets", icon: FileText },
     ],
   },
   {
-    name: "反馈与投诉",
+    name: t('feedbackComplaints'),
     icon: MessageCircle,
     children: [
-      { name: "提交建议", href: "/customer/feedback", icon: MessageCircle },
-      { name: "提交投诉", href: "/customer/complaints", icon: MessageCircle },
+      { name: t('submitFeedback'), href: "/customer/feedback", icon: MessageCircle },
+      { name: t('submitComplaint'), href: "/customer/complaints", icon: MessageCircle },
     ],
   },
 ]
 
 export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps) {
+  const t = useTranslations('auth.layout')
+  const tCommon = useTranslations('common')
+  const tNav = useTranslations('nav')
+  const tSidebar = useTranslations('nav.customer')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [expandedItems, setExpandedItems] = useState<string[]>(["工单管理", "反馈与投诉"])
+
+  // Get navigation with translated names
+  const navigation = getNavigation(tSidebar)
+  const [expandedItems, setExpandedItems] = useState<string[]>([tSidebar('ticketManagement'), tSidebar('feedbackComplaints')])
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
 
@@ -110,10 +120,10 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
   const renderNavItem = (item: NavItem) => {
     const isExpanded = expandedItems.includes(item.name)
-    const hasChildren = item.children && item.children.length > 0
+    const children = item.children ?? []
     const Icon = item.icon
 
-    if (hasChildren) {
+    if (children.length > 0) {
       return (
         <div key={item.name}>
           <button
@@ -132,7 +142,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
           </button>
           {isExpanded && (
             <div className="ml-4 mt-1 space-y-1">
-              {item.children.map((child) => {
+              {children.map((child) => {
                 const ChildIcon = child.icon
                 const isActive = pathname === child.href
                 return (
@@ -202,10 +212,10 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
               </Button>
               <Link href="/customer/dashboard" className="flex items-center space-x-2">
                 <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-lg">CS</span>
+                  <span className="text-primary-foreground font-bold text-lg">{t('brandShort')}</span>
                 </div>
                 <span className="font-semibold text-lg hidden sm:inline-block">
-                  客户服务
+                  {t('brandName')}
                 </span>
               </Link>
             </div>
@@ -234,13 +244,13 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/customer/dashboard">仪表板</Link>
+                      <Link href="/customer/dashboard">{tNav('dashboard')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/customer/settings">设置</Link>
+                      <Link href="/customer/settings">{tNav('settings')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={onLogout}>退出登录</DropdownMenuItem>
+                    <DropdownMenuItem onClick={onLogout}>{tCommon('layout.signOut')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -253,7 +263,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-background fixed left-0 top-16 bottom-0">
           <div className="mb-4 px-4 pt-6 flex-shrink-0">
-            <h2 className="px-4 text-lg font-semibold">客户服务</h2>
+            <h2 className="px-4 text-lg font-semibold">{tCommon('layout.customerService')}</h2>
           </div>
           <div className="flex-1 px-4 space-y-2 overflow-y-auto pb-24">
             {navigation.map(renderNavItem)}
@@ -291,13 +301,13 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/customer/dashboard">仪表板</Link>
+                  <Link href="/customer/dashboard">{tNav('dashboard')}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/customer/settings">设置</Link>
+                  <Link href="/customer/settings">{tNav('settings')}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogout}>退出登录</DropdownMenuItem>
+                <DropdownMenuItem onClick={onLogout}>{tCommon('layout.signOut')}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -313,7 +323,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
             <aside className="fixed left-0 top-16 bottom-0 w-64 bg-background border-r">
               <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                 <div className="mb-4">
-                  <h2 className="px-4 text-lg font-semibold">客户服务</h2>
+                  <h2 className="px-4 text-lg font-semibold">{tCommon('layout.customerService')}</h2>
                 </div>
                 {navigation.map(renderNavItem)}
               </div>
@@ -323,14 +333,16 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto lg:ml-64">
-          <div className="container mx-auto px-4 py-6">{children}</div>
+          <PageTransition key={pathname}>
+            <div className="container mx-auto px-4 py-6">{children}</div>
+          </PageTransition>
         </main>
       </div>
 
       {/* Footer */}
       <footer className="border-t py-6 mt-auto">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Customer Service Platform. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {tCommon('appName')}. All rights reserved.</p>
         </div>
       </footer>
     </div>

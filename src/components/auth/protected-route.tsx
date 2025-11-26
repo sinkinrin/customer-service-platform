@@ -9,6 +9,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { PageLoader } from '@/components/ui/page-loader'
+import { useTranslations } from 'next-intl'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -27,6 +29,7 @@ export function ProtectedRoute({
   const { isLoading, isAuthenticated, userRole, user, getUserRole } = useAuth()
   const [loadingTimeoutReached, setLoadingTimeoutReached] = useState(false)
   const [inferredRole, setInferredRole] = useState<'customer' | 'staff' | 'admin' | null>(null)
+  const t = useTranslations('auth.accessDenied')
 
   useEffect(() => {
     if (!isLoading) return
@@ -84,14 +87,7 @@ export function ProtectedRoute({
 
   // Show loading state while checking authentication
   if (isLoading && !isAuthenticated && !loadingTimeoutReached) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
+    return <PageLoader message="Loading workspace..." hint="Checking your session status" />
   }
 
   // Don't render children if not authenticated
@@ -102,14 +98,7 @@ export function ProtectedRoute({
   // Check role-based access control
   // If role requirement exists but role is not yet available, keep showing loading instead of denying
   if ((requiredRole || requiredRoles) && isAuthenticated && !(userRole || inferredRole)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-4 text-sm text-muted-foreground">Loading permissions...</p>
-        </div>
-      </div>
-    )
+    return <PageLoader message="Loading permissions..." hint="Confirming your access level" />
   }
 
   if ((requiredRole || requiredRoles) && !isRoleAllowed()) {
@@ -133,12 +122,12 @@ export function ProtectedRoute({
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">{t('title')}</h1>
           <p className="text-muted-foreground mb-6">
-            You don&apos;t have permission to access this page.
+            {t('description')}
             {role && (
               <span className="block mt-2 text-sm">
-                Your role: <span className="font-semibold capitalize">{role}</span>
+                {t('yourRole')} <span className="font-semibold capitalize">{role}</span>
               </span>
             )}
           </p>
@@ -146,7 +135,7 @@ export function ProtectedRoute({
             onClick={() => router.back()}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
           >
-            Go Back
+            {t('goBack')}
           </button>
         </div>
       </div>

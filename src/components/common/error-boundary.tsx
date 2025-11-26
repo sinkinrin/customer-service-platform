@@ -1,6 +1,6 @@
 /**
  * Error Boundary Component
- * 
+ *
  * Catches JavaScript errors anywhere in the component tree
  */
 
@@ -9,10 +9,17 @@
 import { Component, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { useTranslations } from 'next-intl'
 
 interface ErrorBoundaryProps {
   children: ReactNode
   fallback?: ReactNode
+  translations?: {
+    title: string
+    description: string
+    tryAgain: string
+    goHome: string
+  }
 }
 
 interface ErrorBoundaryState {
@@ -53,13 +60,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         return this.props.fallback
       }
 
+      const t = this.props.translations || {
+        title: 'Something went wrong',
+        description: 'An unexpected error occurred. Please try again.',
+        tryAgain: 'Try again',
+        goHome: 'Go home',
+      }
+
       return (
         <div className="min-h-screen flex items-center justify-center p-4">
           <Card className="max-w-md w-full">
             <CardHeader>
-              <CardTitle className="text-destructive">Something went wrong</CardTitle>
+              <CardTitle className="text-destructive">{t.title}</CardTitle>
               <CardDescription>
-                An unexpected error occurred. Please try again.
+                {t.description}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -73,10 +87,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </CardContent>
             <CardFooter className="flex gap-2">
               <Button onClick={this.handleReset} variant="default">
-                Try again
+                {t.tryAgain}
               </Button>
               <Button onClick={() => window.location.href = '/'} variant="outline">
-                Go home
+                {t.goHome}
               </Button>
             </CardFooter>
           </Card>
@@ -86,5 +100,26 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     return this.props.children
   }
+}
+
+/**
+ * ErrorBoundary wrapper with translations
+ */
+export function ErrorBoundaryWithTranslations({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
+  const t = useTranslations('common.errorBoundary')
+
+  return (
+    <ErrorBoundary
+      fallback={fallback}
+      translations={{
+        title: t('title'),
+        description: t('description'),
+        tryAgain: t('tryAgain'),
+        goHome: t('goHome'),
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  )
 }
 

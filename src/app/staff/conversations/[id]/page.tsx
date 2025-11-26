@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useConversation } from '@/lib/hooks/use-conversation'
 import { MessageList } from '@/components/conversation/message-list'
 import { MessageInput } from '@/components/conversation/message-input'
@@ -28,6 +29,8 @@ export default function StaffConversationDetailPage() {
   const params = useParams()
   const router = useRouter()
   const conversationId = params.id as string
+  const t = useTranslations('staff.conversations.detail')
+  const tToast = useTranslations('toast.staff.conversations')
 
   const [showNewMessageNotification, setShowNewMessageNotification] = useState(false)
 
@@ -112,7 +115,7 @@ export default function StaffConversationDetailPage() {
       await sendMessage(conversationId, content, messageType, metadata)
     } catch (error) {
       console.error('Error sending message:', error)
-      toast.error('Failed to send message')
+      toast.error(tToast('sendError'))
     }
   }
 
@@ -131,11 +134,11 @@ export default function StaffConversationDetailPage() {
         throw new Error(data.error?.message || 'Failed to close conversation')
       }
 
-      toast.success('Conversation closed')
+      toast.success(tToast('closeSuccess'))
       await fetchConversationById(conversationId)
     } catch (error) {
       console.error('Close conversation error:', error)
-      toast.error('Failed to close conversation')
+      toast.error(tToast('closeError'))
     }
   }
 
@@ -147,11 +150,11 @@ export default function StaffConversationDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] space-y-4">
         <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <h2 className="text-2xl font-bold">Conversation not found</h2>
-        <p className="text-muted-foreground">The conversation you&apos;re looking for doesn&apos;t exist.</p>
+        <h2 className="text-2xl font-bold">{t('notFound.title')}</h2>
+        <p className="text-muted-foreground">{t('notFound.description')}</p>
         <Button onClick={() => router.push('/staff/conversations')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Conversations
+          {t('notFound.backButton')}
         </Button>
       </div>
     )
@@ -187,7 +190,7 @@ export default function StaffConversationDetailPage() {
           <Alert variant="destructive" className="m-4 mb-0 rounded-lg">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Real-time updates unavailable: {sseError.message}
+              {t('sseError', { message: sseError.message })}
             </AlertDescription>
           </Alert>
         )}
@@ -196,7 +199,7 @@ export default function StaffConversationDetailPage() {
         {showNewMessageNotification && (
           <Alert className="m-4 mb-0 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 rounded-lg">
             <AlertDescription className="text-blue-900 dark:text-blue-100">
-              New message received - scroll down to view
+              {t('newMessageNotification')}
             </AlertDescription>
           </Alert>
         )}
@@ -204,45 +207,49 @@ export default function StaffConversationDetailPage() {
         {/* Header - Sticky */}
         <div className="sticky top-0 z-10 border-b bg-background shadow-sm">
           <div className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push('/staff/conversations')}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  返回
-                </Button>
-                <div>
-                  <h1 className="text-xl font-bold">与 {customer?.full_name || '客户'} 的对话</h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={getStatusBadgeVariant(conversationStatus)}>
-                      {conversationStatus}
-                    </Badge>
-                    <Badge variant={conversationMode === 'ai' ? 'default' : 'secondary'}>
-                      {conversationMode === 'ai' ? 'AI' : 'Human'}
-                    </Badge>
-                    {isConnected && (
-                      <Badge variant="outline" className="text-green-600 border-green-600">
-                        🟢 已连接
+            <div className="container max-w-5xl mx-auto px-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push('/staff/conversations')}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    {t('header.backButton')}
+                  </Button>
+                  <div>
+                    <h1 className="text-xl font-bold">
+                      {t('header.title', { name: customer?.full_name || t('header.titleFallback') })}
+                    </h1>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant={getStatusBadgeVariant(conversationStatus)}>
+                        {conversationStatus}
                       </Badge>
-                    )}
+                      <Badge variant={conversationMode === 'ai' ? 'default' : 'secondary'}>
+                        {conversationMode === 'ai' ? t('details.modeAI') : t('details.modeHuman')}
+                      </Badge>
+                      {isConnected && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          {t('header.connected')}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
+                {!isClosed && (
+                  <Button variant="destructive" size="sm" onClick={handleCloseConversation}>
+                    {t('header.closeButton')}
+                  </Button>
+                )}
               </div>
-              {!isClosed && (
-                <Button variant="destructive" size="sm" onClick={handleCloseConversation}>
-                  关闭对话
-                </Button>
-              )}
             </div>
           </div>
         </div>
 
         {/* Messages - Scrollable */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="container max-w-4xl py-4">
+          <div className="container max-w-5xl mx-auto px-4 py-4">
             <MessageList
               messages={messages}
               isLoading={isLoadingMessages}
@@ -255,12 +262,14 @@ export default function StaffConversationDetailPage() {
         {/* Input - Sticky Bottom */}
         {!isClosed && (
           <div className="sticky bottom-0 z-10 bg-background border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-            <MessageInput
-              onSend={handleSendMessage}
-              isSending={isSendingMessage}
-              disabled={isClosed}
-              placeholder="输入回复..."
-            />
+            <div className="container max-w-5xl mx-auto px-4 py-3">
+              <MessageInput
+                onSend={handleSendMessage}
+                isSending={isSendingMessage}
+                disabled={isClosed}
+                placeholder={t('input.placeholder')}
+              />
+            </div>
           </div>
         )}
 
@@ -268,7 +277,7 @@ export default function StaffConversationDetailPage() {
           <div className="sticky bottom-0 z-10 border-t bg-muted p-4">
             <div className="container max-w-4xl text-center">
               <p className="text-sm text-muted-foreground">
-                对话已关闭
+                {t('closed.message')}
               </p>
             </div>
           </div>
@@ -283,7 +292,7 @@ export default function StaffConversationDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              客户信息
+              {t('customer.title')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -294,17 +303,17 @@ export default function StaffConversationDetailPage() {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-semibold">{customer?.full_name || '未知客户'}</p>
+                <p className="font-semibold">{customer?.full_name || t('customer.unknown')}</p>
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <Mail className="h-3 w-3" />
-                  {customer?.email || '无邮箱'}
+                  {customer?.email || t('customer.noEmail')}
                 </p>
               </div>
             </div>
             <Separator />
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">客户ID:</span>
+                <span className="text-muted-foreground">{t('customer.customerId')}</span>
                 <span className="font-mono">{customer?.id || 'N/A'}</span>
               </div>
             </div>
@@ -316,34 +325,34 @@ export default function StaffConversationDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
-              对话详情
+              {t('details.title')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">状态:</span>
+              <span className="text-muted-foreground">{t('details.status')}</span>
               <Badge variant={getStatusBadgeVariant(conversationStatus)}>
-                {conversationStatus === 'waiting' ? '等待中' : conversationStatus === 'active' ? '进行中' : '已关闭'}
+                {conversationStatus === 'waiting' ? t('details.statusWaiting') : conversationStatus === 'active' ? t('details.statusActive') : t('details.statusClosed')}
               </Badge>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">模式:</span>
+              <span className="text-muted-foreground">{t('details.mode')}</span>
               <Badge variant={conversationMode === 'ai' ? 'default' : 'secondary'}>
-                {conversationMode === 'ai' ? 'AI' : '人工'}
+                {conversationMode === 'ai' ? t('details.modeAI') : t('details.modeHuman')}
               </Badge>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">消息数:</span>
+              <span className="text-muted-foreground">{t('details.messageCount')}</span>
               <span>{messages.length}</span>
             </div>
             <Separator />
             <div className="flex justify-between">
-              <span className="text-muted-foreground">创建时间:</span>
+              <span className="text-muted-foreground">{t('details.createdTime')}</span>
               <span>{format(new Date(activeConversation.created_at), 'MM-dd HH:mm')}</span>
             </div>
             {activeConversation.updated_at && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">更新时间:</span>
+                <span className="text-muted-foreground">{t('details.updatedTime')}</span>
                 <span>{format(new Date(activeConversation.updated_at), 'MM-dd HH:mm')}</span>
               </div>
             )}
@@ -353,13 +362,13 @@ export default function StaffConversationDetailPage() {
                 <div className="flex items-start justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    转人工时间:
+                    {t('details.transferredTime')}
                   </span>
                   <span>{format(new Date(transferredAt), 'MM-dd HH:mm')}</span>
                 </div>
                 {transferReason && (
                   <div className="bg-muted p-2 rounded-md">
-                    <p className="text-xs text-muted-foreground mb-1">转人工原因:</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('details.transferReason')}</p>
                     <p className="text-sm">{transferReason}</p>
                   </div>
                 )}
@@ -371,17 +380,17 @@ export default function StaffConversationDetailPage() {
         {/* Quick Actions Card */}
         <Card>
           <CardHeader>
-            <CardTitle>快捷操作</CardTitle>
+            <CardTitle>{t('quickActions.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <Button variant="outline" className="w-full justify-start" disabled>
-              查看客户历史
+              {t('quickActions.viewHistory')}
             </Button>
             <Button variant="outline" className="w-full justify-start" disabled>
-              创建工单
+              {t('quickActions.createTicket')}
             </Button>
             <Button variant="outline" className="w-full justify-start" disabled>
-              添加内部备注
+              {t('quickActions.addNote')}
             </Button>
           </CardContent>
         </Card>

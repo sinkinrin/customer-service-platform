@@ -22,6 +22,7 @@ import {
   Globe
 } from 'lucide-react'
 import { type FAQCategory } from '@/lib/hooks/use-faq'
+import { useTranslations } from 'next-intl'
 
 // Category icon mapping
 const categoryIcons: Record<string, any> = {
@@ -60,7 +61,9 @@ export function CategoryList({
   isLoading = false,
   categoryCounts = {},
 }: CategoryListProps) {
+  const t = useTranslations('faq')
   const totalCount = Object.values(categoryCounts).reduce((sum, count) => sum + count, 0)
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -86,7 +89,7 @@ export function CategoryList({
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-8">
           <Folder className="h-12 w-12 text-muted-foreground mb-2" />
-          <p className="text-muted-foreground">No categories available</p>
+          <p className="text-muted-foreground">{t('noCategoriesAvailable')}</p>
         </CardContent>
       </Card>
     )
@@ -110,7 +113,7 @@ export function CategoryList({
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold">All Categories</h3>
+                <h3 className="font-semibold">{t('allCategories')}</h3>
                 {totalCount > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {totalCount}
@@ -118,7 +121,7 @@ export function CategoryList({
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                Browse all FAQ items
+                {t('browseAllFaqItems')}
               </p>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />

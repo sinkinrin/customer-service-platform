@@ -308,6 +308,7 @@ export interface CreateGroupRequest {
 export interface ZammadWebhookPayload {
   event: 'ticket.create' | 'ticket.update' | 'ticket.close' | 'ticket.escalation'
   ticket: ZammadTicket
+  article?: Partial<ZammadArticle> & { id: number }
 }
 
 // ============================================================================

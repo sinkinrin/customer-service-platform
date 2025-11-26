@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +16,9 @@ import { PRODUCT_CATEGORIES } from '@/lib/constants/products'
 export default function CreateTicketPage() {
   const router = useRouter()
   const { user } = useAuth()
+  const t = useTranslations('customer.myTickets')
+  const tCreate = useTranslations('customer.myTickets.create')
+  const tToast = useTranslations('toast.customer.tickets')
   const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -34,7 +38,7 @@ export default function CreateTicketPage() {
     
     // Validate file count
     if (files.length + selectedFiles.length > 5) {
-      toast.error('最多只能上传 5 个附件')
+      toast.error(tToast('maxFilesExceeded'))
       return
     }
 
@@ -42,7 +46,7 @@ export default function CreateTicketPage() {
     const maxSize = 512 * 1024 * 1024
     const invalidFiles = selectedFiles.filter(f => f.size > maxSize)
     if (invalidFiles.length > 0) {
-      toast.error('单个文件大小不能超过 512MB')
+      toast.error(tToast('fileSizeExceeded'))
       return
     }
 
@@ -57,12 +61,12 @@ export default function CreateTicketPage() {
     e.preventDefault()
     
     if (!user?.email) {
-      toast.error('Please login to create a ticket')
+      toast.error(tToast('loginRequired'))
       return
     }
 
     if (!formData.category || !formData.model) {
-      toast.error('请选择产品分类和型号')
+      toast.error(tToast('selectProduct'))
       return
     }
 
@@ -76,7 +80,7 @@ export default function CreateTicketPage() {
         priority_id: parseInt(formData.priority),
         article: {
           subject: formData.title,
-          body: `产品分类: ${formData.category}\n产品型号: ${formData.model}\n\n${formData.description}`,
+          body: `Product category: ${formData.category}\nProduct model: ${formData.model}\n\n${formData.description}`,
           type: 'web' as const,
           internal: false,
         },
@@ -97,11 +101,11 @@ export default function CreateTicketPage() {
       }
 
       const result = await response.json()
-      toast.success('工单创建成功！')
+      toast.success(tToast('createSuccess'))
       router.push(`/customer/my-tickets/${result.data.ticket.id}`)
     } catch (error: any) {
       console.error('Failed to create ticket:', error)
-      toast.error(error.message || 'Failed to create ticket')
+      toast.error(error.message || tToast('createError'))
     } finally {
       setLoading(false)
     }
@@ -109,10 +113,10 @@ export default function CreateTicketPage() {
 
   const getPriorityLabel = (priority: string) => {
     const labels: Record<string, string> = {
-      '1': '低 - 产品使用咨询',
-      '2': '中 - 一般问题',
-      '3': '高 - 业务受损',
-      '4': '紧急 - 业务不可用',
+      '1': tCreate('priorities.1'),
+      '2': tCreate('priorities.2'),
+      '3': tCreate('priorities.3'),
+      '4': tCreate('priorities.4'),
     }
     return labels[priority] || priority
   }
@@ -122,26 +126,24 @@ export default function CreateTicketPage() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <FileText className="h-8 w-8 text-blue-500" />
-          <h1 className="text-3xl font-bold">提交工单</h1>
+          <h1 className="text-3xl font-bold">{t('createPageTitle')}</h1>
         </div>
-        <p className="text-muted-foreground">
-          遇到问题？提交工单，我们的技术支持团队会尽快为您解决
-        </p>
+        <p className="text-muted-foreground">{t('createPageDescription')}</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>工单信息</CardTitle>
+            <CardTitle>{tCreate('formTitle')}</CardTitle>
             <CardDescription>
-              请详细描述您遇到的问题，以便我们更快地为您解决
+              {tCreate('formDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Product Category */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="category">产品分类 *</Label>
+                <Label htmlFor="category">{tCreate('categoryLabel')}</Label>
                 <select
                   id="category"
                   value={formData.category}
@@ -149,7 +151,7 @@ export default function CreateTicketPage() {
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   required
                 >
-                  <option value="">请选择产品分类</option>
+                  <option value="">{tCreate('categoryPlaceholder')}</option>
                   {PRODUCT_CATEGORIES.map(cat => (
                     <option key={cat.name} value={cat.name}>{cat.name}</option>
                   ))}
@@ -157,7 +159,7 @@ export default function CreateTicketPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="model">产品型号 *</Label>
+                <Label htmlFor="model">{tCreate('modelLabel')}</Label>
                 <select
                   id="model"
                   value={formData.model}
@@ -166,7 +168,7 @@ export default function CreateTicketPage() {
                   required
                   disabled={!formData.category}
                 >
-                  <option value="">请选择产品型号</option>
+                  <option value="">{tCreate('modelPlaceholder')}</option>
                   {selectedCategory?.models.map(model => (
                     <option key={model} value={model}>{model}</option>
                   ))}
@@ -176,7 +178,7 @@ export default function CreateTicketPage() {
 
             {/* Priority */}
             <div className="space-y-2">
-              <Label htmlFor="priority">紧急程度 *</Label>
+              <Label htmlFor="priority">{tCreate('priorityLabel')}</Label>
               <select
                 id="priority"
                 value={formData.priority}
@@ -193,40 +195,40 @@ export default function CreateTicketPage() {
 
             {/* Title */}
             <div className="space-y-2">
-              <Label htmlFor="title">问题标题 *</Label>
+              <Label htmlFor="title">{tCreate('titleLabel')}</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="简要描述您的问题"
+                placeholder={tCreate('titlePlaceholder')}
                 required
                 maxLength={200}
               />
               <p className="text-xs text-muted-foreground">
-                {formData.title.length}/200 字符
+                {tCreate('characterCount', { count: formData.title.length, max: 200 })}
               </p>
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">问题描述 *</Label>
+              <Label htmlFor="description">{tCreate('descriptionLabel')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="请详细描述您遇到的问题，包括：&#10;1. 问题发生的时间和频率&#10;2. 具体的错误信息或现象&#10;3. 您已经尝试过的解决方法&#10;4. 问题对您业务的影响"
+                placeholder={tCreate('descriptionPlaceholder')}
                 rows={8}
                 required
                 maxLength={1200}
               />
               <p className="text-xs text-muted-foreground">
-                {formData.description.length}/1200 字符
+                {tCreate('characterCount', { count: formData.description.length, max: 1200 })}
               </p>
             </div>
 
             {/* File Upload */}
             <div className="space-y-2">
-              <Label htmlFor="files">附件（可选）</Label>
+              <Label htmlFor="files">{tCreate('attachmentsLabel')}</Label>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Input
@@ -243,10 +245,10 @@ export default function CreateTicketPage() {
                     disabled={files.length >= 5}
                   >
                     <Upload className="mr-2 h-4 w-4" />
-                    选择文件
+                    {tCreate('selectFiles')}
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    最多 5 个文件，单个文件 ≤ 512MB
+                    {tCreate('fileSizeLimit')}
                   </span>
                 </div>
 
@@ -281,18 +283,18 @@ export default function CreateTicketPage() {
                 onClick={() => router.back()}
                 disabled={loading}
               >
-                取消
+                {tCreate('actions.cancel')}
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    提交中...
+                    {tCreate('actions.submitting')}
                   </>
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" />
-                    提交工单
+                    {tCreate('actions.submit')}
                   </>
                 )}
               </Button>
@@ -304,13 +306,13 @@ export default function CreateTicketPage() {
       {/* Tips */}
       <Card className="mt-6 border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">
         <CardHeader>
-          <CardTitle className="text-blue-900 dark:text-blue-100">💡 提示</CardTitle>
+          <CardTitle className="text-blue-900 dark:text-blue-100">{tCreate('tips.title')}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-          <p>• 请尽可能详细地描述问题，包括截图、日志等信息</p>
-          <p>• 紧急问题会优先处理，我们承诺在 2 小时内响应</p>
-          <p>• 您可以在&quot;我的工单&quot;中查看工单处理进度</p>
-          <p>• 如需紧急支持，请选择&quot;紧急 - 业务不可用&quot;优先级</p>
+          <p>{tCreate('tips.tip1')}</p>
+          <p>{tCreate('tips.tip2')}</p>
+          <p>{tCreate('tips.tip3')}</p>
+          <p>{tCreate('tips.tip4')}</p>
         </CardContent>
       </Card>
     </div>

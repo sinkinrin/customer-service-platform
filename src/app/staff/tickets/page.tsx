@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -13,6 +14,8 @@ import { useSSE } from '@/lib/hooks/use-sse'
 import { toast } from 'sonner'
 
 export default function TicketsPage() {
+  const t = useTranslations('staff.tickets')
+  const tToast = useTranslations('toast.staff.tickets')
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>('all')
   const [hasNewUpdates, setHasNewUpdates] = useState(false)
@@ -29,7 +32,7 @@ export default function TicketsPage() {
         setHasNewUpdates(true)
 
         // Show toast
-        toast.info('Ticket updated - refresh to see changes')
+        toast.info(tToast('ticketUpdated'))
       }
     },
   })
@@ -75,34 +78,34 @@ export default function TicketsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Tickets</h1>
+          <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
           <p className="text-muted-foreground mt-2">
-            Manage and track customer support tickets
+            {t('pageDescription')}
           </p>
         </div>
 
         {/* SSE Status Indicator */}
         <div className="flex items-center gap-2">
           {hasNewUpdates && (
-            <Badge variant="destructive" className="animate-pulse">
+            <Badge variant="destructive" className="animate-pulse motion-reduce:animate-none">
               <Bell className="h-3 w-3 mr-1" />
-              New Updates
+              {t('status.newUpdates')}
             </Badge>
           )}
           {isConnected ? (
             <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
               <Wifi className="h-4 w-4" />
-              <span>Live</span>
+              <span>{t('status.live')}</span>
             </div>
           ) : sseState === 'connecting' ? (
             <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
-              <WifiOff className="h-4 w-4 animate-pulse" />
-              <span>Connecting...</span>
+              <WifiOff className="h-4 w-4 animate-pulse motion-reduce:animate-none" />
+              <span>{t('status.connecting')}</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-sm text-gray-400">
               <WifiOff className="h-4 w-4" />
-              <span>Offline</span>
+              <span>{t('status.offline')}</span>
             </div>
           )}
         </div>
@@ -113,7 +116,7 @@ export default function TicketsPage() {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search tickets by number, title, or customer..."
+            placeholder={t('search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -126,11 +129,11 @@ export default function TicketsPage() {
         </div>
         <Button onClick={handleSearch} disabled={isLoading}>
           <Search className="h-4 w-4 mr-2" />
-          Search
+          {t('search.button')}
         </Button>
         <Button variant="outline">
           <Filter className="h-4 w-4 mr-2" />
-          Filters
+          {t('filters.button')}
         </Button>
       </div>
 
@@ -138,25 +141,25 @@ export default function TicketsPage() {
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">
-            All Tickets
+            {t('tabs.all')}
             {activeTab === 'all' && (
               <span className="ml-2 text-xs">({filteredTickets.length})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="open">
-            Open
+            {t('tabs.open')}
             {activeTab === 'open' && (
               <span className="ml-2 text-xs">({filteredTickets.length})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="pending">
-            Pending
+            {t('tabs.pending')}
             {activeTab === 'pending' && (
               <span className="ml-2 text-xs">({filteredTickets.length})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="closed">
-            Closed
+            {t('tabs.closed')}
             {activeTab === 'closed' && (
               <span className="ml-2 text-xs">({filteredTickets.length})</span>
             )}

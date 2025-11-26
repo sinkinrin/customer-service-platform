@@ -29,11 +29,11 @@ export function Loading({
     <div className={cn('flex flex-col items-center justify-center gap-3', className)}>
       <div
         className={cn(
-          'animate-spin rounded-full border-solid border-current border-r-transparent',
+          'animate-spin motion-reduce:animate-none rounded-full border-solid border-current border-r-transparent',
           sizeClasses[size]
         )}
         role="status"
-        aria-label="Loading"
+        aria-label={text || "Loading"}
       />
       {text && (
         <p className="text-sm text-muted-foreground">{text}</p>

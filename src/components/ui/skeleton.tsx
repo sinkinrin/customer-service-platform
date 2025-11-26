@@ -1,12 +1,22 @@
+import * as React from "react"
 import { cn } from "@/lib/utils"
+
+type SkeletonProps = React.HTMLAttributes<HTMLDivElement> & {
+  shimmer?: boolean
+}
 
 function Skeleton({
   className,
+  shimmer = true,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: SkeletonProps) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
+      className={cn(
+        "relative overflow-hidden rounded-md bg-muted animate-pulse motion-reduce:animate-none",
+        shimmer && "skeleton-shimmer",
+        className
+      )}
       {...props}
     />
   )

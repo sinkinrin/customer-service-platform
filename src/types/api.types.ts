@@ -131,6 +131,17 @@ export interface ZammadWebhookPayload {
     created_at: string
     updated_at: string
   }
+  article?: {
+    id: number
+    ticket_id?: number
+    subject?: string | null
+    body?: string
+    internal?: boolean
+    type?: string
+    sender?: string
+    created_at?: string
+    updated_at?: string
+  }
 }
 
 // ============================================================================

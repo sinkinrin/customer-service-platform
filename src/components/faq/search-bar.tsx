@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search, X } from 'lucide-react'
 import { useDebounce } from '@/lib/hooks/use-debounce'
+import { useTranslations } from 'next-intl'
 
 interface SearchBarProps {
   onSearch: (query: string) => void
@@ -22,14 +23,18 @@ interface SearchBarProps {
 
 export const SearchBar = memo(function SearchBar({
   onSearch,
-  placeholder = 'Search for help...',
+  placeholder,
   defaultValue = '',
   isLoading = false,
   debounceDelay = 300,
 }: SearchBarProps) {
+  const t = useTranslations('faq')
   const [query, setQuery] = useState(defaultValue)
   const debouncedQuery = useDebounce(query, debounceDelay)
   const previousQueryRef = useRef<string>(debouncedQuery)
+
+  // Use translation if no placeholder provided
+  const effectivePlaceholder = placeholder || t('searchHelpPlaceholder')
 
   // PERFORMANCE: Auto-search with debounce (reduces API calls)
   // FIX: Only trigger onSearch when debouncedQuery actually changes
@@ -68,7 +73,7 @@ export const SearchBar = memo(function SearchBar({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           className="pl-10 pr-10"
           disabled={isLoading}
         />
@@ -87,11 +92,11 @@ export const SearchBar = memo(function SearchBar({
       </div>
       <Button onClick={handleSearch} disabled={isLoading || !query.trim()}>
         {isLoading ? (
-          <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin motion-reduce:animate-none" />
         ) : (
           <>
             <Search className="h-4 w-4 mr-2" />
-            Search
+            {t('searchTab')}
           </>
         )}
       </Button>

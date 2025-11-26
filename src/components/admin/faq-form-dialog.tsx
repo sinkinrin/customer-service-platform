@@ -2,7 +2,7 @@
 
 /**
  * FAQ Form Dialog Component
- * 
+ *
  * Dialog for creating and editing FAQ articles with multi-language support
  */
 
@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 interface FAQFormDialogProps {
   open: boolean
@@ -37,7 +38,7 @@ interface FAQFormDialogProps {
 }
 
 const LANGUAGES = [
-  { code: 'zh-CN', name: '中文 (Chinese)' },
+  { code: 'zh-CN', name: 'Simplified Chinese' },
   { code: 'en', name: 'English' },
 ]
 
@@ -47,18 +48,21 @@ interface Category {
 }
 
 export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: FAQFormDialogProps) {
+  const t = useTranslations('admin.faq')
+  const tToast = useTranslations('toast.admin.faq')
+  const tCommon = useTranslations('common')
   const [loading, setLoading] = useState(false)
   const [loadingCategories, setLoadingCategories] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [categoryId, setCategoryId] = useState<number>(1)
   const [slug, setSlug] = useState('')
   const [isActive, setIsActive] = useState(true)
-  const [activeLanguage, setActiveLanguage] = useState('zh-CN')
+  const [activeLanguage, setActiveLanguage] = useState('en')
 
   // Translation data for each language
   const [translations, setTranslations] = useState<Record<string, { title: string; content: string; keywords: string }>>({
-    'zh-CN': { title: '', content: '', keywords: '' },
     'en': { title: '', content: '', keywords: '' },
+    'zh-CN': { title: '', content: '', keywords: '' },
   })
 
   // Fetch categories from API
@@ -109,8 +113,8 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
       
       // Populate translations
       const newTranslations: Record<string, { title: string; content: string; keywords: string }> = {
-        'zh-CN': { title: '', content: '', keywords: '' },
         'en': { title: '', content: '', keywords: '' },
+        'zh-CN': { title: '', content: '', keywords: '' },
       }
       
       article.translations.forEach((t) => {
@@ -128,8 +132,8 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
       setSlug('')
       setIsActive(true)
       setTranslations({
-        'zh-CN': { title: '', content: '', keywords: '' },
         'en': { title: '', content: '', keywords: '' },
+        'zh-CN': { title: '', content: '', keywords: '' },
       })
     }
   }, [mode, article, open])
@@ -142,7 +146,7 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
       // Validate that at least one language has content
       const hasContent = Object.values(translations).some(t => t.title.trim() && t.content.trim())
       if (!hasContent) {
-        toast.error('Please provide at least one language translation')
+        toast.error(t('form.validationError'))
         setLoading(false)
         return
       }
@@ -180,12 +184,12 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
         throw new Error(data.error || `Failed to ${mode} article`)
       }
 
-      toast.success(`Article ${mode === 'create' ? 'created' : 'updated'} successfully!`)
+      toast.success(mode === 'create' ? tToast('createSuccess') : tToast('updateSuccess'))
       onSuccess()
       onOpenChange(false)
     } catch (error: any) {
       console.error(`Failed to ${mode} article:`, error)
-      toast.error(error.message || `Failed to ${mode} article`)
+      toast.error(error.message || (mode === 'create' ? tToast('createError') : tToast('updateError')))
     } finally {
       setLoading(false)
     }
@@ -205,11 +209,11 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'Create FAQ Article' : 'Edit FAQ Article'}</DialogTitle>
+          <DialogTitle>{mode === 'create' ? t('dialog.createTitle') : t('dialog.editTitle')}</DialogTitle>
           <DialogDescription>
-            {mode === 'create' 
-              ? 'Create a new FAQ article with multi-language support' 
-              : 'Update the FAQ article information'}
+            {mode === 'create'
+              ? t('dialog.createDescription')
+              : t('dialog.editDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -218,7 +222,7 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
+                <Label htmlFor="category">{t('form.category')}</Label>
                 <Select
                   value={categoryId.toString()}
                   onValueChange={(v) => setCategoryId(parseInt(v))}
@@ -230,11 +234,11 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
                   <SelectContent>
                     {loadingCategories ? (
                       <SelectItem value="0" disabled>
-                        Loading categories...
+                        {t('form.loadingCategories')}
                       </SelectItem>
                     ) : categories.length === 0 ? (
                       <SelectItem value="0" disabled>
-                        No categories available
+                        {t('form.noCategories')}
                       </SelectItem>
                     ) : (
                       categories.map((cat) => (
@@ -248,10 +252,10 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="slug">Slug (optional)</Label>
+                <Label htmlFor="slug">{t('form.slugLabel')}</Label>
                 <Input
                   id="slug"
-                  placeholder="article-slug"
+                  placeholder={t('form.slugPlaceholder')}
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
                 />
@@ -267,14 +271,14 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
                 className="h-4 w-4 rounded border-gray-300"
               />
               <Label htmlFor="is_active" className="cursor-pointer">
-                Publish immediately
+                {t('form.publishImmediately')}
               </Label>
             </div>
           </div>
 
           {/* Multi-language Translations */}
           <div className="space-y-4">
-            <Label>Translations *</Label>
+            <Label>{t('form.translations')}</Label>
             <Tabs value={activeLanguage} onValueChange={setActiveLanguage}>
               <TabsList className="grid w-full grid-cols-2">
                 {LANGUAGES.map((lang) => (
@@ -287,20 +291,20 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
               {LANGUAGES.map((lang) => (
                 <TabsContent key={lang.code} value={lang.code} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor={`title-${lang.code}`}>Title *</Label>
+                    <Label htmlFor={`title-${lang.code}`}>{t('form.title')}</Label>
                     <Input
                       id={`title-${lang.code}`}
-                      placeholder="Enter article title"
+                      placeholder={t('form.titlePlaceholder')}
                       value={translations[lang.code].title}
                       onChange={(e) => updateTranslation(lang.code, 'title', e.target.value)}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`content-${lang.code}`}>Content *</Label>
+                    <Label htmlFor={`content-${lang.code}`}>{t('form.content')}</Label>
                     <Textarea
                       id={`content-${lang.code}`}
-                      placeholder="Enter article content (Markdown supported)"
+                      placeholder={t('form.contentPlaceholderMarkdown')}
                       value={translations[lang.code].content}
                       onChange={(e) => updateTranslation(lang.code, 'content', e.target.value)}
                       rows={10}
@@ -309,10 +313,10 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`keywords-${lang.code}`}>Keywords (comma-separated)</Label>
+                    <Label htmlFor={`keywords-${lang.code}`}>{t('form.keywordsLabel')}</Label>
                     <Input
                       id={`keywords-${lang.code}`}
-                      placeholder="keyword1, keyword2, keyword3"
+                      placeholder={t('form.keywordsPlaceholder')}
                       value={translations[lang.code].keywords}
                       onChange={(e) => updateTranslation(lang.code, 'keywords', e.target.value)}
                     />
@@ -324,11 +328,11 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === 'create' ? 'Create Article' : 'Save Changes'}
+              {mode === 'create' ? t('form.create') : t('form.save')}
             </Button>
           </DialogFooter>
         </form>

@@ -156,5 +156,33 @@
       "sender_name": "Test Customer"
     },
     "created_at": "2025-11-20T02:48:19.293Z"
+  },
+  {
+    "id": "msg_1763707162689_ttceka3d5",
+    "conversation_id": "conv_1762939714185_ctu53hj7s",
+    "sender_role": "system",
+    "sender_id": "system",
+    "content": "已切换至AI模式",
+    "message_type": "system",
+    "metadata": {
+      "type": "mode_switch",
+      "from": "human",
+      "to": "ai"
+    },
+    "created_at": "2025-11-21T06:39:22.689Z"
+  },
+  {
+    "id": "msg_1763707166966_8jrvqjjaj",
+    "conversation_id": "conv_1762939714185_ctu53hj7s",
+    "sender_role": "system",
+    "sender_id": "system",
+    "content": "您已成功转接至人工客服，客服人员会尽快回复您，请稍候...",
+    "message_type": "system",
+    "metadata": {
+      "type": "transfer_success",
+      "transferredBy": "real-customer-id",
+      "transferredAt": "2025-11-21T06:39:26.961Z"
+    },
+    "created_at": "2025-11-21T06:39:26.966Z"
   }
 ]

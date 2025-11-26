@@ -102,7 +102,7 @@ export default function MyTicketsPage() {
       setPage(pageToLoad)
     } catch (error) {
       console.error('Failed to fetch tickets:', error)
-      toast.error('Failed to load tickets')
+      toast.error(t('toast.loadError'))
     } finally {
       setLoading(false)
       setLoadingMore(false)

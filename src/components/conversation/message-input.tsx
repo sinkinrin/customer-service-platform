@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Send, Paperclip, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 interface MessageInputProps {
   onSend: (content: string, messageType?: 'text' | 'image' | 'file', metadata?: Record<string, unknown>) => Promise<void>
@@ -24,14 +26,18 @@ export function MessageInput({
   onSend,
   isSending = false,
   disabled = false,
-  placeholder = 'Type a message...',
+  placeholder,
   maxLength = 2000,
 }: MessageInputProps) {
+  const t = useTranslations('components.conversation.messageInput')
+  const tToast = useTranslations('toast.components.messageInput')
   const [message, setMessage] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const actualPlaceholder = placeholder || t('placeholder')
   
   // Handle send message
   const handleSend = async () => {
@@ -93,7 +99,7 @@ export function MessageInput({
     } catch (err) {
       const error = err as Error
       console.error('Error sending message:', error)
-      toast.error('Failed to send message')
+      toast.error(tToast('sendError'))
       setIsUploading(false)
     }
   }
@@ -110,13 +116,13 @@ export function MessageInput({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
+
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB')
+      toast.error(tToast('fileSizeError'))
       return
     }
-    
+
     setSelectedFile(file)
   }
   
@@ -146,10 +152,10 @@ export function MessageInput({
   const canSend = (message.trim() || selectedFile) && !isDisabled
   
   return (
-    <div className="p-4">
+    <div className="rounded-2xl border border-border/70 bg-card/90 p-4 shadow-lg backdrop-blur-sm">
       {/* File preview */}
       {selectedFile && (
-        <div className="mb-2 flex items-center gap-2 p-2 bg-muted rounded-lg">
+        <div className="mb-2 flex items-center gap-2 p-2 bg-muted rounded-xl border border-border/60">
           <Paperclip className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm flex-1 truncate">{selectedFile.name}</span>
           <span className="text-xs text-muted-foreground">
@@ -167,7 +173,7 @@ export function MessageInput({
         </div>
       )}
       
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         {/* File upload button */}
         <input
           ref={fileInputRef}
@@ -183,46 +189,61 @@ export function MessageInput({
           size="icon"
           onClick={() => fileInputRef.current?.click()}
           disabled={isDisabled}
-          title="Attach file"
+          title={t('attachFile')}
         >
           <Paperclip className="h-4 w-4" />
         </Button>
-        
+
         {/* Message input */}
-        <Textarea
-          ref={textareaRef}
-          value={message}
-          onChange={handleTextareaChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={isDisabled}
-          className="min-h-[44px] max-h-32 resize-none"
-          rows={1}
-        />
-        
-        {/* Send button */}
-        <Button
-          type="button"
-          onClick={handleSend}
-          disabled={!canSend}
-          size="icon"
-          title="Send message"
-        >
-          {isUploading ? (
-            <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-      
-      {/* Character count */}
-      {message.length > maxLength * 0.8 && (
-        <div className="mt-1 text-xs text-right text-muted-foreground">
-          {message.length} / {maxLength}
+        <div className="flex-1 rounded-xl border border-border/60 bg-background/80 shadow-inner px-3 py-2 transition focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/10">
+          <Textarea
+            ref={textareaRef}
+            value={message}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            placeholder={actualPlaceholder}
+            disabled={isDisabled}
+            className={cn(
+              "min-h-[48px] max-h-36 w-full resize-none bg-transparent p-0 ring-0 focus-visible:ring-0 focus-visible:outline-none",
+              "text-sm leading-6"
+            )}
+            rows={1}
+          />
+          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium">
+                {t('enterToSend')}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium">
+                {t('shiftEnterNewLine')}
+              </span>
+            </div>
+            {message.length > maxLength * 0.8 && (
+              <span>
+                {message.length} / {maxLength}
+              </span>
+            )}
+          </div>
         </div>
-      )}
+      
+        {/* Send button */}
+        <div className="flex items-center justify-end sm:justify-center">
+          <Button
+            type="button"
+            onClick={handleSend}
+            disabled={!canSend}
+            size="icon"
+            className="h-11 w-11 rounded-full shadow-sm"
+            title={t('sendMessage')}
+          >
+            {isUploading ? (
+              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin motion-reduce:animate-none" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
-

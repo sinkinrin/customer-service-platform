@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Bot, User, Wifi, WifiOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 interface ConversationHeaderProps {
   mode: 'ai' | 'human'
@@ -37,7 +38,8 @@ export function ConversationHeader({
   isTransferring = false,
   enableModeSwitching = false,
 }: ConversationHeaderProps) {
-  const displayName = mode === 'ai' ? 'AI Assistant' : (staffName || 'Waiting for assignment')
+  const t = useTranslations('components.conversation.header')
+  const displayName = mode === 'ai' ? t('aiAssistant') : (staffName || t('waitingAssignment'))
 
   const getInitials = (name: string) => {
     return name
@@ -66,7 +68,7 @@ export function ConversationHeader({
   }
 
   const getModeLabel = (mode: 'ai' | 'human') =>
-    mode === 'ai' ? 'AI 对话' : '人工客服'
+    mode === 'ai' ? t('aiMode') : t('humanMode')
 
   return (
     <div className="border-b bg-gradient-to-r from-primary/5 via-background to-background">
@@ -75,13 +77,13 @@ export function ConversationHeader({
           {/* Connection/Mode Indicator */}
           <div className="flex items-center gap-2">
             {mode === 'ai' ? (
-              <Bot className="h-5 w-5 text-blue-500" aria-label="AI Chat" />
+              <Bot className="h-5 w-5 text-blue-500" aria-label={t('ariaLabels.aiChat')} />
             ) : isConnected ? (
-              <Wifi className="h-4 w-4 text-green-500" aria-label="Connected" />
+              <Wifi className="h-4 w-4 text-green-500" aria-label={t('ariaLabels.connected')} />
             ) : sseState === 'connecting' ? (
-              <WifiOff className="h-4 w-4 text-yellow-500 animate-pulse" aria-label="Connecting..." />
+              <WifiOff className="h-4 w-4 text-yellow-500 animate-pulse motion-reduce:animate-none" aria-label={t('ariaLabels.connecting')} />
             ) : (
-              <WifiOff className="h-4 w-4 text-gray-400" aria-label="Disconnected" />
+              <WifiOff className="h-4 w-4 text-gray-400" aria-label={t('ariaLabels.disconnected')} />
             )}
           </div>
 
@@ -127,7 +129,7 @@ export function ConversationHeader({
                   size="sm"
                 >
                   <User className="h-4 w-4 mr-2" />
-                  {isTransferring ? '转接中...' : '切换到人工'}
+                  {isTransferring ? t('buttons.transferring') : t('buttons.switchToHuman')}
                 </Button>
               )}
               {mode === 'human' && onSwitchToAI && (
@@ -138,7 +140,7 @@ export function ConversationHeader({
                   size="sm"
                 >
                   <Bot className="h-4 w-4 mr-2" />
-                  {isTransferring ? '切换中...' : '切换到AI'}
+                  {isTransferring ? t('buttons.switchingToAI') : t('buttons.switchToAI')}
                 </Button>
               )}
             </>
@@ -152,7 +154,7 @@ export function ConversationHeader({
               size="sm"
             >
               <User className="h-4 w-4 mr-2" />
-              {isTransferring ? '转接中...' : '转人工'}
+              {isTransferring ? t('buttons.transferring') : t('buttons.transferToHuman')}
             </Button>
           )}
         </div>

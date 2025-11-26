@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from 'next-intl'
 
 interface ModalProps {
   open: boolean
@@ -47,6 +48,8 @@ export function Modal({
   onClose,
   size = 'md',
 }: ModalProps) {
+  const t = useTranslations('common')
+
   const handleClose = () => {
     if (onClose) {
       onClose()
@@ -73,7 +76,7 @@ export function Modal({
           <DialogFooter>
             {footer || (
               <Button variant="outline" onClick={handleClose}>
-                Close
+                {t('close')}
               </Button>
             )}
           </DialogFooter>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +46,8 @@ interface User {
 }
 
 export default function UsersPage() {
+  const t = useTranslations('admin.users')
+  const tToast = useTranslations('toast.admin.users')
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -72,7 +76,7 @@ export default function UsersPage() {
         setPagination(result.data.pagination || { limit: 20, offset: 0, total: 0 })
       }
     } catch (error) {
-      toast.error('Failed to load users')
+      toast.error(tToast('loadError'))
       console.error(error)
     } finally {
       setLoading(false)
@@ -112,11 +116,11 @@ export default function UsersPage() {
 
       if (!response.ok) throw new Error('Failed to update user')
 
-      toast.success('User updated successfully')
+      toast.success(tToast('updateSuccess'))
       setEditDialogOpen(false)
       fetchUsers()
     } catch (error) {
-      toast.error('Failed to update user')
+      toast.error(tToast('updateError'))
       console.error(error)
     } finally {
       setSaving(false)
@@ -137,9 +141,9 @@ export default function UsersPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">User Management</h1>
+        <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage user accounts, roles, and permissions
+          {t('pageDescription')}
         </p>
       </div>
 
@@ -147,13 +151,13 @@ export default function UsersPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Users</CardTitle>
-              <CardDescription>Search and filter users</CardDescription>
+              <CardTitle>{t('title')}</CardTitle>
+              <CardDescription>{t('searchDescription')}</CardDescription>
             </div>
             <Link href="/admin/users/create">
               <Button>
                 <UserPlus className="mr-2 h-4 w-4" />
-                Create User
+                {t('createButton')}
               </Button>
             </Link>
           </div>
@@ -162,7 +166,7 @@ export default function UsersPage() {
           <div className="flex gap-4 mb-6">
             <div className="flex-1 flex gap-2">
               <Input
-                placeholder="Search by name or email..."
+                placeholder={t('searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -174,34 +178,64 @@ export default function UsersPage() {
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by role" />
+                <SelectValue placeholder={t('filterPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="customer">Customer</SelectItem>
-                <SelectItem value="staff">Staff</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="all">{t('filters.allRoles')}</SelectItem>
+                <SelectItem value="customer">{t('roles.customer')}</SelectItem>
+                <SelectItem value="staff">{t('roles.staff')}</SelectItem>
+                <SelectItem value="admin">{t('roles.admin')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('table.name')}</TableHead>
+                    <TableHead>{t('table.email')}</TableHead>
+                    <TableHead>{t('table.role')}</TableHead>
+                    <TableHead>{t('table.phone')}</TableHead>
+                    <TableHead>{t('table.createdAt')}</TableHead>
+                    <TableHead>{t('table.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[1, 2, 3, 4, 5, 6].map((item) => (
+                    <TableRow key={`user-skeleton-${item}`}>
+                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex justify-between items-center mt-4">
+                <Skeleton className="h-4 w-48" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-9 w-20" />
+                  <Skeleton className="h-9 w-20" />
+                </div>
+              </div>
+            </>
           ) : users.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No users found</div>
+            <div className="text-center py-8 text-muted-foreground">{t('noUsers')}</div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>{t('table.name')}</TableHead>
+                    <TableHead>{t('table.email')}</TableHead>
+                    <TableHead>{t('table.role')}</TableHead>
+                    <TableHead>{t('table.phone')}</TableHead>
+                    <TableHead>{t('table.createdAt')}</TableHead>
+                    <TableHead>{t('table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -232,7 +266,11 @@ export default function UsersPage() {
 
               <div className="flex justify-between items-center mt-4">
                 <div className="text-sm text-muted-foreground">
-                  Showing {pagination.offset + 1} to {Math.min(pagination.offset + pagination.limit, pagination.total)} of {pagination.total} users
+                  {t('pagination.showing', {
+                    start: pagination.offset + 1,
+                    end: Math.min(pagination.offset + pagination.limit, pagination.total),
+                    total: pagination.total
+                  })}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -241,7 +279,7 @@ export default function UsersPage() {
                     onClick={() => setPagination({ ...pagination, offset: Math.max(0, pagination.offset - pagination.limit) })}
                     disabled={pagination.offset === 0}
                   >
-                    Previous
+                    {t('pagination.previous')}
                   </Button>
                   <Button
                     variant="outline"
@@ -249,7 +287,7 @@ export default function UsersPage() {
                     onClick={() => setPagination({ ...pagination, offset: pagination.offset + pagination.limit })}
                     disabled={pagination.offset + pagination.limit >= pagination.total}
                   >
-                    Next
+                    {t('pagination.next')}
                   </Button>
                 </div>
               </div>
@@ -262,24 +300,24 @@ export default function UsersPage() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user information and role</DialogDescription>
+            <DialogTitle>{t('editDialog.title')}</DialogTitle>
+            <DialogDescription>{t('editDialog.description')}</DialogDescription>
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
+                <Label>{t('editDialog.name')}</Label>
                 <Input
                   value={editingUser.full_name}
                   onChange={(e) => setEditingUser({ ...editingUser, full_name: e.target.value })}
                 />
               </div>
               <div>
-                <Label>Email</Label>
+                <Label>{t('editDialog.email')}</Label>
                 <Input value={editingUser.email} disabled />
               </div>
               <div>
-                <Label>Role</Label>
+                <Label>{t('editDialog.role')}</Label>
                 <Select
                   value={editingUser.role}
                   onValueChange={(value: any) => setEditingUser({ ...editingUser, role: value })}
@@ -288,14 +326,14 @@ export default function UsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="customer">Customer</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="customer">{t('roles.customer')}</SelectItem>
+                    <SelectItem value="staff">{t('roles.staff')}</SelectItem>
+                    <SelectItem value="admin">{t('roles.admin')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Phone</Label>
+                <Label>{t('editDialog.phone')}</Label>
                 <Input
                   value={editingUser.phone || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
@@ -305,11 +343,11 @@ export default function UsersPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
+              {t('editDialog.cancel')}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save
+              {t('editDialog.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

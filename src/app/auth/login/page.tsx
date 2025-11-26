@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { getDefaultRouteForRole, type UserRole } from '@/lib/utils/route-helpers'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
+  const t = useTranslations('auth')
   const router = useRouter()
   const { signIn, getUserRole, user, userRole } = useAuth()
   const [error, setError] = useState<string | null>(null)
@@ -101,9 +103,9 @@ export default function LoginPage() {
     return (
       <Card>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Redirecting...</CardTitle>
+          <CardTitle className="text-2xl font-bold">{t('loginPage.redirecting')}</CardTitle>
           <CardDescription>
-            Taking you to your dashboard
+            {t('loginPage.redirectingDescription')}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -113,20 +115,20 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+        <CardTitle className="text-2xl font-bold">{t('loginPage.title')}</CardTitle>
         <CardDescription>
-          Enter your email and password to access your account
+          {t('loginPage.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Email Field */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('email')}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="name@example.com"
+              placeholder={t('loginPage.emailPlaceholder')}
               {...register('email')}
               disabled={isSubmitting}
             />
@@ -138,18 +140,18 @@ export default function LoginPage() {
           {/* Password Field */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Link
                 href="/forgot-password"
                 className="text-sm text-primary hover:underline"
               >
-                Forgot password?
+                {t('forgotPassword')}
               </Link>
             </div>
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder={t('loginPage.passwordPlaceholder')}
               {...register('password')}
               disabled={isSubmitting}
             />
@@ -171,15 +173,15 @@ export default function LoginPage() {
             className="w-full"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+            {isSubmitting ? t('loggingIn') : t('loginButton')}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="flex flex-col space-y-4">
         <div className="text-sm text-center text-muted-foreground">
-          Don&apos;t have an account?{' '}
+          {t('noAccount')}{' '}
           <Link href="/auth/register" className="text-primary hover:underline font-medium">
-            Sign up
+            {t('registerButton')}
           </Link>
         </div>
       </CardFooter>

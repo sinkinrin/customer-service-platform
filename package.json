@@ -8,7 +8,11 @@
     "start": "next start -p 3010 -H 0.0.0.0",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "i18n:validate": "node scripts/validate-i18n.js",
+    "i18n:detect-hardcoded": "node scripts/detect-hardcoded-strings.js",
+    "i18n:detect-verbose": "node scripts/detect-hardcoded-strings.js --verbose",
+    "i18n:check": "npm run i18n:validate && npm run i18n:detect-hardcoded"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +22,8 @@ import { useSSE } from '@/lib/hooks/use-sse'
 import { toast } from 'sonner'
 
 export default function AdminTicketsPage() {
+  const t = useTranslations('admin.tickets')
+  const tToast = useTranslations('toast.admin.tickets')
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>('all')
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
@@ -40,11 +43,11 @@ export default function AdminTicketsPage() {
 
         // Show toast
         const messages = {
-          ticket_created: 'New ticket created',
-          ticket_updated: 'Ticket updated',
-          ticket_deleted: 'Ticket deleted',
+          ticket_created: tToast('ticketCreated'),
+          ticket_updated: tToast('ticketUpdated'),
+          ticket_deleted: tToast('ticketDeleted'),
         }
-        toast.info(messages[event.type as keyof typeof messages] || 'Ticket changed')
+        toast.info(messages[event.type as keyof typeof messages] || tToast('ticketChanged'))
       }
     },
   })
@@ -121,34 +124,34 @@ export default function AdminTicketsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Ticket Management</h1>
+          <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
           <p className="text-muted-foreground mt-2">
-            View and manage all customer support tickets across all regions
+            {t('pageDescription')}
           </p>
         </div>
 
         {/* SSE Status Indicator */}
         <div className="flex items-center gap-2">
           {hasNewUpdates && (
-            <Badge variant="destructive" className="animate-pulse">
+            <Badge variant="destructive" className="animate-pulse motion-reduce:animate-none">
               <Bell className="h-3 w-3 mr-1" />
-              New Updates
+              {t('status.newUpdates')}
             </Badge>
           )}
           {isConnected ? (
             <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
               <Wifi className="h-4 w-4" />
-              <span>Live</span>
+              <span>{t('status.live')}</span>
             </div>
           ) : sseState === 'connecting' ? (
             <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
-              <WifiOff className="h-4 w-4 animate-pulse" />
-              <span>Connecting...</span>
+              <WifiOff className="h-4 w-4 animate-pulse motion-reduce:animate-none" />
+              <span>{t('status.connecting')}</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-sm text-gray-400">
               <WifiOff className="h-4 w-4" />
-              <span>Offline</span>
+              <span>{t('status.offline')}</span>
             </div>
           )}
         </div>
@@ -160,7 +163,7 @@ export default function AdminTicketsPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search tickets by number, title, or customer..."
+              placeholder={t('search.placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -169,17 +172,17 @@ export default function AdminTicketsPage() {
           </div>
           <Button onClick={handleSearch} disabled={isLoading}>
             <Search className="h-4 w-4 mr-2" />
-            Search
+            {t('search.button')}
           </Button>
         </div>
         <div className="flex gap-2">
           <Select value={selectedRegion} onValueChange={setSelectedRegion}>
             <SelectTrigger className="w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="All Regions" />
+              <SelectValue placeholder={t('filters.allRegions')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Regions</SelectItem>
+              <SelectItem value="all">{t('filters.allRegions')}</SelectItem>
               {REGIONS.map((region) => (
                 <SelectItem key={region.value} value={region.value}>
                   {region.labelEn}
@@ -190,18 +193,18 @@ export default function AdminTicketsPage() {
           <Select value={selectedPriority} onValueChange={setSelectedPriority}>
             <SelectTrigger className="w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="All Priorities" />
+              <SelectValue placeholder={t('filters.allPriorities')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="all">{t('filters.allPriorities')}</SelectItem>
+              <SelectItem value="low">{t('filters.priority.low')}</SelectItem>
+              <SelectItem value="normal">{t('filters.priority.normal')}</SelectItem>
+              <SelectItem value="high">{t('filters.priority.high')}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" onClick={exportTickets}>
             <Download className="h-4 w-4 mr-2" />
-            Export
+            {t('actions.export')}
           </Button>
         </div>
       </div>
@@ -210,25 +213,25 @@ export default function AdminTicketsPage() {
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">
-            All Tickets
+            {t('tabs.all')}
             {activeTab === 'all' && (
               <span className="ml-2 text-xs">({filteredTickets.length})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="open">
-            Open
+            {t('tabs.open')}
             {activeTab === 'open' && (
               <span className="ml-2 text-xs">({filteredTickets.length})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="pending">
-            Pending
+            {t('tabs.pending')}
             {activeTab === 'pending' && (
               <span className="ml-2 text-xs">({filteredTickets.length})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="closed">
-            Closed
+            {t('tabs.closed')}
             {activeTab === 'closed' && (
               <span className="ml-2 text-xs">({filteredTickets.length})</span>
             )}

@@ -27,31 +27,110 @@
       "es": "Español",
       "ru": "Русский",
       "pt": "Português"
+    },
+    "actions": {
+      "viewDetails": "View Details",
+      "viewAll": "View All",
+      "loadMore": "Load More",
+      "refresh": "Refresh",
+      "goBack": "Go Back"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending",
+      "completed": "Completed",
+      "operational": "Operational",
+      "healthy": "Healthy",
+      "connected": "Connected",
+      "notConfigured": "Not Configured",
+      "assigned": "Assigned",
+      "allSystemsOperational": "All Systems Operational",
+      "minorIssuesDetected": "Minor Issues Detected",
+      "systemError": "System Error",
+      "unknownStatus": "Unknown Status"
+    },
+    "time": {
+      "ago": "ago",
+      "justNow": "Just now",
+      "minutes": "minutes",
+      "hours": "hours",
+      "days": "days"
+    },
+    "layout": {
+      "adminPortal": "Admin Portal",
+      "staffPortal": "Staff Portal",
+      "customerService": "Customer Service",
+      "systemStatus": "System Status:",
+      "myAccount": "My Account",
+      "profileSettings": "Profile Settings",
+      "preferences": "Preferences",
+      "systemSettings": "System Settings",
+      "notifications": "Notifications",
+      "logOut": "Log out",
+      "signOut": "Sign out",
+      "login": "Log in",
+      "signup": "Sign up",
+      "administrator": "Administrator",
+      "manageUsers": "Manage Users"
+    },
+    "empty": {
+      "noResults": "No results found",
+      "noDataAvailable": "No data available",
+      "tryAdjustingFilters": "Try adjusting your search or filters"
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred. Please try again.",
+      "tryAgain": "Try again",
+      "goHome": "Go home"
+    },
+    "aria": {
+      "loading": "Loading"
     }
   },
   "nav": {
     "dashboard": "Dashboard",
     "conversations": "Conversations",
     "faq": "FAQ",
+    "faqManagement": "FAQ Management",
     "tickets": "Tickets",
     "knowledgeBase": "Knowledge Base",
     "users": "Users",
     "settings": "Settings",
+    "systemSettings": "System Settings",
     "logout": "Logout",
-    "profile": "Profile"
+    "profile": "Profile",
+    "customers": "Customers",
+    "myTickets": "My Tickets",
+    "feedback": "Feedback",
+    "complaints": "Complaints",
+    "businessTypes": "Business Types",
+    "customer": {
+      "helpCenter": "Help Center",
+      "liveChat": "Live Chat",
+      "ticketManagement": "Ticket Management",
+      "submitTicket": "Submit Ticket",
+      "myTickets": "My Tickets",
+      "feedbackComplaints": "Feedback & Complaints",
+      "submitFeedback": "Submit Feedback",
+      "submitComplaint": "Submit Complaint"
+    }
   },
   "auth": {
     "login": "Login",
     "register": "Register",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "fullName": "Full Name",
-    "forgotPassword": "Forgot Password?",
+    "forgotPassword": "Forgot password?",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
-    "loginButton": "Sign In",
-    "registerButton": "Sign Up",
+    "loginButton": "Sign in",
+    "registerButton": "Sign up",
     "loggingIn": "Signing in...",
     "registering": "Creating account...",
     "loginSuccess": "Login successful!",
@@ -63,7 +142,36 @@
     "passwordRequired": "Password is required",
     "passwordMinLength": "Password must be at least 6 characters",
     "passwordMismatch": "Passwords do not match",
-    "fullNameRequired": "Full name is required"
+    "fullNameRequired": "Full name is required",
+    "loginPage": {
+      "title": "Sign in",
+      "description": "Enter your email and password to access your account",
+      "redirecting": "Redirecting...",
+      "redirectingDescription": "Taking you to your dashboard",
+      "emailPlaceholder": "name@example.com",
+      "passwordPlaceholder": "********"
+    },
+    "registerPage": {
+      "title": "Registration Disabled",
+      "description": "Public registration is not available for this system",
+      "policyTitle": "Account Creation Policy:",
+      "policyDescription": "User accounts must be created by system administrators. If you need an account, please contact your administrator.",
+      "howToTitle": "How to get an account:",
+      "step1": "Contact your system administrator",
+      "step2": "Provide your email address and required information",
+      "step3": "Wait for the administrator to create your account",
+      "step4": "You will receive login credentials via email"
+    },
+    "layout": {
+      "brandShort": "CS",
+      "brandName": "Customer Service"
+    },
+    "accessDenied": {
+      "title": "Access Denied",
+      "description": "You don't have permission to access this page.",
+      "yourRole": "Your role:",
+      "goBack": "Go Back"
+    }
   },
   "dashboard": {
     "welcome": "Welcome back",
@@ -100,19 +208,41 @@
   },
   "faq": {
     "title": "FAQ",
+    "helpCenter": "Help Center",
+    "helpDescription": "Find answers to common questions and get help",
     "searchPlaceholder": "Search for answers...",
+    "searchArticlesPlaceholder": "Search for help articles...",
+    "searchHelpPlaceholder": "Search for help...",
+    "searchTab": "Search",
+    "browseTab": "Browse by Category",
     "categories": "Categories",
     "allCategories": "All Categories",
+    "browseAllFaqItems": "Browse all FAQ items",
+    "noCategoriesAvailable": "No categories available",
+    "home": "Home",
+    "allArticles": "All Articles",
+    "articles": "Articles",
     "popularArticles": "Popular Articles",
     "relatedArticles": "Related Articles",
+    "searchResults": "Search Results",
+    "noResults": "No results found",
+    "noArticlesFound": "No articles found",
+    "noArticlesAvailable": "No articles available",
+    "tryDifferentKeywords": "Try different keywords or browse by category",
+    "checkBackLater": "Check back later for helpful articles",
+    "noCategoryArticles": "This category doesn't have any articles yet",
+    "backToHelpCenter": "Back to Help Center",
+    "loadingArticle": "Loading article...",
     "helpful": "Was this helpful?",
+    "wasHelpful": "Was this article helpful?",
     "yes": "Yes",
     "no": "No",
     "thankYou": "Thank you for your feedback!",
-    "noResults": "No articles found",
-    "browseByCategory": "Browse by Category",
-    "searchResults": "Search Results",
-    "viewCount": "views"
+    "stillNeedHelp": "Still need help?",
+    "contactDescription": "Contact our support team for personalized assistance",
+    "contactSupport": "Contact Support",
+    "viewCount": "views",
+    "helpfulCount": "helpful"
   },
   "tickets": {
     "title": "Tickets",
@@ -138,17 +268,115 @@
       "high": "High",
       "urgent": "Urgent"
     },
-    "details": "Ticket Details",
+    "details": {
+      "title": "Ticket Details",
+      "customer": "Customer",
+      "group": "Group",
+      "created": "Created",
+      "lastUpdated": "Last Updated",
+      "assignedTo": "Assigned To",
+      "ownerId": "Owner ID: {id}",
+      "priority": "Priority",
+      "state": "State",
+      "ticketStatus": "Ticket Status",
+      "saveChanges": "Save Changes",
+      "cancel": "Cancel",
+      "pendingReminder": "Select when this ticket should be automatically updated",
+      "pendingUntil": "Pending Until *",
+      "selectPendingTime": "Please select a pending time for this state.",
+      "addNote": "Add Note",
+      "noteContent": "Note Content",
+      "notePlaceholder": "Add a note or reply to this ticket...",
+      "internalNoteCheckbox": "Internal note (not visible to customer)",
+      "promise": "Promise",
+      "ticketNumber": "Ticket #{number}",
+      "states": {
+        "new": "New",
+        "open": "Open",
+        "pendingReminder": "Pending Reminder",
+        "pendingClose": "Pending Close",
+        "closed": "Closed"
+      },
+      "priorities": {
+        "low": "Low",
+        "normal": "Normal",
+        "high": "High"
+      }
+    },
     "articles": "Articles",
     "addArticle": "Add Article",
     "internalNote": "Internal Note",
-    "publicReply": "Public Reply"
+    "publicReply": "Public Reply",
+    "empty": {
+      "noTicketsFound": "No tickets found",
+      "adjustFilters": "Try adjusting your search or filters"
+    }
   },
   "admin": {
+    "dashboard": {
+      "pageTitle": "Admin Dashboard",
+      "welcome": "Welcome, {name}",
+      "overview": "Here's an overview of your platform's performance",
+      "stats": {
+        "totalUsers": "Total Users",
+        "totalTickets": "Total Tickets",
+        "openTickets": "Open Tickets",
+        "closedTickets": "Closed Tickets",
+        "registeredUsers": "Registered users",
+        "allRegions": "All regions",
+        "needsAttention": "Needs attention",
+        "resolved": "Resolved"
+      },
+      "regionalDistribution": {
+        "title": "Regional Ticket Distribution",
+        "description": "Ticket counts by service region",
+        "noData": "No regional data available",
+        "open": "open",
+        "closed": "closed",
+        "total": "total"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "description": "Manage your platform efficiently",
+        "createUser": "Create User",
+        "viewAllTickets": "View All Tickets",
+        "manageFAQ": "Manage FAQ",
+        "systemSettings": "System Settings"
+      },
+      "recentActivity": {
+        "title": "Recent Ticket Activity",
+        "description": "Latest ticket updates across all regions",
+        "noActivity": "No recent activity"
+      },
+      "systemHealth": {
+        "title": "System Health",
+        "description": "Current system status",
+        "apiStatus": "API Status",
+        "database": "Database",
+        "zammadIntegration": "Zammad Integration",
+        "fastgpt": "FastGPT"
+      },
+      "platformMetrics": {
+        "title": "Platform Metrics",
+        "description": "Key performance indicators",
+        "avgResponseTime": "Avg. Response Time",
+        "resolutionRate": "Resolution Rate",
+        "customerSatisfaction": "Customer Satisfaction",
+        "uptime": "Uptime",
+        "satisfactionRate": "Satisfaction Rate",
+        "resolvedTickets": "Resolved Tickets",
+        "activeUsers": "Active Users"
+      }
+    },
     "users": {
-      "title": "User Management",
+      "pageTitle": "User Management",
+      "pageDescription": "Manage user accounts, roles, and permissions",
+      "title": "Users",
+      "searchDescription": "Search and filter users",
+      "createButton": "Create User",
       "newUser": "New User",
-      "searchPlaceholder": "Search users...",
+      "searchPlaceholder": "Search by name or email...",
+      "filterPlaceholder": "Filter by role",
       "noUsers": "No users found",
       "role": "Role",
       "status": "Status",
@@ -157,10 +385,69 @@
       "editUser": "Edit User",
       "deleteUser": "Delete User",
       "confirmDelete": "Are you sure you want to delete this user?",
+      "filters": {
+        "allRoles": "All Roles"
+      },
+      "form": {
+        "emailRequired": "Email Address *",
+        "emailLabel": "Email Address",
+        "emailPlaceholder": "user@example.com",
+        "fullNameLabel": "Full Name *",
+        "fullNamePlaceholder": "John Doe",
+        "roleLabel": "Role *",
+        "passwordLabel": "Password *",
+        "passwordPlaceholder": "Minimum 8 characters",
+        "passwordHint": "Password must be at least 8 characters long",
+        "regionLabel": "Region *",
+        "phoneLabel": "Phone Number (Optional)",
+        "phonePlaceholder": "+86 138 0000 0000",
+        "languageLabel": "Preferred Language"
+      },
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "phone": "Phone",
+        "status": "Status",
+        "createdAt": "Created At",
+        "actions": "Actions"
+      },
+      "pagination": {
+        "showing": "Showing {start} to {end} of {total} users",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "editDialog": {
+        "title": "Edit User",
+        "description": "Update user information and role",
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "phone": "Phone",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "createPage": {
+        "title": "Create New User",
+        "description": "Add a new user to the system with role and region assignment",
+        "backToUsers": "Back to Users",
+        "createButton": "Create User",
+        "cancel": "Cancel",
+        "cardTitle": "User Information",
+        "cardDescription": "Fill in the user details. All fields are required."
+      },
       "roles": {
         "customer": "Customer",
         "staff": "Staff",
-        "admin": "Admin"
+        "admin": "Admin",
+        "customerDesc": "Customer (end user)",
+        "staffDesc": "Staff (support)",
+        "adminDesc": "Admin",
+        "customerPermission": "Can create tickets and view their own tickets",
+        "staffPermission": "Can handle tickets in their assigned region",
+        "adminPermission": "Full access to all features and regions",
+        "staffRegionHint": "Staff can only access tickets from their assigned region",
+        "customerRegionHint": "Customer tickets will be assigned to this region"
       },
       "statusOptions": {
         "active": "Active",
@@ -168,8 +455,11 @@
       }
     },
     "faq": {
+      "pageTitle": "FAQ Management",
+      "pageDescription": "Manage FAQ items from Zammad Knowledge Base",
       "title": "FAQ Management",
       "newArticle": "New Article",
+      "createFAQ": "Create FAQ",
       "editArticle": "Edit Article",
       "deleteArticle": "Delete Article",
       "confirmDelete": "Are you sure you want to delete this article?",
@@ -178,18 +468,758 @@
       "addTranslation": "Add Translation",
       "language": "Language",
       "title_field": "Title",
+      "titleRequired": "Title *",
+      "titlePlaceholder": "Enter article title",
       "content": "Content",
+      "contentRequired": "Content *",
+      "contentPlaceholder": "Enter article content",
       "keywords": "Keywords",
       "published": "Published",
-      "draft": "Draft"
+      "draft": "Draft",
+      "archived": "Archived",
+      "filters": "Filters",
+      "searchPlaceholder": "Search by title or content...",
+      "allCategories": "All Categories",
+      "allStates": "All States",
+      "sortBy": "Sort By",
+      "sortOptions": {
+        "lastUpdated": "Last Updated",
+        "createdDate": "Created Date",
+        "titleAZ": "Title (A-Z)",
+        "mostViewed": "Most Viewed",
+        "mostLiked": "Most Liked"
+      },
+      "table": {
+        "title": "Title",
+        "category": "Category",
+        "state": "State",
+        "views": "Views",
+        "likes": "Likes",
+        "updated": "Updated",
+        "actions": "Actions"
+      },
+      "actions": {
+        "publish": "Publish",
+        "unpublish": "Unpublish",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "faqItems": "FAQ Items",
+      "itemsFound": "{count} items found",
+      "showingResults": "Showing {showing} of {total} FAQ items",
+      "noItemsFound": "No FAQ items found",
+      "pagination": {
+        "page": "Page {current} of {total} ({count} items)",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "deleteDialog": {
+        "title": "Are you sure?",
+        "description": "This will permanently delete the FAQ item \"{title}\". This action cannot be undone.",
+        "cancel": "Cancel",
+        "delete": "Delete"
+      },
+      "form": {
+        "title": "Title *",
+        "titlePlaceholder": "Enter article title",
+        "content": "Content *",
+        "contentPlaceholder": "Enter article content",
+        "contentPlaceholderMarkdown": "Enter article content (Markdown supported)",
+        "category": "Category *",
+        "cancel": "Cancel",
+        "create": "Create Article",
+        "save": "Save Changes",
+        "loadingCategories": "Loading categories...",
+        "noCategories": "No categories available",
+        "publishImmediately": "Publish immediately",
+        "translations": "Translations *",
+        "keywordsLabel": "Keywords (comma-separated)",
+        "keywordsPlaceholder": "keyword1, keyword2, keyword3",
+        "slugLabel": "Slug (optional)",
+        "slugPlaceholder": "article-slug",
+        "validationError": "Please provide at least one language translation"
+      },
+      "dialog": {
+        "createTitle": "Create FAQ Article",
+        "editTitle": "Edit FAQ Article",
+        "createDescription": "Create a new FAQ article with multi-language support",
+        "editDescription": "Update the FAQ article information"
+      }
+    },
+    "businessTypes": {
+      "pageTitle": "Business Types",
+      "pageDescription": "Manage business types for conversation categorization",
+      "managementTitle": "Business Type Management",
+      "managementDescription": "Configure business types to categorize customer conversations",
+      "comingSoon": "Coming Soon",
+      "comingSoonDescription": "Business type management functionality is currently under development. This feature will allow you to create and manage different business types for better conversation categorization.",
+      "whatAreBusinessTypes": "What are Business Types?",
+      "purpose": "Purpose",
+      "benefits": "Benefits",
+      "benefitsList": {
+        "routing": "Better conversation routing to specialized teams",
+        "analytics": "Improved analytics and reporting",
+        "customerExperience": "Enhanced customer experience through targeted support",
+        "workflow": "Streamlined workflow management"
+      },
+      "plannedFeatures": "Planned Features",
+      "featuresList": {
+        "createEdit": "Create and edit business types",
+        "assignTeams": "Assign default staff teams to business types",
+        "setSLA": "Set priority levels and SLA targets",
+        "automatedRouting": "Configure automated routing rules"
+      }
     },
     "settings": {
+      "pageTitle": "System Settings",
+      "pageDescription": "Manage system settings and configurations",
       "title": "System Settings",
       "general": "General",
-      "businessTypes": "Business Types",
+      "businessTypes": {
+        "title": "Business Types",
+        "description": "Manage business types for conversation categorization",
+        "table": {
+          "name": "Name",
+          "description": "Description",
+          "createdAt": "Created At"
+        },
+        "noTypes": "No business types configured"
+      },
+      "systemConfig": {
+        "title": "System Configuration",
+        "description": "General system settings and parameters",
+        "defaultLanguage": {
+          "title": "Default Language",
+          "description": "Default language for new users"
+        },
+        "sessionTimeout": {
+          "title": "Session Timeout",
+          "description": "User session timeout duration"
+        },
+        "emailNotifications": {
+          "title": "Email Notifications",
+          "description": "Configure email notification settings"
+        },
+        "configure": "Configure"
+      },
       "notifications": "Notifications",
       "saveSuccess": "Settings saved successfully",
-      "saveError": "Failed to save settings"
+      "saveError": "Failed to save settings",
+      "loadError": "Failed to load settings"
+    },
+    "tickets": {
+      "pageTitle": "Ticket Management",
+      "pageDescription": "View and manage all customer support tickets across all regions",
+      "status": {
+        "newUpdates": "New Updates",
+        "live": "Live",
+        "connecting": "Connecting...",
+        "offline": "Offline"
+      },
+      "search": {
+        "placeholder": "Search tickets by number, title, or customer...",
+        "button": "Search"
+      },
+      "filters": {
+        "allRegions": "All Regions",
+        "allPriorities": "All Priorities",
+        "priority": {
+          "low": "Low",
+          "normal": "Normal",
+          "high": "High"
+        }
+      },
+      "actions": {
+        "export": "Export"
+      },
+      "tabs": {
+        "all": "All Tickets",
+        "open": "Open",
+        "pending": "Pending",
+        "closed": "Closed"
+      }
+    },
+    "ticketDetail": {
+      "notFound": "Ticket not found",
+      "backToTickets": "Back to Tickets",
+      "back": "Back",
+      "ticketNumber": "Ticket #{number}",
+      "created": "Created {date}",
+      "deleteButton": "Delete Ticket",
+      "deleteDialog": {
+        "title": "Are you sure?",
+        "description": "This action cannot be undone. This will permanently delete the ticket and all associated articles.",
+        "cancel": "Cancel",
+        "delete": "Delete"
+      },
+      "conversation": "Conversation ({count})",
+      "noArticles": "No articles yet",
+      "internalBadge": "Internal"
+    }
+  },
+  "customer": {
+    "dashboard": {
+      "pageTitle": "Customer Dashboard",
+      "title": "Customer Service Hub",
+      "welcome": "Welcome back",
+      "welcomeMessage": "Welcome to the customer service platform. We are here to help.",
+      "myTickets": "My Tickets",
+      "recentConversations": "Recent Conversations",
+      "quickActions": {
+        "liveChat": {
+          "title": "Live chat",
+          "description": "Chat with support in real time"
+        },
+        "knowledgeBase": {
+          "title": "Knowledge base",
+          "description": "Find answers to common questions"
+        },
+        "myTickets": {
+          "title": "My tickets",
+          "description": "View and manage support tickets"
+        },
+        "submitFeedback": {
+          "title": "Submit feedback",
+          "description": "Share your suggestions and opinions"
+        }
+      },
+      "getStarted": {
+        "title": "Get started",
+        "subtitle": "Choose how you want to get help",
+        "liveChat": {
+          "title": "Live chat",
+          "description": "Get instant help via live chat. Our AI assistant and human agents are ready to assist.",
+          "button": "Start chat"
+        },
+        "knowledgeBase": {
+          "title": "Browse knowledge base",
+          "description": "Search the knowledge base for common answers to resolve issues quickly.",
+          "button": "Browse FAQ"
+        },
+        "ticket": {
+          "title": "Submit a ticket",
+          "description": "Need to log details? Create a ticket and track progress.",
+          "button": "Create ticket"
+        }
+      }
+    },
+    "myTickets": {
+      "title": "My Tickets",
+      "subtitle": "View and manage your support tickets",
+      "listTitle": "Ticket List",
+      "listDescription": "You have {count} tickets in total",
+      "searchPlaceholder": "Search by ticket number or title...",
+      "pageTitle": "My Tickets",
+      "createTicket": "Create Ticket",
+      "noTickets": "No tickets yet",
+      "toast": {
+        "loadError": "Failed to load tickets"
+      },
+      "empty": {
+        "title": "No tickets found",
+        "noResults": "No tickets match your search",
+        "description": "You haven't created any tickets yet",
+        "hint": "Click the button above to create your first ticket"
+      },
+      "table": {
+        "id": "Ticket Number",
+        "title": "Title",
+        "status": "Status",
+        "priority": "Priority",
+        "replies": "Replies",
+        "created": "Created",
+        "updated": "Last Updated",
+        "actions": "Actions",
+        "view": "View",
+        "loading": "Loading...",
+        "loadMore": "Load More"
+      },
+      "status": {
+        "1": "New",
+        "2": "Open",
+        "3": "Pending",
+        "4": "Closed",
+        "unknown": "Unknown"
+      },
+      "priority": {
+        "1": "Low",
+        "2": "Medium",
+        "3": "High",
+        "4": "Urgent",
+        "unknown": "Unknown"
+      },
+      "createPageTitle": "Submit ticket",
+      "createPageDescription": "Encountering issues? Submit a ticket and our support team will help you quickly.",
+      "detailPageTitle": "Ticket Details",
+      "backToList": "Back to ticket list",
+      "ticketNumber": "Ticket #",
+      "createdAt": "Created",
+      "updatedAt": "Last updated",
+      "status": "Status",
+      "priority": "Priority",
+      "conversation": "Conversation History",
+      "messageCount": "{count} messages",
+      "noConversation": "No conversation history yet",
+      "ticketInfo": "Ticket Information",
+      "charactersCount": "{count}/{max} characters",
+      "create": {
+        "formTitle": "Ticket details",
+        "formDescription": "Describe the issue in detail so we can resolve it faster.",
+        "characterCount": "{count} / {max}",
+        "fileSizeLimit": "Supports images, PDFs, documents. Max 5 files, 512MB each.",
+        "detailsTitle": "Ticket details",
+        "detailsDescription": "Describe the issue in detail so we can resolve it faster.",
+        "categoryLabel": "Product category *",
+        "categoryPlaceholder": "Please select a product category",
+        "modelLabel": "Product model *",
+        "modelPlaceholder": "Please select a product model",
+        "priorityLabel": "Priority *",
+        "priorities": {
+          "1": "Low - product usage question",
+          "2": "Medium - general issue",
+          "3": "High - business impact",
+          "4": "Urgent - business outage"
+        },
+        "titleLabel": "Issue title *",
+        "titlePlaceholder": "Briefly describe your issue",
+        "descriptionLabel": "Issue description *",
+        "descriptionPlaceholder": "Describe the problem in detail, including:\n1. When and how often it occurs\n2. Error messages or behavior\n3. Troubleshooting steps you have tried\n4. Impact on your business",
+        "attachmentsLabel": "Attachments (Optional)",
+        "selectFiles": "Select files",
+        "uploadInfo": "Supports images, PDFs, documents. Max 5 files, 512MB each.",
+        "actions": {
+          "cancel": "Cancel",
+          "submitting": "Submitting...",
+          "submit": "Submit ticket"
+        },
+        "tips": {
+          "title": "Tips",
+          "tip1": "- Provide as much detail as possible so we can quickly identify the issue.",
+          "tip2": "- Screenshots or error logs greatly help our troubleshooting.",
+          "tip3": "- Specify when the issue occurs (always, intermittently, after specific actions).",
+          "tip4": "- You can track ticket status and reply to the support team under \"My Tickets.\""
+        }
+      },
+      "detail": {
+        "backToList": "Back to Ticket List",
+        "ticketNumber": "Ticket Number",
+        "createdAt": "Created At",
+        "infoTitle": "Ticket Information",
+        "status": "Status",
+        "priority": "Priority",
+        "updatedAt": "Last Updated",
+        "conversationTitle": "Conversation History",
+        "messageCount": "{count} messages",
+        "noMessages": "No conversation history yet",
+        "unknownUser": "Unknown User",
+        "internal": "Internal",
+        "addReply": "Add Reply",
+        "replyDescription": "Your reply will be sent to the support team",
+        "replyPlaceholder": "Enter your reply...",
+        "characterCount": "{count}/{max} characters",
+        "sending": "Sending...",
+        "sendReply": "Send Reply",
+        "closedMessage": "This ticket is closed. Please create a new ticket to continue discussion."
+      },
+      "statusLabels": {
+        "new": "New",
+        "open": "In Progress",
+        "pending": "Awaiting Reply",
+        "closed": "Closed"
+      },
+      "priorityLabels": {
+        "1": "Low",
+        "2": "Medium",
+        "3": "High",
+        "4": "Urgent"
+      }
+    },
+    "settings": {
+      "pageTitle": "Settings",
+      "pageDescription": "Manage your account settings and preferences",
+      "personalInfo": {
+        "title": "Personal Information",
+        "description": "Update your personal profile information",
+        "fullNameLabel": "Full Name",
+        "fullNamePlaceholder": "Please enter your name",
+        "emailLabel": "Email",
+        "phoneLabel": "Phone",
+        "phonePlaceholder": "Please enter your phone number",
+        "languageLabel": "Language",
+        "saving": "Saving...",
+        "saveChanges": "Save Changes"
+      },
+      "notifications": {
+        "title": "Notification Settings",
+        "description": "Manage how you receive notifications",
+        "email": {
+          "label": "Email Notifications",
+          "description": "Receive email notifications for important updates"
+        },
+        "desktop": {
+          "label": "Desktop Notifications",
+          "description": "Show desktop notifications in your browser"
+        },
+        "ticketUpdates": {
+          "label": "Ticket Updates",
+          "description": "Notify me when ticket status changes"
+        },
+        "conversationReplies": {
+          "label": "Conversation Replies",
+          "description": "Notify me when I receive new messages"
+        },
+        "promotions": {
+          "label": "Promotions",
+          "description": "Receive product updates and promotional information"
+        },
+        "saving": "Saving...",
+        "saveChanges": "Save Changes"
+      },
+      "security": {
+        "title": "Security Settings",
+        "description": "Change your password to protect your account",
+        "currentPasswordLabel": "Current Password",
+        "currentPasswordPlaceholder": "Please enter your current password",
+        "newPasswordLabel": "New Password",
+        "newPasswordPlaceholder": "Please enter new password (at least 8 characters)",
+        "confirmPasswordLabel": "Confirm New Password",
+        "confirmPasswordPlaceholder": "Please enter new password again",
+        "updating": "Updating...",
+        "updatePassword": "Update Password"
+      },
+      "toast": {
+        "personalInfoUpdated": "Personal information updated",
+        "updateFailed": "Update failed, please try again",
+        "notificationsUpdated": "Notification settings updated",
+        "passwordMismatch": "New password and confirm password do not match",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "passwordUpdated": "Password updated",
+        "passwordUpdateFailed": "Password update failed, please try again"
+      }
+    },
+    "feedback": {
+      "pageTitle": "Submit feedback",
+      "pageDescription": "Your suggestions are important and help us continuously improve.",
+      "formTitle": "Feedback details",
+      "formDescription": "Please describe your suggestion so we can evaluate and consider implementing it.",
+      "categoryLabel": "Feedback category *",
+      "categories": {
+        "feature": "Feature request",
+        "improvement": "Improvement suggestion",
+        "ui": "UI/UX improvement",
+        "other": "Other suggestion"
+      },
+      "titleLabel": "Feedback title *",
+      "titlePlaceholder": "Briefly summarize your suggestion",
+      "descriptionLabel": "Detailed description *",
+      "descriptionPlaceholder": "Please describe your suggestion in detail, including:\n1. What you would like to change\n2. Why this improvement is needed\n3. Expected outcomes or benefits",
+      "contactLabel": "Contact *",
+      "contactPlaceholder": "Email or phone",
+      "contactHelp": "If we need more details about your suggestion, we may contact you this way.",
+      "characterCount": "{count}/{max} characters",
+      "actions": {
+        "cancel": "Cancel",
+        "submitting": "Submitting...",
+        "submit": "Submit feedback"
+      },
+      "tips": {
+        "title": "Tips",
+        "tip1": "- Be as detailed as possible so we can clearly understand your needs.",
+        "tip2": "- If your suggestion involves a specific feature or UI, screenshots or examples help.",
+        "tip3": "- We review all suggestions regularly and prioritize the most valuable improvements.",
+        "tip4": "- You can track suggestion status under \"My Tickets.\""
+      }
+    },
+    "conversations": {
+      "starting": {
+        "title": "Starting Conversation",
+        "connectingMessage": "Please wait while we connect you to support...",
+        "redirectingMessage": "Redirecting to your conversation..."
+      },
+      "detail": {
+        "loadingText": "Loading conversation...",
+        "me": "Me",
+        "aiAssistant": "AI Assistant",
+        "newMessageNotification": "New message received - scroll down to view",
+        "sseError": "Real-time updates unavailable: {error}",
+        "closedMessage": "Conversation is closed. Please start a new chat to continue."
+      },
+      "placeholders": {
+        "aiMode": "Ask the AI assistant...",
+        "waitingMode": "Waiting for an agent...",
+        "activeMode": "Type a message..."
+      },
+      "actions": {
+        "transferLabel": "Transfer to Human"
+      }
+    }
+  },
+  "staff": {
+    "loading": {
+      "message": "Loading staff tools...",
+      "hint": "Syncing conversations and tickets"
+    },
+    "dashboard": {
+      "pageTitle": "Staff Dashboard",
+      "welcome": "Welcome, {name}",
+      "welcomeMessage": "Welcome back! Here's an overview of your tickets.",
+      "stats": {
+        "assignedTickets": "Assigned Tickets",
+        "activeConversations": "Active Conversations",
+        "resolvedToday": "Resolved Today",
+        "avgResponseTime": "Avg Response Time"
+      },
+      "actions": {
+        "searchTickets": "Search Tickets",
+        "knowledgeBase": "Knowledge Base",
+        "viewAllTickets": "View All Tickets",
+        "openTickets": "Open Tickets",
+        "browseKnowledgeBase": "Browse Knowledge Base",
+        "browseArticles": "Browse Articles →"
+      },
+      "quickActions": {
+        "title": "Quick Actions"
+      },
+      "helpCard": {
+        "title": "Need Help?",
+        "description": "Check out our knowledge base for common questions and solutions."
+      }
+    },
+    "customers": {
+      "pageTitle": "Customers",
+      "pageDescription": "View and manage customer information",
+      "stats": {
+        "totalCustomers": "Total Customers",
+        "withPhone": "With Phone",
+        "regions": "Regions"
+      },
+      "filter": {
+        "title": "Filter Customers",
+        "description": "Search and filter customer list",
+        "searchPlaceholder": "Search by name, email, or phone...",
+        "regionPlaceholder": "Region",
+        "allRegions": "All Regions",
+        "refresh": "Refresh"
+      },
+      "list": {
+        "title": "Customers List",
+        "found": "{count} customer(s) found",
+        "loading": "Loading customers...",
+        "noCustomers": "No customers found",
+        "adjustSearch": "Try adjusting your search criteria",
+        "noData": "No customers available"
+      },
+      "table": {
+        "customer": "Customer",
+        "email": "Email",
+        "phone": "Phone",
+        "region": "Region",
+        "language": "Language",
+        "joined": "Joined",
+        "actions": "Actions",
+        "viewTickets": "View Tickets",
+        "unknown": "Unknown"
+      }
+    },
+    "settings": {
+      "pageTitle": "Settings",
+      "pageDescription": "Manage your account settings and preferences",
+      "saving": "Saving...",
+      "save": "Save Changes",
+      "personalInfo": {
+        "title": "Profile Information",
+        "description": "Update your personal information",
+        "fullNameLabel": "Full Name",
+        "fullNamePlaceholder": "Enter your full name",
+        "emailLabel": "Email",
+        "emailHint": "Email cannot be changed",
+        "phoneLabel": "Phone Number",
+        "phonePlaceholder": "+1 (555) 000-0000",
+        "languageLabel": "Language",
+        "changeAvatar": "Change Avatar",
+        "avatarHint": "JPG, PNG or GIF. Max size 2MB"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Configure how you receive notifications",
+        "emailLabel": "Email Notifications",
+        "emailDescription": "Receive notifications via email",
+        "desktopLabel": "Desktop Notifications",
+        "desktopDescription": "Show desktop notifications for updates",
+        "newTicketLabel": "New Ticket Alerts",
+        "newTicketDescription": "Get notified when new tickets are assigned",
+        "newMessageLabel": "New Message Alerts",
+        "newMessageDescription": "Get notified about new conversation messages"
+      },
+      "preferences": {
+        "title": "Work Preferences",
+        "description": "Configure your work settings",
+        "autoAssignLabel": "Auto-assign Tickets",
+        "autoAssignDescription": "Automatically receive new tickets",
+        "showClosedLabel": "Show Closed Tickets",
+        "showClosedDescription": "Display closed tickets in the list",
+        "defaultViewLabel": "Default View",
+        "listView": "List",
+        "gridView": "Grid"
+      },
+      "security": {
+        "title": "Security",
+        "description": "Manage your account security",
+        "changePasswordLabel": "Change Password",
+        "passwordDisabledHint": "Password management is currently disabled in demo mode"
+      },
+      "toast": {
+        "saveSuccess": "Settings saved successfully!",
+        "saveError": "Failed to save settings"
+      }
+    },
+    "conversations": {
+      "pageTitle": "Conversation Management",
+      "pageDescription": "Manage customer conversations and provide support",
+      "stats": {
+        "total": "All Conversations",
+        "waiting": "Waiting",
+        "active": "Active",
+        "closed": "Closed"
+      },
+      "filter": {
+        "title": "Filter Conversations",
+        "description": "Search and filter conversation list",
+        "searchPlaceholder": "Search by customer name, email, or conversation ID...",
+        "statusPlaceholder": "Status",
+        "allStatuses": "All Statuses"
+      },
+      "list": {
+        "title": "Conversation List",
+        "subtitle": "Found {count} conversations",
+        "loading": "Loading conversations...",
+        "empty": {
+          "title": "No Conversations",
+          "subtitle": "No customer conversations yet",
+          "filterSubtitle": "Try adjusting your search criteria"
+        }
+      },
+      "sse": {
+        "live": "🟢 Live Updates",
+        "offline": "🔴 Offline",
+        "error": "Connection Error"
+      },
+      "card": {
+        "unknown": "Unknown Customer",
+        "noEmail": "No Email",
+        "status": {
+          "waiting": "Waiting",
+          "active": "Active",
+          "closed": "Closed"
+        },
+        "mode": {
+          "ai": "AI",
+          "human": "Human"
+        },
+        "messageCount": "{count} messages",
+        "assignedStaff": "Assigned Staff",
+        "unassigned": "Unassigned",
+        "lastActivity": "Last Activity",
+        "noActivity": "No Activity",
+        "createdTime": "Created Time",
+        "viewButton": "View Conversation"
+      },
+      "notification": {
+        "newTransfer": "New Transferred Conversation",
+        "transferReason": "Reason: {reason}"
+      },
+      "messageInput": {
+        "placeholder": "Type your message...",
+        "send": "Send",
+        "sending": "Sending..."
+      },
+      "transfer": {
+        "requestHuman": "Request Human Agent",
+        "transferReason": "Reason for transfer"
+      },
+      "detail": {
+        "notFound": {
+          "title": "Conversation not found",
+          "description": "The conversation you're looking for doesn't exist.",
+          "backButton": "Back to Conversations"
+        },
+        "sseError": "Real-time updates unavailable: {message}",
+        "newMessageNotification": "New message received - scroll down to view",
+        "header": {
+          "backButton": "Back",
+          "title": "Conversation with {name}",
+          "titleFallback": "Customer",
+          "connected": "🟢 Connected",
+          "closeButton": "Close Conversation"
+        },
+        "input": {
+          "placeholder": "Type your reply..."
+        },
+        "closed": {
+          "message": "Conversation closed"
+        },
+        "customer": {
+          "title": "Customer Info",
+          "unknown": "Unknown Customer",
+          "noEmail": "No Email",
+          "customerId": "Customer ID:"
+        },
+        "details": {
+          "title": "Conversation Details",
+          "status": "Status:",
+          "mode": "Mode:",
+          "messageCount": "Message Count:",
+          "createdTime": "Created Time:",
+          "updatedTime": "Updated Time:",
+          "transferredTime": "Transferred Time:",
+          "transferReason": "Transfer Reason:",
+          "statusWaiting": "Waiting",
+          "statusActive": "Active",
+          "statusClosed": "Closed",
+          "modeAI": "AI",
+          "modeHuman": "Human"
+        },
+        "quickActions": {
+          "title": "Quick Actions",
+          "viewHistory": "View Customer History",
+          "createTicket": "Create Ticket",
+          "addNote": "Add Internal Note"
+        }
+      }
+    },
+    "tickets": {
+      "pageTitle": "Tickets",
+      "pageDescription": "Manage and track customer support tickets",
+      "status": {
+        "newUpdates": "New Updates",
+        "live": "Live",
+        "connecting": "Connecting...",
+        "offline": "Offline"
+      },
+      "search": {
+        "placeholder": "Search tickets by number, title, or customer...",
+        "button": "Search"
+      },
+      "filters": {
+        "button": "Filters"
+      },
+      "tabs": {
+        "all": "All Tickets",
+        "open": "Open",
+        "pending": "Pending",
+        "closed": "Closed"
+      },
+      "detail": {
+        "ticketNotFound": "Ticket not found",
+        "backToTickets": "Back to Tickets",
+        "back": "Back",
+        "ticketNumber": "Ticket #{number}",
+        "created": "Created {date}",
+        "conversation": "Conversation",
+        "conversationCount": "Conversation ({count})",
+        "noArticles": "No articles yet",
+        "internalBadge": "Internal"
+      }
     }
   },
   "settings": {
@@ -263,6 +1293,129 @@
     "minLength": "Must be at least {min} characters",
     "maxLength": "Must be at most {max} characters",
     "passwordMismatch": "Passwords do not match"
+  },
+  "toast": {
+    "admin": {
+      "users": {
+        "createSuccess": "User created successfully!",
+        "createError": "Failed to create user",
+        "validationError": "Validation error",
+        "updateSuccess": "User updated successfully",
+        "updateError": "Failed to update user",
+        "loadError": "Failed to load users",
+        "deleteSuccess": "User deleted",
+        "deleteError": "Failed to delete user"
+      },
+      "faq": {
+        "createSuccess": "Article created successfully!",
+        "createError": "Failed to create article",
+        "updateSuccess": "Article updated successfully!",
+        "updateError": "Failed to update article",
+        "deleteSuccess": "FAQ item deleted successfully",
+        "deleteError": "Failed to delete FAQ item",
+        "loadError": "Failed to load FAQ items",
+        "published": "FAQ item published successfully",
+        "unpublished": "FAQ item unpublished successfully",
+        "toggleError": "Failed to update FAQ item"
+      },
+      "settings": {
+        "saveSuccess": "Settings saved successfully",
+        "saveError": "Failed to save settings"
+      },
+      "tickets": {
+        "ticketCreated": "New ticket created",
+        "ticketUpdated": "Ticket updated",
+        "ticketDeleted": "Ticket deleted",
+        "ticketChanged": "Ticket changed"
+      },
+      "ticketDetail": {
+        "updateSuccess": "Ticket updated successfully",
+        "noteAdded": "Internal note added",
+        "replyAdded": "Reply added",
+        "deleteSuccess": "Ticket deleted successfully",
+        "deleteError": "Failed to delete ticket"
+      }
+    },
+    "customer": {
+      "tickets": {
+        "createSuccess": "Ticket created successfully!",
+        "createError": "Failed to create ticket",
+        "updateSuccess": "Ticket updated successfully!",
+        "loginRequired": "Please login to create a ticket",
+        "selectProduct": "Please select a product category and model.",
+        "maxFilesExceeded": "You can upload up to 5 attachments.",
+        "fileSizeExceeded": "Each file must be 512MB or less.",
+        "loadError": "Failed to load tickets",
+        "replyRequired": "Please enter reply content",
+        "replySent": "Reply sent",
+        "replyError": "Failed to send reply"
+      },
+      "complaints": {
+        "submitSuccess": "Your complaint has been submitted",
+        "submitError": "Failed to submit complaint"
+      },
+      "feedback": {
+        "submitSuccess": "Thank you for your suggestion! We will review it.",
+        "submitError": "Failed to submit feedback",
+        "loginRequired": "Please login to submit feedback"
+      },
+      "settings": {
+        "saveSuccess": "Settings saved successfully",
+        "saveError": "Failed to save"
+      },
+      "faq": {
+        "categoriesError": "Failed to load categories",
+        "popularError": "Failed to load popular FAQ",
+        "searchError": "Failed to search FAQ",
+        "loadError": "Failed to load FAQ",
+        "articleError": "Failed to load article",
+        "feedbackSuccess": "Thank you for your feedback!",
+        "feedbackError": "Failed to submit feedback"
+      },
+      "conversations": {
+        "loadError": "Failed to load conversations",
+        "startError": "Failed to start conversation",
+        "sendError": "Failed to send message",
+        "transferSuccess": "Successfully transferred to human agent",
+        "transferError": "Transfer failed, please try again",
+        "switchToAISuccess": "Switched to AI assistant",
+        "switchToAIError": "Switch failed, please try again",
+        "aiUnavailable": "AI service is temporarily unavailable, please transfer to human agent",
+        "networkError": "Network connection failed, please check and retry",
+        "aiError": "AI response failed, please try again or transfer to human agent",
+        "actionLabel": {
+          "transferToHuman": "Transfer to Human"
+        }
+      }
+    },
+    "staff": {
+      "conversations": {
+        "sendSuccess": "Message sent",
+        "sendError": "Failed to send message",
+        "transferSuccess": "Conversation transferred",
+        "transferError": "Failed to transfer conversation",
+        "aiUnavailable": "AI service is temporarily unavailable, please transfer to human agent",
+        "loadError": "Failed to load conversations",
+        "sseUnavailable": "Real-time updates unavailable",
+        "closeSuccess": "Conversation closed",
+        "closeError": "Failed to close conversation"
+      },
+      "tickets": {
+        "updateSuccess": "Ticket updated successfully!",
+        "updateError": "Failed to update ticket",
+        "noteAdded": "Note added successfully",
+        "ticketUpdated": "Ticket updated - refresh to see changes"
+      },
+      "customers": {
+        "loadError": "Failed to load customers"
+      }
+    },
+    "components": {
+      "messageInput": {
+        "sendError": "Failed to send message",
+        "fileSizeError": "File size must be less than 10MB"
+      }
+    }
   },
   "complaints": {
     "title": "Submit complaint",
@@ -358,6 +1511,144 @@
       "3": "Waiting reply",
       "4": "Closed",
       "unknown": "Unknown"
+    }
+  },
+  "components": {
+    "conversation": {
+      "header": {
+        "aiAssistant": "AI Assistant",
+        "waitingAssignment": "Waiting for assignment",
+        "aiMode": "AI Chat",
+        "humanMode": "Human Agent",
+        "ariaLabels": {
+          "aiChat": "AI Chat",
+          "connected": "Connected",
+          "connecting": "Connecting...",
+          "disconnected": "Disconnected"
+        },
+        "buttons": {
+          "transferring": "Transferring...",
+          "switchToHuman": "Switch to Human",
+          "switchingToHuman": "Switching...",
+          "switchToAI": "Switch to AI",
+          "switchingToAI": "Switching...",
+          "transferToHuman": "Transfer to Human"
+        }
+      },
+      "messageInput": {
+        "placeholder": "Type a message...",
+        "enterToSend": "Enter to send",
+        "shiftEnterNewLine": "Shift+Enter = new line",
+        "attachFile": "Attach file",
+        "sendMessage": "Send message"
+      },
+      "messageList": {
+        "unsupportedType": "Unsupported message type",
+        "noMessages": "No messages yet",
+        "noMessagesHint": "Start the conversation by sending a message",
+        "staff": "Staff",
+        "admin": "Admin"
+      },
+      "transferDialog": {
+        "title": "Transfer to Human Agent",
+        "description": "You are about to transfer from AI assistant to a human agent. The agent will be able to view your complete conversation history for better assistance.",
+        "reasonLabel": "Problem Description (Optional)",
+        "reasonPlaceholder": "Please briefly describe the issue you need help with. This will help the agent resolve your problem faster...",
+        "charCount": "{count} / 300",
+        "continueInWindow": "✓ You will continue the conversation in the current window without switching",
+        "cancel": "Cancel",
+        "confirming": "Transferring...",
+        "confirm": "Confirm Transfer"
+      },
+      "aiHistory": {
+        "title": "AI chat history",
+        "collapse": "Collapse",
+        "expand": "Expand"
+      }
+    }
+  },
+  "marketing": {
+    "hero": {
+      "title": "Transform Your Customer Service",
+      "subtitle": "AI-powered platform for seamless customer support and engagement",
+      "startFreeTrial": "Start Free Trial",
+      "watchDemo": "Watch Demo",
+      "noCreditCard": "No credit card required"
+    }
+  },
+  "landing": {
+    "loading": {
+      "title": "Loading Dashboard...",
+      "verifying": "Verifying credentials"
+    },
+    "brand": "FleetCommand",
+    "nav": {
+      "solutions": "Solutions",
+      "pricing": "Pricing",
+      "resources": "Resources",
+      "company": "Company",
+      "login": "Log in",
+      "getStarted": "Get Started"
+    },
+    "hero": {
+      "titlePart1": "Modern Fleet Management",
+      "titlePart2": "Simplified",
+      "description": "Track, manage, and optimize your fleet operations with our comprehensive platform. Real-time insights for better decision making.",
+      "startFreeTrial": "Start Free Trial",
+      "watchDemo": "Watch Demo",
+      "freeTrial": "14-day free trial",
+      "noCreditCard": "No credit card required"
+    },
+    "features": {
+      "title": "Everything you need to manage your fleet",
+      "description": "Powerful features designed to help you reduce costs, improve safety, and increase operational efficiency.",
+      "realTimeTracking": {
+        "name": "Real-time Tracking",
+        "description": "Monitor your fleet locations and status in real-time with advanced GPS integration."
+      },
+      "performanceAnalytics": {
+        "name": "Performance Analytics",
+        "description": "Get detailed insights into fuel usage, driver behavior, and maintenance needs."
+      },
+      "safetyCompliance": {
+        "name": "Safety & Compliance",
+        "description": "Ensure your fleet meets all regulatory requirements and safety standards automatically."
+      },
+      "maintenanceScheduling": {
+        "name": "Maintenance Scheduling",
+        "description": "Automated alerts and scheduling for vehicle maintenance to prevent downtime."
+      }
+    },
+    "cta": {
+      "title": "Ready to optimize your fleet operations?",
+      "description": "Join over 2,000 companies using FleetCommand to reduce costs and improve safety.",
+      "button": "Start Your Free Trial",
+      "noCreditCard": "No credit card required. 14-day free trial."
+    },
+    "footer": {
+      "copyright": "© 2025 FleetCommand Inc. All rights reserved."
+    }
+  },
+  "dashboardComponents": {
+    "recentActivity": {
+      "title": "Recent Activity",
+      "noActivity": "No recent activity",
+      "noActivityHint": "Your recent conversations and messages will appear here",
+      "activity": {
+        "newMessage": "New message",
+        "statusChanged": "Status changed to {status}",
+        "assigned": "Conversation assigned",
+        "default": "Activity"
+      }
+    },
+    "recentTickets": {
+      "title": "Recent Tickets",
+      "noTickets": "No recent tickets"
+    }
+  },
+  "layouts": {
+    "navbar": {
+      "notifications": "Notifications"
     }
   }
 }

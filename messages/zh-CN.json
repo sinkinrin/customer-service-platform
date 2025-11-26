@@ -27,22 +27,101 @@
       "es": "Español",
       "ru": "Русский",
       "pt": "Português"
+    },
+    "actions": {
+      "viewDetails": "查看详情",
+      "viewAll": "查看全部",
+      "loadMore": "加载更多",
+      "refresh": "刷新",
+      "goBack": "返回"
+    },
+    "status": {
+      "active": "活跃",
+      "inactive": "未激活",
+      "pending": "待处理",
+      "completed": "已完成",
+      "operational": "运行中",
+      "healthy": "健康",
+      "connected": "已连接",
+      "notConfigured": "未配置",
+      "assigned": "已分配",
+      "allSystemsOperational": "所有系统运行正常",
+      "minorIssuesDetected": "检测到轻微问题",
+      "systemError": "系统错误",
+      "unknownStatus": "未知状态"
+    },
+    "time": {
+      "ago": "前",
+      "justNow": "刚刚",
+      "minutes": "分钟",
+      "hours": "小时",
+      "days": "天"
+    },
+    "layout": {
+      "adminPortal": "管理员门户",
+      "staffPortal": "员工门户",
+      "customerService": "客户服务",
+      "systemStatus": "系统状态：",
+      "myAccount": "我的账户",
+      "profileSettings": "个人资料设置",
+      "preferences": "偏好设置",
+      "systemSettings": "系统设置",
+      "notifications": "通知",
+      "logOut": "退出登录",
+      "signOut": "退出",
+      "login": "登录",
+      "signup": "注册",
+      "administrator": "管理员",
+      "manageUsers": "管理用户"
+    },
+    "empty": {
+      "noResults": "未找到结果",
+      "noDataAvailable": "暂无数据",
+      "tryAdjustingFilters": "请调整搜索条件或筛选器"
+    },
+    "errorBoundary": {
+      "title": "出错了",
+      "description": "发生了意外错误，请重试。",
+      "tryAgain": "重试",
+      "goHome": "返回首页"
+    },
+    "aria": {
+      "loading": "加载中"
     }
   },
   "nav": {
     "dashboard": "仪表板",
     "conversations": "对话",
     "faq": "常见问题",
+    "faqManagement": "常见问题管理",
     "tickets": "工单",
     "knowledgeBase": "知识库",
     "users": "用户管理",
     "settings": "设置",
+    "systemSettings": "系统设置",
     "logout": "退出登录",
-    "profile": "个人资料"
+    "profile": "个人资料",
+    "customers": "客户",
+    "myTickets": "我的工单",
+    "feedback": "反馈建议",
+    "complaints": "投诉",
+    "businessTypes": "业务类型",
+    "customer": {
+      "helpCenter": "帮助中心",
+      "liveChat": "在线聊天",
+      "ticketManagement": "工单管理",
+      "submitTicket": "提交工单",
+      "myTickets": "我的工单",
+      "feedbackComplaints": "反馈与投诉",
+      "submitFeedback": "提交反馈",
+      "submitComplaint": "提交投诉"
+    }
   },
   "auth": {
     "login": "登录",
     "register": "注册",
+    "signIn": "登录",
+    "signUp": "注册",
     "email": "邮箱",
     "password": "密码",
     "confirmPassword": "确认密码",
@@ -55,20 +134,49 @@
     "loggingIn": "登录中...",
     "registering": "注册中...",
     "loginSuccess": "登录成功！",
-    "registerSuccess": "注册成功！请检查您的邮箱以验证账号。",
-    "loginError": "邮箱或密码错误",
+    "registerSuccess": "注册成功！请查看邮箱验证您的账户。",
+    "loginError": "邮箱或密码无效",
     "registerError": "注册失败，请重试。",
     "emailRequired": "邮箱为必填项",
-    "emailInvalid": "邮箱格式不正确",
+    "emailInvalid": "邮箱地址无效",
     "passwordRequired": "密码为必填项",
     "passwordMinLength": "密码至少需要6个字符",
-    "passwordMismatch": "两次输入的密码不一致",
-    "fullNameRequired": "姓名为必填项"
+    "passwordMismatch": "两次密码输入不一致",
+    "fullNameRequired": "姓名为必填项",
+    "loginPage": {
+      "title": "登录",
+      "description": "输入您的邮箱和密码以访问您的账户",
+      "redirecting": "跳转中...",
+      "redirectingDescription": "正在前往您的仪表板",
+      "emailPlaceholder": "name@example.com",
+      "passwordPlaceholder": "********"
+    },
+    "registerPage": {
+      "title": "注册已禁用",
+      "description": "本系统不开放公开注册",
+      "policyTitle": "账户创建政策：",
+      "policyDescription": "用户账户必须由系统管理员创建。如需账户，请联系您的管理员。",
+      "howToTitle": "如何获取账户：",
+      "step1": "联系系统管理员",
+      "step2": "提供您的邮箱地址和所需信息",
+      "step3": "等待管理员创建您的账户",
+      "step4": "您将通过邮件收到登录凭证"
+    },
+    "layout": {
+      "brandShort": "客服",
+      "brandName": "客户服务"
+    },
+    "accessDenied": {
+      "title": "访问被拒绝",
+      "description": "您无权访问此页面。",
+      "yourRole": "您的角色：",
+      "goBack": "返回"
+    }
   },
   "dashboard": {
     "welcome": "欢迎回来",
     "overview": "概览",
-    "statistics": "统计",
+    "statistics": "统计数据",
     "recentActivity": "最近活动",
     "totalConversations": "总对话数",
     "activeConversations": "活跃对话",
@@ -78,48 +186,70 @@
   },
   "conversations": {
     "title": "对话",
-    "newConversation": "新建对话",
+    "newConversation": "新对话",
     "searchPlaceholder": "搜索对话...",
     "noConversations": "未找到对话",
     "status": {
       "waiting": "等待中",
-      "active": "活跃",
+      "active": "进行中",
       "closed": "已关闭"
     },
     "businessType": {
-      "presales": "售前咨询",
-      "aftersales": "售后支持"
+      "presales": "售前",
+      "aftersales": "售后"
     },
     "messageInput": "输入您的消息...",
     "send": "发送",
-    "attachFile": "附加文件",
-    "lastMessage": "最后消息",
+    "attachFile": "添加附件",
+    "lastMessage": "最后一条消息",
     "messages": "消息",
-    "noMessages": "暂无消息",
+    "noMessages": "还没有消息",
     "startConversation": "开始对话"
   },
   "faq": {
     "title": "常见问题",
+    "helpCenter": "帮助中心",
+    "helpDescription": "查找常见问题的答案并获取帮助",
     "searchPlaceholder": "搜索答案...",
+    "searchArticlesPlaceholder": "搜索帮助文章...",
+    "searchHelpPlaceholder": "搜索帮助...",
+    "searchTab": "搜索",
+    "browseTab": "按分类浏览",
     "categories": "分类",
     "allCategories": "所有分类",
+    "browseAllFaqItems": "浏览所有常见问题",
+    "noCategoriesAvailable": "暂无分类",
+    "home": "首页",
+    "allArticles": "所有文章",
+    "articles": "文章",
     "popularArticles": "热门文章",
     "relatedArticles": "相关文章",
-    "helpful": "这篇文章有帮助吗？",
-    "yes": "有帮助",
-    "no": "没帮助",
-    "thankYou": "感谢您的反馈！",
-    "noResults": "未找到文章",
-    "browseByCategory": "按分类浏览",
     "searchResults": "搜索结果",
-    "viewCount": "次浏览"
+    "noResults": "未找到结果",
+    "noArticlesFound": "未找到文章",
+    "noArticlesAvailable": "暂无文章",
+    "tryDifferentKeywords": "尝试不同的关键词或按分类浏览",
+    "checkBackLater": "稍后再来查看更多文章",
+    "noCategoryArticles": "此分类暂无文章",
+    "backToHelpCenter": "返回帮助中心",
+    "loadingArticle": "加载文章中...",
+    "helpful": "这有帮助吗？",
+    "wasHelpful": "这篇文章有帮助吗？",
+    "yes": "是",
+    "no": "否",
+    "thankYou": "感谢您的反馈！",
+    "stillNeedHelp": "仍需帮助？",
+    "contactDescription": "联系我们的支持团队获取专业协助",
+    "contactSupport": "联系支持",
+    "viewCount": "次浏览",
+    "helpfulCount": "次好评"
   },
   "tickets": {
     "title": "工单",
-    "newTicket": "新建工单",
+    "newTicket": "新工单",
     "searchPlaceholder": "搜索工单...",
     "noTickets": "未找到工单",
-    "ticketNumber": "工单号 #",
+    "ticketNumber": "工单 #",
     "subject": "主题",
     "status": "状态",
     "priority": "优先级",
@@ -128,7 +258,7 @@
     "updatedAt": "更新时间",
     "statusOptions": {
       "new": "新建",
-      "open": "处理中",
+      "open": "进行中",
       "pending": "待处理",
       "closed": "已关闭"
     },
@@ -138,17 +268,115 @@
       "high": "高",
       "urgent": "紧急"
     },
-    "details": "工单详情",
+    "details": {
+      "title": "工单详情",
+      "customer": "客户",
+      "group": "组",
+      "created": "创建时间",
+      "lastUpdated": "最后更新",
+      "assignedTo": "分配给",
+      "ownerId": "负责人 ID: {id}",
+      "priority": "优先级",
+      "state": "状态",
+      "ticketStatus": "工单状态",
+      "saveChanges": "保存更改",
+      "cancel": "取消",
+      "pendingReminder": "选择此工单自动更新的时间",
+      "pendingUntil": "等待截止时间 *",
+      "selectPendingTime": "请为此状态选择等待时间。",
+      "addNote": "添加备注",
+      "noteContent": "备注内容",
+      "notePlaceholder": "添加备注或回复此工单...",
+      "internalNoteCheckbox": "内部备注（客户不可见）",
+      "promise": "承诺",
+      "ticketNumber": "工单 #{number}",
+      "states": {
+        "new": "新建",
+        "open": "进行中",
+        "pendingReminder": "等待提醒",
+        "pendingClose": "待关闭",
+        "closed": "已关闭"
+      },
+      "priorities": {
+        "low": "低",
+        "normal": "普通",
+        "high": "高"
+      }
+    },
     "articles": "文章",
     "addArticle": "添加文章",
     "internalNote": "内部备注",
-    "publicReply": "公开回复"
+    "publicReply": "公开回复",
+    "empty": {
+      "noTicketsFound": "未找到工单",
+      "adjustFilters": "请调整搜索条件或筛选器"
+    }
   },
   "admin": {
+    "dashboard": {
+      "pageTitle": "管理员仪表板",
+      "welcome": "欢迎，{name}",
+      "overview": "这是您平台性能的概览",
+      "stats": {
+        "totalUsers": "总用户数",
+        "totalTickets": "总工单数",
+        "openTickets": "进行中工单",
+        "closedTickets": "已关闭工单",
+        "registeredUsers": "注册用户",
+        "allRegions": "所有地区",
+        "needsAttention": "需要关注",
+        "resolved": "已解决"
+      },
+      "regionalDistribution": {
+        "title": "区域工单分布",
+        "description": "各服务区域的工单数量",
+        "noData": "暂无区域数据",
+        "open": "进行中",
+        "closed": "已关闭",
+        "total": "总计"
+      },
+      "quickActions": {
+        "title": "快捷操作",
+        "description": "高效管理您的平台",
+        "createUser": "创建用户",
+        "viewAllTickets": "查看所有工单",
+        "manageFAQ": "管理常见问题",
+        "systemSettings": "系统设置"
+      },
+      "recentActivity": {
+        "title": "最近工单活动",
+        "description": "所有地区的最新工单更新",
+        "noActivity": "暂无最近活动"
+      },
+      "systemHealth": {
+        "title": "系统健康状况",
+        "description": "当前系统状态",
+        "apiStatus": "API 状态",
+        "database": "数据库",
+        "zammadIntegration": "Zammad 集成",
+        "fastgpt": "FastGPT"
+      },
+      "platformMetrics": {
+        "title": "平台指标",
+        "description": "关键绩效指标",
+        "avgResponseTime": "平均响应时间",
+        "resolutionRate": "解决率",
+        "customerSatisfaction": "客户满意度",
+        "uptime": "正常运行时间",
+        "satisfactionRate": "满意度",
+        "resolvedTickets": "已解决工单",
+        "activeUsers": "活跃用户"
+      }
+    },
     "users": {
+      "pageTitle": "用户管理",
+      "pageDescription": "管理平台用户和权限",
       "title": "用户管理",
+      "searchDescription": "搜索和筛选用户",
+      "createButton": "创建用户",
       "newUser": "新建用户",
       "searchPlaceholder": "搜索用户...",
+      "filterPlaceholder": "按角色筛选",
       "noUsers": "未找到用户",
       "role": "角色",
       "status": "状态",
@@ -157,19 +385,81 @@
       "editUser": "编辑用户",
       "deleteUser": "删除用户",
       "confirmDelete": "确定要删除此用户吗？",
+      "filters": {
+        "allRoles": "所有角色"
+      },
+      "form": {
+        "emailRequired": "邮箱地址 *",
+        "emailLabel": "邮箱地址",
+        "emailPlaceholder": "user@example.com",
+        "fullNameLabel": "姓名 *",
+        "fullNamePlaceholder": "张三",
+        "roleLabel": "角色 *",
+        "passwordLabel": "密码 *",
+        "passwordPlaceholder": "最少8个字符",
+        "passwordHint": "密码至少需要8个字符",
+        "regionLabel": "地区 *",
+        "phoneLabel": "电话号码（可选）",
+        "phonePlaceholder": "+86 138 0000 0000",
+        "languageLabel": "首选语言"
+      },
+      "table": {
+        "name": "姓名",
+        "email": "邮箱",
+        "role": "角色",
+        "phone": "电话",
+        "status": "状态",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      },
+      "pagination": {
+        "showing": "显示第 {start} 至 {end} 条，共 {total} 个用户",
+        "previous": "上一页",
+        "next": "下一页"
+      },
+      "editDialog": {
+        "title": "编辑用户",
+        "description": "更新用户信息和角色",
+        "name": "姓名",
+        "email": "邮箱",
+        "role": "角色",
+        "phone": "电话",
+        "cancel": "取消",
+        "save": "保存"
+      },
+      "createPage": {
+        "title": "创建新用户",
+        "description": "向系统添加新用户并分配角色和地区",
+        "backToUsers": "返回用户列表",
+        "createButton": "创建用户",
+        "cancel": "取消",
+        "cardTitle": "用户信息",
+        "cardDescription": "填写用户详细信息。所有字段均为必填。"
+      },
       "roles": {
         "customer": "客户",
         "staff": "员工",
-        "admin": "管理员"
+        "admin": "管理员",
+        "customerDesc": "客户（最终用户）",
+        "staffDesc": "员工（客服）",
+        "adminDesc": "管理员",
+        "customerPermission": "可以创建工单并查看自己的工单",
+        "staffPermission": "可以处理其分配地区的工单",
+        "adminPermission": "对所有功能和地区拥有完全访问权限",
+        "staffRegionHint": "员工只能访问其分配地区的工单",
+        "customerRegionHint": "客户工单将分配到此地区"
       },
       "statusOptions": {
         "active": "活跃",
-        "inactive": "停用"
+        "inactive": "未激活"
       }
     },
     "faq": {
-      "title": "FAQ 管理",
+      "pageTitle": "常见问题管理",
+      "pageDescription": "管理 Zammad 知识库中的常见问题条目",
+      "title": "常见问题管理",
       "newArticle": "新建文章",
+      "createFAQ": "创建常见问题",
       "editArticle": "编辑文章",
       "deleteArticle": "删除文章",
       "confirmDelete": "确定要删除此文章吗？",
@@ -178,18 +468,744 @@
       "addTranslation": "添加翻译",
       "language": "语言",
       "title_field": "标题",
+      "titleRequired": "标题 *",
+      "titlePlaceholder": "请输入文章标题",
       "content": "内容",
+      "contentRequired": "内容 *",
+      "contentPlaceholder": "请输入文章内容",
       "keywords": "关键词",
       "published": "已发布",
-      "draft": "草稿"
+      "draft": "草稿",
+      "archived": "已归档",
+      "filters": "筛选器",
+      "searchPlaceholder": "按标题或内容搜索...",
+      "allCategories": "所有分类",
+      "allStates": "所有状态",
+      "sortBy": "排序方式",
+      "sortOptions": {
+        "lastUpdated": "最近更新",
+        "createdDate": "创建日期",
+        "titleAZ": "标题（A-Z）",
+        "mostViewed": "最多浏览",
+        "mostLiked": "最多点赞"
+      },
+      "table": {
+        "title": "标题",
+        "category": "分类",
+        "state": "状态",
+        "views": "浏览量",
+        "likes": "点赞",
+        "updated": "更新时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "publish": "发布",
+        "unpublish": "取消发布",
+        "edit": "编辑",
+        "delete": "删除"
+      },
+      "faqItems": "常见问题条目",
+      "itemsFound": "找到 {count} 个条目",
+      "showingResults": "显示 {showing} / {total} 个常见问题条目",
+      "noItemsFound": "未找到常见问题条目",
+      "pagination": {
+        "page": "第 {current} 页 / 共 {total} 页 ({count} 个条目)",
+        "previous": "上一页",
+        "next": "下一页"
+      },
+      "deleteDialog": {
+        "title": "确定要删除吗？",
+        "description": "这将永久删除常见问题条目 \"{title}\"。此操作无法撤销。",
+        "cancel": "取消",
+        "delete": "删除"
+      },
+      "form": {
+        "title": "标题 *",
+        "titlePlaceholder": "请输入文章标题",
+        "content": "内容 *",
+        "contentPlaceholder": "请输入文章内容",
+        "contentPlaceholderMarkdown": "请输入文章内容（支持 Markdown）",
+        "category": "分类 *",
+        "cancel": "取消",
+        "create": "创建文章",
+        "save": "保存更改",
+        "loadingCategories": "加载分类中...",
+        "noCategories": "暂无可用分类",
+        "publishImmediately": "立即发布",
+        "translations": "翻译 *",
+        "keywordsLabel": "关键词（逗号分隔）",
+        "keywordsPlaceholder": "关键词1, 关键词2, 关键词3",
+        "slugLabel": "Slug（可选）",
+        "slugPlaceholder": "article-slug",
+        "validationError": "请至少提供一种语言的翻译"
+      },
+      "dialog": {
+        "createTitle": "创建 FAQ 文章",
+        "editTitle": "编辑 FAQ 文章",
+        "createDescription": "创建一篇支持多语言的 FAQ 文章",
+        "editDescription": "更新 FAQ 文章信息"
+      }
+    },
+    "businessTypes": {
+      "pageTitle": "业务类型",
+      "pageDescription": "管理用于对话分类的业务类型",
+      "managementTitle": "业务类型管理",
+      "managementDescription": "配置业务类型以对客户对话进行分类",
+      "comingSoon": "即将推出",
+      "comingSoonDescription": "业务类型管理功能目前正在开发中。此功能将允许您创建和管理不同的业务类型，以更好地对对话进行分类。",
+      "whatAreBusinessTypes": "什么是业务类型？",
+      "purpose": "用途",
+      "benefits": "优势",
+      "benefitsList": {
+        "routing": "更好地将对话分配给专业团队",
+        "analytics": "改进分析和报告",
+        "customerExperience": "通过针对性支持提升客户体验",
+        "workflow": "简化工作流程管理"
+      },
+      "plannedFeatures": "计划功能",
+      "featuresList": {
+        "createEdit": "创建和编辑业务类型",
+        "assignTeams": "为业务类型分配默认员工团队",
+        "setSLA": "设置优先级和 SLA 目标",
+        "automatedRouting": "配置自动路由规则"
+      }
     },
     "settings": {
+      "pageTitle": "系统设置",
+      "pageDescription": "管理系统设置和配置",
       "title": "系统设置",
       "general": "通用",
-      "businessTypes": "业务类型",
+      "businessTypes": {
+        "title": "业务类型",
+        "description": "管理用于对话分类的业务类型",
+        "table": {
+          "name": "名称",
+          "description": "描述",
+          "createdAt": "创建时间"
+        },
+        "noTypes": "未配置业务类型"
+      },
+      "systemConfig": {
+        "title": "系统配置",
+        "description": "通用系统设置和参数",
+        "defaultLanguage": {
+          "title": "默认语言",
+          "description": "新用户的默认语言"
+        },
+        "sessionTimeout": {
+          "title": "会话超时",
+          "description": "用户会话超时时长"
+        },
+        "emailNotifications": {
+          "title": "邮件通知",
+          "description": "配置邮件通知设置"
+        },
+        "configure": "配置"
+      },
       "notifications": "通知",
       "saveSuccess": "设置保存成功",
-      "saveError": "设置保存失败"
+      "saveError": "设置保存失败",
+      "loadError": "设置加载失败"
+    },
+    "tickets": {
+      "pageTitle": "工单管理",
+      "pageDescription": "查看和管理所有地区的客户支持工单",
+      "status": {
+        "newUpdates": "新更新",
+        "live": "实时",
+        "connecting": "连接中...",
+        "offline": "离线"
+      },
+      "search": {
+        "placeholder": "按工单号、标题或客户搜索...",
+        "button": "搜索"
+      },
+      "filters": {
+        "allRegions": "所有地区",
+        "allPriorities": "所有优先级",
+        "priority": {
+          "low": "低",
+          "normal": "正常",
+          "high": "高"
+        }
+      },
+      "actions": {
+        "export": "导出"
+      },
+      "tabs": {
+        "all": "所有工单",
+        "open": "开启",
+        "pending": "待处理",
+        "closed": "已关闭"
+      }
+    },
+    "ticketDetail": {
+      "notFound": "未找到工单",
+      "backToTickets": "返回工单列表",
+      "back": "返回",
+      "ticketNumber": "工单 #{number}",
+      "created": "创建于 {date}",
+      "deleteButton": "删除工单",
+      "deleteDialog": {
+        "title": "确定要删除吗？",
+        "description": "此操作无法撤销。这将永久删除该工单及其所有相关文章。",
+        "cancel": "取消",
+        "delete": "删除"
+      },
+      "conversation": "对话 ({count})",
+      "noArticles": "暂无文章",
+      "internalBadge": "内部"
+    }
+  },
+  "customer": {
+    "dashboard": {
+      "pageTitle": "客户仪表板",
+      "title": "客户服务中心",
+      "welcome": "欢迎回来",
+      "welcomeMessage": "欢迎使用客户服务平台。我们随时为您提供帮助。",
+      "myTickets": "我的工单",
+      "recentConversations": "最近对话",
+      "quickActions": {
+        "liveChat": {
+          "title": "在线聊天",
+          "description": "实时与客服聊天"
+        },
+        "knowledgeBase": {
+          "title": "知识库",
+          "description": "查找常见问题的答案"
+        },
+        "myTickets": {
+          "title": "我的工单",
+          "description": "查看和管理支持工单"
+        },
+        "submitFeedback": {
+          "title": "提交反馈",
+          "description": "分享您的建议和意见"
+        }
+      },
+      "getStarted": {
+        "title": "开始使用",
+        "subtitle": "选择您需要的帮助方式",
+        "liveChat": {
+          "title": "在线聊天",
+          "description": "通过在线聊天获得即时帮助。我们的 AI 助手和人工客服随时为您服务。",
+          "button": "开始聊天"
+        },
+        "knowledgeBase": {
+          "title": "浏览知识库",
+          "description": "在知识库中搜索常见答案，快速解决问题。",
+          "button": "浏览常见问题"
+        },
+        "ticket": {
+          "title": "提交工单",
+          "description": "需要记录详情？创建工单并跟踪进度。",
+          "button": "创建工单"
+        }
+      }
+    },
+    "myTickets": {
+      "title": "我的工单",
+      "subtitle": "查看和管理您的支持工单",
+      "listTitle": "工单列表",
+      "listDescription": "您共有 {count} 个工单",
+      "searchPlaceholder": "搜索工单号或标题...",
+      "pageTitle": "我的工单",
+      "createTicket": "创建工单",
+      "noTickets": "暂无工单",
+      "toast": {
+        "loadError": "加载工单失败"
+      },
+      "empty": {
+        "title": "未找到工单",
+        "noResults": "没有符合搜索条件的工单",
+        "description": "您还没有创建任何工单",
+        "hint": "点击上方按钮创建您的第一个工单"
+      },
+      "table": {
+        "id": "工单号",
+        "title": "标题",
+        "status": "状态",
+        "priority": "优先级",
+        "replies": "回复数",
+        "created": "创建时间",
+        "updated": "最后更新",
+        "actions": "操作",
+        "view": "查看",
+        "loading": "加载中...",
+        "loadMore": "加载更多"
+      },
+      "status": "状态",
+      "priority": "优先级",
+      "createPageTitle": "提交工单",
+      "createPageDescription": "遇到问题？提交工单，我们的支持团队会迅速为您解决。",
+      "detailPageTitle": "工单详情",
+      "backToList": "返回工单列表",
+      "ticketNumber": "工单编号",
+      "createdAt": "创建时间",
+      "updatedAt": "最后更新",
+      "conversation": "对话记录",
+      "messageCount": "共 {count} 条消息",
+      "noConversation": "暂无对话记录",
+      "ticketInfo": "工单信息",
+      "charactersCount": "{count}/{max} 字符",
+      "create": {
+        "formTitle": "工单详情",
+        "formDescription": "详细描述问题，以便我们更快地解决。",
+        "characterCount": "{count} / {max}",
+        "fileSizeLimit": "支持图片、PDF、文档。最多5个文件，每个最大512MB。",
+        "detailsTitle": "工单详情",
+        "detailsDescription": "详细描述问题，以便我们更快地解决。",
+        "categoryLabel": "产品分类 *",
+        "categoryPlaceholder": "请选择产品分类",
+        "modelLabel": "产品型号 *",
+        "modelPlaceholder": "请选择产品型号",
+        "priorityLabel": "优先级 *",
+        "priorities": {
+          "1": "低 - 产品使用咨询",
+          "2": "中 - 一般问题",
+          "3": "高 - 业务影响",
+          "4": "紧急 - 业务中断"
+        },
+        "titleLabel": "问题标题 *",
+        "titlePlaceholder": "简要描述您的问题",
+        "descriptionLabel": "问题描述 *",
+        "descriptionPlaceholder": "详细描述问题，包括：\n1. 问题发生的时间和频率\n2. 错误消息或异常行为\n3. 您已尝试的排查步骤\n4. 对业务的影响",
+        "attachmentsLabel": "附件（可选）",
+        "selectFiles": "选择文件",
+        "uploadInfo": "支持图片、PDF、文档。最多5个文件，每个最大512MB。",
+        "actions": {
+          "cancel": "取消",
+          "submitting": "提交中...",
+          "submit": "提交工单"
+        },
+        "tips": {
+          "title": "提示",
+          "tip1": "- 尽可能提供详细信息，帮助我们快速定位问题。",
+          "tip2": "- 截图或错误日志对我们的排查非常有帮助。",
+          "tip3": "- 说明问题发生的时机（总是、偶尔、特定操作后）。",
+          "tip4": "- 您可以在\"我的工单\"中跟踪工单状态并回复支持团队。"
+        }
+      },
+      "detail": {
+        "backToList": "返回工单列表",
+        "ticketNumber": "工单编号",
+        "createdAt": "创建时间",
+        "infoTitle": "工单信息",
+        "status": "状态",
+        "priority": "优先级",
+        "updatedAt": "最后更新",
+        "conversationTitle": "对话记录",
+        "messageCount": "共 {count} 条消息",
+        "noMessages": "暂无对话记录",
+        "unknownUser": "未知用户",
+        "internal": "内部",
+        "addReply": "添加回复",
+        "replyDescription": "您的回复将发送给技术支持团队",
+        "replyPlaceholder": "请输入您的回复...",
+        "characterCount": "{count}/{max} 字符",
+        "sending": "发送中...",
+        "sendReply": "发送回复",
+        "closedMessage": "此工单已关闭。如需继续讨论，请创建新工单。"
+      },
+      "statusLabels": {
+        "new": "新建",
+        "open": "处理中",
+        "pending": "等待回复",
+        "closed": "已关闭"
+      },
+      "priorityLabels": {
+        "1": "低",
+        "2": "中",
+        "3": "高",
+        "4": "紧急"
+      }
+    },
+    "settings": {
+      "pageTitle": "设置",
+      "pageDescription": "管理您的账户设置和偏好",
+      "personalInfo": {
+        "title": "个人信息",
+        "description": "更新您的个人资料信息",
+        "fullNameLabel": "姓名",
+        "fullNamePlaceholder": "请输入您的姓名",
+        "emailLabel": "邮箱",
+        "phoneLabel": "电话",
+        "phonePlaceholder": "请输入您的电话号码",
+        "languageLabel": "语言",
+        "saving": "保存中...",
+        "saveChanges": "保存更改"
+      },
+      "notifications": {
+        "title": "通知设置",
+        "description": "管理您接收通知的方式",
+        "email": {
+          "label": "邮件通知",
+          "description": "接收重要更新的邮件通知"
+        },
+        "desktop": {
+          "label": "桌面通知",
+          "description": "在浏览器中显示桌面通知"
+        },
+        "ticketUpdates": {
+          "label": "工单更新",
+          "description": "工单状态变更时通知我"
+        },
+        "conversationReplies": {
+          "label": "对话回复",
+          "description": "收到新消息时通知我"
+        },
+        "promotions": {
+          "label": "促销信息",
+          "description": "接收产品更新和促销信息"
+        },
+        "saving": "保存中...",
+        "saveChanges": "保存更改"
+      },
+      "security": {
+        "title": "安全设置",
+        "description": "更改您的密码以保护账户安全",
+        "currentPasswordLabel": "当前密码",
+        "currentPasswordPlaceholder": "请输入当前密码",
+        "newPasswordLabel": "新密码",
+        "newPasswordPlaceholder": "请输入新密码（至少8个字符）",
+        "confirmPasswordLabel": "确认新密码",
+        "confirmPasswordPlaceholder": "请再次输入新密码",
+        "updating": "更新中...",
+        "updatePassword": "更新密码"
+      },
+      "toast": {
+        "personalInfoUpdated": "个人信息已更新",
+        "updateFailed": "更新失败，请重试",
+        "notificationsUpdated": "通知设置已更新",
+        "passwordMismatch": "新密码与确认密码不匹配",
+        "passwordTooShort": "密码长度至少为8个字符",
+        "passwordUpdated": "密码已更新",
+        "passwordUpdateFailed": "密码更新失败，请重试"
+      }
+    },
+    "feedback": {
+      "pageTitle": "提交反馈",
+      "pageDescription": "您的建议很重要，帮助我们持续改进。",
+      "formTitle": "反馈详情",
+      "formDescription": "请描述您的建议，以便我们评估和考虑实施。",
+      "categoryLabel": "反馈分类 *",
+      "categories": {
+        "feature": "功能请求",
+        "improvement": "改进建议",
+        "ui": "UI/UX 改进",
+        "other": "其他建议"
+      },
+      "titleLabel": "反馈标题 *",
+      "titlePlaceholder": "简要概括您的建议",
+      "descriptionLabel": "详细描述 *",
+      "descriptionPlaceholder": "请详细描述您的建议，包括：\n1. 您希望改变什么\n2. 为什么需要这个改进\n3. 预期的成果或好处",
+      "contactLabel": "联系方式 *",
+      "contactPlaceholder": "邮箱或电话",
+      "contactHelp": "如果我们需要了解更多关于您建议的详情，可能会通过此方式联系您。",
+      "characterCount": "{count}/{max} 字符",
+      "actions": {
+        "cancel": "取消",
+        "submitting": "提交中...",
+        "submit": "提交反馈"
+      },
+      "tips": {
+        "title": "提示",
+        "tip1": "- 尽可能详细，以便我们清楚理解您的需求。",
+        "tip2": "- 如果您的建议涉及特定功能或 UI，截图或示例会有所帮助。",
+        "tip3": "- 我们会定期审查所有建议，并优先考虑最有价值的改进。",
+        "tip4": "- 您可以在\"我的工单\"下跟踪建议状态。"
+      }
+    },
+    "conversations": {
+      "starting": {
+        "title": "正在启动对话",
+        "connectingMessage": "请稍候，正在为您连接客服...",
+        "redirectingMessage": "正在跳转到您的对话..."
+      },
+      "detail": {
+        "loadingText": "加载对话中...",
+        "me": "我",
+        "aiAssistant": "AI助手",
+        "newMessageNotification": "收到新消息 - 向下滚动查看",
+        "sseError": "实时更新不可用：{error}",
+        "closedMessage": "对话已关闭。请开启新对话以继续。"
+      },
+      "placeholders": {
+        "aiMode": "向 AI 助手提问...",
+        "waitingMode": "等待客服接入...",
+        "activeMode": "输入消息..."
+      },
+      "actions": {
+        "transferLabel": "转人工客服"
+      }
+    }
+  },
+  "staff": {
+    "loading": {
+      "message": "加载员工工具中...",
+      "hint": "正在同步对话和工单"
+    },
+    "dashboard": {
+      "pageTitle": "员工仪表板",
+      "welcome": "欢迎，{name}",
+      "welcomeMessage": "欢迎回来！这是您的工单概览。",
+      "stats": {
+        "assignedTickets": "分配的工单",
+        "activeConversations": "活跃对话",
+        "resolvedToday": "今日已解决",
+        "avgResponseTime": "平均响应时间"
+      },
+      "actions": {
+        "searchTickets": "搜索工单",
+        "knowledgeBase": "知识库",
+        "viewAllTickets": "查看所有工单",
+        "openTickets": "待处理工单",
+        "browseKnowledgeBase": "浏览知识库",
+        "browseArticles": "浏览文章 →"
+      },
+      "quickActions": {
+        "title": "快捷操作"
+      },
+      "helpCard": {
+        "title": "需要帮助？",
+        "description": "查看我们的知识库，获取常见问题和解决方案。"
+      }
+    },
+    "customers": {
+      "pageTitle": "客户管理",
+      "pageDescription": "查看和管理客户信息",
+      "stats": {
+        "totalCustomers": "客户总数",
+        "withPhone": "已填写电话",
+        "regions": "地区数"
+      },
+      "filter": {
+        "title": "筛选客户",
+        "description": "搜索和筛选客户列表",
+        "searchPlaceholder": "按姓名、邮箱或电话搜索...",
+        "regionPlaceholder": "地区",
+        "allRegions": "所有地区",
+        "refresh": "刷新"
+      },
+      "list": {
+        "title": "客户列表",
+        "found": "找到 {count} 位客户",
+        "loading": "加载客户中...",
+        "noCustomers": "未找到客户",
+        "adjustSearch": "请尝试调整搜索条件",
+        "noData": "暂无客户"
+      },
+      "table": {
+        "customer": "客户",
+        "email": "邮箱",
+        "phone": "电话",
+        "region": "地区",
+        "language": "语言",
+        "joined": "加入时间",
+        "actions": "操作",
+        "viewTickets": "查看工单",
+        "unknown": "未知"
+      }
+    },
+    "settings": {
+      "pageTitle": "设置",
+      "pageDescription": "管理您的账户设置和偏好",
+      "saving": "保存中...",
+      "save": "保存更改",
+      "personalInfo": {
+        "title": "个人信息",
+        "description": "更新您的个人信息",
+        "fullNameLabel": "姓名",
+        "fullNamePlaceholder": "输入您的姓名",
+        "emailLabel": "邮箱",
+        "emailHint": "邮箱不可更改",
+        "phoneLabel": "电话号码",
+        "phonePlaceholder": "+86 138 0000 0000",
+        "languageLabel": "语言",
+        "changeAvatar": "更换头像",
+        "avatarHint": "JPG、PNG 或 GIF 格式，最大 2MB"
+      },
+      "notifications": {
+        "title": "通知设置",
+        "description": "配置您的通知接收方式",
+        "emailLabel": "邮件通知",
+        "emailDescription": "通过邮件接收通知",
+        "desktopLabel": "桌面通知",
+        "desktopDescription": "显示桌面通知提醒",
+        "newTicketLabel": "新工单提醒",
+        "newTicketDescription": "收到新工单分配时通知",
+        "newMessageLabel": "新消息提醒",
+        "newMessageDescription": "收到新对话消息时通知"
+      },
+      "preferences": {
+        "title": "工作偏好",
+        "description": "配置您的工作设置",
+        "autoAssignLabel": "自动分配工单",
+        "autoAssignDescription": "自动接收新工单",
+        "showClosedLabel": "显示已关闭工单",
+        "showClosedDescription": "在列表中显示已关闭的工单",
+        "defaultViewLabel": "默认视图",
+        "listView": "列表",
+        "gridView": "网格"
+      },
+      "security": {
+        "title": "安全设置",
+        "description": "管理您的账户安全",
+        "changePasswordLabel": "修改密码",
+        "passwordDisabledHint": "演示模式下密码管理功能已禁用"
+      },
+      "toast": {
+        "saveSuccess": "设置保存成功！",
+        "saveError": "设置保存失败"
+      }
+    },
+    "conversations": {
+      "pageTitle": "对话管理",
+      "pageDescription": "管理客户对话并提供支持",
+      "stats": {
+        "total": "全部对话",
+        "waiting": "等待中",
+        "active": "进行中",
+        "closed": "已关闭"
+      },
+      "filter": {
+        "title": "筛选对话",
+        "description": "搜索和筛选对话列表",
+        "searchPlaceholder": "搜索客户姓名、邮箱或对话ID...",
+        "statusPlaceholder": "状态",
+        "allStatuses": "全部状态"
+      },
+      "list": {
+        "title": "对话列表",
+        "subtitle": "找到 {count} 个对话",
+        "loading": "加载对话中...",
+        "empty": {
+          "title": "暂无对话",
+          "subtitle": "还没有客户对话",
+          "filterSubtitle": "尝试调整搜索条件"
+        }
+      },
+      "sse": {
+        "live": "🟢 实时更新",
+        "offline": "🔴 实时中断",
+        "error": "连接异常"
+      },
+      "card": {
+        "unknown": "未知客户",
+        "noEmail": "无邮箱",
+        "status": {
+          "waiting": "等待中",
+          "active": "进行中",
+          "closed": "已关闭"
+        },
+        "mode": {
+          "ai": "AI",
+          "human": "人工"
+        },
+        "messageCount": "{count} 条",
+        "assignedStaff": "负责客服",
+        "unassigned": "未分配",
+        "lastActivity": "最后活动",
+        "noActivity": "无活动",
+        "createdTime": "创建时间",
+        "viewButton": "查看对话"
+      },
+      "notification": {
+        "newTransfer": "新的转人工对话",
+        "transferReason": "原因：{reason}"
+      },
+      "messageInput": {
+        "placeholder": "输入您的消息...",
+        "send": "发送",
+        "sending": "发送中..."
+      },
+      "transfer": {
+        "requestHuman": "请求人工客服",
+        "transferReason": "转接原因"
+      },
+      "detail": {
+        "notFound": {
+          "title": "对话未找到",
+          "description": "您查找的对话不存在。",
+          "backButton": "返回对话列表"
+        },
+        "sseError": "实时更新不可用：{message}",
+        "newMessageNotification": "收到新消息 - 向下滚动查看",
+        "header": {
+          "backButton": "返回",
+          "title": "与 {name} 的对话",
+          "titleFallback": "客户",
+          "connected": "🟢 已连接",
+          "closeButton": "关闭对话"
+        },
+        "input": {
+          "placeholder": "输入回复..."
+        },
+        "closed": {
+          "message": "对话已关闭"
+        },
+        "customer": {
+          "title": "客户信息",
+          "unknown": "未知客户",
+          "noEmail": "无邮箱",
+          "customerId": "客户ID:"
+        },
+        "details": {
+          "title": "对话详情",
+          "status": "状态:",
+          "mode": "模式:",
+          "messageCount": "消息数:",
+          "createdTime": "创建时间:",
+          "updatedTime": "更新时间:",
+          "transferredTime": "转人工时间:",
+          "transferReason": "转人工原因:",
+          "statusWaiting": "等待中",
+          "statusActive": "进行中",
+          "statusClosed": "已关闭",
+          "modeAI": "AI",
+          "modeHuman": "人工"
+        },
+        "quickActions": {
+          "title": "快捷操作",
+          "viewHistory": "查看客户历史",
+          "createTicket": "创建工单",
+          "addNote": "添加内部备注"
+        }
+      }
+    },
+    "tickets": {
+      "pageTitle": "工单",
+      "pageDescription": "管理和跟踪客户支持工单",
+      "status": {
+        "newUpdates": "新更新",
+        "live": "实时",
+        "connecting": "连接中...",
+        "offline": "离线"
+      },
+      "search": {
+        "placeholder": "按工单号、标题或客户搜索...",
+        "button": "搜索"
+      },
+      "filters": {
+        "button": "筛选"
+      },
+      "tabs": {
+        "all": "所有工单",
+        "open": "开启",
+        "pending": "待处理",
+        "closed": "已关闭"
+      },
+      "detail": {
+        "ticketNotFound": "未找到工单",
+        "backToTickets": "返回工单列表",
+        "back": "返回",
+        "ticketNumber": "工单 #{number}",
+        "created": "创建于 {date}",
+        "conversation": "对话",
+        "conversationCount": "对话 ({count})",
+        "noArticles": "暂无文章",
+        "internalBadge": "内部"
+      }
     }
   },
   "settings": {
@@ -206,21 +1222,21 @@
     "pushNotifications": "推送通知",
     "selectLanguage": "选择语言",
     "ai": {
-      "title": "AI 智能回复",
-      "description": "配置 AI 自动回复功能，帮助客服团队提高响应效率",
-      "enableLabel": "启用 AI 智能回复",
-      "enableHint": "开启后，系统将自动使用 AI 为客户提供初步回复",
+      "title": "AI 自动回复",
+      "description": "配置 AI 自动回复以帮助支持团队更快响应",
+      "enableLabel": "启用 AI 自动回复",
+      "enableHint": "启用后，系统使用 AI 为客户提供初始响应",
       "modelLabel": "AI 模型",
-      "modelHint": "使用的 AI 模型名称（如 gpt-3.5-turbo, gpt-4）",
-      "temperatureLabel": "随机温度",
-      "temperatureHint": "控制回复的随机性（0-2，推荐 0.7）",
+      "modelHint": "AI 模型名称（例如 gpt-3.5-turbo 或 gpt-4）",
+      "temperatureLabel": "Temperature",
+      "temperatureHint": "控制回复的随机性（0-2，建议 0.7）",
       "promptLabel": "系统提示词",
-      "promptPlaceholder": "你是一个专业的客服助手...",
-      "promptHint": "定义 AI 的角色和回复风格",
+      "promptPlaceholder": "你是一个专业的支持助手...",
+      "promptHint": "定义 AI 角色和回复风格",
       "fastgpt": {
         "title": "FastGPT 配置",
         "url": "FastGPT URL",
-        "urlHint": "FastGPT 服务器地址",
+        "urlHint": "FastGPT 服务器 URL",
         "appId": "FastGPT 应用 ID",
         "appIdHint": "FastGPT 应用 ID",
         "apiKey": "FastGPT API 密钥",
@@ -233,18 +1249,18 @@
       "test": {
         "label": "测试 FastGPT 连接",
         "testing": "测试中...",
-        "success": "连接测试成功！",
+        "success": "连接测试成功",
         "error": "连接测试失败",
-        "missingConfig": "请先启用 AI 功能并完整配置 FastGPT 信息后再测试",
+        "missingConfig": "请启用 AI 并完成 FastGPT 字段配置后再测试",
         "resultSuccess": "连接成功",
         "resultFail": "连接失败",
-        "responseTime": "响应时间: {ms}ms",
-        "testReply": "AI 测试回复:",
+        "responseTime": "响应时间：{ms}毫秒",
+        "testReply": "AI 测试回复：",
         "genericError": "测试失败",
-        "networkError": "网络错误，请检查您的网络连接"
+        "networkError": "网络错误，请检查您的连接"
       },
-      "saveSuccess": "AI 设置已保存",
-      "saveError": "保存 AI 设置失败",
+      "saveSuccess": "AI 设置保存成功",
+      "saveError": "AI 设置保存失败",
       "loadError": "加载 AI 设置失败",
       "loadErrorGeneral": "获取 AI 设置失败"
     }
@@ -259,33 +1275,156 @@
   },
   "validation": {
     "required": "此字段为必填项",
-    "emailInvalid": "邮箱格式不正确",
+    "emailInvalid": "邮箱地址无效",
     "minLength": "至少需要 {min} 个字符",
     "maxLength": "最多 {max} 个字符",
-    "passwordMismatch": "两次输入的密码不一致"
+    "passwordMismatch": "两次密码输入不一致"
+  },
+  "toast": {
+    "admin": {
+      "users": {
+        "createSuccess": "用户创建成功！",
+        "createError": "用户创建失败",
+        "validationError": "验证错误",
+        "updateSuccess": "用户更新成功！",
+        "updateError": "用户更新失败",
+        "loadError": "用户列表加载失败",
+        "deleteSuccess": "用户已删除",
+        "deleteError": "用户删除失败"
+      },
+      "faq": {
+        "createSuccess": "文章创建成功！",
+        "createError": "文章创建失败",
+        "updateSuccess": "文章更新成功！",
+        "updateError": "文章更新失败",
+        "deleteSuccess": "常见问题条目删除成功",
+        "deleteError": "常见问题条目删除失败",
+        "loadError": "常见问题条目加载失败",
+        "published": "常见问题条目发布成功",
+        "unpublished": "常见问题条目取消发布成功",
+        "toggleError": "常见问题条目更新失败"
+      },
+      "settings": {
+        "saveSuccess": "设置保存成功",
+        "saveError": "设置保存失败"
+      },
+      "tickets": {
+        "ticketCreated": "工单已创建",
+        "ticketUpdated": "工单已更新",
+        "ticketDeleted": "工单已删除",
+        "ticketChanged": "工单已变更"
+      },
+      "ticketDetail": {
+        "updateSuccess": "工单更新成功",
+        "noteAdded": "内部备注已添加",
+        "replyAdded": "回复已添加",
+        "deleteSuccess": "工单删除成功",
+        "deleteError": "工单删除失败"
+      }
+    },
+    "customer": {
+      "tickets": {
+        "createSuccess": "工单创建成功！",
+        "createError": "工单创建失败",
+        "updateSuccess": "工单更新成功！",
+        "loginRequired": "请登录后创建工单",
+        "selectProduct": "请选择产品分类和型号。",
+        "maxFilesExceeded": "最多可上传5个附件。",
+        "fileSizeExceeded": "每个文件大小不能超过512MB。",
+        "loadError": "工单加载失败",
+        "replyRequired": "请输入回复内容",
+        "replySent": "回复已发送",
+        "replyError": "发送回复失败"
+      },
+      "complaints": {
+        "submitSuccess": "您的投诉已提交",
+        "submitError": "投诉提交失败"
+      },
+      "feedback": {
+        "submitSuccess": "感谢您的建议！我们会认真审查。",
+        "submitError": "反馈提交失败",
+        "loginRequired": "请登录后提交反馈"
+      },
+      "settings": {
+        "saveSuccess": "设置保存成功",
+        "saveError": "保存失败"
+      },
+      "faq": {
+        "categoriesError": "加载分类失败",
+        "popularError": "加载热门常见问题失败",
+        "searchError": "搜索常见问题失败",
+        "loadError": "加载常见问题失败",
+        "articleError": "加载文章失败",
+        "feedbackSuccess": "感谢您的反馈！",
+        "feedbackError": "提交反馈失败"
+      },
+      "conversations": {
+        "loadError": "加载对话失败",
+        "startError": "启动对话失败",
+        "sendError": "发送消息失败",
+        "transferSuccess": "已成功转接至人工客服",
+        "transferError": "转接失败，请重试",
+        "switchToAISuccess": "已切换至AI助手",
+        "switchToAIError": "切换失败，请重试",
+        "aiUnavailable": "AI服务暂时不可用，请转人工客服获取帮助",
+        "networkError": "网络连接失败，请检查网络后重试",
+        "aiError": "AI响应失败，请重试或转人工客服",
+        "actionLabel": {
+          "transferToHuman": "转人工"
+        }
+      }
+    },
+    "staff": {
+      "conversations": {
+        "sendSuccess": "消息已发送",
+        "sendError": "消息发送失败",
+        "transferSuccess": "对话已转接",
+        "transferError": "对话转接失败",
+        "aiUnavailable": "AI服务暂时不可用，请转人工客服获取帮助",
+        "loadError": "对话加载失败",
+        "sseUnavailable": "实时更新不可用",
+        "closeSuccess": "对话已关闭",
+        "closeError": "对话关闭失败"
+      },
+      "tickets": {
+        "updateSuccess": "工单更新成功！",
+        "updateError": "工单更新失败",
+        "noteAdded": "备注添加成功",
+        "ticketUpdated": "工单已更新 - 刷新以查看更改"
+      },
+      "customers": {
+        "loadError": "客户加载失败"
+      }
+    },
+    "components": {
+      "messageInput": {
+        "sendError": "消息发送失败",
+        "fileSizeError": "文件大小必须小于 10MB"
+      }
+    }
   },
   "complaints": {
     "title": "提交投诉",
-    "subtitle": "我们重视每一位客户的反馈，您的投诉将得到认真对待和及时处理。",
-    "detailsTitle": "投诉信息",
-    "detailsDescription": "请详细描述您的投诉内容，我们会尽快调查并给予回复",
+    "subtitle": "我们重视每一位客户的反馈，您的投诉将得到及时处理。",
+    "detailsTitle": "投诉详情",
+    "detailsDescription": "请详细描述您的投诉，我们将尽快调查并回复。",
     "category": {
       "label": "投诉类别 *",
       "options": {
         "service": "服务质量",
         "product": "产品质量",
-        "delivery": "交付问题",
-        "billing": "计费问题",
+        "delivery": "配送问题",
+        "billing": "账单问题",
         "other": "其他投诉"
       }
     },
     "severity": {
       "label": "严重程度 *",
       "options": {
-        "1": "低 - 轻微不满",
+        "1": "低 - 轻微不便",
         "2": "中 - 一般问题",
-        "3": "高 - 严重影响",
-        "4": "紧急 - 重大损失"
+        "3": "高 - 重大影响",
+        "4": "紧急 - 严重问题"
       }
     },
     "titleField": {
@@ -295,30 +1434,30 @@
     },
     "descriptionField": {
       "label": "详细描述 *",
-      "placeholder": "请详细描述投诉内容，包括：&#10;1. 问题发生的时间和地点&#10;2. 涉及的人员或产品&#10;3. 具体的问题和影响&#10;4. 您期望的解决方案",
+      "placeholder": "请详细描述投诉内容，包括：&#10;1. 问题发生的时间和地点&#10;2. 涉及的人员或产品&#10;3. 具体问题及其影响&#10;4. 您期望的解决方案",
       "help": "{count}/1200 字符"
     },
     "contactField": {
       "label": "联系方式 *",
       "placeholder": "邮箱或电话",
-      "help": "我们会通过此方式与您联系，跟进投诉处理进度"
+      "help": "我们将通过此方式联系您跟进投诉。"
     },
     "actions": {
       "cancel": "取消",
       "submit": "提交投诉",
       "submitting": "提交中..."
     },
-    "success": "您的投诉已提交，我们会尽快处理。",
+    "success": "您的投诉已提交。我们将尽快处理。",
     "warningsTitle": "重要提示",
     "warnings": [
-      "请确保提供的信息真实准确，以便我们更好地处理您的投诉",
-      "我们承诺在收到投诉后 24 小时内给予初步回复",
-      "对于紧急投诉，我们会优先处理并尽快解决",
-      "您可以在\"我的工单\"中查看投诉的处理进度和回复",
-      "如有任何疑问，请随时通过在线咨询联系我们"
+      "请提供准确信息，以便我们有效处理您的投诉。",
+      "我们将在收到投诉后 24 小时内提供初步回复。",
+      "紧急投诉将优先处理并快速解决。",
+      "您可以在\"我的工单\"下查看投诉更新和回复。",
+      "如有任何疑问，随时通过在线聊天联系我们。"
     ],
     "ticketPrefix": "[投诉]",
-    "loginRequired": "请登录后再提交投诉"
+    "loginRequired": "请登录以提交投诉"
   },
   "myTickets": {
     "title": "我的工单",
@@ -329,15 +1468,15 @@
     "empty": {
       "title": "暂无工单",
       "description": "您还没有提交任何工单",
-      "noResults": "没有找到匹配的工单",
-      "hint": "请通过在线咨询创建工单"
+      "noResults": "未找到匹配的工单",
+      "hint": "请通过在线聊天创建工单。"
     },
     "table": {
-      "id": "工单编号",
+      "id": "工单 ID",
       "title": "标题",
       "status": "状态",
       "priority": "优先级",
-      "replies": "回复数",
+      "replies": "回复",
       "created": "创建时间",
       "updated": "更新时间",
       "actions": "操作",
@@ -355,9 +1494,147 @@
     "status": {
       "1": "新建",
       "2": "处理中",
-      "3": "待回复",
+      "3": "等待回复",
       "4": "已关闭",
       "unknown": "未知"
+    }
+  },
+  "components": {
+    "conversation": {
+      "header": {
+        "aiAssistant": "AI助手",
+        "waitingAssignment": "等待分配中",
+        "aiMode": "AI 对话",
+        "humanMode": "人工客服",
+        "ariaLabels": {
+          "aiChat": "AI 对话",
+          "connected": "已连接",
+          "connecting": "连接中...",
+          "disconnected": "未连接"
+        },
+        "buttons": {
+          "transferring": "转接中...",
+          "switchToHuman": "切换到人工",
+          "switchingToHuman": "切换中...",
+          "switchToAI": "切换到AI",
+          "switchingToAI": "切换中...",
+          "transferToHuman": "转人工"
+        }
+      },
+      "messageInput": {
+        "placeholder": "输入消息...",
+        "enterToSend": "按 Enter 发送",
+        "shiftEnterNewLine": "Shift+Enter = 换行",
+        "attachFile": "附加文件",
+        "sendMessage": "发送消息"
+      },
+      "messageList": {
+        "unsupportedType": "不支持的消息类型",
+        "noMessages": "暂无消息",
+        "noMessagesHint": "发送消息开始对话",
+        "staff": "客服",
+        "admin": "管理员"
+      },
+      "transferDialog": {
+        "title": "转接人工客服",
+        "description": "您即将从 AI 助手转接至人工客服。客服人员将能够查看您之前的完整对话记录，以便更好地为您服务。",
+        "reasonLabel": "问题描述（可选）",
+        "reasonPlaceholder": "请简要描述您需要帮助的问题，这将帮助客服更快地为您解决问题...",
+        "charCount": "{count} / 300",
+        "continueInWindow": "✓ 转接后将在当前窗口继续对话，无需跳转",
+        "cancel": "取消",
+        "confirming": "转接中...",
+        "confirm": "确认转接"
+      },
+      "aiHistory": {
+        "title": "AI 对话历史",
+        "collapse": "收起",
+        "expand": "展开"
+      }
+    }
+  },
+  "marketing": {
+    "hero": {
+      "title": "转变您的客户服务",
+      "subtitle": "AI 驱动的平台，实现无缝客户支持和互动",
+      "startFreeTrial": "开始免费试用",
+      "watchDemo": "观看演示",
+      "noCreditCard": "无需信用卡"
+    }
+  },
+  "landing": {
+    "loading": {
+      "title": "加载仪表板中...",
+      "verifying": "验证凭证中"
+    },
+    "brand": "FleetCommand",
+    "nav": {
+      "solutions": "解决方案",
+      "pricing": "价格",
+      "resources": "资源",
+      "company": "公司",
+      "login": "登录",
+      "getStarted": "开始使用"
+    },
+    "hero": {
+      "titlePart1": "现代车队管理",
+      "titlePart2": "简化",
+      "description": "通过我们的综合平台跟踪、管理和优化您的车队运营。实时洞察助力更好决策。",
+      "startFreeTrial": "开始免费试用",
+      "watchDemo": "观看演示",
+      "freeTrial": "14 天免费试用",
+      "noCreditCard": "无需信用卡"
+    },
+    "features": {
+      "title": "管理车队所需的一切",
+      "description": "强大的功能，旨在帮助您降低成本、提高安全性并增加运营效率。",
+      "realTimeTracking": {
+        "name": "实时跟踪",
+        "description": "通过先进的 GPS 集成实时监控车队位置和状态。"
+      },
+      "performanceAnalytics": {
+        "name": "性能分析",
+        "description": "获取燃油使用、驾驶行为和维护需求的详细洞察。"
+      },
+      "safetyCompliance": {
+        "name": "安全与合规",
+        "description": "确保您的车队自动满足所有监管要求和安全标准。"
+      },
+      "maintenanceScheduling": {
+        "name": "维护调度",
+        "description": "自动警报和车辆维护调度，防止停机。"
+      }
+    },
+    "cta": {
+      "title": "准备好优化您的车队运营了吗？",
+      "description": "加入超过 2,000 家使用 FleetCommand 降低成本和提高安全性的公司。",
+      "button": "开始免费试用",
+      "noCreditCard": "无需信用卡。14 天免费试用。"
+    },
+    "footer": {
+      "copyright": "© 2025 FleetCommand Inc. 保留所有权利。"
+    }
+  },
+  "dashboardComponents": {
+    "recentActivity": {
+      "title": "最近活动",
+      "noActivity": "暂无最近活动",
+      "noActivityHint": "您最近的对话和消息将显示在这里",
+      "activity": {
+        "newMessage": "新消息",
+        "statusChanged": "状态已更改为 {status}",
+        "assigned": "对话已分配",
+        "default": "活动"
+      }
+    },
+    "recentTickets": {
+      "title": "最近工单",
+      "noTickets": "暂无最近工单"
+    }
+  },
+  "layouts": {
+    "navbar": {
+      "notifications": "通知"
     }
   }
 }

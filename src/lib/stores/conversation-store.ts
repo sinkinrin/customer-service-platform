@@ -36,8 +36,13 @@ export interface Conversation {
   id: string
   business_type_id?: string
   customer_id: string
+  customer_email?: string
   staff_id?: string
   status: 'waiting' | 'active' | 'closed'
+  mode?: 'ai' | 'human'
+  zammad_ticket_id?: number
+  transferred_at?: string
+  transfer_reason?: string
   message_count: number
   last_message_at?: string
   started_at: string
@@ -52,6 +57,7 @@ export interface Conversation {
   customer?: {
     id: string
     full_name: string
+    email?: string
     avatar_url?: string
   }
   staff?: {

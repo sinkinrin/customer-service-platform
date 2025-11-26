@@ -64,7 +64,9 @@ export function useConversation() {
 
         case 'conversation_updated':
           console.log('[SSE] Conversation updated:', event.conversationId)
-          updateConversation(event.conversationId, event.data)
+          if (event.conversationId) {
+            updateConversation(event.conversationId, event.data)
+          }
           break
 
         case 'conversation_created':

@@ -11,6 +11,7 @@ import { ChevronDown, ChevronUp, Bot, User, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useTranslations } from 'next-intl'
 
 interface AIHistoryItem {
   role: 'customer' | 'ai'
@@ -27,11 +28,12 @@ export function TransferHistoryMessage({
   aiHistory,
   transferredAt,
 }: TransferHistoryMessageProps) {
+  const t = useTranslations('components.conversation.aiHistory')
   const [isExpanded, setIsExpanded] = useState(false)
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
-    return date.toLocaleTimeString('zh-CN', {
+    return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
     })
@@ -39,7 +41,7 @@ export function TransferHistoryMessage({
 
   const formatDateTime = (timestamp: string) => {
     const date = new Date(timestamp)
-    return date.toLocaleString('zh-CN', {
+    return date.toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -59,13 +61,13 @@ export function TransferHistoryMessage({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-semibold text-sm">AI 对话历史</h4>
+                  <h4 className="font-semibold text-sm">{t('title')}</h4>
                   <Badge variant="outline" className="text-xs">
-                    {aiHistory.length} 条消息
+                    {aiHistory.length} messages
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  转接时间：{formatDateTime(transferredAt)}
+                  Transferred at: {formatDateTime(transferredAt)}
                 </p>
               </div>
             </div>
@@ -79,12 +81,12 @@ export function TransferHistoryMessage({
               {isExpanded ? (
                 <>
                   <ChevronUp className="h-4 w-4 mr-1" />
-                  收起
+                  {t('collapse')}
                 </>
               ) : (
                 <>
                   <ChevronDown className="h-4 w-4 mr-1" />
-                  展开
+                  {t('expand')}
                 </>
               )}
             </Button>

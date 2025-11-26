@@ -1,6 +1,6 @@
 /**
  * FAQ Article Detail Page
- * 
+ *
  * Displays a single FAQ article with feedback
  */
 
@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import DOMPurify from 'dompurify'
 import { useFAQ, type FAQItem } from '@/lib/hooks/use-faq'
 import { Button } from '@/components/ui/button'
@@ -20,11 +21,18 @@ import { Loading } from '@/components/common/loading'
 import { Breadcrumbs } from '@/components/faq/breadcrumbs'
 import { ArticleCard } from '@/components/faq/article-card'
 
+type BreadcrumbItem = {
+  label: string
+  href?: string
+}
+
 export default function FAQArticlePage() {
   const params = useParams()
   const router = useRouter()
   const articleId = params.id as string
-  
+  const t = useTranslations('faq')
+  const tToast = useTranslations('toast.customer.faq')
+
   const { submitFeedback } = useFAQ()
   const [article, setArticle] = useState<FAQItem | null>(null)
   const [relatedArticles, setRelatedArticles] = useState<FAQItem[]>([])
@@ -67,7 +75,7 @@ export default function FAQArticlePage() {
         }
       } catch (error) {
         console.error('Error fetching article:', error)
-        toast.error('Failed to load article')
+        toast.error(tToast('articleError'))
         router.push('/customer/faq')
       } finally {
         setIsLoading(false)
@@ -77,22 +85,22 @@ export default function FAQArticlePage() {
     if (articleId) {
       fetchArticle()
     }
-  }, [articleId, router])
-  
+  }, [articleId, router, tToast])
+
   // Handle feedback
   const handleFeedback = async (helpful: boolean) => {
     try {
       await submitFeedback(articleId, helpful)
       setFeedbackSubmitted(true)
-      toast.success('Thank you for your feedback!')
+      toast.success(tToast('feedbackSuccess'))
     } catch (error) {
       console.error('Error submitting feedback:', error)
-      toast.error('Failed to submit feedback')
+      toast.error(tToast('feedbackError'))
     }
   }
-  
+
   if (isLoading) {
-    return <Loading fullScreen text="Loading article..." />
+    return <Loading fullScreen text={t('loadingArticle')} />
   }
   
   if (!article) {
@@ -100,12 +108,15 @@ export default function FAQArticlePage() {
   }
   
   // Build breadcrumb items
-  const breadcrumbItems = [
+  const breadcrumbItems: BreadcrumbItem[] = [
     { label: 'FAQ', href: '/customer/faq' },
   ]
 
   if (article?.category_name) {
-    breadcrumbItems.push({ label: article.category_name })
+    const categoryHref = article.category_id
+      ? `/customer/faq?categoryId=${article.category_id}`
+      : undefined
+    breadcrumbItems.push({ label: article.category_name, href: categoryHref })
   }
 
   if (article?.question) {
@@ -124,7 +135,7 @@ export default function FAQArticlePage() {
         className="mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Help Center
+        {t('backToHelpCenter')}
       </Button>
       
       {/* Article */}
@@ -146,14 +157,14 @@ export default function FAQArticlePage() {
             {article.view_count !== undefined && (
               <div className="flex items-center gap-1">
                 <Eye className="h-4 w-4" />
-                <span>{article.view_count} views</span>
+                <span>{article.view_count} {t('viewCount')}</span>
               </div>
             )}
-            
+
             {article.helpful_count !== undefined && (
               <div className="flex items-center gap-1">
                 <ThumbsUp className="h-4 w-4" />
-                <span>{article.helpful_count} helpful</span>
+                <span>{article.helpful_count} {t('helpfulCount')}</span>
               </div>
             )}
           </div>
@@ -172,13 +183,13 @@ export default function FAQArticlePage() {
           
           {/* Feedback */}
           <Separator className="my-6" />
-          
+
           <div className="text-center">
-            <h3 className="font-semibold mb-4">Was this article helpful?</h3>
-            
+            <h3 className="font-semibold mb-4">{t('wasHelpful')}</h3>
+
             {feedbackSubmitted ? (
               <p className="text-muted-foreground">
-                Thank you for your feedback!
+                {t('thankYou')}
               </p>
             ) : (
               <div className="flex items-center justify-center gap-4">
@@ -188,7 +199,7 @@ export default function FAQArticlePage() {
                   className="gap-2"
                 >
                   <ThumbsUp className="h-4 w-4" />
-                  Yes
+                  {t('yes')}
                 </Button>
                 <Button
                   variant="outline"
@@ -196,7 +207,7 @@ export default function FAQArticlePage() {
                   className="gap-2"
                 >
                   <ThumbsDown className="h-4 w-4" />
-                  No
+                  {t('no')}
                 </Button>
               </div>
             )}
@@ -208,7 +219,7 @@ export default function FAQArticlePage() {
       {relatedArticles.length > 0 && (
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Related Articles</CardTitle>
+            <CardTitle>{t('relatedArticles')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {relatedArticles.map((relatedArticle) => (
@@ -228,13 +239,13 @@ export default function FAQArticlePage() {
       <Card className="mt-6">
         <CardContent className="flex items-center justify-between p-6">
           <div>
-            <h3 className="font-semibold mb-1">Still need help?</h3>
+            <h3 className="font-semibold mb-1">{t('stillNeedHelp')}</h3>
             <p className="text-sm text-muted-foreground">
-              Contact our support team for personalized assistance
+              {t('contactDescription')}
             </p>
           </div>
           <Button onClick={() => router.push('/customer/conversations')}>
-            Contact Support
+            {t('contactSupport')}
           </Button>
         </CardContent>
       </Card>

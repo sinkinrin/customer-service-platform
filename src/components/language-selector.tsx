@@ -31,13 +31,15 @@ export function LanguageSelector() {
   }, [])
 
   const handleLanguageChange = (newLocale: Locale) => {
-    // Save preference to localStorage
+    // Save preference to localStorage and cookie
     localStorage.setItem('preferred-locale', newLocale)
+    // Set cookie for server-side locale detection (next-intl uses NEXT_LOCALE cookie)
+    document.cookie = `NEXT_LOCALE=${newLocale};path=/;max-age=31536000`
     setLocale(newLocale)
 
-    // In a full implementation, this would trigger a re-render with new translations
-    // For now, we just save the preference
     console.log(`Language changed to: ${newLocale}`)
+    // Reload page to apply new locale
+    window.location.reload()
   }
 
   return (

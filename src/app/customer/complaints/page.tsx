@@ -16,6 +16,7 @@ export default function ComplaintsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const t = useTranslations('complaints')
+  const tToast = useTranslations('toast.customer.complaints')
   const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -60,14 +61,14 @@ export default function ComplaintsPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to submit complaint')
+        throw new Error(error.error || tToast('submitError'))
       }
 
       toast.success(t('success'))
       router.push('/customer/my-tickets')
     } catch (error: any) {
       console.error('Failed to submit complaint:', error)
-      toast.error(error.message || 'Failed to submit complaint')
+      toast.error(error.message || tToast('submitError'))
     } finally {
       setLoading(false)
     }

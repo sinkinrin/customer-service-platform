@@ -13,8 +13,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Download } from 'lucide-react'
 import { type Message } from '@/lib/stores/conversation-store'
 import { useAuthStore } from '@/lib/stores/auth-store'
+import { cn } from '@/lib/utils'
 import { SystemMessage } from './system-message'
 import { TransferHistoryMessage } from './transfer-history-message'
+import { useTranslations } from 'next-intl'
 
 interface MessageListProps {
   messages: Message[]
@@ -29,8 +31,9 @@ export function MessageList({
   isTyping = false,
   typingUser = null,
 }: MessageListProps) {
+  const t = useTranslations('components.conversation.messageList')
   const { user } = useAuthStore()
-    const bottomRef = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
   
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -132,7 +135,7 @@ export function MessageList({
       )
     }
     
-    return <p className="text-sm text-muted-foreground">Unsupported message type</p>
+    return <p className="text-sm text-muted-foreground">{t('unsupportedType')}</p>
   }
   
   if (isLoading && messages.length === 0) {
@@ -155,9 +158,9 @@ export function MessageList({
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center space-y-2">
-          <p className="text-muted-foreground">No messages yet</p>
+          <p className="text-muted-foreground">{t('noMessages')}</p>
           <p className="text-sm text-muted-foreground">
-            Start the conversation by sending a message
+            {t('noMessagesHint')}
           </p>
         </div>
       </div>
@@ -165,7 +168,7 @@ export function MessageList({
   }
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-2 sm:px-4">
       {messages.map((message) => {
           // Handle system messages
           if (message.message_type === 'system' || message.sender?.role === 'system') {
@@ -203,6 +206,14 @@ export function MessageList({
           const senderName = message.sender?.full_name || 'Unknown'
           const senderRole = message.sender?.role || 'customer'
           const isCustomerMessage = senderRole === 'customer'
+          const bubbleBase =
+            "relative p-3 rounded-2xl shadow-sm border transition-colors"
+          const customerBubble =
+            "bg-primary text-primary-foreground border-primary/40 rounded-tr-sm"
+          const staffBubble =
+            "bg-muted/70 text-foreground border-border/60 rounded-tl-sm"
+          const labelText =
+            "text-xs text-muted-foreground/90 whitespace-nowrap"
 
           return (
             <div
@@ -210,43 +221,44 @@ export function MessageList({
               className={`flex gap-3 ${isCustomerMessage ? 'justify-end' : 'justify-start'}`}
             >
               {!isCustomerMessage && (
-                <Avatar className="h-10 w-10 flex-shrink-0">
+                <Avatar className="h-10 w-10 flex-shrink-0 shadow-sm">
                   <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
                   <AvatarFallback>{getInitials(senderName)}</AvatarFallback>
                 </Avatar>
               )}
 
-              <div className={`flex flex-col space-y-1 max-w-[70%] ${isCustomerMessage ? 'items-end' : 'items-start'}`}>
+              <div className={`flex flex-col space-y-1 max-w-[72%] ${isCustomerMessage ? 'items-end' : 'items-start'}`}>
                 <div className={`flex items-center gap-2 ${isCustomerMessage ? 'flex-row-reverse' : ''}`}>
                   <span className="text-sm font-medium">{senderName}</span>
                   {senderRole === 'staff' && (
                     <Badge variant="secondary" className="text-xs">
-                      Staff
+                      {t('staff')}
                     </Badge>
                   )}
                   {senderRole === 'admin' && (
                     <Badge variant="default" className="text-xs">
-                      Admin
+                      {t('admin')}
                     </Badge>
                   )}
-                  <span className="text-xs text-muted-foreground">
-                    {formatTime(message.created_at)}
-                  </span>
+                  <span className={labelText}>{formatTime(message.created_at)}</span>
                 </div>
 
                 <div
-                  className={`p-3 rounded-lg ${
-                    isCustomerMessage
-                      ? 'bg-primary text-primary-foreground rounded-tr-none'
-                      : 'bg-muted rounded-tl-none'
-                  }`}
+                  className={cn(
+                    "group",
+                    bubbleBase,
+                    isCustomerMessage ? customerBubble : staffBubble
+                  )}
                 >
                   {renderMessageContent(message)}
+                  <span className={cn(labelText, "absolute -bottom-5 opacity-0 group-hover:opacity-100 transition-opacity")} role="presentation">
+                    {formatTime(message.created_at)}
+                  </span>
                 </div>
               </div>
 
               {isCustomerMessage && (
-                <Avatar className="h-10 w-10 flex-shrink-0">
+                <Avatar className="h-10 w-10 flex-shrink-0 shadow-sm">
                   <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
                   <AvatarFallback>{getInitials(senderName)}</AvatarFallback>
                 </Avatar>
@@ -256,15 +268,15 @@ export function MessageList({
         })}
         
         {isTyping && typingUser && (
-          <div className="flex gap-3">
-            <Avatar className="h-10 w-10">
+          <div className="flex gap-3 px-1">
+            <Avatar className="h-10 w-10 shadow-sm">
               <AvatarFallback>{getInitials(typingUser)}</AvatarFallback>
             </Avatar>
-            <div className="flex items-center gap-1 p-3 bg-muted rounded-lg">
+            <div className="flex items-center gap-1 p-3 bg-muted rounded-xl border border-border/60">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
+                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce motion-reduce:animate-none" />
+                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce motion-reduce:animate-none [animation-delay:0.2s]" />
+                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce motion-reduce:animate-none [animation-delay:0.4s]" />
               </div>
             </div>
           </div>

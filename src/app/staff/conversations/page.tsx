@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +48,10 @@ interface Conversation {
 
 export default function StaffConversationsPage() {
   const router = useRouter()
+  const t = useTranslations('staff.conversations')
+  const tToast = useTranslations('toast.staff.conversations')
+  const tCommon = useTranslations('common')
+
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -68,11 +73,11 @@ export default function StaffConversationsPage() {
       setConversations(data.data || [])
     } catch (error) {
       console.error('Failed to load conversations:', error)
-      toast.error('Failed to load conversations')
+      toast.error(tToast('loadError'))
     } finally {
       setLoading(false)
     }
-  }, [statusFilter])
+  }, [statusFilter, tToast])
 
   useEffect(() => {
     loadConversations()
@@ -94,11 +99,11 @@ export default function StaffConversationsPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'waiting':
-        return '等待中'
+        return t('card.status.waiting')
       case 'active':
-        return '进行中'
+        return t('card.status.active')
       case 'closed':
-        return '已关闭'
+        return t('card.status.closed')
       default:
         return status
     }
@@ -139,6 +144,10 @@ export default function StaffConversationsPage() {
     onMessage: (event) => {
       if (event.type === 'new_conversation_transferred') {
         const conversationId = event.conversationId
+        if (!conversationId) {
+          console.warn('[Staff] Received new_conversation_transferred event without conversationId')
+          return
+        }
         const customerName =
           event.data?.customer?.full_name || event.data?.customer?.email || 'Unknown customer'
         toast.custom(
@@ -149,13 +158,13 @@ export default function StaffConversationsPage() {
                   <BellRing className="h-5 w-5" />
                 </div>
                 <div className="flex-1 space-y-1">
-                  <p className="text-sm font-semibold text-blue-900">新的转人工对话</p>
+                  <p className="text-sm font-semibold text-blue-900">{t('notification.newTransfer')}</p>
                   <p className="text-xs text-blue-800">
                     {customerName} | ID: {conversationId}
                   </p>
                   {event.data?.transferReason && (
                     <p className="text-xs text-muted-foreground">
-                      原因：{event.data.transferReason}
+                      {t('notification.transferReason', { reason: event.data.transferReason })}
                     </p>
                   )}
                 </div>
@@ -190,7 +199,7 @@ export default function StaffConversationsPage() {
     },
     onError: (error) => {
       console.error('[SSE] Error:', error)
-      toast.error('Real-time updates unavailable')
+      toast.error(tToast('sseUnavailable'))
     },
   })
 
@@ -198,9 +207,9 @@ export default function StaffConversationsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">对话管理</h1>
+        <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          管理客户对话并提供支持
+          {t('pageDescription')}
         </p>
       </div>
 
@@ -208,7 +217,7 @@ export default function StaffConversationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">全部对话</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('stats.total')}</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -217,7 +226,7 @@ export default function StaffConversationsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">等待中</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('stats.waiting')}</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -226,7 +235,7 @@ export default function StaffConversationsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">进行中</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('stats.active')}</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -235,7 +244,7 @@ export default function StaffConversationsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">已关闭</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('stats.closed')}</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -247,8 +256,8 @@ export default function StaffConversationsPage() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>筛选对话</CardTitle>
-          <CardDescription>搜索和筛选对话列表</CardDescription>
+          <CardTitle>{t('filter.title')}</CardTitle>
+          <CardDescription>{t('filter.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
@@ -256,7 +265,7 @@ export default function StaffConversationsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="搜索客户姓名、邮箱或对话ID..."
+                  placeholder={t('filter.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -267,18 +276,18 @@ export default function StaffConversationsPage() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="状态" />
+                  <SelectValue placeholder={t('filter.statusPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="waiting">等待中</SelectItem>
-                  <SelectItem value="active">进行中</SelectItem>
-                  <SelectItem value="closed">已关闭</SelectItem>
+                  <SelectItem value="all">{t('filter.allStatuses')}</SelectItem>
+                  <SelectItem value="waiting">{t('card.status.waiting')}</SelectItem>
+                  <SelectItem value="active">{t('card.status.active')}</SelectItem>
+                  <SelectItem value="closed">{t('card.status.closed')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <Button onClick={loadConversations} variant="outline">
-              刷新
+              {tCommon('actions.refresh')}
             </Button>
           </div>
         </CardContent>
@@ -288,33 +297,33 @@ export default function StaffConversationsPage() {
       <div>
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
           <div>
-            <h2 className="text-xl font-semibold">对话列表</h2>
+            <h2 className="text-xl font-semibold">{t('list.title')}</h2>
             <p className="text-sm text-muted-foreground">
-              找到 {filteredConversations.length} 个对话
+              {t('list.subtitle', { count: filteredConversations.length })}
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Badge variant={sseConnected ? 'secondary' : 'destructive'}>
-              {sseConnected ? '🟢 实时更新' : '🔴 实时中断'}
+              {sseConnected ? t('sse.live') : t('sse.offline')}
             </Badge>
             {sseState === 'error' && (
-              <span className="text-xs text-destructive">连接异常</span>
+              <span className="text-xs text-destructive">{t('sse.error')}</span>
             )}
           </div>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-            <p className="mt-2 text-sm text-muted-foreground">加载对话中...</p>
+            <div className="inline-block h-8 w-8 animate-spin motion-reduce:animate-none rounded-full border-4 border-solid border-current border-r-transparent" />
+            <p className="mt-2 text-sm text-muted-foreground">{t('list.loading')}</p>
           </div>
         ) : filteredConversations.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium">暂无对话</p>
+              <p className="text-lg font-medium">{t('list.empty.title')}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {searchQuery ? '尝试调整搜索条件' : '还没有客户对话'}
+                {searchQuery ? t('list.empty.filterSubtitle') : t('list.empty.subtitle')}
               </p>
             </CardContent>
           </Card>
@@ -353,10 +362,10 @@ export default function StaffConversationsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base font-semibold truncate">
-                          {conversation.customer?.full_name || '未知客户'}
+                          {conversation.customer?.full_name || t('card.unknown')}
                         </CardTitle>
                         <CardDescription className="text-xs truncate">
-                          {conversation.customer?.email || '无邮箱'}
+                          {conversation.customer?.email || t('card.noEmail')}
                         </CardDescription>
                       </div>
                     </div>
@@ -370,13 +379,13 @@ export default function StaffConversationsPage() {
                       </Badge>
                       {conversation.mode && (
                         <Badge variant={conversation.mode === 'ai' ? 'outline' : 'secondary'}>
-                          {conversation.mode === 'ai' ? 'AI' : '人工'}
+                          {conversation.mode === 'ai' ? t('card.mode.ai') : t('card.mode.human')}
                         </Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <MessageSquare className="h-3 w-3" />
-                      <span>{conversation.message_count || 0} 条</span>
+                      <span>{t('card.messageCount', { count: conversation.message_count || 0 })}</span>
                     </div>
                   </div>
 
@@ -386,11 +395,11 @@ export default function StaffConversationsPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        负责客服
+                        {t('card.assignedStaff')}
                       </span>
                       <span className="font-medium truncate max-w-[120px]">
                         {conversation.staff?.full_name || (
-                          <span className="text-muted-foreground">未分配</span>
+                          <span className="text-muted-foreground">{t('card.unassigned')}</span>
                         )}
                       </span>
                     </div>
@@ -398,17 +407,17 @@ export default function StaffConversationsPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        最后活动
+                        {t('card.lastActivity')}
                       </span>
                       <span className="font-medium">
                         {conversation.last_message_at
                           ? format(new Date(conversation.last_message_at), 'MM-dd HH:mm')
-                          : '无活动'}
+                          : t('card.noActivity')}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">创建时间</span>
+                      <span className="text-muted-foreground">{t('card.createdTime')}</span>
                       <span className="font-medium">
                         {format(new Date(conversation.created_at), 'MM-dd HH:mm')}
                       </span>
@@ -426,7 +435,7 @@ export default function StaffConversationsPage() {
                       router.push(`/staff/conversations/${conversation.id}`)
                     }}
                   >
-                    查看对话
+                    {t('card.viewButton')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>

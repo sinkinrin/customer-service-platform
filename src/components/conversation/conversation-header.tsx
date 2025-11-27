@@ -1,15 +1,14 @@
 /**
  * Conversation Header Component
  *
- * Displays conversation mode, status, and transfer button
+ * Minimalist header with essential information
  */
 
 'use client'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Bot, User, Wifi, WifiOff } from 'lucide-react'
+import { Bot, User, ArrowLeftRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 
@@ -21,9 +20,9 @@ interface ConversationHeaderProps {
   isConnected?: boolean
   sseState?: 'connecting' | 'connected' | 'error' | 'disconnected'
   onTransferToHuman?: () => void
-  onSwitchToAI?: () => void // New: Switch back to AI mode
+  onSwitchToAI?: () => void
   isTransferring?: boolean
-  enableModeSwitching?: boolean // New: Enable bidirectional switching
+  enableModeSwitching?: boolean
 }
 
 export function ConversationHeader({
@@ -50,115 +49,144 @@ export function ConversationHeader({
       .slice(0, 2)
   }
 
-  const getStatusVariant = (status: string): 'default' | 'secondary' | 'outline' => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
       case 'waiting':
-        return 'secondary'
+        return t('status.waiting')
       case 'active':
-        return 'default'
+        return t('status.active')
       case 'closed':
-        return 'outline'
+        return t('status.closed')
       default:
-        return 'outline'
+        return status
     }
   }
 
-  const getModeVariant = (mode: 'ai' | 'human'): 'default' | 'secondary' => {
-    return mode === 'ai' ? 'default' : 'secondary'
-  }
-
-  const getModeLabel = (mode: 'ai' | 'human') =>
-    mode === 'ai' ? t('aiMode') : t('humanMode')
-
   return (
-    <div className="border-b bg-gradient-to-r from-primary/5 via-background to-background">
-      <div className="container max-w-4xl p-4">
-        <div className="flex items-center gap-4">
-          {/* Connection/Mode Indicator */}
-          <div className="flex items-center gap-2">
-            {mode === 'ai' ? (
-              <Bot className="h-5 w-5 text-blue-500" aria-label={t('ariaLabels.aiChat')} />
-            ) : isConnected ? (
-              <Wifi className="h-4 w-4 text-green-500" aria-label={t('ariaLabels.connected')} />
-            ) : sseState === 'connecting' ? (
-              <WifiOff className="h-4 w-4 text-yellow-500 animate-pulse motion-reduce:animate-none" aria-label={t('ariaLabels.connecting')} />
-            ) : (
-              <WifiOff className="h-4 w-4 text-gray-400" aria-label={t('ariaLabels.disconnected')} />
-            )}
-          </div>
+    <div className="flex items-center gap-4 py-3">
+      {/* Avatar with status indicator */}
+      <div className="relative">
+        <Avatar className="h-11 w-11">
+          <AvatarImage src={staffAvatar} alt={displayName} />
+          <AvatarFallback className={cn(
+            "text-sm font-medium",
+            mode === 'ai'
+              ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white"
+              : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white"
+          )}>
+            {mode === 'ai' ? <Bot className="h-5 w-5" /> : getInitials(displayName)}
+          </AvatarFallback>
+        </Avatar>
 
-          {/* Avatar */}
-          <Avatar className="h-11 w-11 shadow-sm ring-1 ring-border/60">
-            <AvatarImage src={staffAvatar} alt={displayName} />
-            <AvatarFallback>
-              {mode === 'ai' ? <Bot className="h-5 w-5" /> : getInitials(displayName)}
-            </AvatarFallback>
-          </Avatar>
+        {/* Status dot */}
+        {mode === 'human' && (
+          <span className={cn(
+            "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background",
+            isConnected
+              ? "bg-emerald-500"
+              : sseState === 'connecting'
+              ? "bg-amber-500 animate-pulse"
+              : "bg-slate-300"
+          )} />
+        )}
+      </div>
 
-          {/* Name and Status */}
-          <div className="flex-1 min-w-0">
-            <h2 className="font-semibold truncate">{displayName}</h2>
-            <div className="flex gap-2 mt-1">
-              <Badge
-                variant={getModeVariant(mode)}
-                className={cn(
-                  "shadow-sm",
-                  mode === 'ai'
-                    ? 'bg-blue-500 hover:bg-blue-600'
-                    : 'bg-green-500 hover:bg-green-600'
-                )}
-              >
-                {getModeLabel(mode)}
-              </Badge>
-              {mode === 'human' && (
-                <Badge variant={getStatusVariant(status)}>
-                  {status}
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Mode Switching Buttons */}
-          {enableModeSwitching && (
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-foreground truncate">{displayName}</h2>
+          <span className={cn(
+            "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+            mode === 'ai'
+              ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          )}>
+            {mode === 'ai' ? t('aiMode') : t('humanMode')}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {mode === 'ai' ? (
+            t('aiDescription')
+          ) : (
             <>
-              {mode === 'ai' && onTransferToHuman && (
-                <Button
-                  onClick={onTransferToHuman}
-                  disabled={isTransferring}
-                  variant="outline"
-                  size="sm"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  {isTransferring ? t('buttons.transferring') : t('buttons.switchToHuman')}
-                </Button>
-              )}
-              {mode === 'human' && onSwitchToAI && (
-                <Button
-                  onClick={onSwitchToAI}
-                  disabled={isTransferring}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Bot className="h-4 w-4 mr-2" />
-                  {isTransferring ? t('buttons.switchingToAI') : t('buttons.switchToAI')}
-                </Button>
-              )}
+              {getStatusLabel(status)}
+              {isConnected && <span className="text-emerald-500 ml-1">·</span>}
+              {isConnected && <span className="text-emerald-500 ml-1">{t('online')}</span>}
             </>
           )}
-          {/* Legacy: Transfer to Human Button (for non-switching mode) */}
-          {!enableModeSwitching && mode === 'ai' && onTransferToHuman && (
+        </p>
+      </div>
+
+      {/* Mode switch button */}
+      {enableModeSwitching && (
+        <>
+          {mode === 'ai' && onTransferToHuman && (
             <Button
               onClick={onTransferToHuman}
               disabled={isTransferring}
               variant="outline"
               size="sm"
+              className={cn(
+                "h-9 px-4 rounded-full gap-2",
+                "border-emerald-200 dark:border-emerald-800",
+                "hover:bg-emerald-50 hover:border-emerald-300",
+                "dark:hover:bg-emerald-950 dark:hover:border-emerald-700",
+                "text-emerald-600 dark:text-emerald-400",
+                "transition-colors"
+              )}
             >
-              <User className="h-4 w-4 mr-2" />
-              {isTransferring ? t('buttons.transferring') : t('buttons.transferToHuman')}
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {isTransferring ? t('buttons.transferring') : t('buttons.switchToHuman')}
+              </span>
             </Button>
           )}
-        </div>
-      </div>
+          {mode === 'human' && onSwitchToAI && (
+            <Button
+              onClick={onSwitchToAI}
+              disabled={isTransferring}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-9 px-4 rounded-full gap-2",
+                "border-violet-200 dark:border-violet-800",
+                "hover:bg-violet-50 hover:border-violet-300",
+                "dark:hover:bg-violet-950 dark:hover:border-violet-700",
+                "text-violet-600 dark:text-violet-400",
+                "transition-colors"
+              )}
+            >
+              <Bot className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {isTransferring ? t('buttons.switchingToAI') : t('buttons.switchToAI')}
+              </span>
+            </Button>
+          )}
+        </>
+      )}
+
+      {/* Legacy: Transfer to Human Button (for non-switching mode) */}
+      {!enableModeSwitching && mode === 'ai' && onTransferToHuman && (
+        <Button
+          onClick={onTransferToHuman}
+          disabled={isTransferring}
+          variant="outline"
+          size="sm"
+          className={cn(
+            "h-9 px-4 rounded-full gap-2",
+            "border-emerald-200 dark:border-emerald-800",
+            "hover:bg-emerald-50 hover:border-emerald-300",
+            "dark:hover:bg-emerald-950 dark:hover:border-emerald-700",
+            "text-emerald-600 dark:text-emerald-400",
+            "transition-colors"
+          )}
+        >
+          <ArrowLeftRight className="h-4 w-4" />
+          <span className="hidden sm:inline">
+            {isTransferring ? t('buttons.transferring') : t('buttons.transferToHuman')}
+          </span>
+        </Button>
+      )}
     </div>
   )
 }

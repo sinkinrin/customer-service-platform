@@ -12,6 +12,12 @@ const STORAGE_DIR = path.join(process.cwd(), 'data', 'conversations')
 const CONVERSATIONS_FILE = path.join(STORAGE_DIR, 'conversations.json')
 const MESSAGES_FILE = path.join(STORAGE_DIR, 'messages.json')
 
+export interface ConversationRating {
+  score: 1 | 2 | 3 | 4 | 5 // 1-5 star rating
+  feedback?: string // Optional feedback message
+  rated_at: string // When the rating was submitted
+}
+
 export interface LocalConversation {
   id: string
   customer_id: string
@@ -28,6 +34,7 @@ export interface LocalConversation {
   staff_unread_count?: number // Number of unread messages for staff
   customer_last_read_at?: string // Last time customer read messages
   staff_last_read_at?: string // Last time staff read messages
+  rating?: ConversationRating // Customer satisfaction rating
   created_at: string
   updated_at: string
   last_message_at: string

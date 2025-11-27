@@ -942,7 +942,9 @@
         "aiAssistant": "AI Assistant",
         "newMessageNotification": "New message received - scroll down to view",
         "sseError": "Real-time updates unavailable: {error}",
-        "closedMessage": "Conversation is closed. Please start a new chat to continue."
+        "closedMessage": "Conversation is closed. Please start a new chat to continue.",
+        "aiDisclaimer": "AI may make mistakes. Please verify carefully or feel free to contact our support team.",
+        "humanModeHint": "You are now chatting with a human agent."
       },
       "placeholders": {
         "aiMode": "Ask the AI assistant...",
@@ -1520,6 +1522,13 @@
         "waitingAssignment": "Waiting for assignment",
         "aiMode": "AI Chat",
         "humanMode": "Human Agent",
+        "aiDescription": "Smart assistant at your service",
+        "online": "Online",
+        "status": {
+          "waiting": "Waiting for agent",
+          "active": "In conversation",
+          "closed": "Closed"
+        },
         "ariaLabels": {
           "aiChat": "AI Chat",
           "connected": "Connected",
@@ -1547,7 +1556,8 @@
         "noMessages": "No messages yet",
         "noMessagesHint": "Start the conversation by sending a message",
         "staff": "Staff",
-        "admin": "Admin"
+        "admin": "Admin",
+        "justNow": "Just now"
       },
       "transferDialog": {
         "title": "Transfer to Human Agent",
@@ -1564,6 +1574,26 @@
         "title": "AI chat history",
         "collapse": "Collapse",
         "expand": "Expand"
+      },
+      "ratingDialog": {
+        "title": "Rate Your Experience",
+        "description": "How was your conversation with us? Your feedback helps us improve.",
+        "pleaseSelectRating": "Please select a rating",
+        "starLabel": "{score} stars",
+        "scoreLabels": {
+          "1": "Very Dissatisfied",
+          "2": "Dissatisfied",
+          "3": "Neutral",
+          "4": "Satisfied",
+          "5": "Very Satisfied"
+        },
+        "feedbackLabel": "Additional Feedback (Optional)",
+        "feedbackPlaceholder": "Tell us more about your experience...",
+        "skip": "Skip",
+        "submit": "Submit Rating",
+        "submitting": "Submitting...",
+        "submitSuccess": "Thank you for your feedback!",
+        "submitError": "Failed to submit rating"
       }
     }
   },

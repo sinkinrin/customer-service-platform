@@ -1,7 +1,7 @@
 /**
  * Message Input Component
- * 
- * Input field for sending messages with file upload support
+ *
+ * Minimalist design with elegant interactions
  */
 
 'use client'
@@ -9,7 +9,7 @@
 import { useState, useRef, KeyboardEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Send, Paperclip, X } from 'lucide-react'
+import { Send, Paperclip, X, Image, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
@@ -34,64 +34,65 @@ export function MessageInput({
   const [message, setMessage] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const actualPlaceholder = placeholder || t('placeholder')
-  
+
   // Handle send message
   const handleSend = async () => {
     if (!message.trim() && !selectedFile) return
     if (isSending || isUploading) return
-    
+
     try {
       let messageType: 'text' | 'image' | 'file' = 'text'
       let metadata: Record<string, unknown> | undefined
-      
+
       // Upload file if selected
       if (selectedFile) {
         setIsUploading(true)
-        
+
         const formData = new FormData()
         formData.append('file', selectedFile)
         formData.append('reference_type', 'message')
-        
+
         const uploadResponse = await fetch('/api/files/upload', {
           method: 'POST',
           body: formData,
         })
-        
+
         if (!uploadResponse.ok) {
           throw new Error('Failed to upload file')
         }
-        
+
         const uploadData = await uploadResponse.json()
         const fileData = uploadData.data
-        
+
         // Determine message type based on MIME type
         if (fileData.mime_type?.startsWith('image/')) {
           messageType = 'image'
         } else {
           messageType = 'file'
         }
-        
+
         metadata = {
           file_name: fileData.file_name,
           file_size: fileData.file_size,
           file_url: fileData.file_url,
           mime_type: fileData.mime_type,
         }
-        
+
         setIsUploading(false)
       }
-      
+
       // Send message
       await onSend(message.trim(), messageType, metadata)
-      
+
       // Clear input
       setMessage('')
       setSelectedFile(null)
-      
+
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
@@ -103,7 +104,7 @@ export function MessageInput({
       setIsUploading(false)
     }
   }
-  
+
   // Handle Enter key
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -111,7 +112,7 @@ export function MessageInput({
       handleSend()
     }
   }
-  
+
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -125,7 +126,7 @@ export function MessageInput({
 
     setSelectedFile(file)
   }
-  
+
   // Remove selected file
   const handleRemoveFile = () => {
     setSelectedFile(null)
@@ -133,48 +134,69 @@ export function MessageInput({
       fileInputRef.current.value = ''
     }
   }
-  
+
   // Auto-resize textarea
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
     if (value.length <= maxLength) {
       setMessage(value)
-      
+
       // Auto-resize
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
-        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`
       }
     }
   }
-  
+
   const isDisabled = disabled || isSending || isUploading
   const canSend = (message.trim() || selectedFile) && !isDisabled
-  
+  const isImage = selectedFile?.type.startsWith('image/')
+
   return (
-    <div className="rounded-2xl border border-border/70 bg-card/90 p-4 shadow-lg backdrop-blur-sm">
+    <div className="space-y-2">
       {/* File preview */}
       {selectedFile && (
-        <div className="mb-2 flex items-center gap-2 p-2 bg-muted rounded-xl border border-border/60">
-          <Paperclip className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm flex-1 truncate">{selectedFile.name}</span>
-          <span className="text-xs text-muted-foreground">
-            {(selectedFile.size / 1024).toFixed(1)} KB
-          </span>
+        <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/50 animate-in fade-in-0 slide-in-from-bottom-2 duration-150">
+          <div className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+            isImage ? "bg-violet-500/10" : "bg-blue-500/10"
+          )}>
+            {isImage ? (
+              <Image className="h-5 w-5 text-violet-500" />
+            ) : (
+              <FileText className="h-5 w-5 text-blue-500" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {(selectedFile.size / 1024).toFixed(1)} KB
+            </p>
+          </div>
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={handleRemoveFile}
             disabled={isDisabled}
+            className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
       )}
-      
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        {/* File upload button */}
+
+      {/* Input area */}
+      <div
+        className={cn(
+          "relative flex items-end gap-2 rounded-2xl border bg-background transition-all duration-200",
+          isFocused
+            ? "border-primary/30 shadow-[0_0_0_3px_rgba(var(--primary),0.08)]"
+            : "border-border/60 hover:border-border"
+        )}
+      >
+        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -183,67 +205,82 @@ export function MessageInput({
           accept="image/*,.pdf,.doc,.docx,.txt"
           disabled={isDisabled}
         />
+
+        {/* File upload button */}
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={() => fileInputRef.current?.click()}
           disabled={isDisabled}
           title={t('attachFile')}
+          className={cn(
+            "h-10 w-10 rounded-xl ml-1 mb-1 flex-shrink-0",
+            "text-muted-foreground hover:text-foreground",
+            "hover:bg-muted/60 transition-colors"
+          )}
         >
-          <Paperclip className="h-4 w-4" />
+          <Paperclip className="h-5 w-5" />
         </Button>
 
         {/* Message input */}
-        <div className="flex-1 rounded-xl border border-border/60 bg-background/80 shadow-inner px-3 py-2 transition focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/10">
-          <Textarea
-            ref={textareaRef}
-            value={message}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
-            placeholder={actualPlaceholder}
-            disabled={isDisabled}
-            className={cn(
-              "min-h-[48px] max-h-36 w-full resize-none bg-transparent p-0 ring-0 focus-visible:ring-0 focus-visible:outline-none",
-              "text-sm leading-6"
-            )}
-            rows={1}
-          />
-          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium">
-                {t('enterToSend')}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium">
-                {t('shiftEnterNewLine')}
-              </span>
-            </div>
-            {message.length > maxLength * 0.8 && (
-              <span>
-                {message.length} / {maxLength}
-              </span>
-            )}
-          </div>
-        </div>
-      
+        <Textarea
+          ref={textareaRef}
+          value={message}
+          onChange={handleTextareaChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={actualPlaceholder}
+          disabled={isDisabled}
+          className={cn(
+            "flex-1 min-h-[44px] max-h-[120px] py-3 px-0 resize-none",
+            "bg-transparent border-0 shadow-none",
+            "ring-0 focus-visible:ring-0 focus-visible:outline-none",
+            "text-[15px] leading-relaxed placeholder:text-muted-foreground/50"
+          )}
+          rows={1}
+        />
+
         {/* Send button */}
-        <div className="flex items-center justify-end sm:justify-center">
-          <Button
-            type="button"
-            onClick={handleSend}
-            disabled={!canSend}
-            size="icon"
-            className="h-11 w-11 rounded-full shadow-sm"
-            title={t('sendMessage')}
-          >
-            {isUploading ? (
-              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin motion-reduce:animate-none" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          onClick={handleSend}
+          disabled={!canSend}
+          size="icon"
+          className={cn(
+            "h-10 w-10 rounded-xl mr-1 mb-1 flex-shrink-0",
+            "transition-all duration-200",
+            canSend
+              ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+              : "bg-muted text-muted-foreground"
+          )}
+          title={t('sendMessage')}
+        >
+          {isUploading ? (
+            <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Send className={cn(
+              "h-5 w-5 transition-transform duration-200",
+              canSend && "group-hover:translate-x-0.5"
+            )} />
+          )}
+        </Button>
       </div>
+
+      {/* Character count - only show when approaching limit */}
+      {message.length > maxLength * 0.8 && (
+        <div className="flex justify-end px-2">
+          <span className={cn(
+            "text-xs tabular-nums",
+            message.length > maxLength * 0.95
+              ? "text-destructive"
+              : "text-muted-foreground"
+          )}>
+            {message.length}/{maxLength}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

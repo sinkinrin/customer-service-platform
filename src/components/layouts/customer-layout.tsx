@@ -332,19 +332,21 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto lg:ml-64">
-          <PageTransition key={pathname}>
-            <div className="container mx-auto px-4 py-6">{children}</div>
+        <main className="flex-1 lg:ml-64 flex flex-col min-h-0">
+          <PageTransition key={pathname} className="flex-1 flex flex-col min-h-0">
+            <div className="container mx-auto px-4 py-6 flex-1 flex flex-col min-h-0">{children}</div>
           </PageTransition>
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t py-6 mt-auto">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} {tCommon('appName')}. All rights reserved.</p>
-        </div>
-      </footer>
+      {/* Footer - Hidden on conversation detail pages */}
+      {!pathname.includes('/conversations/') && (
+        <footer className="border-t py-6 mt-auto">
+          <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+            <p>&copy; {new Date().getFullYear()} {tCommon('appName')}. All rights reserved.</p>
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

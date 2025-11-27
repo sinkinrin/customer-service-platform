@@ -928,7 +928,9 @@
         "aiAssistant": "AI助手",
         "newMessageNotification": "收到新消息 - 向下滚动查看",
         "sseError": "实时更新不可用：{error}",
-        "closedMessage": "对话已关闭。请开启新对话以继续。"
+        "closedMessage": "对话已关闭。请开启新对话以继续。",
+        "aiDisclaimer": "AI 可能会犯错，请仔细甄别，或者联系我们的技术支持获取帮助。",
+        "humanModeHint": "您正在与人工客服对话中。"
       },
       "placeholders": {
         "aiMode": "向 AI 助手提问...",
@@ -1506,6 +1508,13 @@
         "waitingAssignment": "等待分配中",
         "aiMode": "AI 对话",
         "humanMode": "人工客服",
+        "aiDescription": "智能助手为您服务",
+        "online": "在线",
+        "status": {
+          "waiting": "等待客服接入",
+          "active": "对话中",
+          "closed": "已结束"
+        },
         "ariaLabels": {
           "aiChat": "AI 对话",
           "connected": "已连接",
@@ -1533,7 +1542,8 @@
         "noMessages": "暂无消息",
         "noMessagesHint": "发送消息开始对话",
         "staff": "客服",
-        "admin": "管理员"
+        "admin": "管理员",
+        "justNow": "刚刚"
       },
       "transferDialog": {
         "title": "转接人工客服",
@@ -1550,6 +1560,26 @@
         "title": "AI 对话历史",
         "collapse": "收起",
         "expand": "展开"
+      },
+      "ratingDialog": {
+        "title": "评价您的体验",
+        "description": "您对本次对话满意吗？您的反馈将帮助我们改进服务。",
+        "pleaseSelectRating": "请选择评分",
+        "starLabel": "{score} 星",
+        "scoreLabels": {
+          "1": "非常不满意",
+          "2": "不满意",
+          "3": "一般",
+          "4": "满意",
+          "5": "非常满意"
+        },
+        "feedbackLabel": "补充反馈（可选）",
+        "feedbackPlaceholder": "告诉我们更多关于您的体验...",
+        "skip": "跳过",
+        "submit": "提交评价",
+        "submitting": "提交中...",
+        "submitSuccess": "感谢您的反馈！",
+        "submitError": "提交评价失败"
       }
     }
   },

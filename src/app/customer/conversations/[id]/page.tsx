@@ -1,7 +1,7 @@
 /**
  * Conversation Detail Page - Customer View
  *
- * AI-first conversation with improved manual escalation to human agents
+ * Minimalist design with elegant aesthetics
  */
 
 'use client'
@@ -13,11 +13,10 @@ import { MessageList } from '@/components/conversation/message-list'
 import { MessageInput } from '@/components/conversation/message-input'
 import { ConversationHeader } from '@/components/conversation/conversation-header'
 import { TransferDialog } from '@/components/conversation/transfer-dialog'
+import { RatingDialog } from '@/components/conversation/rating-dialog'
 import { toast } from 'sonner'
 import { Loading } from '@/components/common/loading'
 import { useSSE } from '@/lib/hooks/use-sse'
-import { AlertCircle } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useTranslations } from 'next-intl'
 
 type ConversationMode = 'ai' | 'human'
@@ -36,6 +35,8 @@ export default function ConversationDetailPage() {
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [showTransferDialog, setShowTransferDialog] = useState(false)
   const [isTransferring, setIsTransferring] = useState(false)
+  const [showRatingDialog, setShowRatingDialog] = useState(false)
+  const [hasShownRatingDialog, setHasShownRatingDialog] = useState(false)
 
   const {
     activeConversation,
@@ -51,19 +52,17 @@ export default function ConversationDetailPage() {
     addMessage,
   } = useConversation()
 
-  // SSE connection for real-time updates - always enabled to receive transfer events
-  const { state: sseState, isConnected, error: sseError } = useSSE({
+  // SSE connection for real-time updates
+  const { state: sseState, isConnected } = useSSE({
     url: '/api/sse/conversations',
-    enabled: true, // Always enabled to receive conversation_transferred events in AI mode
+    enabled: true,
     onMessage: (event) => {
       console.log('[SSE] Received event:', event)
 
-      // Only process events for this conversation
       if (event.conversationId !== conversationId) {
         return
       }
 
-      // Handle conversation transferred event (customer side)
       if (event.type === 'conversation_transferred') {
         console.log('[SSE] Conversation transferred to human')
         setMode('human')
@@ -72,17 +71,14 @@ export default function ConversationDetailPage() {
         toast.success(tToast('transferSuccess'))
       }
 
-      // Handle new message - only in human mode to avoid conflicts with AI messages
       if (event.type === 'new_message' && mode === 'human') {
         setShowNewMessageNotification(true)
         setTimeout(() => setShowNewMessageNotification(false), 3000)
-        // Use addMessage from SSE event data instead of re-fetching all messages
         if (event.data) {
           addMessage(event.data)
         }
       }
 
-      // Handle conversation updated
       if (event.type === 'conversation_updated') {
         fetchConversationById(conversationId)
       }
@@ -92,27 +88,30 @@ export default function ConversationDetailPage() {
     },
   })
 
-  // Fetch conversation to determine mode and mark as read
+  // Scroll document to top on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Fetch conversation to determine mode
   useEffect(() => {
     if (conversationId) {
       fetchConversationById(conversationId).then(async (conv) => {
         if (conv && conv.mode) {
           setMode(conv.mode as ConversationMode)
 
-          // R3: Load persisted AI messages if in AI mode
           if (conv.mode === 'ai') {
             try {
-              // FIX: Pass large limit to load all AI messages, not just first 50
               const response = await fetch(`/api/conversations/${conversationId}/messages?limit=1000`)
               const data = await response.json()
 
               if (data.success && data.data?.messages) {
-                // Filter only AI mode messages and convert to aiMessages format
-                // OpenSpec: API returns messages in descending order (newest first)
-                // Reverse to ascending order (oldest first) for correct AI history display
                 const aiModeMessages = data.data.messages
                   .filter((msg: any) => msg.metadata?.aiMode)
-                  .reverse() // Reverse to get ascending order (oldest first)
+                  .reverse()
                   .map((msg: any) => ({
                     role: msg.metadata?.role === 'ai' ? 'assistant' as const : 'user' as const,
                     content: msg.content,
@@ -121,17 +120,15 @@ export default function ConversationDetailPage() {
 
                 if (aiModeMessages.length > 0) {
                   setAiMessages(aiModeMessages)
-                  console.log('[R3] Loaded', aiModeMessages.length, 'persisted AI messages in ascending order')
                 }
               }
             } catch (error) {
-              console.error('[R3] Failed to load persisted AI messages:', error)
+              console.error('Failed to load AI messages:', error)
             }
           }
         }
       })
 
-      // Mark conversation as read when entering
       fetch(`/api/conversations/${conversationId}/mark-read`, {
         method: 'POST',
       }).catch((error) => {
@@ -160,7 +157,6 @@ export default function ConversationDetailPage() {
     try {
       setIsAiLoading(true)
 
-      // Add user message to AI chat
       const newUserMessage = {
         role: 'user' as const,
         content,
@@ -168,7 +164,6 @@ export default function ConversationDetailPage() {
       }
       setAiMessages(prev => [...prev, newUserMessage])
 
-      // R3: Persist user message to storage
       try {
         await fetch(`/api/conversations/${conversationId}/messages`, {
           method: 'POST',
@@ -180,12 +175,9 @@ export default function ConversationDetailPage() {
           }),
         })
       } catch (error) {
-        console.error('[R3] Failed to persist user AI message:', error)
+        console.error('Failed to persist user AI message:', error)
       }
 
-      // Call AI API
-      // R3: Fix history to include the message that was just typed
-      // React state updates are async, so we must manually include newUserMessage
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -202,7 +194,6 @@ export default function ConversationDetailPage() {
         throw new Error(data.error || 'Failed to get AI response')
       }
 
-      // Add AI response to chat
       const aiResponse = {
         role: 'assistant' as const,
         content: data.data.message,
@@ -210,7 +201,6 @@ export default function ConversationDetailPage() {
       }
       setAiMessages(prev => [...prev, aiResponse])
 
-      // R3: Persist AI response to storage
       try {
         await fetch(`/api/conversations/${conversationId}/messages`, {
           method: 'POST',
@@ -222,13 +212,12 @@ export default function ConversationDetailPage() {
           }),
         })
       } catch (error) {
-        console.error('[R3] Failed to persist AI response:', error)
+        console.error('Failed to persist AI response:', error)
       }
 
     } catch (error: any) {
       console.error('AI chat error:', error)
 
-      // Provide helpful error messages based on error type
       if (error.message?.includes('FastGPT')) {
         toast.error(tToast('aiUnavailable'), {
           duration: 5000,
@@ -261,19 +250,17 @@ export default function ConversationDetailPage() {
     }
   }
 
-  // Transfer to human agent - New implementation
+  // Transfer to human agent
   const handleTransferToHuman = async (reason?: string) => {
     try {
       setIsTransferring(true)
 
-      // Prepare AI history
       const aiHistory = aiMessages.map(msg => ({
         role: msg.role === 'user' ? 'customer' as const : 'ai' as const,
         content: msg.content,
         timestamp: msg.timestamp
       }))
 
-      // Call transfer API
       const response = await fetch(`/api/conversations/${conversationId}/transfer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -289,16 +276,10 @@ export default function ConversationDetailPage() {
         throw new Error(data.error?.message || 'Failed to transfer conversation')
       }
 
-      // Close dialog
       setShowTransferDialog(false)
-
-      // Update mode to human
       setMode('human')
-
-      // Clear AI messages
       setAiMessages([])
 
-      // Fetch conversation and messages
       await fetchConversationById(conversationId)
       await fetchMessages(conversationId)
 
@@ -317,7 +298,6 @@ export default function ConversationDetailPage() {
     try {
       setIsTransferring(true)
 
-      // Call switch-to-ai API
       const response = await fetch(`/api/conversations/${conversationId}/switch-to-ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -329,13 +309,9 @@ export default function ConversationDetailPage() {
         throw new Error(data.error?.message || 'Failed to switch to AI mode')
       }
 
-      // Update mode to AI
       setMode('ai')
-
-      // Reset AI messages
       setAiMessages([])
 
-      // Fetch updated conversation
       await fetchConversationById(conversationId)
 
       toast.success(tToast('switchToAISuccess'))
@@ -348,14 +324,28 @@ export default function ConversationDetailPage() {
     }
   }
 
-  if (mode === 'human' && !activeConversation && isLoadingMessages) {
-    return <Loading fullScreen text={t('loadingText')} />
-  }
-
+  // Compute derived state
   const staffName = activeConversation?.staff?.full_name
   const staffAvatar = activeConversation?.staff?.avatar_url
   const conversationStatus = mode === 'human' ? (activeConversation?.status || 'waiting') : 'active'
   const isClosed = mode === 'human' && conversationStatus === 'closed'
+  const hasRating = !!(activeConversation as any)?.rating
+
+  // Show rating dialog when conversation is closed and not yet rated
+  useEffect(() => {
+    if (isClosed && !hasRating && !hasShownRatingDialog) {
+      // Small delay to allow the closed message to render first
+      const timer = setTimeout(() => {
+        setShowRatingDialog(true)
+        setHasShownRatingDialog(true)
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [isClosed, hasRating, hasShownRatingDialog])
+
+  if (mode === 'human' && !activeConversation && isLoadingMessages) {
+    return <Loading fullScreen text={t('loadingText')} />
+  }
 
   // Convert AI messages to display format
   const displayMessages = mode === 'ai'
@@ -378,29 +368,10 @@ export default function ConversationDetailPage() {
     : messages
 
   return (
-    <div className="-mx-4 lg:mx-0 flex min-h-[calc(100vh-8rem)] flex-col bg-gradient-to-b from-background via-background to-muted/30">
-      {/* SSE Connection Status - Only in human mode */}
-      {mode === 'human' && sseState === 'error' && sseError && (
-        <Alert variant="destructive" className="mx-auto mb-0 mt-2 w-full max-w-6xl rounded-lg px-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {t('sseError', { error: sseError.message })}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* New Message Notification - Only in human mode */}
-      {mode === 'human' && showNewMessageNotification && (
-        <Alert className="mx-auto mb-0 mt-2 w-full max-w-6xl rounded-lg border-blue-200 bg-blue-50 px-4 dark:border-blue-800 dark:bg-blue-950">
-          <AlertDescription className="text-blue-900 dark:text-blue-100">
-            {t('newMessageNotification')}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Header - Sticky Top */}
-      <div className="sticky top-16 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-3 pt-4 lg:px-6">
+    <div className="flex flex-col bg-background fixed inset-0 top-16 lg:left-64 z-30">
+      {/* Header */}
+      <div className="flex-shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="max-w-5xl mx-auto px-4">
           <ConversationHeader
             mode={mode}
             staffName={staffName}
@@ -416,26 +387,31 @@ export default function ConversationDetailPage() {
         </div>
       </div>
 
-      {/* Messages - Scrollable Middle Section */}
-      <div className="flex-1 min-h-0 pb-4">
-        <div className="mx-auto flex h-full w-full max-w-6xl px-2 py-4 sm:px-4">
-          <div className="relative flex h-full w-full flex-col rounded-2xl border bg-card/90 shadow-md backdrop-blur-sm">
-            <div className="relative flex-1 overflow-y-auto px-3 py-4 sm:px-5 sm:py-6 pb-28 sm:pb-32">
-              <MessageList
-                messages={displayMessages}
-                isLoading={mode === 'ai' ? isAiLoading : isLoadingMessages}
-                isTyping={mode === 'human' && isTyping}
-                typingUser={mode === 'human' ? typingUser : null}
-              />
-            </div>
+      {/* New Message Notification */}
+      {showNewMessageNotification && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+          <div className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium shadow-lg">
+            {t('newMessageNotification')}
           </div>
+        </div>
+      )}
+
+      {/* Messages - Scrollable */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="max-w-5xl mx-auto">
+          <MessageList
+            messages={displayMessages}
+            isLoading={mode === 'ai' ? isAiLoading : isLoadingMessages}
+            isTyping={mode === 'human' && isTyping}
+            typingUser={mode === 'human' ? typingUser : null}
+          />
         </div>
       </div>
 
-      {/* Input - Fixed Bottom */}
-      {!isClosed && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-background/95 shadow-[0_-12px_28px_-14px_rgba(0,0,0,0.35)] backdrop-blur supports-[backdrop-filter]:backdrop-blur lg:left-64">
-          <div className="mx-auto w-full max-w-6xl px-2 py-3 sm:px-4 pb-[env(safe-area-inset-bottom,12px)]">
+      {/* Input Area */}
+      {!isClosed ? (
+        <div className="flex-shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 mb-6">
+          <div className="max-w-5xl mx-auto px-4 py-3">
             <MessageInput
               onSend={mode === 'ai' ? handleAIMessage : handleHumanMessage}
               isSending={mode === 'ai' ? isAiLoading : isSendingMessage}
@@ -448,13 +424,15 @@ export default function ConversationDetailPage() {
                   : tPlaceholders('activeMode')
               }
             />
+            {/* Disclaimer text based on mode */}
+            <p className="text-xs text-muted-foreground text-center mt-2 pb-[max(4px,env(safe-area-inset-bottom))]">
+              {mode === 'ai' ? t('aiDisclaimer') : t('humanModeHint')}
+            </p>
           </div>
         </div>
-      )}
-
-      {isClosed && (
-        <div className="sticky bottom-0 z-20 border-t bg-muted p-4">
-          <div className="mx-auto w-full max-w-4xl text-center">
+      ) : (
+        <div className="flex-shrink-0 bg-muted/50 mb-6">
+          <div className="max-w-5xl mx-auto px-4 py-4 text-center">
             <p className="text-sm text-muted-foreground">
               {t('closedMessage')}
             </p>
@@ -468,6 +446,16 @@ export default function ConversationDetailPage() {
         onOpenChange={setShowTransferDialog}
         onConfirm={handleTransferToHuman}
         isTransferring={isTransferring}
+      />
+
+      {/* Rating Dialog */}
+      <RatingDialog
+        open={showRatingDialog}
+        onOpenChange={setShowRatingDialog}
+        conversationId={conversationId}
+        onRatingSubmitted={() => {
+          fetchConversationById(conversationId)
+        }}
       />
     </div>
   )

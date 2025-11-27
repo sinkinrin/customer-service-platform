@@ -1,16 +1,15 @@
 /**
  * Message List Component
- * 
- * Displays a list of messages in a conversation with auto-scroll
+ *
+ * Minimalist design with elegant aesthetics
  */
 
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FileText, Download } from 'lucide-react'
+import { FileText, Download, Bot } from 'lucide-react'
 import { type Message } from '@/lib/stores/conversation-store'
 import { useAuthStore } from '@/lib/stores/auth-store'
 import { cn } from '@/lib/utils'
@@ -34,46 +33,58 @@ export function MessageList({
   const t = useTranslations('components.conversation.messageList')
   const { user } = useAuthStore()
   const bottomRef = useRef<HTMLDivElement>(null)
-  
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages.length])
-  
-  // Format timestamp
+
+  // Group consecutive messages from the same sender
+  const groupedMessages = useMemo(() => {
+    const groups: { messages: Message[]; isFirst: boolean; isLast: boolean }[] = []
+
+    messages.forEach((msg, idx) => {
+      const prevMsg = messages[idx - 1]
+      const nextMsg = messages[idx + 1]
+      const isSameSenderAsPrev = prevMsg && prevMsg.sender_id === msg.sender_id &&
+        prevMsg.message_type !== 'system' && msg.message_type !== 'system'
+      const isSameSenderAsNext = nextMsg && nextMsg.sender_id === msg.sender_id &&
+        nextMsg.message_type !== 'system' && msg.message_type !== 'system'
+
+      groups.push({
+        messages: [msg],
+        isFirst: !isSameSenderAsPrev,
+        isLast: !isSameSenderAsNext
+      })
+    })
+
+    return groups
+  }, [messages])
+
+  // Format timestamp elegantly
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
     const diff = now.getTime() - date.getTime()
-    
-    // Less than 1 minute
-    if (diff < 60000) {
-      return 'Just now'
-    }
-    
-    // Less than 1 hour
+
+    if (diff < 60000) return t('justNow')
     if (diff < 3600000) {
       const minutes = Math.floor(diff / 60000)
-      return `${minutes}m ago`
+      return `${minutes}m`
     }
-    
-    // Less than 24 hours
     if (diff < 86400000) {
       const hours = Math.floor(diff / 3600000)
-      return `${hours}h ago`
+      return `${hours}h`
     }
-    
-    // Show date
+
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     })
   }
-  
+
   // Get user initials for avatar fallback
   const getInitials = (name: string) => {
     return name
@@ -83,207 +94,303 @@ export function MessageList({
       .toUpperCase()
       .slice(0, 2)
   }
-  
+
   // Render message content based on type
-  const renderMessageContent = (message: Message) => {
+  const renderMessageContent = (message: Message, isCustomer: boolean) => {
     if (message.message_type === 'text') {
-      return <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+      return (
+        <p className={cn(
+          "text-[15px] leading-relaxed whitespace-pre-wrap break-words",
+          isCustomer ? "text-white" : "text-foreground"
+        )}>
+          {message.content}
+        </p>
+      )
     }
-    
+
     if (message.message_type === 'image' && message.metadata?.file_url) {
       return (
         <div className="space-y-2">
           <img
             src={message.metadata.file_url}
             alt={message.metadata.file_name || 'Image'}
-            className="max-w-sm rounded-lg border"
+            className="max-w-[280px] rounded-xl"
           />
           {message.content && (
-            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+            <p className={cn(
+              "text-[15px] leading-relaxed whitespace-pre-wrap break-words",
+              isCustomer ? "text-white" : "text-foreground"
+            )}>
+              {message.content}
+            </p>
           )}
         </div>
       )
     }
-    
+
     if (message.message_type === 'file' && message.metadata?.file_url) {
       return (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg max-w-sm">
-            <FileText className="h-8 w-8 text-muted-foreground" />
+          <a
+            href={message.metadata.file_url}
+            download={message.metadata.file_name}
+            className={cn(
+              "flex items-center gap-3 p-3 rounded-xl transition-colors",
+              isCustomer
+                ? "bg-white/10 hover:bg-white/20"
+                : "bg-muted hover:bg-muted/80"
+            )}
+          >
+            <div className={cn(
+              "w-10 h-10 rounded-lg flex items-center justify-center",
+              isCustomer ? "bg-white/20" : "bg-primary/10"
+            )}>
+              <FileText className={cn(
+                "h-5 w-5",
+                isCustomer ? "text-white" : "text-primary"
+              )} />
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
+              <p className={cn(
+                "text-sm font-medium truncate",
+                isCustomer ? "text-white" : "text-foreground"
+              )}>
                 {message.metadata.file_name || 'File'}
               </p>
               {message.metadata.file_size && (
-                <p className="text-xs text-muted-foreground">
+                <p className={cn(
+                  "text-xs",
+                  isCustomer ? "text-white/70" : "text-muted-foreground"
+                )}>
                   {(message.metadata.file_size / 1024).toFixed(1)} KB
                 </p>
               )}
             </div>
-            <a
-              href={message.metadata.file_url}
-              download={message.metadata.file_name}
-              className="p-2 hover:bg-background rounded-md transition-colors"
-            >
-              <Download className="h-4 w-4" />
-            </a>
-          </div>
+            <Download className={cn(
+              "h-4 w-4 flex-shrink-0",
+              isCustomer ? "text-white/70" : "text-muted-foreground"
+            )} />
+          </a>
           {message.content && (
-            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+            <p className={cn(
+              "text-[15px] leading-relaxed whitespace-pre-wrap break-words",
+              isCustomer ? "text-white" : "text-foreground"
+            )}>
+              {message.content}
+            </p>
           )}
         </div>
       )
     }
-    
-    return <p className="text-sm text-muted-foreground">{t('unsupportedType')}</p>
+
+    return (
+      <p className={cn(
+        "text-sm",
+        isCustomer ? "text-white/70" : "text-muted-foreground"
+      )}>
+        {t('unsupportedType')}
+      </p>
+    )
   }
-  
+
   if (isLoading && messages.length === 0) {
     return (
-      <div className="flex-1 p-4 space-y-4">
+      <div className="flex-1 p-6 space-y-8">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex gap-3">
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-16 w-full max-w-md" />
-            </div>
+          <div
+            key={i}
+            className={cn(
+              "flex gap-3",
+              i % 2 === 0 ? "justify-end" : "justify-start"
+            )}
+          >
+            {i % 2 !== 0 && <Skeleton className="h-9 w-9 rounded-full flex-shrink-0" />}
+            <Skeleton className={cn(
+              "h-14 rounded-2xl",
+              i % 2 === 0 ? "w-48" : "w-56"
+            )} />
+            {i % 2 === 0 && <Skeleton className="h-9 w-9 rounded-full flex-shrink-0" />}
           </div>
         ))}
       </div>
     )
   }
-  
+
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center space-y-2">
-          <p className="text-muted-foreground">{t('noMessages')}</p>
-          <p className="text-sm text-muted-foreground">
-            {t('noMessagesHint')}
-          </p>
+      <div className="flex-1 flex items-center justify-center p-8 min-h-[300px]">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+            <Bot className="w-8 h-8 text-primary/50" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-foreground/80 font-medium">{t('noMessages')}</p>
+            <p className="text-sm text-muted-foreground">
+              {t('noMessagesHint')}
+            </p>
+          </div>
         </div>
       </div>
     )
   }
-  
+
   return (
-    <div className="space-y-4 px-2 sm:px-4">
-      {messages.map((message) => {
-          // Handle system messages
-          if (message.message_type === 'system' || message.sender?.role === 'system') {
-            const messageType = message.metadata?.type === 'transfer_success' ? 'success' : 'info'
-            return (
+    <div className="space-y-1 py-4">
+      {groupedMessages.map((group, _groupIndex) => {
+        const message = group.messages[0]
+
+        // Handle system messages
+        if (message.message_type === 'system' || message.sender?.role === 'system') {
+          const messageType = message.metadata?.type === 'transfer_success' ? 'success' : 'info'
+          return (
+            <div key={message.id} className="py-2">
               <SystemMessage
-                key={message.id}
                 content={message.content}
                 type={messageType}
                 timestamp={message.created_at}
               />
-            )
-          }
+            </div>
+          )
+        }
 
-          // Handle transfer history messages (only for staff)
-          if (message.message_type === 'transfer_history' && user?.role === 'staff') {
-            const aiHistory = message.metadata?.aiHistory || []
-            const transferredAt = message.metadata?.transferredAt || message.created_at
-            return (
+        // Handle transfer history messages (only for staff)
+        if (message.message_type === 'transfer_history' && user?.role === 'staff') {
+          const aiHistory = message.metadata?.aiHistory || []
+          const transferredAt = message.metadata?.transferredAt || message.created_at
+          return (
+            <div key={message.id} className="py-2">
               <TransferHistoryMessage
-                key={message.id}
                 aiHistory={aiHistory}
                 transferredAt={transferredAt}
               />
-            )
-          }
-
-          // Skip transfer history for customer view
-          if (message.message_type === 'transfer_history') {
-            return null
-          }
-
-          // Regular messages
-          // Layout: Customer messages on RIGHT, Staff/AI messages on LEFT
-          const senderName = message.sender?.full_name || 'Unknown'
-          const senderRole = message.sender?.role || 'customer'
-          const isCustomerMessage = senderRole === 'customer'
-          const bubbleBase =
-            "relative p-3 rounded-2xl shadow-sm border transition-colors"
-          const customerBubble =
-            "bg-primary text-primary-foreground border-primary/40 rounded-tr-sm"
-          const staffBubble =
-            "bg-muted/70 text-foreground border-border/60 rounded-tl-sm"
-          const labelText =
-            "text-xs text-muted-foreground/90 whitespace-nowrap"
-
-          return (
-            <div
-              key={message.id}
-              className={`flex gap-3 ${isCustomerMessage ? 'justify-end' : 'justify-start'}`}
-            >
-              {!isCustomerMessage && (
-                <Avatar className="h-10 w-10 flex-shrink-0 shadow-sm">
-                  <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
-                  <AvatarFallback>{getInitials(senderName)}</AvatarFallback>
-                </Avatar>
-              )}
-
-              <div className={`flex flex-col space-y-1 max-w-[72%] ${isCustomerMessage ? 'items-end' : 'items-start'}`}>
-                <div className={`flex items-center gap-2 ${isCustomerMessage ? 'flex-row-reverse' : ''}`}>
-                  <span className="text-sm font-medium">{senderName}</span>
-                  {senderRole === 'staff' && (
-                    <Badge variant="secondary" className="text-xs">
-                      {t('staff')}
-                    </Badge>
-                  )}
-                  {senderRole === 'admin' && (
-                    <Badge variant="default" className="text-xs">
-                      {t('admin')}
-                    </Badge>
-                  )}
-                  <span className={labelText}>{formatTime(message.created_at)}</span>
-                </div>
-
-                <div
-                  className={cn(
-                    "group",
-                    bubbleBase,
-                    isCustomerMessage ? customerBubble : staffBubble
-                  )}
-                >
-                  {renderMessageContent(message)}
-                  <span className={cn(labelText, "absolute -bottom-5 opacity-0 group-hover:opacity-100 transition-opacity")} role="presentation">
-                    {formatTime(message.created_at)}
-                  </span>
-                </div>
-              </div>
-
-              {isCustomerMessage && (
-                <Avatar className="h-10 w-10 flex-shrink-0 shadow-sm">
-                  <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
-                  <AvatarFallback>{getInitials(senderName)}</AvatarFallback>
-                </Avatar>
-              )}
             </div>
           )
-        })}
-        
-        {isTyping && typingUser && (
-          <div className="flex gap-3 px-1">
-            <Avatar className="h-10 w-10 shadow-sm">
-              <AvatarFallback>{getInitials(typingUser)}</AvatarFallback>
-            </Avatar>
-            <div className="flex items-center gap-1 p-3 bg-muted rounded-xl border border-border/60">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce motion-reduce:animate-none" />
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce motion-reduce:animate-none [animation-delay:0.2s]" />
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce motion-reduce:animate-none [animation-delay:0.4s]" />
+        }
+
+        // Skip transfer history for customer view
+        if (message.message_type === 'transfer_history') {
+          return null
+        }
+
+        // Regular messages
+        const senderName = message.sender?.full_name || 'Unknown'
+        const senderRole = message.sender?.role || 'customer'
+        const isCustomerMessage = senderRole === 'customer'
+        const isAI = message.sender_id === 'ai'
+
+        return (
+          <div
+            key={message.id}
+            className={cn(
+              "flex gap-3 px-2",
+              isCustomerMessage ? 'justify-end' : 'justify-start',
+              group.isFirst ? 'mt-4' : 'mt-0.5'
+            )}
+          >
+            {/* Avatar - only show for first message in group */}
+            {!isCustomerMessage && (
+              <div className="w-9 flex-shrink-0">
+                {group.isFirst && (
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
+                    <AvatarFallback className={cn(
+                      "text-xs font-medium",
+                      isAI
+                        ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white"
+                        : "bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600"
+                    )}>
+                      {isAI ? <Bot className="h-4 w-4" /> : getInitials(senderName)}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            )}
+
+            <div className={cn(
+              "flex flex-col max-w-[75%] sm:max-w-[70%]",
+              isCustomerMessage ? 'items-end' : 'items-start'
+            )}>
+              {/* Sender name - only show for first message in group */}
+              {group.isFirst && !isCustomerMessage && (
+                <span className="text-xs text-muted-foreground mb-1 ml-1">
+                  {senderName}
+                </span>
+              )}
+
+              {/* Message bubble */}
+              <div
+                className={cn(
+                  "px-4 py-2.5 rounded-2xl",
+                  isCustomerMessage
+                    ? cn(
+                        "bg-primary text-primary-foreground",
+                        group.isFirst && "rounded-tr-md",
+                        !group.isFirst && !group.isLast && "rounded-r-md",
+                        group.isLast && !group.isFirst && "rounded-tr-md"
+                      )
+                    : cn(
+                        "bg-muted/60",
+                        group.isFirst && "rounded-tl-md",
+                        !group.isFirst && !group.isLast && "rounded-l-md",
+                        group.isLast && !group.isFirst && "rounded-tl-md"
+                      )
+                )}
+              >
+                {renderMessageContent(message, isCustomerMessage)}
+              </div>
+
+              {/* Timestamp - only show for last message in group */}
+              {group.isLast && (
+                <span className={cn(
+                  "text-[11px] text-muted-foreground/60 mt-1",
+                  isCustomerMessage ? "mr-1" : "ml-1"
+                )}>
+                  {formatTime(message.created_at)}
+                </span>
+              )}
+            </div>
+
+            {/* Customer avatar - only show for first message in group */}
+            {isCustomerMessage && (
+              <div className="w-9 flex-shrink-0">
+                {group.isFirst && (
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={message.sender?.avatar_url} alt={senderName} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
+                      {getInitials(senderName)}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      {/* Typing indicator */}
+      {isTyping && typingUser && (
+        <div className="flex gap-3 px-2 mt-4">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 text-xs font-medium">
+              {getInitials(typingUser)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col items-start">
+            <span className="text-xs text-muted-foreground mb-1 ml-1">
+              {typingUser}
+            </span>
+            <div className="px-4 py-3 rounded-2xl rounded-tl-md bg-muted/60">
+              <div className="flex gap-1.5 items-center h-5">
+                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" />
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-      <div ref={bottomRef} />
+      <div ref={bottomRef} className="h-4" />
     </div>
   )
 }
-

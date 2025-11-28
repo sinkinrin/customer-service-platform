@@ -30,7 +30,7 @@ type LoginFormData = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const t = useTranslations('auth')
   const router = useRouter()
-  const { signIn, getUserRole, user, userRole } = useAuth()
+  const { signIn, user, userRole } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -81,15 +81,16 @@ export default function LoginPage() {
         return
       }
 
-      // Get user role and redirect to appropriate dashboard
-      if (authData?.user) {
-        const role = await getUserRole(authData.user.id)
-        const defaultRoute = getDefaultRouteForRole(role)
-        router.replace(defaultRoute)
-      } else {
-        // Fallback to home page if no user data
-        router.replace('/')
+      // Validate session data
+      if (!authData?.user) {
+        setError('Login failed: no session returned')
+        return
       }
+
+      // Use the fresh role from signIn response to avoid stale cached role
+      const role = authData.user.role
+      const defaultRoute = getDefaultRouteForRole(role)
+      router.replace(defaultRoute)
     } catch (err) {
       const error = err as Error
       setError(error.message || 'An unexpected error occurred')

@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2025-11-28
+
+### 🐛 修复
+
+#### 修复环境变量验证不接受 NEXTAUTH_SECRET
+- **文件**: `src/lib/env.ts`
+- **问题**: 生产环境验证仅检查 `AUTH_SECRET`，使用标准 `NEXTAUTH_SECRET` 的部署会失败
+- **修复**:
+  - 添加 `hasAuthSecret()` 辅助函数，同时检查 `AUTH_SECRET` 和 `NEXTAUTH_SECRET`
+  - 添加 `getAuthSecret()` 辅助函数，优先使用 `AUTH_SECRET`，回退到 `NEXTAUTH_SECRET`
+  - 更新 `validateEnv()` 使用新的辅助函数
+- **影响**: 支持两种环境变量命名，提高兼容性
+
+#### 修复 /api/health 端点认证密钥检测
+- **文件**: `src/app/api/health/route.ts`
+- **问题**: `hasAuthSecret` 配置项仅检查 `AUTH_SECRET`，忽略 `NEXTAUTH_SECRET`
+- **修复**: 使用 `hasAuthSecret()` 函数替代直接检查 `process.env.AUTH_SECRET`
+- **影响**: 健康检查正确报告认证配置状态
+
+#### 修复登录后重定向使用过期角色
+- **文件**: `src/app/auth/login/page.tsx`
+- **问题**: 登录成功后调用 `getUserRole()` 获取缓存的角色，可能返回默认的 "customer" 而非实际角色
+- **修复**: 直接使用 `signIn` 响应中的最新 `authData.user.role` 进行重定向
+- **影响**: 管理员和员工登录后正确跳转到对应仪表板，无需等待会话更新
+
+### 参考
+
+- 代码审查: review.md
+
+---
+
 ## [0.2.2] - 2025-11-26
 
 ### 🐛 修复

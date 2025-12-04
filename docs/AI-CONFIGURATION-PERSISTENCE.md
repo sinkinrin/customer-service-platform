@@ -43,13 +43,13 @@ customer-service-platform/
 
 **Purpose**: Store sensitive API keys that should never be committed to version control.
 
-**Location**: `c:\AI前后端\customer-service-platform\.env.local`
+**Location**: Project root directory `.env.local`
 
 **Content**:
 ```env
 # Zammad Integration
-ZAMMAD_URL=http://172.16.40.22:8080/
-ZAMMAD_API_TOKEN=FRHiLjGLJvpzv_ZTo5CMx0LrvQ75HlHmuisDOcRdL8smKZuenjO1fPON0RSZdOpk
+ZAMMAD_URL=http://your-zammad-instance:8080/
+ZAMMAD_API_TOKEN=your_zammad_api_token_here
 
 # Socket.IO
 SOCKET_IO_PORT=3001
@@ -71,7 +71,7 @@ FASTGPT_API_KEY=your-fastgpt-api-key-here
 
 **Purpose**: Store AI configuration that can be updated dynamically via the admin UI.
 
-**Location**: `c:\AI前后端\customer-service-platform\config\ai-settings.json`
+**Location**: `config/ai-settings.json` (project root)
 
 **Content**:
 ```json
@@ -96,7 +96,7 @@ FASTGPT_API_KEY=your-fastgpt-api-key-here
 
 **Purpose**: Provide a template for new installations.
 
-**Location**: `c:\AI前后端\customer-service-platform\config\ai-settings.example.json`
+**Location**: `config/ai-settings.example.json` (project root)
 
 **Content**: Same as `ai-settings.json` but with placeholder values.
 

@@ -1,7 +1,12 @@
 node_modules
 .next
+
+# Environment variables (contains sensitive data)
+.env
+.env*.local
 .env.local
 config/ai-settings.json
+
 /src/generated/prisma
 
 # Build files

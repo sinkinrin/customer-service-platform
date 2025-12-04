@@ -52,11 +52,14 @@ function AuthStoreSync({ children }: { children: React.ReactNode }) {
         created_at: new Date().toISOString(),
       }
       setUser(user)
+      // Use real session expiry from NextAuth (session.expires is an ISO date string)
+      // Token fields are omitted as NextAuth uses JWT-based sessions
+      const expiresAt = session.expires
+        ? new Date(session.expires).getTime()
+        : Date.now() + 7 * 24 * 60 * 60 * 1000
       setSession({
         user,
-        expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000,
-        access_token: "nextauth-session", // NextAuth uses JWT, not separate tokens
-        refresh_token: "nextauth-refresh",
+        expires_at: expiresAt,
       })
       setUserRole(session.user.role)
     } else {

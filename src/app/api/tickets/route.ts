@@ -147,7 +147,7 @@ async function ensureZammadUser(email: string, fullName: string, role: string, r
 const createTicketSchema = z.object({
   title: z.string().min(1).max(255),
   group: z.string().min(1).optional().default('Support'),
-  priority_id: z.number().int().min(1).max(4).optional().default(2),
+  priority_id: z.number().int().min(1).max(3).optional().default(2),
   region: z.string().optional(), // Optional region override (defaults to user's region)
   article: z.object({
     subject: z.string().min(1),
@@ -194,8 +194,11 @@ export async function GET(request: NextRequest) {
       tickets = searchResponse.tickets  // Extract tickets array from response object
       console.log('[DEBUG] GET /api/tickets - Found', tickets?.length || 0, 'tickets for customer')
     } else {
-      // Staff: Get tickets on behalf of user (filtered by region later)
-      tickets = await zammadClient.getTickets(user.email)
+      // Staff: Get ALL tickets without X-On-Behalf-Of, then filter by region
+      // Using X-On-Behalf-Of would only return tickets where staff is assigned/has explicit access
+      // Staff needs to see all customer-created tickets in their region
+      console.log('[DEBUG] GET /api/tickets - Fetching all tickets for staff, will filter by region')
+      tickets = await zammadClient.getTickets()
     }
 
     // Filter by region (staff can only see their region, admin sees all)
@@ -340,17 +343,11 @@ export async function POST(request: NextRequest) {
     const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, user.region)
     console.log('[DEBUG] POST /api/tickets - Zammad user ID:', zammadUser.id)
 
-    // Determine group ID based on user role
-    // For customers: use default "Users" group (ID 1) which all customers can access
-    // For staff/admin: use region-specific group
-    let groupId: number
-    if (user.role === 'customer') {
-      groupId = 1 // Users group - accessible to all customers
-      console.log('[DEBUG] POST /api/tickets - Using default Users group for customer')
-    } else {
-      groupId = getGroupIdByRegion(region)
-      console.log('[DEBUG] POST /api/tickets - Using region group for staff/admin:', groupId)
-    }
+    // Determine group ID based on user's region
+    // All users (customer/staff/admin) create tickets in their region's group
+    // This ensures staff can see tickets created by customers in their region
+    const groupId = getGroupIdByRegion(region)
+    console.log('[DEBUG] POST /api/tickets - Using region group:', groupId, 'for region:', region)
 
     // Create ticket (using admin token, customer field will set the owner)
     const ticket = await zammadClient.createTicket({

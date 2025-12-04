@@ -401,9 +401,10 @@ export default function ConversationDetailPage() {
         <div className="max-w-5xl mx-auto">
           <MessageList
             messages={displayMessages}
-            isLoading={mode === 'ai' ? isAiLoading : isLoadingMessages}
+            isLoading={mode === 'ai' ? false : isLoadingMessages}
             isTyping={mode === 'human' && isTyping}
             typingUser={mode === 'human' ? typingUser : null}
+            isAiLoading={mode === 'ai' && isAiLoading}
           />
         </div>
       </div>

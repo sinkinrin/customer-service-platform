@@ -776,9 +776,8 @@
         "priorityLabel": "Priorité *",
         "priorities": {
           "1": "Basse - question sur l'utilisation du produit",
-          "2": "Moyenne - problème général",
-          "3": "Haute - impact sur l'activité",
-          "4": "Urgente - panne d'activité"
+          "2": "Normale - problème général",
+          "3": "Haute - impact sur l'activité / urgente"
         },
         "titleLabel": "Titre du problème *",
         "titlePlaceholder": "Décrivez brièvement votre problème",
@@ -1547,7 +1546,10 @@
         "noMessages": "Pas encore de messages",
         "noMessagesHint": "Démarrez la conversation en envoyant un message",
         "staff": "Personnel",
-        "admin": "Admin"
+        "admin": "Admin",
+        "justNow": "À l'instant",
+        "aiAssistant": "Assistant IA",
+        "aiThinking": "Réflexion..."
       },
       "transferDialog": {
         "title": "Transférer à un agent humain",

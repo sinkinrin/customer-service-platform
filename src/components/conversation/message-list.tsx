@@ -11,17 +11,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Download, Bot } from 'lucide-react'
 import { type Message } from '@/lib/stores/conversation-store'
-import { useAuthStore } from '@/lib/stores/auth-store'
 import { cn } from '@/lib/utils'
 import { SystemMessage } from './system-message'
 import { TransferHistoryMessage } from './transfer-history-message'
+import { MarkdownMessage } from './markdown-message'
+import { AIThinkingIndicator } from './ai-thinking-indicator'
 import { useTranslations } from 'next-intl'
+import { useAuth } from '@/lib/hooks/use-auth'
 
 interface MessageListProps {
   messages: Message[]
   isLoading?: boolean
   isTyping?: boolean
   typingUser?: string | null
+  isAiLoading?: boolean
 }
 
 export function MessageList({
@@ -29,17 +32,18 @@ export function MessageList({
   isLoading = false,
   isTyping = false,
   typingUser = null,
+  isAiLoading = false,
 }: MessageListProps) {
   const t = useTranslations('components.conversation.messageList')
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or AI is loading
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages.length])
+  }, [messages.length, isAiLoading])
 
   // Group consecutive messages from the same sender
   const groupedMessages = useMemo(() => {
@@ -96,8 +100,17 @@ export function MessageList({
   }
 
   // Render message content based on type
-  const renderMessageContent = (message: Message, isCustomer: boolean) => {
+  const renderMessageContent = (message: Message, isCustomer: boolean, isAI: boolean) => {
     if (message.message_type === 'text') {
+      // Use Markdown rendering for AI messages
+      if (isAI) {
+        return (
+          <MarkdownMessage
+            content={message.content}
+            className="text-foreground"
+          />
+        )
+      }
       return (
         <p className={cn(
           "text-[15px] leading-relaxed whitespace-pre-wrap break-words",
@@ -336,7 +349,7 @@ export function MessageList({
                       )
                 )}
               >
-                {renderMessageContent(message, isCustomerMessage)}
+                {renderMessageContent(message, isCustomerMessage, isAI)}
               </div>
 
               {/* Timestamp - only show for last message in group */}
@@ -366,6 +379,9 @@ export function MessageList({
           </div>
         )
       })}
+
+      {/* AI Thinking indicator */}
+      {isAiLoading && <AIThinkingIndicator />}
 
       {/* Typing indicator */}
       {isTyping && typingUser && (

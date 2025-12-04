@@ -776,9 +776,8 @@
         "priorityLabel": "Priority *",
         "priorities": {
           "1": "Low - product usage question",
-          "2": "Medium - general issue",
-          "3": "High - business impact",
-          "4": "Urgent - business outage"
+          "2": "Normal - general issue",
+          "3": "High - business impact / urgent"
         },
         "titleLabel": "Issue title *",
         "titlePlaceholder": "Briefly describe your issue",
@@ -1557,7 +1556,9 @@
         "noMessagesHint": "Start the conversation by sending a message",
         "staff": "Staff",
         "admin": "Admin",
-        "justNow": "Just now"
+        "justNow": "Just now",
+        "aiAssistant": "AI Assistant",
+        "aiThinking": "Thinking..."
       },
       "transferDialog": {
         "title": "Transfer to Human Agent",

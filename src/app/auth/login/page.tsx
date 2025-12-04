@@ -43,29 +43,23 @@ export default function LoginPage() {
   })
 
   // Auto-redirect authenticated users to their dashboard
-  useEffect(() => {
-    // Only redirect if we have both user and userRole (skip loading checks to avoid infinite loading)
-    if (user && userRole) {
-      const defaultRoute = getDefaultRouteForRole(userRole)
-      router.replace(defaultRoute)
-    }
-  }, [user, userRole, router])
-
-
-  // Auto-redirect if already signed in; avoid awaiting role resolution to prevent UI hang
+  // Combined logic: handles both role-based redirect and dev environment email shortcuts
   useEffect(() => {
     if (!user) return
-    const email = user.email?.toLowerCase()
-    if (process.env.NODE_ENV !== 'production' && email) {
+
+    // If we have userRole, use it for redirect
+    if (userRole) {
+      const target = getDefaultRouteForRole(userRole as UserRole)
+      router.replace(target)
+      return
+    }
+
+    // Dev environment fallback: infer role from test user emails when userRole isn't yet available
+    if (process.env.NODE_ENV !== 'production') {
+      const email = user.email?.toLowerCase()
       if (email === 'admin@test.com') { router.replace('/admin/dashboard'); return }
       if (email === 'staff@test.com') { router.replace('/staff/dashboard'); return }
       if (email === 'customer@test.com') { router.replace('/customer/dashboard'); return }
-    }
-    if (userRole) {
-      const target = getDefaultRouteForRole(userRole as UserRole)
-      if (typeof window !== 'undefined' && window.location.pathname !== target) {
-        router.replace(target)
-      }
     }
   }, [user, userRole, router])
 

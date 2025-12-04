@@ -5,6 +5,86 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-12-04
+
+### ✨ 新增
+
+#### NextAuth.js v5 认证系统集成
+- **文件**:
+  - `src/auth.ts` (新建)
+  - `src/app/api/auth/[...nextauth]/route.ts` (新建)
+  - `src/lib/hooks/use-auth.ts` (重写)
+  - `src/middleware.ts` (更新)
+  - `src/lib/utils/auth.ts` (更新)
+  - `src/components/providers/session-provider.tsx` (更新)
+- **变更**:
+  - 从 mock auth 迁移到 NextAuth.js v5
+  - 使用 `useSession` 替代自定义 Zustand store 进行会话管理
+  - 中间件集成 NextAuth 进行路由保护
+  - 支持 Credentials Provider 认证
+- **影响**: 生产级认证系统，支持真实用户登录和会话管理
+
+#### 无权限访问页面
+- **文件**: `src/app/unauthorized/page.tsx`, `src/app/unauthorized/unauthorized-content.tsx` (新建)
+- **功能**: 当用户尝试访问无权限路由时显示友好提示
+- **支持**: 多语言、返回按钮
+
+#### 认证错误页面
+- **文件**: `src/app/auth/error/page.tsx` (新建)
+- **功能**: 统一处理认证错误，显示用户友好的错误信息
+
+#### 路由常量模块
+- **文件**: `src/lib/constants/routes.ts` (新建)
+- **功能**: 统一管理公共路由列表，减少重复定义
+
+#### AI 对话 UX 增强组件
+- **文件**:
+  - `src/components/conversation/ai-thinking-indicator.tsx` (新建)
+  - `src/components/conversation/markdown-message.tsx` (新建)
+- **功能**: AI 思考状态动画、Markdown 消息渲染（代码高亮）
+- **相关 OpenSpec**: `enhance-ai-conversation-ux/`
+
+### 🐛 修复
+
+#### 修复工单分组逻辑不一致
+- **文件**: `src/app/api/tickets/route.ts`
+- **问题**: Customer 创建的工单使用默认 "Users" 组，导致 Staff 按区域无法看到客户工单
+- **修复**: 所有用户（customer/staff/admin）创建工单时统一使用 region 对应的 group
+- **影响**: Staff 可以正确看到其区域内客户创建的工单
+
+#### 修复 Staff 工单搜索权限问题
+- **文件**: `src/app/api/tickets/route.ts`, `src/app/api/tickets/search/route.ts`
+- **问题**: 使用 X-On-Behalf-Of 导致 Staff 只能看到自己被分配的工单
+- **修复**: Staff 获取全部工单后按 region 过滤，不再使用 X-On-Behalf-Of
+- **影响**: Staff 可以看到其区域内所有客户创建的工单
+
+#### 修复 priority_id 验证范围
+- **文件**: `src/app/api/tickets/route.ts`
+- **修复**: `priority_id` 上限从 4 改为 3，符合 Zammad 实际优先级范围
+
+### 📦 依赖更新
+
+- 新增: `next-auth@^5.0.0-beta.30` - NextAuth.js v5 认证框架
+- 新增: `@auth/prisma-adapter@^2.11.1` - Prisma 适配器
+- 新增: `react-markdown@^10.1.0` - Markdown 渲染
+- 新增: `react-syntax-highlighter@^16.1.0` - 代码语法高亮
+- 新增: `remark-gfm@^4.0.1` - GitHub Flavored Markdown 支持
+
+### 🌐 国际化更新
+
+- 更新所有语言文件（en, zh-CN, fr, es, ru, pt）添加认证相关翻译
+
+### 📝 OpenSpec 变更
+
+- 新增: `fix-nextauth-integration-gaps/` - NextAuth 集成问题修复
+- 新增: `enhance-ai-conversation-ux/` - AI 对话体验增强
+
+### 参考
+
+- 代码审查: review.md
+
+---
+
 ## [0.2.3] - 2025-11-28
 
 ### 🐛 修复

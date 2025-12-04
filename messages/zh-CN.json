@@ -762,9 +762,8 @@
         "priorityLabel": "优先级 *",
         "priorities": {
           "1": "低 - 产品使用咨询",
-          "2": "中 - 一般问题",
-          "3": "高 - 业务影响",
-          "4": "紧急 - 业务中断"
+          "2": "普通 - 一般问题",
+          "3": "高 - 业务影响/紧急"
         },
         "titleLabel": "问题标题 *",
         "titlePlaceholder": "简要描述您的问题",
@@ -1543,7 +1542,9 @@
         "noMessagesHint": "发送消息开始对话",
         "staff": "客服",
         "admin": "管理员",
-        "justNow": "刚刚"
+        "justNow": "刚刚",
+        "aiAssistant": "AI 助手",
+        "aiThinking": "思考中..."
       },
       "transferDialog": {
         "title": "转接人工客服",

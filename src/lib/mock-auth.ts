@@ -21,8 +21,16 @@ export interface MockUser {
 }
 
 export interface MockSession {
-  access_token: string
-  refresh_token: string
+  /**
+   * Access token for API calls.
+   * Optional when using NextAuth.js (JWT-based sessions don't expose tokens).
+   */
+  access_token?: string
+  /**
+   * Refresh token for session renewal.
+   * Optional when using NextAuth.js (JWT-based sessions don't expose tokens).
+   */
+  refresh_token?: string
   expires_at: number
   user: MockUser
 }

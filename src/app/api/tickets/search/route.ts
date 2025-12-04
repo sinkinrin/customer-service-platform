@@ -80,6 +80,7 @@ function transformTicket(ticket: RawZammadTicket, customerInfo?: { name?: string
   }
 }
 import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
+import { filterTicketsByRegion } from '@/lib/utils/region-auth'
 
 // Helper function to ensure user exists in Zammad
 async function ensureZammadUser(email: string, fullName: string, role: string, region?: string) {
@@ -189,11 +190,25 @@ export async function GET(request: NextRequest) {
       console.log('[DEBUG] Search API - Calling searchTickets for admin')
       result = await zammadClient.searchTickets(query, limit)
       console.log('[DEBUG] Search API - Result:', JSON.stringify(result, null, 2))
-    } else {
-      // Customer/Staff: Search tickets on behalf of user
-      console.log('[DEBUG] Search API - Calling searchTickets for user:', user.email)
+    } else if (user.role === 'customer') {
+      // Customer: Search tickets on behalf of user (only their own tickets)
+      console.log('[DEBUG] Search API - Calling searchTickets for customer:', user.email)
       result = await zammadClient.searchTickets(query, limit, user.email)
       console.log('[DEBUG] Search API - Result:', JSON.stringify(result, null, 2))
+    } else {
+      // Staff: Search ALL tickets without X-On-Behalf-Of, then filter by region
+      // Using X-On-Behalf-Of would only return tickets where staff is assigned/has explicit access
+      // Staff needs to see all customer-created tickets in their region
+      console.log('[DEBUG] Search API - Fetching all tickets for staff, will filter by region')
+      result = await zammadClient.searchTickets(query, limit * 2) // Get more to account for region filtering
+      console.log('[DEBUG] Search API - Before region filter:', result.tickets?.length || 0, 'tickets')
+
+      // Apply region filtering for staff
+      if (result.tickets) {
+        result.tickets = filterTicketsByRegion(result.tickets, user)
+        result.tickets_count = result.tickets.length
+      }
+      console.log('[DEBUG] Search API - After region filter:', result.tickets?.length || 0, 'tickets')
     }
 
     console.log('[DEBUG] Search API - Returning tickets count:', result.tickets?.length || 0)

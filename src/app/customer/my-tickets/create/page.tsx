@@ -116,7 +116,6 @@ export default function CreateTicketPage() {
       '1': tCreate('priorities.1'),
       '2': tCreate('priorities.2'),
       '3': tCreate('priorities.3'),
-      '4': tCreate('priorities.4'),
     }
     return labels[priority] || priority
   }
@@ -189,7 +188,6 @@ export default function CreateTicketPage() {
                 <option value="1">{getPriorityLabel('1')}</option>
                 <option value="2">{getPriorityLabel('2')}</option>
                 <option value="3">{getPriorityLabel('3')}</option>
-                <option value="4">{getPriorityLabel('4')}</option>
               </select>
             </div>
 

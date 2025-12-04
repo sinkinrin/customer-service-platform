@@ -776,9 +776,8 @@
         "priorityLabel": "Prioridad *",
         "priorities": {
           "1": "Baja - pregunta sobre uso del producto",
-          "2": "Media - problema general",
-          "3": "Alta - impacto en el negocio",
-          "4": "Urgente - interrupción del negocio"
+          "2": "Normal - problema general",
+          "3": "Alta - impacto en el negocio / urgente"
         },
         "titleLabel": "Título del problema *",
         "titlePlaceholder": "Describe brevemente tu problema",
@@ -1547,7 +1546,10 @@
         "noMessages": "Sin mensajes aún",
         "noMessagesHint": "Inicia la conversación enviando un mensaje",
         "staff": "Personal",
-        "admin": "Admin"
+        "admin": "Admin",
+        "justNow": "Ahora",
+        "aiAssistant": "Asistente IA",
+        "aiThinking": "Pensando..."
       },
       "transferDialog": {
         "title": "Transferir a agente humano",

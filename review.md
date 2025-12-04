@@ -1,0 +1,6 @@
+Major – src/components/providers/session-provider.tsx (line 78): Setting refetchInterval={5 * 60} turns on periodic /api/auth/session polling every 5 minutes for every tab. NextAuth’s default is no polling; with the SSR session already injected this extra timer can increase overall session traffic and counter the “reduce duplicate calls” goal. Consider leaving it at 0 (default) and relying on manual triggers if/when needed.
+Minor – src/components/providers/session-provider.tsx (line 55): The Zustand sync writes fabricated session metadata (expires_at always “now + 7 days”, tokens hard-coded strings) rather than using session.expires or real token data. If any consumer uses the auth store to gate access or call APIs, they’ll see misleading expiry/token values. Either map the real session.expires/JWT data or keep the store null/NextAuth-shaped to avoid divergence.
+Open Questions
+
+Do we have any consumers of useAuthStore that depend on access/refresh tokens or expiry? If so, we likely need to align the store shape to NextAuth rather than mock values.
+Was the added polling measured to reduce calls in practice? If not, should we revert to the default (no polling) and only disable refetchOnWindowFocus?

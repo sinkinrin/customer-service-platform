@@ -1,228 +1,223 @@
 /**
  * Authentication Hook
  *
- * TODO: Replace with real authentication system (e.g., NextAuth.js, Auth0, Clerk)
- * This is a temporary mock implementation to allow development without Supabase
+ * Client-side authentication using NextAuth.js v5
+ * Provides a unified interface for authentication operations
  */
 
 "use client"
 
-import { useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/stores/auth-store'
-import { mockSignIn, mockSignUp, mockSignOut, mockGetUser, mockGetSession } from '@/lib/mock-auth'
-import { logDebug, logInfo, logError } from '@/lib/utils/logger'
+import { useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import {
+  useSession,
+  signIn as nextAuthSignIn,
+  signOut as nextAuthSignOut,
+} from "next-auth/react"
+import { logInfo, logError } from "@/lib/utils/logger"
+
+// User type matching NextAuth session
+export interface AuthUser {
+  id: string
+  email: string
+  role: "customer" | "staff" | "admin"
+  full_name: string
+  avatar_url?: string
+  phone?: string
+  language?: string
+  region?: string
+  zammad_id?: number
+}
 
 export function useAuth() {
   const router = useRouter()
+  const { data: session, status, update } = useSession()
 
-  const {
-    user,
-    session,
-    userRole,
-    isLoading,
-    isInitialized,
-    setUser,
-    setSession,
-    setUserRole,
-    setLoading,
-    setInitialized,
-    reset,
-  } = useAuthStore()
+  const isLoading = status === "loading"
+  const isAuthenticated = status === "authenticated"
 
-  // Get user role from mock user
-  const getUserRole = useCallback(async (userId: string): Promise<'customer' | 'staff' | 'admin'> => {
-    try {
-      logDebug('Auth', `Fetching user role for user: ${userId}`)
-
-      // TODO: Replace with real database query
-      const mockUser = await mockGetUser()
-      if (!mockUser) {
-        return 'customer' // Default role
-      }
-
-      logInfo('Auth', `User role fetched successfully: ${mockUser.role}`)
-      return mockUser.role
-    } catch (error) {
-      logError('Auth', 'Exception while fetching user role', error)
-      return 'customer' // Default role
+  // Extract user from session
+  const user: AuthUser | null = useMemo(() => {
+    if (!session?.user) return null
+    return {
+      id: session.user.id,
+      email: session.user.email,
+      role: session.user.role,
+      full_name: session.user.full_name,
+      avatar_url: session.user.avatar_url,
+      phone: session.user.phone,
+      language: session.user.language,
+      region: session.user.region,
+      zammad_id: session.user.zammad_id,
     }
-  }, [])
+  }, [session])
 
-  // Initialize auth state
-  useEffect(() => {
-    if (isInitialized) return
+  const userRole = user?.role || null
 
-    const initAuth = async () => {
-      try {
-        setLoading(true)
-
-        // TODO: Replace with real session check
-        const mockSession = await mockGetSession()
-
-        if (mockSession) {
-          setSession(mockSession)
-          setUser(mockSession.user)
-
-          // Fetch and set user role
-          const role = await getUserRole(mockSession.user.id)
-          setUserRole(role)
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error)
-      } finally {
-        setLoading(false)
-        setInitialized(true)
-      }
-    }
-
-    initAuth()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitialized])
-
-  // Safety guard: if store got rehydrated with isInitialized=true but isLoading stuck
-  useEffect(() => {
-    if (isInitialized && isLoading) {
-      setLoading(false)
-    }
-  }, [isInitialized, isLoading, setLoading])
-
-  // Failsafe: avoid indefinite spinner if initAuth fails to resolve
-  useEffect(() => {
-    if (!isInitialized && isLoading) {
-      const t = setTimeout(() => setLoading(false), 2000)
-      return () => clearTimeout(t)
-    }
-  }, [isInitialized, isLoading, setLoading])
-
+  // Get user role
+  const getUserRole = useCallback(
+    async (_userId?: string): Promise<"customer" | "staff" | "admin"> => {
+      return userRole || "customer"
+    },
+    [userRole]
+  )
 
   // Sign in with email and password
   const signIn = useCallback(
     async (email: string, password: string) => {
       try {
-        logInfo('Auth', `Sign in attempt for: ${email}`)
-        setLoading(true)
+        logInfo("Auth", `Sign in attempt for: ${email}`)
 
-        // TODO: Replace with real authentication
-        const { user, session, error } = await mockSignIn(email, password)
+        const result = await nextAuthSignIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        })
 
-        if (error) throw error
+        if (result?.error) {
+          const errorCode = result.error
+          const friendlyMessage =
+            errorCode === "CredentialsSignin"
+              ? "Invalid email or password"
+              : errorCode === "AUTH_CONFIG_MISSING" ||
+                  errorCode?.includes("AUTH_CONFIG_MISSING")
+                ? "Authentication is not configured. Set AUTH_DEFAULT_USER_EMAIL/PASSWORD or enable NEXT_PUBLIC_ENABLE_MOCK_AUTH."
+                : errorCode || "Authentication failed"
 
-        if (session) {
-          setSession(session)
-          setUser(user)
-
-          // Fetch and set user role
-          const role = await getUserRole(user.id)
-          setUserRole(role)
-
-          logInfo('Auth', `Sign in successful for: ${email}, role: ${role}`)
+          logError("Auth", `Sign in failed for: ${email}`, friendlyMessage)
+          return {
+            data: null,
+            error: new Error(friendlyMessage),
+          }
         }
 
-        return { data: { user, session }, error: null }
+        if (result?.ok) {
+          logInfo("Auth", `Sign in successful for: ${email}`)
+          // Trigger session update to fetch latest session/user data
+          const updatedSession = await update()
+
+          const updatedUser = updatedSession?.user
+            ? ({
+                id: updatedSession.user.id,
+                email: updatedSession.user.email,
+                role: updatedSession.user.role,
+                full_name: updatedSession.user.full_name,
+                avatar_url: updatedSession.user.avatar_url,
+                phone: updatedSession.user.phone,
+                language: updatedSession.user.language,
+                region: updatedSession.user.region,
+                zammad_id: updatedSession.user.zammad_id,
+              } satisfies AuthUser)
+            : null
+
+          if (!updatedUser) {
+            return {
+              data: null,
+              error: new Error("Login succeeded but session data was missing"),
+            }
+          }
+
+          return { data: { user: updatedUser, session: updatedSession }, error: null }
+        }
+
+        return { data: null, error: new Error("Unknown authentication response") }
       } catch (err) {
         const error = err as Error
-        logError('Auth', `Sign in failed for: ${email}`, error)
+        logError("Auth", `Sign in exception for: ${email}`, error)
         return { data: null, error }
-      } finally {
-        setLoading(false)
       }
     },
-    [setSession, setUser, setUserRole, setLoading, getUserRole]
+    [update]
   )
 
   // Sign up with email and password
   const signUp = useCallback(
-    async (email: string, password: string, metadata?: { full_name?: string }) => {
+    async (email: string, password: string, _metadata?: { full_name?: string }) => {
       try {
-        setLoading(true)
+        // For now, sign up uses the same credentials flow
+        // In production, you'd call an API to create the user first
+        logInfo("Auth", `Sign up attempt for: ${email}`)
 
-        // TODO: Replace with real authentication
-        const { user, session, error } = await mockSignUp(email, password, metadata)
+        // TODO: Implement actual user registration API
+        // For now, just attempt to sign in (works with mock users)
+        const result = await nextAuthSignIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        })
 
-        if (error) throw error
+        if (result?.error) {
+          return { data: null, error: new Error(result.error) }
+        }
 
-        return { data: { user, session }, error: null }
+        if (result?.ok) {
+          const updatedSession = await update()
+
+          const updatedUser = updatedSession?.user
+            ? ({
+                id: updatedSession.user.id,
+                email: updatedSession.user.email,
+                role: updatedSession.user.role,
+                full_name: updatedSession.user.full_name,
+                avatar_url: updatedSession.user.avatar_url,
+                phone: updatedSession.user.phone,
+                language: updatedSession.user.language,
+                region: updatedSession.user.region,
+                zammad_id: updatedSession.user.zammad_id,
+              } satisfies AuthUser)
+            : null
+
+          return { data: { user: updatedUser, session: updatedSession }, error: null }
+        }
+
+        return { data: null, error: new Error("Sign up failed") }
       } catch (err) {
         const error = err as Error
-        console.error('Sign up error:', error)
+        logError("Auth", `Sign up failed for: ${email}`, error)
         return { data: null, error }
-      } finally {
-        setLoading(false)
       }
     },
-    [setLoading]
+    [update]
   )
 
   // Sign out
   const signOut = useCallback(async () => {
     try {
-      setLoading(true)
-
-      // TODO: Replace with real authentication
-      const { error } = await mockSignOut()
-      if (error) throw error
-
-      reset()
-      router.push('/auth/login')
+      logInfo("Auth", "Sign out initiated")
+      await nextAuthSignOut({ redirect: false })
+      router.push("/auth/login")
     } catch (error) {
-      console.error('Sign out error:', error)
-    } finally {
-      setLoading(false)
+      logError("Auth", "Sign out error", error)
     }
-  }, [reset, router, setLoading])
+  }, [router])
 
   // Reset password
-  const resetPassword = useCallback(
-    async (_email: string) => {
-      try {
-        setLoading(true)
-
-        // TODO: Replace with real password reset
-        // For now, just return success
-        return { error: null }
-      } catch (err) {
-        const error = err as Error
-        console.error('Reset password error:', error)
-        return { error }
-      } finally {
-        setLoading(false)
-      }
-    },
-    [setLoading]
-  )
+  const resetPassword = useCallback(async (_email: string) => {
+    try {
+      // TODO: Implement password reset API
+      return { error: null }
+    } catch (err) {
+      const error = err as Error
+      logError("Auth", "Reset password error", error)
+      return { error }
+    }
+  }, [])
 
   // Update password
-  const updatePassword = useCallback(
-    async (_newPassword: string) => {
-      try {
-        setLoading(true)
-
-        // TODO: Replace with real password update
-        // For now, just return success
-        return { error: null }
-      } catch (err) {
-        const error = err as Error
-        console.error('Update password error:', error)
-        return { error }
-      } finally {
-        setLoading(false)
-      }
-    },
-    [setLoading]
-  )
+  const updatePassword = useCallback(async (_newPassword: string) => {
+    try {
+      // TODO: Implement password update API
+      return { error: null }
+    } catch (err) {
+      const error = err as Error
+      logError("Auth", "Update password error", error)
+      return { error }
+    }
+  }, [])
 
   // Get user profile
   const getUserProfile = useCallback(async () => {
-    if (!user) return null
-
-    try {
-      // TODO: Replace with real database query
-      return user
-    } catch (error) {
-      console.error('Get user profile error:', error)
-      return null
-    }
+    return user
   }, [user])
 
   return {
@@ -230,7 +225,7 @@ export function useAuth() {
     session,
     userRole,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated,
     signIn,
     signUp,
     signOut,
@@ -240,4 +235,3 @@ export function useAuth() {
     getUserRole,
   }
 }
-

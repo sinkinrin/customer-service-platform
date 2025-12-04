@@ -6,11 +6,11 @@
 
 import { useCallback } from 'react'
 import { useConversationStore, type Conversation, type Message } from '@/lib/stores/conversation-store'
-import { useAuthStore } from '@/lib/stores/auth-store'
 import { useSSE } from '@/lib/hooks/use-sse'
+import { useAuth } from '@/lib/hooks/use-auth'
 
 export function useConversation() {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
 
   const {
     conversations,

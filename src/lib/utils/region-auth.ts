@@ -1,14 +1,24 @@
 /**
  * Region-based Authorization Utilities
- * 
+ *
  * Provides region permission validation for staff users
  * - Staff can only access tickets from their assigned region
  * - Admin can access all regions
  * - Customer can only access their own tickets
  */
 
-import { MockUser } from '@/lib/mock-auth'
 import { getGroupIdByRegion, getRegionByGroupId, type RegionValue } from '@/lib/constants/regions'
+
+/**
+ * User interface for region authorization
+ * Compatible with both MockUser and AuthUser types
+ */
+interface RegionAuthUser {
+  id: string
+  email: string
+  role: 'customer' | 'staff' | 'admin'
+  region?: string
+}
 
 /**
  * Check if a user has permission to access a specific region
@@ -16,7 +26,7 @@ import { getGroupIdByRegion, getRegionByGroupId, type RegionValue } from '@/lib/
  * @param region - The region to check access for
  * @returns true if user has access, false otherwise
  */
-export function hasRegionAccess(user: MockUser, region: RegionValue): boolean {
+export function hasRegionAccess(user: RegionAuthUser, region: RegionValue): boolean {
   // Admin can access all regions
   if (user.role === 'admin') {
     return true
@@ -41,7 +51,7 @@ export function hasRegionAccess(user: MockUser, region: RegionValue): boolean {
  * @param groupId - The Zammad group ID to check access for
  * @returns true if user has access, false otherwise
  */
-export function hasGroupAccess(user: MockUser, groupId: number): boolean {
+export function hasGroupAccess(user: RegionAuthUser, groupId: number): boolean {
   // Admin can access all groups
   if (user.role === 'admin') {
     return true
@@ -61,7 +71,7 @@ export function hasGroupAccess(user: MockUser, groupId: number): boolean {
  * @param user - The user to get accessible groups for
  * @returns Array of group IDs the user can access
  */
-export function getAccessibleGroupIds(user: MockUser): number[] {
+export function getAccessibleGroupIds(user: RegionAuthUser): number[] {
   // Admin can access all groups
   if (user.role === 'admin') {
     // Return all 8 region group IDs
@@ -74,10 +84,12 @@ export function getAccessibleGroupIds(user: MockUser): number[] {
     return [1]
   }
 
-  // Staff can only access their region's group
+  // Staff can access their region's group AND the Users group (ID=1)
+  // Users group contains legacy customer tickets created before region-based routing
   if (user.role === 'staff' && user.region) {
     const groupId = getGroupIdByRegion(user.region as RegionValue)
-    return [groupId]
+    // Include group 1 (Users) for backward compatibility with legacy tickets
+    return groupId === 1 ? [1] : [groupId, 1]
   }
 
   return []
@@ -88,7 +100,7 @@ export function getAccessibleGroupIds(user: MockUser): number[] {
  * @param user - The user to get accessible regions for
  * @returns Array of region values the user can access
  */
-export function getAccessibleRegions(user: MockUser): RegionValue[] {
+export function getAccessibleRegions(user: RegionAuthUser): RegionValue[] {
   // Admin can access all regions
   if (user.role === 'admin') {
     return [
@@ -120,7 +132,7 @@ export function getAccessibleRegions(user: MockUser): RegionValue[] {
  */
 export function filterTicketsByRegion<T extends { group_id?: number; customer_id?: number }>(
   tickets: T[],
-  user: MockUser
+  user: RegionAuthUser
 ): T[] {
   // Admin can see all tickets
   if (user.role === 'admin') {
@@ -151,7 +163,7 @@ export function filterTicketsByRegion<T extends { group_id?: number; customer_id
  * @param region - The region to create the ticket in
  * @throws Error if user doesn't have permission
  */
-export function validateTicketCreation(user: MockUser, region: RegionValue): void {
+export function validateTicketCreation(user: RegionAuthUser, region: RegionValue): void {
   if (!hasRegionAccess(user, region)) {
     throw new Error(`You do not have permission to create tickets in region: ${region}`)
   }
@@ -163,10 +175,9 @@ export function validateTicketCreation(user: MockUser, region: RegionValue): voi
  * @param ticketGroupId - The group ID of the ticket
  * @throws Error if user doesn't have permission
  */
-export function validateTicketAccess(user: MockUser, ticketGroupId: number): void {
+export function validateTicketAccess(user: RegionAuthUser, ticketGroupId: number): void {
   if (!hasGroupAccess(user, ticketGroupId)) {
     const region = getRegionByGroupId(ticketGroupId)
     throw new Error(`You do not have permission to access tickets in region: ${region || 'unknown'}`)
   }
 }
-

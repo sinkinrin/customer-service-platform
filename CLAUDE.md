@@ -223,11 +223,6 @@ Add file upload functionality:
 4. **归档已完成的变更**：将已完成的变更移动到 `openspec/archive/`
 5. **生成 Changelog**：遵循 `CHANGELOG_GUIDE.md` 中的指引，基于 git commits 生成规范的变更日志
 
-### 当前规范
-- `faq-system` - 自建 FAQ 知识库系统
-
-### 当前变更提案
-- `add-self-hosted-faq-kb` - 添加自建 FAQ 知识库系统
 
 ## Key Dependencies
 
@@ -263,3 +258,5 @@ Add file upload functionality:
 - Customer Portal: customer@test.com
 - Staff Portal: staff@test.com
 - Admin Panel: admin@test.com
+
+- Use ` codebase-retrieval  ` when searching information about the project

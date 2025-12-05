@@ -18,11 +18,18 @@ import {
 import { CreateConversationSchema } from '@/types/api.types'
 import {
   createAIConversation,
-  getCustomerConversations,
+  getCustomerConversations as _getCustomerConversations,
   getConversationMessages,
-  addMessage
+  addMessage,
+  getAllConversations,
 } from '@/lib/local-conversation-storage'
+
+// Reserved for future use: customer-specific conversation filtering
+void _getCustomerConversations
 import { broadcastConversationEvent } from '@/lib/sse/conversation-broadcaster'
+import { filterConversationsByRegion } from '@/lib/utils/region-auth'
+import type { RegionValue } from '@/lib/constants/regions'
+import { mockGetUserById } from '@/lib/mock-auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,14 +42,20 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
 
     // Get conversations based on user role
-    let conversations
-    if (user.role === 'staff' || user.role === 'admin') {
-      // Staff and Admin can see all conversations
-      const { getAllConversations } = await import('@/lib/local-conversation-storage')
-      conversations = await getAllConversations()
-    } else {
-      // Customers can only see their own conversations
-      conversations = await getCustomerConversations(user.email)
+    let conversations = await getAllConversations()
+    
+    // Apply region-based filtering
+    // - Admin: sees all conversations (can filter by region query param)
+    // - Staff: sees only their region's conversations
+    // - Customer: sees only their own conversations
+    conversations = filterConversationsByRegion(conversations, user)
+    
+    // Admin can optionally filter by region
+    if (user.role === 'admin') {
+      const regionFilter = searchParams.get('region')
+      if (regionFilter) {
+        conversations = conversations.filter(c => c.region === regionFilter)
+      }
     }
 
     // Transform to API format with customer and staff information
@@ -51,6 +64,10 @@ export async function GET(request: NextRequest) {
         // Get actual message count
         const messages = await getConversationMessages(conv.id)
 
+        // Get customer and staff user details for region info
+        const customerUser = await mockGetUserById(conv.customer_id)
+        const staffUser = conv.staff_id ? await mockGetUserById(conv.staff_id) : null
+
         return {
           id: conv.id,
           customer_id: conv.customer_id,
@@ -58,6 +75,7 @@ export async function GET(request: NextRequest) {
           business_type_id: null,
           status: conv.status,
           mode: conv.mode,
+          region: conv.region || null,
           zammad_ticket_id: conv.zammad_ticket_id,
           transferred_at: conv.transferred_at,
           transfer_reason: conv.transfer_reason,
@@ -71,10 +89,12 @@ export async function GET(request: NextRequest) {
             id: conv.customer_id,
             full_name: conv.customer_name || conv.customer_email?.split('@')[0] || 'User',
             email: conv.customer_email || '',
+            region: customerUser?.region || conv.region || null,
           },
           staff: conv.staff_id ? {
             id: conv.staff_id,
             full_name: conv.staff_name || 'Staff',
+            region: staffUser?.region || null,
           } : null,
         }
       })
@@ -138,7 +158,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create local AI conversation (does NOT create Zammad ticket)
-    const conversation = await createAIConversation(user.id, user.email)
+    // Automatically inherit region from user
+    const userRegion = (user.region as RegionValue) || 'asia-pacific'
+    const conversation = await createAIConversation(user.id, user.email, userRegion)
 
     console.log('[LocalStorage] Created AI conversation:', conversation.id)
 

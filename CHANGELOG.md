@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-12-05
+
+### 🔒 安全
+
+#### 升级 Next.js 至 14.2.25
+- **文件**: `package.json`, `next.config.js`
+- **修复**: CVE-2025-29927 (Middleware 认证绕过漏洞)
+- **变更**:
+  - `next` 从 `^14.0.0` 升级至 `14.2.25`
+  - 添加 `experimental.staleTimes` 配置优化客户端路由缓存
+  - 添加 `dev:turbo` 脚本支持 Turbopack 开发模式
+- **相关 OpenSpec**: `upgrade-nextjs-14.2/`
+
+### ⚡ 性能优化
+
+#### Customer Dashboard Server Component 重构
+- **文件**:
+  - `src/app/customer/dashboard/page.tsx` (重构为 Server Component)
+  - `src/app/customer/dashboard/dashboard-content.tsx` (新建 Client Component)
+- **变更**:
+  - 页面改为 Server Component，翻译在服务端完成
+  - 客户端组件接收预翻译的字符串，减少客户端 JS 体积
+  - 为未来 PPR (Partial Prerendering) 做准备
+- **注意**: PPR 需要 Next.js canary 版本，暂时注释
+
 ## [0.3.0] - 2025-12-04
 
 ### ✨ 新增

@@ -1,0 +1,153 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { PageTransition } from '@/components/ui/page-transition'
+import { MessageSquare, FileText, HelpCircle, MessageCircle } from 'lucide-react'
+
+interface DashboardTranslations {
+  title: string
+  welcomeMessage: string
+  quickActions: {
+    liveChat: { title: string; description: string }
+    knowledgeBase: { title: string; description: string }
+    myTickets: { title: string; description: string }
+    submitFeedback: { title: string; description: string }
+  }
+  getStarted: {
+    title: string
+    subtitle: string
+    liveChat: { title: string; description: string; button: string }
+    knowledgeBase: { title: string; description: string; button: string }
+    ticket: { title: string; description: string; button: string }
+  }
+}
+
+interface DashboardContentProps {
+  translations: DashboardTranslations
+}
+
+export function DashboardContent({ translations: t }: DashboardContentProps) {
+  const router = useRouter()
+
+  const quickActions = [
+    {
+      title: t.quickActions.liveChat.title,
+      description: t.quickActions.liveChat.description,
+      icon: MessageSquare,
+      action: () => router.push('/customer/conversations'),
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100',
+    },
+    {
+      title: t.quickActions.knowledgeBase.title,
+      description: t.quickActions.knowledgeBase.description,
+      icon: HelpCircle,
+      action: () => router.push('/customer/faq'),
+      color: 'text-green-600',
+      bgColor: 'bg-green-100',
+    },
+    {
+      title: t.quickActions.myTickets.title,
+      description: t.quickActions.myTickets.description,
+      icon: FileText,
+      action: () => router.push('/customer/my-tickets'),
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100',
+    },
+    {
+      title: t.quickActions.submitFeedback.title,
+      description: t.quickActions.submitFeedback.description,
+      icon: MessageCircle,
+      action: () => router.push('/customer/feedback'),
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100',
+    },
+  ]
+
+  return (
+    <PageTransition className="container max-w-6xl py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">{t.title}</h1>
+        <p className="text-muted-foreground mt-2">
+          {t.welcomeMessage}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {quickActions.map((action) => {
+          const Icon = action.icon
+          return (
+            <Card
+              key={action.title}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={action.action}
+            >
+              <CardHeader>
+                <div className={`w-12 h-12 rounded-lg ${action.bgColor} flex items-center justify-center mb-4`}>
+                  <Icon className={`h-6 w-6 ${action.color}`} />
+                </div>
+                <CardTitle className="text-lg">{action.title}</CardTitle>
+                <CardDescription>{action.description}</CardDescription>
+              </CardHeader>
+            </Card>
+          )
+        })}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.getStarted.title}</CardTitle>
+          <CardDescription>{t.getStarted.subtitle}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start space-x-4">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <MessageSquare className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold mb-1">{t.getStarted.liveChat.title}</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                {t.getStarted.liveChat.description}
+              </p>
+              <Button onClick={() => router.push('/customer/conversations')} size="sm">
+                {t.getStarted.liveChat.button}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-4">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <HelpCircle className="h-5 w-5 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold mb-1">{t.getStarted.knowledgeBase.title}</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                {t.getStarted.knowledgeBase.description}
+              </p>
+              <Button onClick={() => router.push('/customer/faq')} variant="outline" size="sm">
+                {t.getStarted.knowledgeBase.button}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-4">
+            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <FileText className="h-5 w-5 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold mb-1">{t.getStarted.ticket.title}</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                {t.getStarted.ticket.description}
+              </p>
+              <Button onClick={() => router.push('/customer/my-tickets/create')} variant="outline" size="sm">
+                {t.getStarted.ticket.button}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </PageTransition>
+  )
+}

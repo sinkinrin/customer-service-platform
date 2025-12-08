@@ -68,8 +68,35 @@
     @apply border-border;
   }
 
+  /* Use scrollbar-gutter to always reserve space for scrollbar */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* 
+   * Fix Radix UI scroll lock causing layout shift
+   * Radix uses react-remove-scroll which adds margin-right to body
+   * Using html selector provides higher specificity to override
+   */
+  html {
+    @supports (scrollbar-gutter: stable) {
+      body {
+        margin-right: 0 !important;
+        margin-left: 0 !important;
+        padding-right: 0 !important;
+        padding-left: 0 !important;
+      }
+    }
+  }
+
+  /* Fallback for browsers without scrollbar-gutter support */
+  body[data-scroll-locked] {
+    overflow: visible !important;
+    margin-right: 0 !important;
   }
 
   /* Custom scrollbar styles */

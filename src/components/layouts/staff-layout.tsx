@@ -13,6 +13,7 @@ import {
   X,
   Bell,
   LogOut,
+  Globe,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
 import { UnreadBadge } from "@/components/ui/unread-badge"
+import { getRegionLabel, type RegionValue } from "@/lib/constants/regions"
 
 interface StaffLayoutProps {
   children: ReactNode
@@ -37,6 +39,7 @@ interface StaffLayoutProps {
     name?: string
     avatar?: string
     role?: string
+    region?: string
   }
   onLogout?: () => void
   conversationCount?: number
@@ -198,13 +201,20 @@ export function StaffLayout({
                   <p className="text-sm font-medium truncate w-full">
                     {user.name || "Staff"}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate w-full">
-                    {user.role || "Staff"}
-                  </p>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    {user.region && (
+                      <>
+                        <Globe className="h-3 w-3" />
+                        <span className="truncate">
+                          {getRegionLabel(user.region as RegionValue, 'zh').split(' ')[0]}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 mb-2">
+            <DropdownMenuContent side="top" align="start" className="w-56 mb-2">
               <DropdownMenuLabel>{tCommon('layout.myAccount')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

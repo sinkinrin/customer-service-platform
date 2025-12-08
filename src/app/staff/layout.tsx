@@ -26,7 +26,8 @@ export default function StaffRootLayout({
           email: user?.email || '',
           name: user?.full_name || undefined,
           avatar: user?.avatar_url || undefined,
-          role: 'staff',
+          role: user?.role || 'staff',
+          region: user?.region || undefined,
         }}
         onLogout={handleLogout}
       >

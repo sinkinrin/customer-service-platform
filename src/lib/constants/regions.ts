@@ -53,12 +53,26 @@ export function getGroupIdByRegion(region: RegionValue): number {
 }
 
 /**
+ * Reverse mapping: Zammad Group ID to Region
+ * Only includes groups that have a dedicated Zammad group (not fallback to Users group)
+ */
+export const GROUP_REGION_MAPPING: Record<number, RegionValue> = {
+  5: 'asia-pacific',      // Zammad Group: Asia-Pacific
+  2: 'middle-east',       // Zammad Group: Middle-East
+  7: 'north-america',     // Zammad Group: North America
+  4: 'latin-america',     // Zammad Group: Latin America
+  3: 'europe-zone-1',     // Zammad Group: European
+  6: 'cis',               // Zammad Group: CIS
+  // Note: group_id = 1 (Users) is NOT mapped to any region
+  // It's a fallback group for africa and europe-zone-2 which don't have dedicated groups yet
+}
+
+/**
  * Get region value by Zammad Group ID
+ * Returns undefined for group_id = 1 (Users group) since it's a fallback group
  */
 export function getRegionByGroupId(groupId: number): RegionValue | undefined {
-  return Object.keys(REGION_GROUP_MAPPING).find(
-    key => REGION_GROUP_MAPPING[key as RegionValue] === groupId
-  ) as RegionValue | undefined
+  return GROUP_REGION_MAPPING[groupId]
 }
 
 /**

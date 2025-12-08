@@ -15,13 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, MessageSquare, Clock, Filter, BellRing, User, ArrowRight } from 'lucide-react'
+import { Search, MessageSquare, Clock, Filter, BellRing, User, ArrowRight, Globe } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { useSSE } from '@/lib/hooks/use-sse'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import { UnreadBadge } from '@/components/ui/unread-badge'
+import { REGIONS, getRegionLabel, type RegionValue } from '@/lib/constants/regions'
+import { useAuth } from '@/lib/hooks/use-auth'
 
 interface Conversation {
   id: string
@@ -29,6 +31,7 @@ interface Conversation {
   staff_id?: string
   status: 'waiting' | 'active' | 'closed'
   mode?: 'ai' | 'human'
+  region?: string // Region for routing
   message_count: number
   staff_unread_count?: number // Staff's unread count
   customer_unread_count?: number // Customer's unread count
@@ -39,10 +42,12 @@ interface Conversation {
     id: string
     full_name: string
     email: string
+    region?: string // Customer's region
   }
   staff?: {
     id: string
     full_name: string
+    region?: string // Staff's region
   }
 }
 
@@ -51,11 +56,13 @@ export default function StaffConversationsPage() {
   const t = useTranslations('staff.conversations')
   const tToast = useTranslations('toast.staff.conversations')
   const tCommon = useTranslations('common')
+  const { user } = useAuth()
 
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [regionFilter, setRegionFilter] = useState<string>('all') // Only for admin
 
   const loadConversations = useCallback(async () => {
     setLoading(true)
@@ -63,6 +70,10 @@ export default function StaffConversationsPage() {
       const params = new URLSearchParams()
       if (statusFilter !== 'all') {
         params.append('status', statusFilter)
+      }
+      // Admin can filter by region
+      if (user?.role === 'admin' && regionFilter !== 'all') {
+        params.append('region', regionFilter)
       }
       params.append('limit', '50')
 
@@ -77,11 +88,11 @@ export default function StaffConversationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, tToast])
+  }, [statusFilter, regionFilter, user?.role, tToast])
 
   useEffect(() => {
     loadConversations()
-  }, [statusFilter, loadConversations])
+  }, [statusFilter, regionFilter, loadConversations])
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -286,6 +297,25 @@ export default function StaffConversationsPage() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Region filter - only for admin */}
+            {user?.role === 'admin' && (
+              <div className="w-full md:w-48">
+                <Select value={regionFilter} onValueChange={setRegionFilter}>
+                  <SelectTrigger>
+                    <Globe className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder={t('filter.regionPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('filter.allRegions')}</SelectItem>
+                    {REGIONS.map((region) => (
+                      <SelectItem key={region.value} value={region.value}>
+                        {region.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Button onClick={loadConversations} variant="outline">
               {tCommon('actions.refresh')}
             </Button>
@@ -392,16 +422,37 @@ export default function StaffConversationsPage() {
                   <Separator />
 
                   <div className="space-y-2 text-xs">
+                    {/* Customer Region Badge */}
+                    {conversation.customer?.region && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <Globe className="h-3 w-3" />
+                          {t('card.customerRegion')}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {getRegionLabel(conversation.customer.region as RegionValue, 'zh')}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Assigned Staff with Region */}
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1">
                         <User className="h-3 w-3" />
                         {t('card.assignedStaff')}
                       </span>
-                      <span className="font-medium truncate max-w-[120px]">
-                        {conversation.staff?.full_name || (
-                          <span className="text-muted-foreground">{t('card.unassigned')}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium truncate max-w-[80px]">
+                          {conversation.staff?.full_name || (
+                            <span className="text-muted-foreground">{t('card.unassigned')}</span>
+                          )}
+                        </span>
+                        {conversation.staff?.region && (
+                          <Badge variant="secondary" className="text-xs px-1">
+                            {getRegionLabel(conversation.staff.region as RegionValue, 'zh').split(' ')[0]}
+                          </Badge>
                         )}
-                      </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between">

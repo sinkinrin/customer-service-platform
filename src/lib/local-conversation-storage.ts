@@ -7,6 +7,7 @@
 
 import fs from 'fs/promises'
 import path from 'path'
+import type { RegionValue } from '@/lib/constants/regions'
 
 const STORAGE_DIR = path.join(process.cwd(), 'data', 'conversations')
 const CONVERSATIONS_FILE = path.join(STORAGE_DIR, 'conversations.json')
@@ -23,6 +24,7 @@ export interface LocalConversation {
   customer_id: string
   customer_email: string
   customer_name?: string // Customer display name
+  region?: RegionValue // Customer's region for routing
   mode: 'ai' | 'human'
   status: 'active' | 'waiting' | 'closed'
   zammad_ticket_id?: number // Only set when escalated to human
@@ -30,6 +32,7 @@ export interface LocalConversation {
   transfer_reason?: string // Optional reason for transfer
   staff_id?: string // Assigned staff ID
   staff_name?: string // Assigned staff name
+  assigned_at?: string // When staff was assigned
   customer_unread_count?: number // Number of unread messages for customer
   staff_unread_count?: number // Number of unread messages for staff
   customer_last_read_at?: string // Last time customer read messages
@@ -133,10 +136,14 @@ async function writeMessages(messages: LocalMessage[]): Promise<void> {
 
 /**
  * Create a new AI conversation (does NOT create Zammad ticket)
+ * @param customer_id - Customer's user ID
+ * @param customer_email - Customer's email
+ * @param region - Customer's region for routing (optional, defaults to 'asia-pacific')
  */
 export async function createAIConversation(
   customer_id: string,
-  customer_email: string
+  customer_email: string,
+  region?: RegionValue
 ): Promise<LocalConversation> {
   const conversations = await readConversations()
   
@@ -144,6 +151,7 @@ export async function createAIConversation(
     id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     customer_id,
     customer_email,
+    region: region || 'asia-pacific', // Default to asia-pacific if not provided
     mode: 'ai',
     status: 'active',
     created_at: new Date().toISOString(),

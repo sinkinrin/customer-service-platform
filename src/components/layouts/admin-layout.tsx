@@ -211,7 +211,7 @@ export function AdminLayout({
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 mb-2">
+            <DropdownMenuContent side="top" align="start" className="w-56 mb-2">
               <DropdownMenuLabel>{tCommon('layout.myAccount')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

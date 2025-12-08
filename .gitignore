@@ -6,7 +6,7 @@ node_modules
 .env*.local
 .env.local
 config/ai-settings.json
-
+.env.local
 /src/generated/prisma
 
 # Build files

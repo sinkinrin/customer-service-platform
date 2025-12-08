@@ -57,13 +57,11 @@ export function hasGroupAccess(user: RegionAuthUser, groupId: number): boolean {
     return true
   }
 
-  // Get region from group ID
-  const region = getRegionByGroupId(groupId)
-  if (!region) {
-    return false
-  }
-
-  return hasRegionAccess(user, region)
+  // Use getAccessibleGroupIds which already handles:
+  // - Staff: their region's group + Users group (ID=1) for legacy tickets
+  // - Customer: Users group (ID=1)
+  const accessibleGroupIds = getAccessibleGroupIds(user)
+  return accessibleGroupIds.includes(groupId)
 }
 
 /**
@@ -179,5 +177,100 @@ export function validateTicketAccess(user: RegionAuthUser, ticketGroupId: number
   if (!hasGroupAccess(user, ticketGroupId)) {
     const region = getRegionByGroupId(ticketGroupId)
     throw new Error(`You do not have permission to access tickets in region: ${region || 'unknown'}`)
+  }
+}
+
+// ============================================================================
+// Conversation Region Authorization
+// ============================================================================
+
+/**
+ * Interface for conversation with region field
+ */
+interface ConversationWithRegion {
+  id: string
+  region?: RegionValue
+  customer_id?: string
+  customer_email?: string
+}
+
+/**
+ * Check if a user has permission to access a conversation based on region
+ * @param user - The user to check
+ * @param conversation - The conversation to check access for
+ * @returns true if user has access, false otherwise
+ */
+export function hasConversationRegionAccess(
+  user: RegionAuthUser,
+  conversation: ConversationWithRegion
+): boolean {
+  // Admin can access all conversations
+  if (user.role === 'admin') {
+    return true
+  }
+
+  // Customer can only access their own conversations (regardless of region)
+  if (user.role === 'customer') {
+    return conversation.customer_email === user.email
+  }
+
+  // Staff can only access conversations in their region
+  if (user.role === 'staff') {
+    // If conversation has no region, allow access (legacy data)
+    if (!conversation.region) {
+      return true
+    }
+    return conversation.region === user.region
+  }
+
+  return false
+}
+
+/**
+ * Filter conversations by user's accessible regions
+ * @param conversations - Array of conversations to filter
+ * @param user - The user to filter for
+ * @returns Filtered array of conversations
+ */
+export function filterConversationsByRegion<T extends ConversationWithRegion>(
+  conversations: T[],
+  user: RegionAuthUser
+): T[] {
+  // Admin can see all conversations
+  if (user.role === 'admin') {
+    return conversations
+  }
+
+  // Customer sees only their own conversations
+  if (user.role === 'customer') {
+    return conversations.filter(c => c.customer_email === user.email)
+  }
+
+  // Staff: Filter by region
+  if (user.role === 'staff') {
+    return conversations.filter(c => {
+      // Allow access to conversations without region (legacy data)
+      if (!c.region) {
+        return true
+      }
+      return c.region === user.region
+    })
+  }
+
+  return []
+}
+
+/**
+ * Validate that a user can access a specific conversation
+ * @param user - The user attempting to access the conversation
+ * @param conversation - The conversation to access
+ * @throws Error if user doesn't have permission
+ */
+export function validateConversationAccess(
+  user: RegionAuthUser,
+  conversation: ConversationWithRegion
+): void {
+  if (!hasConversationRegionAccess(user, conversation)) {
+    throw new Error(`You do not have permission to access this conversation in region: ${conversation.region || 'unknown'}`)
   }
 }

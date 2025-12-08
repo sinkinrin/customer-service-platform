@@ -2,16 +2,33 @@ import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 
+export interface TicketArticleAttachment {
+  id: number
+  filename: string
+  size: string
+  preferences: {
+    'Content-Type'?: string
+    'Mime-Type'?: string
+    'content-alternative'?: boolean
+  }
+}
+
 export interface TicketArticle {
   id: number
   ticket_id: number
-  subject: string
+  subject: string | null
   body: string
-  type: string
+  content_type: 'text/html' | 'text/plain' | string
+  type: 'email' | 'note' | 'web' | 'phone' | string
+  sender: 'Agent' | 'Customer' | 'System' | string
   internal: boolean
+  from: string
+  to?: string | null
+  cc?: string | null
   created_at: string
   created_by: string
-  from?: string
+  updated_by?: string
+  attachments: TicketArticleAttachment[]
 }
 
 export interface SearchTicketsResult {

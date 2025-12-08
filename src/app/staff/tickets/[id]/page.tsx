@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, MessageSquare } from 'lucide-react'
 import { TicketDetail } from '@/components/ticket/ticket-detail'
 import { TicketActions } from '@/components/ticket/ticket-actions'
+import { ArticleCard } from '@/components/ticket/article-content'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { format } from 'date-fns'
@@ -139,28 +140,11 @@ export default function StaffTicketDetailPage() {
                   {t('noArticles')}
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {articles.map((article, index) => (
                     <div key={article.id}>
-                      {index > 0 && <Separator className="my-4" />}
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-medium">{article.created_by}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(article.created_at), 'PPp')}
-                            </p>
-                          </div>
-                          {article.internal && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                              {t('internalBadge')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="prose prose-sm max-w-none">
-                          <p className="whitespace-pre-wrap">{article.body}</p>
-                        </div>
-                      </div>
+                      {index > 0 && <Separator className="my-6" />}
+                      <ArticleCard article={article} />
                     </div>
                   ))}
                 </div>

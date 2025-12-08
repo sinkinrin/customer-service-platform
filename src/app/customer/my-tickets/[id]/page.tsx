@@ -9,8 +9,9 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Send, Loader2, Clock, User, Tag } from 'lucide-react'
+import { ArrowLeft, Send, Loader2, Clock, Tag, MessageSquare } from 'lucide-react'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
+import { ArticleCard } from '@/components/ticket/article-content'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -201,34 +202,11 @@ export default function CustomerTicketDetailPage() {
           {articles.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">{tDetail('noMessages')}</p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {articles.map((article, index) => (
                 <div key={article.id}>
-                  {index > 0 && <Separator className="my-4" />}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
-                          {article.from || tDetail('unknownUser')}
-                        </span>
-                        {article.internal && (
-                          <Badge variant="secondary" className="text-xs">{tDetail('internal')}</Badge>
-                        )}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(article.created_at), 'yyyy-MM-dd HH:mm')}
-                      </span>
-                    </div>
-                    <div className="pl-6">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">
-                        {article.subject}
-                      </p>
-                      <div className="prose prose-sm max-w-none">
-                        <p className="whitespace-pre-wrap">{article.body}</p>
-                      </div>
-                    </div>
-                  </div>
+                  {index > 0 && <Separator className="my-6" />}
+                  <ArticleCard article={article} />
                 </div>
               ))}
             </div>

@@ -35,14 +35,28 @@ export async function GET(_request: NextRequest) {
       waiting: 0,
     }))
 
+    // Add "Unassigned" category for tickets in Users group (group_id = 1)
+    const unassignedStats = {
+      region: 'unassigned',
+      label: '未分配 (Unassigned)',
+      labelEn: 'Unassigned',
+      total: 0,
+      open: 0,
+      closed: 0,
+      waiting: 0,
+    }
+
     // Count tickets by region
     allTickets.forEach((ticket: any) => {
       if (!ticket.group_id) return
 
       const region = getRegionByGroupId(ticket.group_id)
-      if (!region) return
+      
+      // If no region mapping (e.g., group_id = 1 Users group), count as unassigned
+      const stat = region 
+        ? regionStats.find((s) => s.region === region)
+        : unassignedStats
 
-      const stat = regionStats.find((s) => s.region === region)
       if (!stat) return
 
       stat.total++
@@ -57,8 +71,13 @@ export async function GET(_request: NextRequest) {
       }
     })
 
+    // Add unassigned stats if there are any unassigned tickets
+    const allRegionStats = unassignedStats.total > 0 
+      ? [...regionStats, unassignedStats]
+      : regionStats
+
     return successResponse({
-      regions: regionStats,
+      regions: allRegionStats,
       total: searchResult.tickets_count || allTickets.length,
     })
   } catch (error: any) {

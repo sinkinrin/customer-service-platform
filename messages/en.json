@@ -90,6 +90,8 @@
     }
   },
   "nav": {
+    "brandShort": "CS",
+    "brandName": "Customer Service",
     "dashboard": "Dashboard",
     "conversations": "Conversations",
     "faq": "FAQ",
@@ -1088,7 +1090,9 @@
         "description": "Search and filter conversation list",
         "searchPlaceholder": "Search by customer name, email, or conversation ID...",
         "statusPlaceholder": "Status",
-        "allStatuses": "All Statuses"
+        "allStatuses": "All Statuses",
+        "regionPlaceholder": "Region",
+        "allRegions": "All Regions"
       },
       "list": {
         "title": "Conversation List",
@@ -1118,6 +1122,9 @@
           "human": "Human"
         },
         "messageCount": "{count} messages",
+        "region": "Region",
+        "customerRegion": "Customer Region",
+        "staffRegion": "Staff Region",
         "assignedStaff": "Assigned Staff",
         "unassigned": "Unassigned",
         "lastActivity": "Last Activity",

@@ -8,8 +8,6 @@ import { NextRequest } from 'next/server'
 import { checkZammadHealth } from '@/lib/zammad/health-check'
 import { successResponse, serviceUnavailableResponse, serverErrorResponse } from '@/lib/utils/api-response'
 
-export const dynamic = 'force-dynamic'
-
 export async function GET(_request: NextRequest) {
   try {
     const healthCheck = await checkZammadHealth()

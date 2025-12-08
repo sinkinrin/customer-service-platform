@@ -27,13 +27,14 @@ const UpdateUserSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     await requireRole(['admin'])
 
     // Find user by ID in mock data
-    const user = Object.values(mockUsers).find(u => u.id === params.id)
+    const user = Object.values(mockUsers).find(u => u.id === id)
 
     if (!user) {
       return notFoundResponse('User not found')
@@ -54,9 +55,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     await requireRole(['admin'])
 
     // Parse and validate request body
@@ -68,7 +70,7 @@ export async function PUT(
     }
 
     // Find user by ID in mock data
-    const userEmail = Object.keys(mockUsers).find(email => mockUsers[email].id === params.id)
+    const userEmail = Object.keys(mockUsers).find(email => mockUsers[email].id === id)
 
     if (!userEmail) {
       return notFoundResponse('User not found')

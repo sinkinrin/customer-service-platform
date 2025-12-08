@@ -10,10 +10,8 @@ import { requireAuth } from '@/lib/utils/auth'
 import * as localStorage from '@/lib/local-conversation-storage'
 import { broadcastConversationUpdate, broadcastUnreadCountUpdate } from '@/lib/sse/conversation-broadcaster'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAuth()
     const conversationId = params.id

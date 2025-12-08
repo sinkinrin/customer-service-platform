@@ -12,14 +12,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "@/components/ui/button"
 
 interface ErrorPageProps {
-  searchParams: {
+  searchParams: Promise<{
     error?: string
-  }
+  }>
 }
 
 export default async function AuthErrorPage({ searchParams }: ErrorPageProps) {
   const t = await getTranslations("auth.error")
-  const errorCode = searchParams.error || "default"
+  const { error } = await searchParams
+  const errorCode = error || "default"
 
   const errorMessage =
     errorCode === "AUTH_CONFIG_MISSING"

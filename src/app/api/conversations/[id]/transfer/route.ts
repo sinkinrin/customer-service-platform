@@ -25,6 +25,7 @@ import {
 } from '@/lib/local-conversation-storage'
 import { broadcastConversationEvent } from '@/lib/sse/conversation-broadcaster'
 import { z } from 'zod'
+import { getRegionLabel, type RegionValue } from '@/lib/constants/regions'
 
 // Request validation schema
 const TransferConversationSchema = z.object({
@@ -38,10 +39,8 @@ const TransferConversationSchema = z.object({
   reason: z.string().max(500).optional(),
 })
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAuth()
     const conversationId = params.id
@@ -121,9 +120,13 @@ export async function POST(
       console.log('[R3] No AI history found (neither persisted nor from client)')
     }
 
-    // Step 3: Update conversation mode to 'human'
+    // Step 3: Update conversation mode to 'human' and ensure region is set
+    // Region routing: conversation enters the queue for the customer's region
+    const conversationRegion = (conversation.region || user.region || 'asia-pacific') as RegionValue
     const updated = await updateConversation(conversationId, {
       mode: 'human',
+      status: 'waiting', // Set to waiting for staff to pick up
+      region: conversationRegion, // Ensure region is set for routing
       transferred_at: new Date().toISOString(),
       transfer_reason: reason,
     })
@@ -132,10 +135,11 @@ export async function POST(
       return serverErrorResponse('Failed to update conversation')
     }
 
-    // Step 4: Send system message to customer
+    // Step 4: Send system message to customer with region info
+    const regionLabel = getRegionLabel(conversationRegion, 'zh')
     const systemMessageContent = reason
-      ? `您已成功转接至人工客服。\n原因：${reason}\n\n客服人员会尽快回复您，请稍候...`
-      : '您已成功转接至人工客服，客服人员会尽快回复您，请稍候...'
+      ? `您已成功转接至人工客服（${regionLabel}）。\n原因：${reason}\n\n客服人员会尽快回复您，请稍候...`
+      : `您已成功转接至人工客服（${regionLabel}），客服人员会尽快回复您，请稍候...`
 
     await addMessageWithMetadata(
       conversationId,
@@ -148,6 +152,7 @@ export async function POST(
         transferredBy: user.id,
         transferredAt: updated.transferred_at,
         reason,
+        region: conversationRegion,
       }
     )
 
@@ -186,7 +191,8 @@ export async function POST(
             },
             transferReason: reason,
             transferredAt: updated.transferred_at,
-            message: `New conversation from ${user.email}${reason ? ` - ${reason}` : ''}`,
+            region: conversationRegion,
+            message: `New conversation from ${user.email} (${regionLabel})${reason ? ` - ${reason}` : ''}`,
           },
         },
         // Broadcast to all staff users (we'll filter by role in SSE endpoint)

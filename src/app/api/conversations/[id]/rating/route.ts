@@ -28,10 +28,8 @@ const RatingSchema = z.object({
  * GET /api/conversations/:id/rating
  * Get the rating for a conversation
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAuth()
     const conversationId = params.id
@@ -68,10 +66,8 @@ export async function GET(
  * POST /api/conversations/:id/rating
  * Submit a rating for a conversation
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAuth()
     const conversationId = params.id

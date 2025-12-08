@@ -90,6 +90,8 @@
     }
   },
   "nav": {
+    "brandShort": "CS",
+    "brandName": "客户服务",
     "dashboard": "仪表板",
     "conversations": "对话",
     "faq": "常见问题",
@@ -1074,7 +1076,9 @@
         "description": "搜索和筛选对话列表",
         "searchPlaceholder": "搜索客户姓名、邮箱或对话ID...",
         "statusPlaceholder": "状态",
-        "allStatuses": "全部状态"
+        "allStatuses": "全部状态",
+        "regionPlaceholder": "区域",
+        "allRegions": "全部区域"
       },
       "list": {
         "title": "对话列表",
@@ -1104,6 +1108,9 @@
           "human": "人工"
         },
         "messageCount": "{count} 条",
+        "region": "区域",
+        "customerRegion": "客户区域",
+        "staffRegion": "客服区域",
         "assignedStaff": "负责客服",
         "unassigned": "未分配",
         "lastActivity": "最后活动",

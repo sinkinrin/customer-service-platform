@@ -14,8 +14,6 @@ const HEARTBEAT_INTERVAL = 30000
 // Connection timeout (5 minutes of inactivity)
 const CONNECTION_TIMEOUT = 5 * 60 * 1000
 
-export const dynamic = 'force-dynamic'
-
 export async function GET(request: NextRequest) {
   // Verify authentication and require staff/admin role
   // Customers should not have access to ticket SSE broadcasts

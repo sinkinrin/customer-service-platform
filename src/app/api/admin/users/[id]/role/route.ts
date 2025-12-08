@@ -11,8 +11,9 @@ const UpdateUserRoleSchema = z.object({
   role: z.enum(['customer', 'staff', 'admin'])
 })
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const body = await request.json().catch(() => ({}))
     const parsed = UpdateUserRoleSchema.safeParse(body)
     if (!parsed.success) {
@@ -25,7 +26,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return forbiddenResponse('Admin access required')
     }
 
-    const targetUserId = params.id
+    const targetUserId = id
     const nextRole = parsed.data.role
 
     // Check if target user exists

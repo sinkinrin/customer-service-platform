@@ -1,11 +1,13 @@
 /**
- * Next.js Middleware with NextAuth.js v5
+ * Next.js 16 Proxy with NextAuth.js v5
  *
  * Handles:
  * - Session validation via NextAuth
  * - Role-based route protection
  * - Development endpoint protection
  * - Redirect logic for unauthenticated users
+ *
+ * Note: Migrated from middleware.ts to proxy.ts for Next.js 16 compatibility
  */
 
 import { auth } from "@/auth"

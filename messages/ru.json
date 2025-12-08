@@ -90,6 +90,8 @@
     }
   },
   "nav": {
+    "brandShort": "CS",
+    "brandName": "Служба поддержки",
     "dashboard": "Панель управления",
     "conversations": "Беседы",
     "faq": "Часто задаваемые вопросы",

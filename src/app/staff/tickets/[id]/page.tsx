@@ -171,12 +171,14 @@ export default function StaffTicketDetailPage() {
 
         {/* Right Column - Actions */}
         <div className="lg:col-span-1">
-          <TicketActions
-            ticket={ticket}
-            onUpdate={handleUpdate}
-            onAddNote={handleAddNote}
-            isLoading={isLoading}
-          />
+          <div className="lg:sticky lg:top-20">
+            <TicketActions
+              ticket={ticket}
+              onUpdate={handleUpdate}
+              onAddNote={handleAddNote}
+              isLoading={isLoading}
+            />
+          </div>
         </div>
       </div>
     </div>

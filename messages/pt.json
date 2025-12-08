@@ -90,6 +90,8 @@
     }
   },
   "nav": {
+    "brandShort": "CS",
+    "brandName": "Atendimento ao Cliente",
     "dashboard": "Painel",
     "conversations": "Conversas",
     "faq": "Perguntas frequentes",

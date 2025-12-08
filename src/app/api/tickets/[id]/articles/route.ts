@@ -36,10 +36,8 @@ const createArticleSchema = z.object({
 // GET /api/tickets/[id]/articles
 // ============================================================================
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAuth()
     const ticketId = parseInt(params.id)
@@ -61,9 +59,11 @@ export async function GET(
 
     // OpenSpec: Validate region/ownership access before fetching articles
     // First, fetch the ticket to check permissions
-    const ticket = user.role === 'admin'
-      ? await zammadClient.getTicket(ticketId)
-      : await zammadClient.getTicket(ticketId, user.email)
+    // Admin and Staff get ticket without X-On-Behalf-Of (staff access is validated by region)
+    // Customer uses X-On-Behalf-Of to ensure they can only access their own tickets
+    const ticket = user.role === 'customer'
+      ? await zammadClient.getTicket(ticketId, user.email)
+      : await zammadClient.getTicket(ticketId)
 
     if (!ticket) {
       return notFoundResponse('Ticket not found')
@@ -96,10 +96,11 @@ export async function GET(
       }
     }
 
-    // Admin users get articles without X-On-Behalf-Of, others use X-On-Behalf-Of
-    const articles = user.role === 'admin'
-      ? await zammadClient.getArticlesByTicket(ticketId)
-      : await zammadClient.getArticlesByTicket(ticketId, user.email)
+    // Admin and Staff get articles without X-On-Behalf-Of (staff access already validated by region)
+    // Customer uses X-On-Behalf-Of to ensure they can only access their own tickets' articles
+    const articles = user.role === 'customer'
+      ? await zammadClient.getArticlesByTicket(ticketId, user.email)
+      : await zammadClient.getArticlesByTicket(ticketId)
 
     return successResponse({
       articles,
@@ -130,10 +131,8 @@ export async function GET(
 // POST /api/tickets/[id]/articles
 // ============================================================================
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAuth()
     const ticketId = parseInt(params.id)
@@ -155,9 +154,11 @@ export async function POST(
 
     // OpenSpec: Validate region/ownership access before creating article
     // First, fetch the ticket to check permissions
-    const ticket = user.role === 'admin'
-      ? await zammadClient.getTicket(ticketId)
-      : await zammadClient.getTicket(ticketId, user.email)
+    // Admin and Staff get ticket without X-On-Behalf-Of (staff access is validated by region)
+    // Customer uses X-On-Behalf-Of to ensure they can only access their own tickets
+    const ticket = user.role === 'customer'
+      ? await zammadClient.getTicket(ticketId, user.email)
+      : await zammadClient.getTicket(ticketId)
 
     if (!ticket) {
       return notFoundResponse('Ticket not found')
@@ -200,17 +201,10 @@ export async function POST(
 
     const articleData = validationResult.data
 
-    // Admin users create articles without X-On-Behalf-Of, others use X-On-Behalf-Of
-    const article = user.role === 'admin'
-      ? await zammadClient.createArticle({
-          ticket_id: ticketId,
-          subject: articleData.subject,
-          body: articleData.body,
-          content_type: articleData.content_type,
-          type: articleData.type,
-          internal: articleData.internal,
-        })
-      : await zammadClient.createArticle(
+    // Admin and Staff create articles without X-On-Behalf-Of (staff access already validated by region)
+    // Customer uses X-On-Behalf-Of to ensure proper ownership
+    const article = user.role === 'customer'
+      ? await zammadClient.createArticle(
           {
             ticket_id: ticketId,
             subject: articleData.subject,
@@ -221,6 +215,14 @@ export async function POST(
           },
           user.email
         )
+      : await zammadClient.createArticle({
+          ticket_id: ticketId,
+          subject: articleData.subject,
+          body: articleData.body,
+          content_type: articleData.content_type,
+          type: articleData.type,
+          internal: articleData.internal,
+        })
 
     return successResponse(
       {

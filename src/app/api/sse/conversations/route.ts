@@ -14,8 +14,6 @@ const HEARTBEAT_INTERVAL = 30000
 // Connection timeout (60 minutes of inactivity)
 const CONNECTION_TIMEOUT = 60 * 60 * 1000
 
-export const dynamic = 'force-dynamic'
-
 export async function GET(request: NextRequest) {
   try {
     // Verify authentication

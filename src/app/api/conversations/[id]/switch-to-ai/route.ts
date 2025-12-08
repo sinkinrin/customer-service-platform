@@ -9,10 +9,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/utils/auth'
 import * as localStorage from '@/lib/local-conversation-storage'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     // R1: Require authentication
     const user = await requireAuth()

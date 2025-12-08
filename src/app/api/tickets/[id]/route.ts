@@ -149,11 +149,12 @@ const updateTicketSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await requireAuth()
-    const ticketId = parseInt(params.id)
+    const ticketId = parseInt(id)
 
     if (isNaN(ticketId)) {
       return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
@@ -170,10 +171,11 @@ export async function GET(
       )
     }
 
-    // Admin users get ticket without X-On-Behalf-Of, others use X-On-Behalf-Of
-    const rawTicket = user.role === 'admin'
-      ? await zammadClient.getTicket(ticketId)
-      : await zammadClient.getTicket(ticketId, user.email)
+    // Admin and Staff users get ticket without X-On-Behalf-Of (staff access is validated by region)
+    // Customer uses X-On-Behalf-Of to ensure they can only access their own tickets
+    const rawTicket = user.role === 'customer'
+      ? await zammadClient.getTicket(ticketId, user.email)
+      : await zammadClient.getTicket(ticketId)
 
     if (!rawTicket) {
       return notFoundResponse('Ticket not found')
@@ -261,11 +263,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await requireAuth()
-    const ticketId = parseInt(params.id)
+    const ticketId = parseInt(id)
 
     if (isNaN(ticketId)) {
       return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)
@@ -321,9 +324,11 @@ export async function PUT(
 
     // OpenSpec: Validate region/ownership access before update
     // First, fetch the ticket to check permissions
-    const existingTicket = user.role === 'admin'
-      ? await zammadClient.getTicket(ticketId)
-      : await zammadClient.getTicket(ticketId, user.email)
+    // Admin and Staff get ticket without X-On-Behalf-Of (staff access is validated by region)
+    // Customer uses X-On-Behalf-Of to ensure they can only access their own tickets
+    const existingTicket = user.role === 'customer'
+      ? await zammadClient.getTicket(ticketId, user.email)
+      : await zammadClient.getTicket(ticketId)
 
     if (!existingTicket) {
       return notFoundResponse('Ticket not found')
@@ -356,23 +361,17 @@ export async function PUT(
       }
     }
 
-    // Admin users update without X-On-Behalf-Of, others use X-On-Behalf-Of
-    const rawTicket = user.role === 'admin'
-      ? await zammadClient.updateTicket(ticketId, payload)
-      : await zammadClient.updateTicket(ticketId, payload, user.email)
+    // Admin and Staff update without X-On-Behalf-Of (staff access already validated by region)
+    // Customer uses X-On-Behalf-Of to ensure they can only update their own tickets
+    const rawTicket = user.role === 'customer'
+      ? await zammadClient.updateTicket(ticketId, payload, user.email)
+      : await zammadClient.updateTicket(ticketId, payload)
 
     // Add article if provided
+    // Admin and Staff create articles without X-On-Behalf-Of
+    // Customer uses X-On-Behalf-Of to ensure proper ownership
     if (updateData.article) {
-      if (user.role === 'admin') {
-        await zammadClient.createArticle({
-          ticket_id: ticketId,
-          subject: updateData.article.subject,
-          body: updateData.article.body,
-          content_type: 'text/html',
-          type: 'note',
-          internal: updateData.article.internal,
-        })
-      } else {
+      if (user.role === 'customer') {
         await zammadClient.createArticle(
           {
             ticket_id: ticketId,
@@ -384,6 +383,15 @@ export async function PUT(
           },
           user.email
         )
+      } else {
+        await zammadClient.createArticle({
+          ticket_id: ticketId,
+          subject: updateData.article.subject,
+          body: updateData.article.body,
+          content_type: 'text/html',
+          type: 'note',
+          internal: updateData.article.internal,
+        })
       }
     }
 
@@ -440,11 +448,12 @@ export async function PUT(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await requireAuth()
-    const ticketId = parseInt(params.id)
+    const ticketId = parseInt(id)
 
     if (isNaN(ticketId)) {
       return errorResponse('INVALID_ID', 'Invalid ticket ID', undefined, 400)

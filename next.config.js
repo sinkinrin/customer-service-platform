@@ -9,15 +9,13 @@ const nextConfig = {
       // TODO: Add image domains when needed
     ],
   },
-  experimental: {
-    // 客户端路由缓存配置
-    staleTimes: {
-      dynamic: 30,  // 动态路由缓存 30 秒
-      static: 180,  // 静态路由缓存 3 分钟
-    },
-    // PPR 需要 canary 版本，暂不启用
-    // ppr: 'incremental',
-  },
+  // Next.js 16: PPR (cacheComponents) 暂不启用
+  // 原因：
+  // 1. API 路由使用认证（headers()），与 prerendering 不兼容
+  // 2. 页面组件访问动态数据，需要包装在 <Suspense> 中
+  // 3. 需要更深度的架构重构才能启用
+  // 未来启用时取消下面的注释：
+  // cacheComponents: true,
 }
 
 module.exports = withNextIntl(nextConfig)

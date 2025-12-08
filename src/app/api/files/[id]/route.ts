@@ -14,10 +14,8 @@ import {
 } from '@/lib/utils/api-response'
 
 // TODO: Replace with real file storage when implemented
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAuth()
 
@@ -43,7 +41,7 @@ export async function GET(
 
 export async function DELETE(
   _request: NextRequest,
-  _context: { params: { id: string } }
+  _context: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAuth()

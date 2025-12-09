@@ -16,7 +16,6 @@ import { TransferDialog } from '@/components/conversation/transfer-dialog'
 import { RatingDialog } from '@/components/conversation/rating-dialog'
 import { toast } from 'sonner'
 import { Loading } from '@/components/common/loading'
-import { useSSE } from '@/lib/hooks/use-sse'
 import { useTranslations } from 'next-intl'
 
 type ConversationMode = 'ai' | 'human'
@@ -50,43 +49,11 @@ export default function ConversationDetailPage() {
     sendMessage,
     subscribeToConversation,
     addMessage,
+    sseConnected,
   } = useConversation()
 
-  // SSE connection for real-time updates
-  const { state: sseState, isConnected } = useSSE({
-    url: '/api/sse/conversations',
-    enabled: true,
-    onMessage: (event) => {
-      console.log('[SSE] Received event:', event)
-
-      if (event.conversationId !== conversationId) {
-        return
-      }
-
-      if (event.type === 'conversation_transferred') {
-        console.log('[SSE] Conversation transferred to human')
-        setMode('human')
-        fetchConversationById(conversationId)
-        fetchMessages(conversationId)
-        toast.success(tToast('transferSuccess'))
-      }
-
-      if (event.type === 'new_message' && mode === 'human') {
-        setShowNewMessageNotification(true)
-        setTimeout(() => setShowNewMessageNotification(false), 3000)
-        if (event.data) {
-          addMessage(event.data)
-        }
-      }
-
-      if (event.type === 'conversation_updated') {
-        fetchConversationById(conversationId)
-      }
-    },
-    onError: (error) => {
-      console.error('[SSE] Error:', error)
-    },
-  })
+  // SSE is now managed by useConversation hook
+  const isConnected = sseConnected
 
   // Scroll document to top on mount
   useEffect(() => {
@@ -368,7 +335,7 @@ export default function ConversationDetailPage() {
     : messages
 
   return (
-    <div className="flex flex-col bg-background fixed inset-0 top-16 lg:left-64 z-30">
+    <div className="flex flex-col bg-background h-[calc(100vh-4rem)]">
       {/* Header */}
       <div className="flex-shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="max-w-5xl mx-auto px-4">
@@ -378,7 +345,7 @@ export default function ConversationDetailPage() {
             staffAvatar={staffAvatar}
             status={conversationStatus}
             isConnected={mode === 'human' && isConnected}
-            sseState={sseState}
+            sseState={isConnected ? 'connected' : 'disconnected'}
             onTransferToHuman={() => setShowTransferDialog(true)}
             onSwitchToAI={handleSwitchToAI}
             isTransferring={isTransferring}

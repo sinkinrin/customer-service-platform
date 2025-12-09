@@ -15,7 +15,6 @@ import { MessageList } from '@/components/conversation/message-list'
 import { MessageInput } from '@/components/conversation/message-input'
 import { toast } from 'sonner'
 import { Loading } from '@/components/common/loading'
-import { useSSE } from '@/lib/hooks/use-sse'
 import { AlertCircle, ArrowLeft, User, Mail, Clock, MessageSquare } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -46,41 +45,13 @@ export default function StaffConversationDetailPage() {
     sendMessage,
     subscribeToConversation,
     addMessage,
+    sseConnected,
+    sseError,
   } = useConversation()
 
-  // SSE connection for real-time updates
-  const { state: sseState, isConnected, error: sseError } = useSSE({
-    url: '/api/sse/conversations',
-    enabled: true,
-    onMessage: (event) => {
-      console.log('[SSE] Received event:', event)
-
-      // Handle new message - directly add to messages instead of re-fetching all
-      if (event.type === 'new_message' && event.conversationId === conversationId) {
-        setShowNewMessageNotification(true)
-        setTimeout(() => setShowNewMessageNotification(false), 3000)
-        // Use addMessage from SSE event data instead of re-fetching all messages
-        if (event.data) {
-          addMessage(event.data)
-        }
-      }
-
-      // Handle conversation updated
-      if (event.type === 'conversation_updated' && event.conversationId === conversationId) {
-        fetchConversationById(conversationId)
-      }
-
-      // Handle conversation transferred (staff notification)
-      if (event.type === 'conversation_transferred' && event.conversationId === conversationId) {
-        console.log('[SSE] Conversation transferred - reloading')
-        fetchConversationById(conversationId)
-        fetchMessages(conversationId)
-      }
-    },
-    onError: (error) => {
-      console.error('[SSE] Error:', error)
-    },
-  })
+  // SSE is now managed by useConversation hook
+  // Use sseConnected and sseError from the hook instead of creating a duplicate connection
+  const isConnected = sseConnected
 
   // Fetch conversation and messages, and mark as read
   useEffect(() => {
@@ -182,11 +153,11 @@ export default function StaffConversationDetailPage() {
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 left-0 lg:left-64 top-16 flex">
+    <div className="h-[calc(100vh-4rem)] flex">
       {/* Main Conversation Area - 70% */}
       <div className="flex-1 flex flex-col border-r">
         {/* SSE Connection Status */}
-        {sseState === 'error' && sseError && (
+        {sseError && (
           <Alert variant="destructive" className="m-4 mb-0 rounded-lg">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -247,8 +218,8 @@ export default function StaffConversationDetailPage() {
           </div>
         </div>
 
-        {/* Messages - Scrollable */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        {/* Messages - Scrollable with explicit min-height */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           <div className="container max-w-5xl mx-auto px-4 py-4">
             <MessageList
               messages={messages}
@@ -284,8 +255,8 @@ export default function StaffConversationDetailPage() {
         )}
       </div>
 
-      {/* Customer Info Sidebar - 30% - Fixed height, internal scroll */}
-      <div className="w-96 bg-muted/30 flex flex-col h-full">
+      {/* Customer Info Sidebar - Fixed width, internal scroll */}
+      <div className="hidden lg:flex w-96 bg-muted/30 flex-col">
         <div className="overflow-y-auto p-6 space-y-6">
         {/* Customer Info Card */}
         <Card>

@@ -14,6 +14,7 @@ import {
 } from '@/lib/utils/api-response'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
+import { getVerifiedZammadUser, setVerifiedZammadUser } from '@/lib/cache/zammad-user-cache'
 
 // ============================================================================
 // Helper Functions
@@ -170,12 +171,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Ensure user exists in Zammad before searching (for non-admin users)
+    // Use cache to skip redundant verification calls
     if (user.role !== 'admin') {
-      try {
-        await ensureZammadUser(user.email, user.full_name, user.role, user.region)
-      } catch (error) {
-        console.warn('[Tickets API] Failed to ensure Zammad user:', error)
-        // Continue anyway, search might still work
+      const cachedUserId = getVerifiedZammadUser(user.email, user.role, user.region)
+      if (cachedUserId) {
+        console.log('[DEBUG] Zammad user verified from cache:', cachedUserId)
+      } else {
+        try {
+          const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, user.region)
+          if (zammadUser?.id) {
+            setVerifiedZammadUser(user.email, user.role, zammadUser.id, user.region)
+            console.log('[DEBUG] Zammad user verified and cached:', zammadUser.id)
+          }
+        } catch (error) {
+          console.warn('[Tickets API] Failed to ensure Zammad user:', error)
+          // Continue anyway, search might still work
+        }
       }
     }
 

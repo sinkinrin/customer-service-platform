@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, Filter, Download, Wifi, WifiOff, Bell } from 'lucide-react'
 import { TicketList } from '@/components/ticket/ticket-list'
-import { useTicket } from '@/lib/hooks/use-ticket'
-import { useTicketStore } from '@/lib/stores/ticket-store'
+import { useTicketsSearch, useTicketsList } from '@/lib/hooks/use-tickets-swr'
 import {
   Select,
   SelectContent,
@@ -29,8 +28,16 @@ export default function AdminTicketsPage() {
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
   const [hasNewUpdates, setHasNewUpdates] = useState(false)
-  const { tickets, setTickets, setFilters } = useTicketStore()
-  const { fetchTickets, searchTickets, isLoading } = useTicket()
+  const [submittedQuery, setSubmittedQuery] = useState('') // Empty = fetch all
+
+  // Use SWR for caching - search when query exists, otherwise fetch all
+  const searchResult = useTicketsSearch(submittedQuery, 100, !!submittedQuery)
+  const listResult = useTicketsList(1000, undefined, !submittedQuery)
+  
+  // Use search results if query exists, otherwise use list results
+  const tickets = submittedQuery ? searchResult.tickets : listResult.tickets
+  const isLoading = submittedQuery ? searchResult.isLoading : listResult.isLoading
+  const revalidate = submittedQuery ? searchResult.revalidate : listResult.revalidate
 
   // SSE connection for real-time updates
   const { state: sseState, isConnected } = useSSE({
@@ -52,29 +59,20 @@ export default function AdminTicketsPage() {
     },
   })
 
-  useEffect(() => {
-    // Load tickets on mount
-    handleSearch()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const handleSearch = async () => {
+  const handleSearch = () => {
     const query = searchQuery.trim()
+    setSubmittedQuery(query)
+    setHasNewUpdates(false) // Clear notification badge after refresh
+  }
 
-    // If there's a search query, use search API; otherwise use fetch API
-    const result = query
-      ? await searchTickets(query, 100)
-      : await fetchTickets(1000) // Admin can see all tickets
-
-    if (result) {
-      setTickets(result.tickets)
-      setHasNewUpdates(false) // Clear notification badge after refresh
-    }
+  const handleRefresh = () => {
+    revalidate()
+    setHasNewUpdates(false)
   }
 
   const handleTabChange = (value: string) => {
     setActiveTab(value as typeof activeTab)
-    setFilters({ status: value === 'all' ? undefined : value })
+    // Filtering is done client-side via filteredTickets
   }
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {

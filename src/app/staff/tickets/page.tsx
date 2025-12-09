@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Search, Filter, Wifi, WifiOff, Bell } from 'lucide-react'
 import { TicketList } from '@/components/ticket/ticket-list'
-import { useTicket } from '@/lib/hooks/use-ticket'
-import { useTicketStore } from '@/lib/stores/ticket-store'
+import { useTicketsSearch, invalidateTicketsCache } from '@/lib/hooks/use-tickets-swr'
 import { useSSE } from '@/lib/hooks/use-sse'
 import { toast } from 'sonner'
 
@@ -17,10 +16,12 @@ export default function TicketsPage() {
   const t = useTranslations('staff.tickets')
   const tToast = useTranslations('toast.staff.tickets')
   const [searchQuery, setSearchQuery] = useState('')
+  const [submittedQuery, setSubmittedQuery] = useState('state:*') // Actual query sent to API
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>('all')
   const [hasNewUpdates, setHasNewUpdates] = useState(false)
-  const { tickets, setTickets, setFilters } = useTicketStore()
-  const { searchTickets, isLoading } = useTicket()
+
+  // Use SWR for caching - only fetches when submittedQuery changes
+  const { tickets, isLoading, isValidating, revalidate } = useTicketsSearch(submittedQuery, 50)
 
   // SSE connection for real-time updates
   const { state: sseState, isConnected } = useSSE({
@@ -37,24 +38,20 @@ export default function TicketsPage() {
     },
   })
 
-  useEffect(() => {
-    // Load tickets on mount
-    handleSearch()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const handleSearch = async () => {
+  const handleSearch = () => {
     const query = searchQuery.trim() || 'state:*'
-    const result = await searchTickets(query, 50)
-    if (result) {
-      setTickets(result.tickets)
-      setHasNewUpdates(false) // Clear notification badge after refresh
-    }
+    setSubmittedQuery(query)
+    setHasNewUpdates(false) // Clear notification badge after refresh
+  }
+
+  const handleRefresh = () => {
+    revalidate()
+    setHasNewUpdates(false)
   }
 
   const handleTabChange = (value: string) => {
     setActiveTab(value as typeof activeTab)
-    setFilters({ status: value === 'all' ? undefined : value })
+    // Filtering is done client-side via filteredTickets, no need to update store
   }
 
   const filteredTickets = tickets.filter((ticket) => {

@@ -1122,6 +1122,7 @@
           "human": "Human"
         },
         "messageCount": "{count} messages",
+        "messages": "messages",
         "region": "Region",
         "customerRegion": "Customer Region",
         "staffRegion": "Staff Region",

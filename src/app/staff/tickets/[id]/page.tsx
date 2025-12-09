@@ -8,16 +8,57 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, MessageSquare } from 'lucide-react'
-import { TicketDetail } from '@/components/ticket/ticket-detail'
 import { TicketActions } from '@/components/ticket/ticket-actions'
 import { ArticleCard } from '@/components/ticket/article-content'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+
+// Compact status badge component
+function TicketStatusBadge({ state }: { state?: string }) {
+  if (!state) return null
+  const stateLower = state.toLowerCase()
+  
+  let className = 'text-xs '
+  if (stateLower === 'open' || stateLower === 'new') {
+    className += 'bg-blue-500 text-white hover:bg-blue-500'
+  } else if (stateLower === 'pending reminder') {
+    className += 'bg-amber-400 text-gray-900 hover:bg-amber-400'
+  } else if (stateLower === 'pending close') {
+    className += 'bg-emerald-500 text-white hover:bg-emerald-500'
+  } else if (stateLower === 'closed') {
+    className += 'bg-gray-400 text-white hover:bg-gray-400'
+  } else {
+    className += 'bg-gray-400 text-white hover:bg-gray-400'
+  }
+  
+  return <Badge className={className}>{state}</Badge>
+}
+
+// Compact priority badge component
+function TicketPriorityBadge({ priority }: { priority?: string }) {
+  if (!priority) return null
+  const priorityLower = priority.toLowerCase()
+  
+  let className = 'text-xs '
+  if (priorityLower === '1 low') {
+    className += 'bg-indigo-200 text-gray-800 hover:bg-indigo-200'
+  } else if (priorityLower === '2 normal') {
+    className += 'bg-indigo-500 text-white hover:bg-indigo-500'
+  } else if (priorityLower === '3 high') {
+    className += 'bg-red-500 text-white hover:bg-red-500'
+  } else {
+    className += 'bg-indigo-500 text-white hover:bg-indigo-500'
+  }
+  
+  return <Badge className={className}>{priority}</Badge>
+}
 
 export default function StaffTicketDetailPage() {
   const t = useTranslations('staff.tickets.detail')
+  const tDetails = useTranslations('tickets.details')
   const tToast = useTranslations('toast.staff.tickets')
   const params = useParams()
   const router = useRouter()
@@ -99,51 +140,71 @@ export default function StaffTicketDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/staff/tickets')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('back')}
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{t('ticketNumber', { number: ticket.number })}</h1>
-            <p className="text-sm text-muted-foreground">
-              {t('created', { date: format(new Date(ticket.created_at), 'PPp') })}
-            </p>
+    <div className="space-y-4">
+      {/* Compact Header with Back Button and Ticket Info */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push('/staff/tickets')}
+          className="h-8 w-8"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl font-bold">{t('ticketNumber', { number: ticket.number })}</h1>
+            <TicketStatusBadge state={ticket.state} />
+            <TicketPriorityBadge priority={ticket.priority} />
           </div>
+          <p className="text-sm text-muted-foreground truncate">{ticket.title}</p>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Ticket Details and Articles */}
-        <div className="lg:col-span-2 space-y-6">
-          <TicketDetail ticket={ticket} />
+      {/* Main Content - Optimized Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Left Column - Conversation (Primary Focus) */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Compact Ticket Meta Info */}
+          <Card className="p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">{tDetails('customer')}:</span>
+                <p className="font-medium truncate">{ticket.customer}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{tDetails('group')}:</span>
+                <p className="font-medium truncate">{ticket.group || '-'}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{tDetails('created')}:</span>
+                <p className="font-medium">{format(new Date(ticket.created_at), 'MM-dd HH:mm')}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{tDetails('lastUpdated')}:</span>
+                <p className="font-medium">{format(new Date(ticket.updated_at), 'MM-dd HH:mm')}</p>
+              </div>
+            </div>
+          </Card>
 
-          {/* Articles */}
+          {/* Articles - Main Content Area */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageSquare className="h-4 w-4" />
                 {t('conversationCount', { count: articles.length })}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 pb-4">
               {articles.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
+                <p className="text-muted-foreground text-center py-6">
                   {t('noArticles')}
                 </p>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {articles.map((article, index) => (
                     <div key={article.id}>
-                      {index > 0 && <Separator className="my-6" />}
+                      {index > 0 && <Separator className="my-4" />}
                       <ArticleCard article={article} />
                     </div>
                   ))}
@@ -153,7 +214,7 @@ export default function StaffTicketDetailPage() {
           </Card>
         </div>
 
-        {/* Right Column - Actions */}
+        {/* Right Column - Actions (Narrower) */}
         <div className="lg:col-span-1">
           <div className="lg:sticky lg:top-20">
             <TicketActions

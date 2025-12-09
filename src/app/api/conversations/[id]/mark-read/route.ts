@@ -30,12 +30,11 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     // R3: Verify user is a participant in this conversation
     const isCustomerOwner = user.role === 'customer' && conversation.customer_email === user.email
-    // R3: For human conversations, allow any staff/admin to mark as read (not just assigned staff)
-    // This allows the first staff member to handle a transferred conversation to clear their unread count
-    const isStaffParticipant = (user.role === 'staff' || user.role === 'admin') &&
-      (conversation.mode === 'human' || conversation.staff_id === user.id || user.role === 'admin')
+    // R3: Allow any staff/admin to mark conversations as read when viewing them
+    // This enables staff to clear unread counts for any conversation they can access
+    const isStaffOrAdmin = user.role === 'staff' || user.role === 'admin'
 
-    if (!isCustomerOwner && !isStaffParticipant) {
+    if (!isCustomerOwner && !isStaffOrAdmin) {
       return NextResponse.json(
         {
           success: false,

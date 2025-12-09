@@ -3,11 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Select,
   SelectContent,
@@ -15,15 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, MessageSquare, Clock, Filter, BellRing, User, ArrowRight, Globe } from 'lucide-react'
+import { Search, MessageSquare, Filter, BellRing, Clock, Globe } from 'lucide-react'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
 import { useSSE } from '@/lib/hooks/use-sse'
 import { cn } from '@/lib/utils'
-import { Separator } from '@/components/ui/separator'
-import { UnreadBadge } from '@/components/ui/unread-badge'
-import { REGIONS, getRegionLabel, type RegionValue } from '@/lib/constants/regions'
+import { REGIONS } from '@/lib/constants/regions'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { ConversationCard } from '@/components/conversation/conversation-card'
 
 interface Conversation {
   id: string
@@ -94,31 +91,17 @@ export default function StaffConversationsPage() {
     loadConversations()
   }, [statusFilter, regionFilter, loadConversations])
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'waiting':
-        return 'secondary'
-      case 'active':
-        return 'default'
-      case 'closed':
-        return 'outline'
-      default:
-        return 'default'
+  // Refresh conversations when page becomes visible (e.g., returning from detail page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadConversations()
+      }
     }
-  }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'waiting':
-        return t('card.status.waiting')
-      case 'active':
-        return t('card.status.active')
-      case 'closed':
-        return t('card.status.closed')
-      default:
-        return status
-    }
-  }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [loadConversations])
 
   const conversationList = Array.isArray(conversations) ? conversations : []
   const filteredConversations = conversationList.filter((conv) => {
@@ -205,6 +188,12 @@ export default function StaffConversationsPage() {
       // Handle new message - reload conversations to update unread counts
       if (event.type === 'new_message') {
         console.log('[Staff] Received new_message event, reloading conversations')
+        loadConversations()
+      }
+
+      // Handle conversation updated (e.g., marked as read) - reload to update unread counts
+      if (event.type === 'conversation_updated') {
+        console.log('[Staff] Received conversation_updated event, reloading conversations')
         loadConversations()
       }
     },
@@ -358,139 +347,31 @@ export default function StaffConversationsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredConversations.map((conversation) => (
-              <Card
+              <ConversationCard
                 key={conversation.id}
-                className={cn(
-                  'cursor-pointer hover:shadow-md transition-all duration-200 hover:border-primary/50 relative',
-                  highlightedConversationId === conversation.id &&
-                    'bg-blue-50 dark:bg-blue-950 border-blue-500 shadow-lg ring-2 ring-blue-500/20'
-                )}
+                conversation={conversation}
                 onClick={() => router.push(`/staff/conversations/${conversation.id}`)}
-              >
-                {/* Unread Badge - Top Right Corner */}
-                {conversation.staff_unread_count && conversation.staff_unread_count > 0 && (
-                  <div className="absolute top-3 right-3 z-10">
-                    <UnreadBadge count={conversation.staff_unread_count} />
-                  </div>
-                )}
-
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="bg-primary text-primary-foreground">
-                            {conversation.customer?.full_name?.charAt(0) || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        {/* Red dot on avatar for unread messages */}
-                        {conversation.staff_unread_count && conversation.staff_unread_count > 0 && (
-                          <span className="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500 ring-2 ring-background" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base font-semibold truncate">
-                          {conversation.customer?.full_name || t('card.unknown')}
-                        </CardTitle>
-                        <CardDescription className="text-xs truncate">
-                          {conversation.customer?.email || t('card.noEmail')}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getStatusBadgeVariant(conversation.status)}>
-                        {getStatusLabel(conversation.status)}
-                      </Badge>
-                      {conversation.mode && (
-                        <Badge variant={conversation.mode === 'ai' ? 'outline' : 'secondary'}>
-                          {conversation.mode === 'ai' ? t('card.mode.ai') : t('card.mode.human')}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MessageSquare className="h-3 w-3" />
-                      <span>{t('card.messageCount', { count: conversation.message_count || 0 })}</span>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2 text-xs">
-                    {/* Customer Region Badge */}
-                    {conversation.customer?.region && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground flex items-center gap-1">
-                          <Globe className="h-3 w-3" />
-                          {t('card.customerRegion')}
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          {getRegionLabel(conversation.customer.region as RegionValue, 'zh')}
-                        </Badge>
-                      </div>
-                    )}
-
-                    {/* Assigned Staff with Region */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        {t('card.assignedStaff')}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium truncate max-w-[80px]">
-                          {conversation.staff?.full_name || (
-                            <span className="text-muted-foreground">{t('card.unassigned')}</span>
-                          )}
-                        </span>
-                        {conversation.staff?.region && (
-                          <Badge variant="secondary" className="text-xs px-1">
-                            {getRegionLabel(conversation.staff.region as RegionValue, 'zh').split(' ')[0]}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {t('card.lastActivity')}
-                      </span>
-                      <span className="font-medium">
-                        {conversation.last_message_at
-                          ? format(new Date(conversation.last_message_at), 'MM-dd HH:mm')
-                          : t('card.noActivity')}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{t('card.createdTime')}</span>
-                      <span className="font-medium">
-                        {format(new Date(conversation.created_at), 'MM-dd HH:mm')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <Button
-                    className="w-full"
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/staff/conversations/${conversation.id}`)
-                    }}
-                  >
-                    {t('card.viewButton')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
+                isHighlighted={highlightedConversationId === conversation.id}
+                locale="zh"
+                translations={{
+                  status: {
+                    waiting: t('card.status.waiting'),
+                    active: t('card.status.active'),
+                    closed: t('card.status.closed'),
+                  },
+                  mode: {
+                    ai: t('card.mode.ai'),
+                    human: t('card.mode.human'),
+                  },
+                  unknown: t('card.unknown'),
+                  noEmail: t('card.noEmail'),
+                  unassigned: t('card.unassigned'),
+                  messages: t('card.messages'),
+                  viewConversation: t('card.viewButton'),
+                }}
+              />
             ))}
           </div>
         )}

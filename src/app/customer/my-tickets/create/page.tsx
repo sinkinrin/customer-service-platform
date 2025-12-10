@@ -96,8 +96,10 @@ export default function CreateTicketPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create ticket')
+        const errorData = await response.json()
+        // API returns { success: false, error: { code, message } }
+        const errorMessage = errorData.error?.message || errorData.error || 'Failed to create ticket'
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()

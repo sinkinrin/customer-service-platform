@@ -45,7 +45,7 @@ export function LanguageSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="hidden sm:flex gap-2">
+        <Button variant="ghost" size="sm" className="flex gap-2">
           <Globe className="h-4 w-4" />
           <span className="uppercase">{locale === 'zh-CN' ? 'ZH' : locale.toUpperCase()}</span>
         </Button>

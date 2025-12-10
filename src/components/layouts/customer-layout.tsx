@@ -272,10 +272,10 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
         {/* User Profile - Fixed at Bottom Left (Desktop) */}
         {user && (
-          <div className="fixed bottom-0 left-0 w-64 p-4 bg-background border-t border-r z-50 hidden lg:block">
+          <div className="fixed bottom-0 left-0 w-64 bg-background border-t border-r z-50 hidden lg:block">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start px-2 hover:bg-accent">
+                <Button variant="ghost" className="w-full h-auto justify-start p-4 rounded-none hover:bg-accent group">
                   <Avatar className="h-8 w-8 mr-3">
                     <AvatarImage src={user.avatar} alt={user.name || user.email} />
                     <AvatarFallback>
@@ -290,6 +290,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
                       {user.email}
                     </p>
                   </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground ml-2 transition-transform group-data-[state=open]:rotate-180" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56 mb-2">

@@ -15,6 +15,7 @@ import {
   LogOut,
   Activity,
   Ticket,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +29,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
+import { LanguageSelector } from "@/components/language-selector"
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -191,10 +193,10 @@ export function AdminLayout({
 
       {/* User Profile - Fixed at Bottom Left */}
       {user && (
-        <div className="fixed bottom-0 left-0 w-64 p-4 bg-card border-t border-r z-50 hidden lg:block">
+        <div className="fixed bottom-0 left-0 w-64 bg-card border-t border-r z-50 hidden lg:block">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start px-2 hover:bg-accent">
+              <Button variant="ghost" className="w-full h-auto justify-start p-4 rounded-none hover:bg-accent group">
                 <Avatar className="h-8 w-8 mr-3">
                   <AvatarImage src={user.avatar} alt={user.name || user.email} />
                   <AvatarFallback>
@@ -209,6 +211,7 @@ export function AdminLayout({
                     {tCommon('layout.administrator')}
                   </p>
                 </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground ml-2 transition-transform group-data-[state=open]:rotate-180" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-56 mb-2">
@@ -245,14 +248,43 @@ export function AdminLayout({
 
           <div className="flex-1" />
 
-          {/* Quick Actions */}
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/users">
-                <Users className="mr-2 h-4 w-4" />
-                {tCommon('layout.manageUsers')}
-              </Link>
-            </Button>
+          {/* Right Side */}
+          <div className="flex items-center space-x-4">
+            <LanguageSelector />
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.avatar} alt={user.name || user.email} />
+                      <AvatarFallback>
+                        {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium">{user.name || tCommon('layout.administrator')}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/profile">{tCommon('layout.profileSettings')}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/settings">{tCommon('layout.systemSettings')}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onLogout} className="text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {tCommon('layout.logOut')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </header>
 

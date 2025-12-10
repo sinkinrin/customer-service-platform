@@ -38,8 +38,9 @@ export function hasRegionAccess(user: RegionAuthUser, region: RegionValue): bool
   }
 
   // Customer can access their own region
+  // If customer has no region set, allow access to any region (they will use default)
   if (user.role === 'customer') {
-    return user.region === region
+    return !user.region || user.region === region
   }
 
   return false

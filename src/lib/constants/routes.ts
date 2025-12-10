@@ -18,6 +18,7 @@ export const PUBLIC_ROUTES = [
   "/api/auth",
   "/api/health",
   "/api/webhooks",
+  "/api/faq",
   "/faq",
 ] as const
 

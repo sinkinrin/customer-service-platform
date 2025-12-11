@@ -55,13 +55,6 @@ export default function ConversationDetailPage() {
   // SSE is now managed by useConversation hook
   const isConnected = sseConnected
 
-  // Scroll document to top on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      window.scrollTo(0, 0)
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [])
 
   // Fetch conversation to determine mode
   useEffect(() => {
@@ -335,10 +328,10 @@ export default function ConversationDetailPage() {
     : messages
 
   return (
-    <div className="flex flex-col bg-background h-[calc(100vh-4rem)]">
+    <div className="flex flex-col bg-gradient-to-b from-background to-muted/20 flex-1 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="max-w-5xl mx-auto px-4">
+      <div className="flex-shrink-0 border-b bg-background/80 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto px-4">
           <ConversationHeader
             mode={mode}
             staffName={staffName}
@@ -363,9 +356,9 @@ export default function ConversationDetailPage() {
         </div>
       )}
 
-      {/* Messages - Scrollable */}
+      {/* Messages - Scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-4xl mx-auto px-4">
           <MessageList
             messages={displayMessages}
             isLoading={mode === 'ai' ? false : isLoadingMessages}
@@ -376,10 +369,10 @@ export default function ConversationDetailPage() {
         </div>
       </div>
 
-      {/* Input Area */}
+      {/* Input Area - Fixed at bottom */}
       {!isClosed ? (
-        <div className="flex-shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 mb-6">
-          <div className="max-w-5xl mx-auto px-4 py-3">
+        <div className="flex-shrink-0 bg-gradient-to-t from-background via-background to-background/80 pt-2 pb-4">
+          <div className="max-w-4xl mx-auto px-4">
             <MessageInput
               onSend={mode === 'ai' ? handleAIMessage : handleHumanMessage}
               isSending={mode === 'ai' ? isAiLoading : isSendingMessage}
@@ -393,14 +386,14 @@ export default function ConversationDetailPage() {
               }
             />
             {/* Disclaimer text based on mode */}
-            <p className="text-xs text-muted-foreground text-center mt-2 pb-[max(4px,env(safe-area-inset-bottom))]">
+            <p className="text-[11px] text-muted-foreground/60 text-center mt-2 pb-[env(safe-area-inset-bottom)]">
               {mode === 'ai' ? t('aiDisclaimer') : t('humanModeHint')}
             </p>
           </div>
         </div>
       ) : (
-        <div className="flex-shrink-0 bg-muted/50 mb-6">
-          <div className="max-w-5xl mx-auto px-4 py-4 text-center">
+        <div className="flex-shrink-0 border-t bg-muted/30 py-4">
+          <div className="max-w-4xl mx-auto px-4 text-center">
             <p className="text-sm text-muted-foreground">
               {t('closedMessage')}
             </p>

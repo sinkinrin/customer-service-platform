@@ -158,11 +158,39 @@ export class ZammadClient {
   }
 
   /**
-   * Get all tickets
+   * Get tickets with pagination
+   * @param page - Page number (1-indexed)
+   * @param perPage - Items per page (default 100, max 500 in Zammad)
    * @param onBehalfOf - User email/login/ID to get tickets on behalf of
    */
-  async getTickets(onBehalfOf?: string): Promise<ZammadTicket[]> {
-    return this.request<ZammadTicket[]>('/tickets', {}, 0, onBehalfOf)
+  async getTickets(page: number = 1, perPage: number = 100, onBehalfOf?: string): Promise<ZammadTicket[]> {
+    return this.request<ZammadTicket[]>(`/tickets?page=${page}&per_page=${perPage}`, {}, 0, onBehalfOf)
+  }
+
+  /**
+   * Get all tickets by iterating through all pages
+   * Performance optimized: stops when a page returns fewer items than requested
+   * @param onBehalfOf - User email/login/ID to get tickets on behalf of
+   * @param maxPages - Maximum pages to fetch (safety limit, default 10 = 1000 tickets)
+   */
+  async getAllTickets(onBehalfOf?: string, maxPages: number = 10): Promise<ZammadTicket[]> {
+    const allTickets: ZammadTicket[] = []
+    const perPage = 100
+    let page = 1
+
+    while (page <= maxPages) {
+      const tickets = await this.getTickets(page, perPage, onBehalfOf)
+      allTickets.push(...tickets)
+
+      // If we got fewer tickets than requested, we've reached the last page
+      if (tickets.length < perPage) {
+        break
+      }
+      page++
+    }
+
+    console.log(`[Zammad] Fetched ${allTickets.length} tickets across ${page} pages`)
+    return allTickets
   }
 
   /**

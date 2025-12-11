@@ -79,20 +79,26 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       }
     } else if (user.role === 'customer') {
       // Customer can only access articles for their own tickets
+      // P2 Fix: Since we already used X-On-Behalf-Of to fetch the ticket,
+      // Zammad has already verified ownership. The additional email check
+      // is a secondary validation that should gracefully handle missing emails.
       try {
         const ticketCustomer = await zammadClient.getUser(ticket.customer_id)
-        // Guard against missing email from Zammad
-        if (!ticketCustomer.email) {
-          console.warn('[Articles API] Customer access denied: ticket customer has no email')
-          return notFoundResponse('Ticket not found')
-        }
-        if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
-          console.warn('[Articles API] Customer access denied: ticket belongs to different customer')
-          return notFoundResponse('Ticket not found')
+        // P2 Fix: If Zammad user has email, verify it matches
+        // If email is missing, trust the X-On-Behalf-Of result (already limited to user's tickets)
+        if (ticketCustomer.email) {
+          if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
+            console.warn('[Articles API] Customer access denied: ticket belongs to different customer')
+            return notFoundResponse('Ticket not found')
+          }
+        } else {
+          // Email missing in Zammad - trust X-On-Behalf-Of validation
+          console.log('[Articles API] Ticket customer has no email, trusting X-On-Behalf-Of validation')
         }
       } catch (error) {
-        console.error('[Articles API] Failed to verify ticket ownership:', error)
-        return notFoundResponse('Ticket not found')
+        // P2 Fix: If we can't fetch user info, trust X-On-Behalf-Of result
+        // The ticket was already fetched with X-On-Behalf-Of, so ownership is verified
+        console.warn('[Articles API] Failed to fetch ticket customer, trusting X-On-Behalf-Of:', error)
       }
     }
 

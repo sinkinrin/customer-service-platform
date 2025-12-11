@@ -182,10 +182,12 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
 
     // Get tickets based on user role
+    // P1 Fix: Use getAllTickets to handle Zammad pagination (default 50 per page)
     let tickets
     if (user.role === 'admin') {
       // Admin: Get all tickets without X-On-Behalf-Of
-      tickets = await zammadClient.getTickets()
+      // Use getAllTickets to iterate through all pages
+      tickets = await zammadClient.getAllTickets()
     } else if (user.role === 'customer') {
       // Customer: Use search with X-On-Behalf-Of to get only their tickets
       // When using X-On-Behalf-Of, Zammad automatically filters to the user's tickets
@@ -197,8 +199,9 @@ export async function GET(request: NextRequest) {
       // Staff: Get ALL tickets without X-On-Behalf-Of, then filter by region
       // Using X-On-Behalf-Of would only return tickets where staff is assigned/has explicit access
       // Staff needs to see all customer-created tickets in their region
+      // P1 Fix: Use getAllTickets to iterate through all pages
       console.log('[DEBUG] GET /api/tickets - Fetching all tickets for staff, will filter by region')
-      tickets = await zammadClient.getTickets()
+      tickets = await zammadClient.getAllTickets()
     }
 
     // Filter by region (staff can only see their region, admin sees all)
@@ -340,7 +343,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure user exists in Zammad before creating ticket
-    const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, user.region)
+    // P2 Fix: Use target region for staff group assignment, not user.region
+    // This ensures staff creating tickets in a specific region get proper permissions
+    const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, region)
     console.log('[DEBUG] POST /api/tickets - Zammad user ID:', zammadUser.id)
 
     // Determine group ID based on user's region

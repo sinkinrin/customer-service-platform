@@ -15,7 +15,7 @@ import { MessageList } from '@/components/conversation/message-list'
 import { MessageInput } from '@/components/conversation/message-input'
 import { toast } from 'sonner'
 import { Loading } from '@/components/common/loading'
-import { AlertCircle, ArrowLeft, User, Mail, Clock, MessageSquare } from 'lucide-react'
+import { AlertCircle, ArrowLeft, User, Mail, Clock, MessageSquare, UserCheck } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,6 +32,7 @@ export default function StaffConversationDetailPage() {
   const tToast = useTranslations('toast.staff.conversations')
 
   const [showNewMessageNotification, setShowNewMessageNotification] = useState(false)
+  const [isClaiming, setIsClaiming] = useState(false)
 
   const {
     activeConversation,
@@ -90,6 +91,36 @@ export default function StaffConversationDetailPage() {
     }
   }
 
+  // Handle claim conversation (staff takes ownership of waiting conversation)
+  const handleClaimConversation = async () => {
+    try {
+      setIsClaiming(true)
+      const response = await fetch(`/api/conversations/${conversationId}/claim`, {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        if (data.error?.code === 'ALREADY_CLAIMED') {
+          toast.error(t('claim.alreadyClaimed'))
+        } else {
+          throw new Error(data.error?.message || 'Failed to claim conversation')
+        }
+        return
+      }
+
+      toast.success(t('claim.success'))
+      await fetchConversationById(conversationId)
+      await fetchMessages(conversationId)
+    } catch (error) {
+      console.error('Claim conversation error:', error)
+      toast.error(t('claim.error'))
+    } finally {
+      setIsClaiming(false)
+    }
+  }
+
   // Handle close conversation
   const handleCloseConversation = async () => {
     try {
@@ -134,6 +165,7 @@ export default function StaffConversationDetailPage() {
   const customer = activeConversation.customer
   const conversationStatus = activeConversation.status || 'active'
   const isClosed = conversationStatus === 'closed'
+  const isWaiting = conversationStatus === 'waiting'
   const conversationMode = activeConversation.mode || 'ai'
   const transferredAt = activeConversation.transferred_at
   const transferReason = activeConversation.transfer_reason
@@ -153,9 +185,9 @@ export default function StaffConversationDetailPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex">
+    <div className="flex-1 flex min-h-0 overflow-hidden">
       {/* Main Conversation Area - 70% */}
-      <div className="flex-1 flex flex-col border-r">
+      <div className="flex-1 flex flex-col min-h-0 border-r">
         {/* SSE Connection Status */}
         {sseError && (
           <Alert variant="destructive" className="m-4 mb-0 rounded-lg">
@@ -208,11 +240,24 @@ export default function StaffConversationDetailPage() {
                     </div>
                   </div>
                 </div>
-                {!isClosed && (
-                  <Button variant="destructive" size="sm" onClick={handleCloseConversation}>
-                    {t('header.closeButton')}
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {isWaiting && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={handleClaimConversation}
+                      disabled={isClaiming}
+                    >
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      {isClaiming ? t('claim.claiming') : t('claim.button')}
+                    </Button>
+                  )}
+                  {!isClosed && !isWaiting && (
+                    <Button variant="destructive" size="sm" onClick={handleCloseConversation}>
+                      {t('header.closeButton')}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -230,10 +275,10 @@ export default function StaffConversationDetailPage() {
           </div>
         </div>
 
-        {/* Input - Sticky Bottom */}
-        {!isClosed && (
-          <div className="sticky bottom-0 z-10 bg-background border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-            <div className="container max-w-5xl mx-auto px-4 py-3">
+        {/* Input - Fixed at Bottom */}
+        {!isClosed && !isWaiting && (
+          <div className="flex-shrink-0 bg-gradient-to-t from-background via-background to-background/80 pt-2 pb-4 border-t">
+            <div className="container max-w-5xl mx-auto px-4">
               <MessageInput
                 onSend={handleSendMessage}
                 isSending={isSendingMessage}
@@ -244,9 +289,20 @@ export default function StaffConversationDetailPage() {
           </div>
         )}
 
+        {/* Waiting hint - prompt staff to claim */}
+        {isWaiting && (
+          <div className="flex-shrink-0 border-t bg-amber-50 dark:bg-amber-950/30 py-4">
+            <div className="container max-w-4xl mx-auto text-center">
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                {t('claim.waitingHint')}
+              </p>
+            </div>
+          </div>
+        )}
+
         {isClosed && (
-          <div className="sticky bottom-0 z-10 border-t bg-muted p-4">
-            <div className="container max-w-4xl text-center">
+          <div className="flex-shrink-0 border-t bg-muted/30 py-4">
+            <div className="container max-w-4xl mx-auto text-center">
               <p className="text-sm text-muted-foreground">
                 {t('closed.message')}
               </p>

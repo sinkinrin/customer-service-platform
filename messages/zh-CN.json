@@ -1179,6 +1179,14 @@
           "viewHistory": "查看客户历史",
           "createTicket": "创建工单",
           "addNote": "添加内部备注"
+        },
+        "claim": {
+          "button": "认领对话",
+          "claiming": "认领中...",
+          "success": "对话认领成功",
+          "error": "认领对话失败",
+          "alreadyClaimed": "该对话已被其他客服认领",
+          "waitingHint": "该对话正在等待客服认领"
         }
       }
     },

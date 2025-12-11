@@ -42,9 +42,11 @@ nul
 .claude/settings.local.json
 
 # Review notes
-review.md
+
 
 # Disabled/backup files
 *.disabled
 *.backup
 *.old
+
+screenshots

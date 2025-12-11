@@ -54,6 +54,7 @@ export function broadcastConversationEvent(
       | 'conversation_created'
       | 'conversation_transferred'
       | 'new_conversation_transferred'
+      | 'conversation_claimed'
       | 'conversation_region_changed'
       | 'typing'
       | 'unread_count_updated'

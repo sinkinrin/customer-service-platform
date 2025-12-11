@@ -39,9 +39,11 @@ export function MessageList({
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when new messages arrive or AI is loading
+  // Use scrollIntoView with block: 'nearest' to only scroll the nearest scrollable ancestor
+  // This prevents the entire page from scrolling
   useEffect(() => {
     if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' })
+      bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
     }
   }, [messages.length, isAiLoading])
 

@@ -116,8 +116,16 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
       return forbiddenResponse('You do not have permission to update this conversation')
     }
 
+    // P1 Fix: Restrict staff_id mutations to staff/admin only
+    // Customers (owners) can only update status, not staff_id
+    let updateData = validation.data
+    if (!isStaffOrAdmin && isOwner) {
+      const { staff_id, ...allowedFields } = validation.data
+      updateData = allowedFields
+    }
+
     // Update conversation
-    const updated = await updateConversation(conversationId, validation.data)
+    const updated = await updateConversation(conversationId, updateData)
 
     if (!updated) {
       return notFoundResponse('Conversation not found')

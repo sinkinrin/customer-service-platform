@@ -194,10 +194,16 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
     )
   }
 
+  // Check if current page is a conversation detail page
+  const isConversationDetailPage = pathname.match(/\/conversations\/[^/]+$/)
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={cn(
+      "flex flex-col",
+      isConversationDetailPage ? "h-screen overflow-hidden" : "min-h-screen"
+    )}>
       {/* Top Navbar */}
-      <nav className="border-b bg-background sticky top-0 z-50">
+      <nav className="border-b bg-background sticky top-0 z-50 flex-shrink-0">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
@@ -259,7 +265,10 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
         </div>
       </nav>
 
-      <div className="flex flex-1">
+      <div className={cn(
+        "flex flex-1",
+        isConversationDetailPage && "min-h-0 overflow-hidden"
+      )}>
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-background fixed left-0 top-16 bottom-0">
           <div className="mb-4 px-4 pt-6 flex-shrink-0">
@@ -333,15 +342,23 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
         )}
 
         {/* Main Content */}
-        <main className="flex-1 lg:ml-64 flex flex-col min-h-0">
+        <main className={cn(
+          "flex-1 lg:ml-64 flex flex-col",
+          isConversationDetailPage ? "min-h-0 overflow-hidden" : "min-h-0"
+        )}>
           <PageTransition key={pathname} className="flex-1 flex flex-col min-h-0">
-            <div className="container mx-auto px-4 py-6 flex-1 flex flex-col min-h-0">{children}</div>
+            {/* Use different container styles for conversation pages vs other pages */}
+            {isConversationDetailPage ? (
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">{children}</div>
+            ) : (
+              <div className="container mx-auto px-4 py-6 flex-1 flex flex-col min-h-0">{children}</div>
+            )}
           </PageTransition>
         </main>
       </div>
 
       {/* Footer - Hidden on conversation detail pages */}
-      {!pathname.includes('/conversations/') && (
+      {!isConversationDetailPage && (
         <footer className="border-t py-6 mt-auto">
           <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} {tCommon('appName')}. All rights reserved.</p>

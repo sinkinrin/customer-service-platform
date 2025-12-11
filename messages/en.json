@@ -1193,6 +1193,14 @@
           "viewHistory": "View Customer History",
           "createTicket": "Create Ticket",
           "addNote": "Add Internal Note"
+        },
+        "claim": {
+          "button": "Claim Conversation",
+          "claiming": "Claiming...",
+          "success": "Conversation claimed successfully",
+          "error": "Failed to claim conversation",
+          "alreadyClaimed": "This conversation has already been claimed",
+          "waitingHint": "This conversation is waiting for a staff member to claim it"
         }
       }
     },

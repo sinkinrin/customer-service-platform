@@ -61,6 +61,9 @@ export function StaffLayout({
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
 
+  // Check if current page is a conversation detail page
+  const isConversationDetailPage = pathname.match(/\/conversations\/[^/]+$/)
+
   const navigation = [
     {
       name: tNav('conversations'),
@@ -114,7 +117,10 @@ export function StaffLayout({
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className={cn(
+      "flex",
+      isConversationDetailPage ? "h-screen overflow-hidden" : "min-h-screen"
+    )}>
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -291,8 +297,11 @@ export function StaffLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6">
-          <PageTransition key={pathname}>
+        <main className={cn(
+          "flex-1 flex flex-col",
+          isConversationDetailPage ? "min-h-0 overflow-hidden p-0" : "overflow-auto p-6"
+        )}>
+          <PageTransition key={pathname} className={isConversationDetailPage ? "flex-1 flex flex-col min-h-0" : ""}>
             {children}
           </PageTransition>
         </main>

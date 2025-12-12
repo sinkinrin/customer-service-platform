@@ -1,187 +1,106 @@
 # 🎫 Customer Service Platform
 
-> A modern, multilingual customer service platform with Zammad ticketing integration.
+> A modern, multilingual customer service platform with Zammad ticketing integration, NextAuth.js authentication, and Prisma ORM.
 
-**Version**: 1.0.0
-**Status**: ✅ Development - Post-Supabase Removal
-**Last Updated**: 2025-10-31
-
----
-
-## 📋 Project Overview
-
-A comprehensive customer service platform with conversation management, FAQ self-service, and Zammad ticketing integration. Currently running with mock authentication and in-memory data storage.
-
-### Current Features
-
-- ✅ **Mock Authentication**
-  - Test users: customer@test.com, staff@test.com, admin@test.com
-  - Role-based access control
-  - Auto-redirect to role-specific dashboards
-
-- ✅ **Customer Portal**
-  - FAQ self-service
-  - Live chat conversations (auto-join)
-  - Ticket management
-  - Feedback and complaints submission
-
-- ✅ **Staff Portal**
-  - Ticket management
-  - Knowledge base access
-  - Dashboard with statistics
-
-- ✅ **Admin Panel**
-  - User management
-  - FAQ management
-  - System settings (AI auto-reply)
-
-- ✅ **Zammad Integration**
-  - External ticket system
-  - Create/update/search tickets
-  - X-On-Behalf-Of authentication
-  - Webhook support
-
-- ✅ **Multilingual Support**
-  - 6 languages: en, zh-CN, fr, es, ru, pt
-  - next-intl 4.4.0
-
-- ✅ **OpenSpec 需求管理**
-  - 使用 OpenSpec 进行结构化需求定义
-  - 请参见 `openspec/` 目录了解规范和变更提案
+**Version**: 0.1.0  
+**Last Updated**: 2025-12-12
 
 ---
 
-## 🏗️ Technology Stack
+## 📋 Overview
 
-### Frontend
-- **Framework**: Next.js 14 (App Router, TypeScript)
-- **UI**: Tailwind CSS 3.4.0 + shadcn/ui (15 components)
-- **State**: Zustand 5.0.8 with persist
-- **Forms**: React Hook Form + Zod
-- **i18n**: next-intl 4.4.0
-- **Icons**: lucide-react
-- **Dates**: date-fns
-
-### Backend
-- **API**: Next.js API Routes
-- **Auth**: Mock implementation (TODO: replace)
-- **Data**: In-memory storage (TODO: replace)
-- **Tickets**: Zammad REST API integration
-
-### External Services
-- **Zammad**: Ticket management system (http://172.16.40.22:8080)
+A comprehensive customer service platform featuring:
+- **Customer Portal** - FAQ self-service, live chat, ticket management
+- **Staff Portal** - Ticket handling, knowledge base, dashboard
+- **Admin Panel** - User management, FAQ management, system settings
+- **Zammad Integration** - Full ticketing system with X-On-Behalf-Of support
 
 ---
 
-## 📚 Documentation
+## ✨ Features
 
-### Essential Guides
-- [📖 Architecture Overview](./docs/ARCHITECTURE.md)
-- [🎫 Zammad Integration](./docs/ZAMMAD-INTEGRATION.md)
-- [🔌 API Design](./docs/05-API设计.md)
-- [📊 Project Overview](./docs/00-project-overview.md)
-- [📋 Requirements](./docs/01-requirements.md)
-- [🔄 Business Flows](./docs/02-business-flows.md)
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Authentication** | ✅ | NextAuth.js with mock/production modes |
+| **Customer Portal** | ✅ | FAQ, conversations, tickets, feedback |
+| **Staff Portal** | ✅ | Ticket management, knowledge base |
+| **Admin Panel** | ✅ | Users, FAQ, AI settings |
+| **Zammad Integration** | ✅ | Tickets, articles, tags, knowledge base |
+| **Multilingual (i18n)** | ✅ | 6 languages (en, zh-CN, fr, es, ru, pt) |
+| **Dark Mode** | ✅ | System-aware theme switching |
+| **Responsive Design** | ✅ | Mobile-first UI |
 
-### Migration Documentation
-- ✅ Supabase Removal Complete
+---
 
-### Requirements Management
-- [📁 OpenSpec](./openspec/) - 结构化需求和变更提案
+## 🏗️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Framework** | Next.js 16 (App Router) |
+| **Language** | TypeScript 5.3 |
+| **UI** | React 19, Tailwind CSS 3.4, shadcn/ui |
+| **State** | Zustand 5.0 |
+| **Forms** | React Hook Form + Zod |
+| **Auth** | NextAuth.js 5 (beta) |
+| **Database** | Prisma 6.19 + SQLite (dev) / PostgreSQL (prod) |
+| **i18n** | next-intl 4.5 |
+| **Ticketing** | Zammad REST API |
+| **Icons** | Lucide React |
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ and npm
-- Zammad instance (optional, for ticket features)
-
-### Installation
-```bash
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your Zammad credentials
-
-# Start development server
-npm run dev
-```
-
-### Access the Application
-- **URL**: http://localhost:3010
-- **Test Accounts**:
-  - Customer: `customer@test.com` (any password)
-  - Staff: `staff@test.com` (any password)
-  - Admin: `admin@test.com` (any password)
-
----
-
-## 🎯 Current Status
-
-### ✅ Completed
-- Frontend UI (customer/staff/admin portals)
-- Mock authentication system
-- Zammad ticket integration
-- Multilingual support (6 languages)
-- Responsive design with dark mode
-
-### ⏳ TODO (Future Work)
-- Replace mock authentication with real system (NextAuth.js, Auth0, Clerk)
-- Replace in-memory storage with real database (PostgreSQL, MongoDB)
-- Implement real-time features (Socket.IO, Pusher)
-- Add file upload functionality
-- Comprehensive testing (unit, integration, E2E)
-   - Performance analytics
-
-### Technical Goals
-1. **Scalability**: Support 10,000+ concurrent users
-2. **Performance**: <500ms API response time
-3. **Reliability**: 99.9% uptime
-4. **Security**: Enterprise-grade security standards
-5. **Maintainability**: Clean code, comprehensive tests
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
 - Node.js 18+
-- Zammad instance (optional, for ticket features)
+- npm or yarn
+- Zammad instance (optional)
 
 ### Installation
+
 ```bash
-# Clone the repository
+# Clone and install
 git clone <repository-url>
 cd customer-service-platform
-
-# Install dependencies
 npm install
 
-# Set up environment variables
+# Setup environment
 cp .env.example .env.local
 # Edit .env.local with your configuration
 
-# Run database migrations
-npm run db:migrate
+# Initialize database
+npx prisma migrate dev
+npm run db:seed
 
 # Start development server
 npm run dev
 ```
 
-### Environment Variables
+### Access
+- **URL**: http://localhost:3010
+- **Test Accounts** (mock auth mode):
+  - Customer: `customer@test.com`
+  - Staff: `staff@test.com`
+  - Admin: `admin@test.com`
+
+---
+
+## ⚙️ Environment Variables
+
 ```env
+# Authentication (required in production)
+AUTH_SECRET=your_auth_secret_here
+
+# Database
+DATABASE_URL=file:./dev.db
+
 # Zammad Integration
-ZAMMAD_URL=http://172.16.40.22:8080/
-ZAMMAD_API_TOKEN=your_zammad_api_token_here
+ZAMMAD_URL=http://your-zammad-server:8080/
+ZAMMAD_API_TOKEN=your_api_token
 
-# Socket.IO
-SOCKET_IO_PORT=3001
-
-# JWT Secret (for mock authentication)
-JWT_SECRET=your_jwt_secret_here
+# Optional
+FASTGPT_API_KEY=your_fastgpt_key
+LOG_LEVEL=info
 ```
 
 ---
@@ -189,105 +108,94 @@ JWT_SECRET=your_jwt_secret_here
 ## 📁 Project Structure
 
 ```
-customer-service-platform/
+src/
 ├── app/                    # Next.js App Router
-│   ├── (customer)/        # Customer portal routes
-│   ├── (staff)/           # Staff portal routes
-│   ├── (admin)/           # Admin panel routes
-│   ├── (auth)/            # Authentication routes
-│   ├── api/               # API routes
-│   └── layout.tsx         # Root layout
+│   ├── admin/             # Admin panel routes
+│   ├── api/               # API routes (40+ endpoints)
+│   ├── auth/              # Authentication pages
+│   ├── customer/          # Customer portal routes
+│   └── staff/             # Staff portal routes
 ├── components/            # React components
-│   ├── ui/               # shadcn/ui components
-│   ├── auth/             # Authentication components
-│   ├── customer/         # Customer-specific components
-│   ├── staff/            # Staff-specific components
-│   └── admin/            # Admin-specific components
-├── lib/                   # Utility libraries
+│   ├── ui/               # shadcn/ui (23 components)
+│   ├── conversation/     # Chat components
+│   ├── faq/              # FAQ components
+│   ├── ticket/           # Ticket components
+│   └── layouts/          # Layout components
+├── lib/                   # Utilities
 │   ├── hooks/            # Custom React hooks
 │   ├── stores/           # Zustand stores
-│   ├── utils/            # Utility functions
-│   ├── zammad/           # Zammad integration
-│   ├── mock-auth.ts      # Mock authentication (TODO: replace)
-│   └── mock-data.ts      # Mock data storage (TODO: replace)
-├── services/              # Business logic layer
-│   ├── zammad.service.ts # Zammad service
-│   └── zammad-user.service.ts # Zammad user management
-├── repositories/          # Data access layer
-│   ├── zammad.repository.ts # Zammad repository
-│   └── webhook.repository.ts # Webhook repository
-├── types/                 # TypeScript type definitions
-├── public/               # Static assets
-├── docs/                 # Documentation
-├── openspec/             # OpenSpec requirements and change management
-│   ├── specs/            # Current system specifications
-│   ├── changes/          # Proposed changes
-│   └── archive/          # Completed changes
-└── wiki/                 # Wiki pages
+│   ├── zammad/           # Zammad API client
+│   └── utils/            # Helper functions
+└── types/                 # TypeScript definitions
+
+prisma/
+├── schema.prisma          # Database schema
+├── migrations/            # Database migrations
+└── seed.ts               # Seed data
+
+messages/                  # i18n translations (6 languages)
+docs/                      # Documentation
+openspec/                  # Requirements & change proposals
+```
+
+---
+
+## 🔌 API Endpoints
+
+| Category | Endpoints | Description |
+|----------|-----------|-------------|
+| `/api/auth` | NextAuth handlers | Authentication |
+| `/api/tickets` | CRUD + search | Zammad ticket management |
+| `/api/conversations` | CRUD + messages | Chat conversations |
+| `/api/faq` | Categories + articles | FAQ management |
+| `/api/admin` | Users, settings | Admin operations |
+| `/api/health` | Status check | System health |
+
+---
+
+## 📚 Documentation
+
+- [Project Overview](./docs/00-project-overview.md)
+- [Requirements](./docs/01-requirements.md)
+- [Business Flows](./docs/02-business-flows.md)
+- [API Design](./docs/05-API设计.md)
+- [OpenSpec Changes](./openspec/)
+
+---
+
+## 🛠️ Scripts
+
+```bash
+npm run dev          # Development server (port 3010)
+npm run dev:turbo    # Development with Turbopack
+npm run build        # Production build
+npm run start        # Production server
+npm run lint         # ESLint
+npm run type-check   # TypeScript check
+npm run db:seed      # Seed database
+npm run i18n:check   # Validate translations
 ```
 
 ---
 
 ## 🔐 Security
 
-- **Authentication**: JWT-based with bcrypt password hashing
-- **Authorization**: Role-based access control (RBAC)
-- **Data Protection**: Row Level Security (RLS) policies
-- **API Security**: Rate limiting, input validation
-- **Communication**: HTTPS only, secure WebSocket
+- **Authentication**: NextAuth.js with JWT sessions
+- **Authorization**: Role-based access control (customer/staff/admin)
+- **API Security**: Input validation with Zod
+- **Zammad**: X-On-Behalf-Of header for user impersonation
 
 ---
 
 ## 🌍 Internationalization
 
-### Supported Languages
-- 🇬🇧 English (Primary)
-- 🇨🇳 Simplified Chinese (Secondary)
-- 🌐 Extensible for other languages
-
-### Translation Coverage
-- UI labels and buttons
-- FAQ questions and answers
-- System notifications
-- Error messages
-- Email templates
-
----
-
-## 📊 Features Roadmap
-
-### Phase 1: MVP (Current)
-- [x] Requirements analysis
-- [x] Business flow design
-- [x] Database design
-- [x] API design
-- [ ] UI mockups
-- [ ] Project initialization
-
-### Phase 2: Core Features
-- [ ] Authentication system
-- [ ] Conversation management
-- [ ] FAQ self-service
-- [ ] Human agent handoff
-- [ ] Basic ticketing
-
-### Phase 3: Advanced Features
-- [ ] AI-assisted responses
-- [ ] Advanced analytics
-- [ ] Multi-channel support
-- [ ] Mobile app
-
-### Phase 4: Enterprise Features
-- [ ] Custom workflows
-- [ ] Advanced reporting
-- [ ] SLA management
-- [ ] API for third-party integrations
-
----
-
-## 🤝 Contributing
-
-This project is currently in the design phase. Contributions are welcome once the MVP is complete.
+Supported languages with full translation coverage:
+- 🇬🇧 English (en)
+- 🇨🇳 简体中文 (zh-CN)
+- 🇫🇷 Français (fr)
+- 🇪🇸 Español (es)
+- 🇷🇺 Русский (ru)
+- 🇧🇷 Português (pt)
 
 ---
 
@@ -297,11 +205,5 @@ TBD
 
 ---
 
-## 📞 Contact
-
-For questions or support, please refer to the documentation or contact the development team.
-
----
-
-**Built with ❤️ using Next.js, Zammad, and modern web technologies.**
+**Built with Next.js 16, React 19, and Zammad**
 

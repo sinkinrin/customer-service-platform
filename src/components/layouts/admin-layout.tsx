@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
 import { LanguageSelector } from "@/components/language-selector"
+import { Logo } from "@/components/ui/logo"
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -134,9 +135,7 @@ export function AdminLayout({
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b flex-shrink-0">
           <Link href="/admin" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">{t('brandShort')}</span>
-            </div>
+            <Logo size="md" />
             <span className="font-semibold">{tCommon('layout.adminPortal')}</span>
           </Link>
           <Button

@@ -28,6 +28,7 @@ import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
 import { LanguageSelector } from "@/components/language-selector"
 import { UnreadBadge } from "@/components/ui/unread-badge"
+import { Logo } from "@/components/ui/logo"
 
 interface CustomerLayoutProps {
   children: ReactNode
@@ -217,9 +218,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
                 {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
               <Link href="/customer/dashboard" className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-lg">{t('brandShort')}</span>
-                </div>
+                <Logo size="md" />
                 <span className="font-semibold text-lg hidden sm:inline-block">
                   {t('brandName')}
                 </span>

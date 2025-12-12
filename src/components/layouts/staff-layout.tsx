@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils"
 import { UnreadBadge } from "@/components/ui/unread-badge"
 import { getRegionLabel, type RegionValue } from "@/lib/constants/regions"
 import { LanguageSelector } from "@/components/language-selector"
+import { Logo } from "@/components/ui/logo"
 
 interface StaffLayoutProps {
   children: ReactNode
@@ -139,9 +140,7 @@ export function StaffLayout({
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b flex-shrink-0">
           <Link href="/staff" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">{t('brandShort')}</span>
-            </div>
+            <Logo size="md" />
             <span className="font-semibold">{tCommon('layout.staffPortal')}</span>
           </Link>
           <Button

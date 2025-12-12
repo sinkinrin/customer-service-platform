@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { getNavigationItemsForRole, type UserRole } from "@/lib/utils/route-helpers"
 import { LanguageSelector } from "@/components/language-selector"
+import { Logo } from "@/components/ui/logo"
 
 interface NavbarProps {
   user?: {
@@ -48,9 +49,7 @@ export function Navbar({ user, onLogout, showLanguageSelector = true }: NavbarPr
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">{t('brandShort')}</span>
-            </div>
+            <Logo size="md" />
             <span className="font-semibold text-lg hidden sm:inline-block">
               {t('brandName')}
             </span>

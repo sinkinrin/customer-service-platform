@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Customer Service Platform",
   description:
     "AI-powered customer service platform with Supabase and Zammad integration",
+  icons: {
+    icon: "/logo-with-bg.svg",
+    shortcut: "/logo-with-bg.svg",
+    apple: "/logo-with-bg.svg",
+  },
 }
 
 export default async function RootLayout({

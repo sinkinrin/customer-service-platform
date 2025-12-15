@@ -35,6 +35,13 @@ nul
 *-SUMMARY.md
 *-VERIFICATION.md
 
+# Test results and coverage
+test-results/
+coverage/
+playwright-report/
+playwright/.cache/
+.nyc_output/
+
 # Playwright MCP
 .playwright-mcp/
 

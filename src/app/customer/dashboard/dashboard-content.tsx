@@ -67,9 +67,9 @@ export function DashboardContent({ translations: t }: DashboardContentProps) {
   ]
 
   return (
-    <PageTransition className="container max-w-6xl py-8">
+    <PageTransition className="container max-w-6xl py-8" data-testid="customer-dashboard">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">{t.title}</h1>
+        <h1 className="text-3xl font-bold" data-testid="dashboard-title">{t.title}</h1>
         <p className="text-muted-foreground mt-2">
           {t.welcomeMessage}
         </p>
@@ -111,7 +111,7 @@ export function DashboardContent({ translations: t }: DashboardContentProps) {
               <p className="text-sm text-muted-foreground mb-2">
                 {t.getStarted.liveChat.description}
               </p>
-              <Button onClick={() => router.push('/customer/conversations')} size="sm">
+              <Button onClick={() => router.push('/customer/conversations')} size="sm" data-testid="start-chat-button">
                 {t.getStarted.liveChat.button}
               </Button>
             </div>
@@ -126,7 +126,7 @@ export function DashboardContent({ translations: t }: DashboardContentProps) {
               <p className="text-sm text-muted-foreground mb-2">
                 {t.getStarted.knowledgeBase.description}
               </p>
-              <Button onClick={() => router.push('/customer/faq')} variant="outline" size="sm">
+              <Button onClick={() => router.push('/customer/faq')} variant="outline" size="sm" data-testid="browse-faq-button">
                 {t.getStarted.knowledgeBase.button}
               </Button>
             </div>
@@ -141,7 +141,7 @@ export function DashboardContent({ translations: t }: DashboardContentProps) {
               <p className="text-sm text-muted-foreground mb-2">
                 {t.getStarted.ticket.description}
               </p>
-              <Button onClick={() => router.push('/customer/my-tickets/create')} variant="outline" size="sm">
+              <Button onClick={() => router.push('/customer/my-tickets/create')} variant="outline" size="sm" data-testid="create-ticket-button">
                 {t.getStarted.ticket.button}
               </Button>
             </div>

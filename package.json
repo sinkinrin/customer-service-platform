@@ -13,7 +13,15 @@
     "i18n:validate": "node scripts/validate-i18n.js",
     "i18n:detect-hardcoded": "node scripts/detect-hardcoded-strings.js",
     "i18n:detect-verbose": "node scripts/detect-hardcoded-strings.js --verbose",
-    "i18n:check": "npm run i18n:validate && npm run i18n:detect-hardcoded"
+    "i18n:check": "npm run i18n:validate && npm run i18n:detect-hardcoded",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:all": "npm run test && npm run test:e2e"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -68,17 +76,28 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4.1.16",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/dompurify": "^3.0.5",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/ui": "^4.0.15",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.0.0",
+    "jsdom": "^27.3.0",
+    "msw": "^2.12.4",
     "tailwindcss": "^3.4.18",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.15"
   }
 }

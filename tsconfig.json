@@ -42,6 +42,8 @@
     "node_modules",
     "scripts",
     "playwright.config.ts",
-    "e2e"
+    "vitest.config.ts",
+    "e2e",
+    "__tests__"
   ]
 }

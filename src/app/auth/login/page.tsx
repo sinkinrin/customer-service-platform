@@ -124,11 +124,12 @@ export default function LoginPage() {
               id="email"
               type="email"
               placeholder={t('loginPage.emailPlaceholder')}
+              data-testid="login-email-input"
               {...register('email')}
               disabled={isSubmitting}
             />
             {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
+              <p className="text-sm text-destructive" data-testid="login-email-error">{errors.email.message}</p>
             )}
           </div>
 
@@ -147,17 +148,18 @@ export default function LoginPage() {
               id="password"
               type="password"
               placeholder={t('loginPage.passwordPlaceholder')}
+              data-testid="login-password-input"
               {...register('password')}
               disabled={isSubmitting}
             />
             {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
+              <p className="text-sm text-destructive" data-testid="login-password-error">{errors.password.message}</p>
             )}
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+            <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md" data-testid="login-error-message">
               {error}
             </div>
           )}
@@ -167,6 +169,7 @@ export default function LoginPage() {
             type="submit"
             className="w-full"
             disabled={isSubmitting}
+            data-testid="login-submit-button"
           >
             {isSubmitting ? t('loggingIn') : t('loginButton')}
           </Button>

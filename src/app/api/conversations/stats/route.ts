@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest) {
     // For now, we return stats for all tickets (not filtered by 'conversation' tag)
 
     // Get all tickets for the user from Zammad
-    const allTickets = await zammadClient.getTickets(user.email)
+    const allTickets = await zammadClient.getTickets(1, 100, user.email)
 
     // Count conversations by status (using all tickets as a temporary optimization)
     const stats = {

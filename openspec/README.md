@@ -34,6 +34,9 @@ openspec/
 - `add-self-hosted-faq-kb` - 添加自建 FAQ 知识库系统
 - `optimize-loading-speed` - 优化FAQ系统加载速度
 - `optimize-platform-performance` - 优化客户服务平台整体性能
+- `enhance-admin-management` - 完善Admin管理功能（看板增强、账号创建）
+- `add-ticket-notification-system` - 工单通知系统（邮件提醒、定时推送）
+- `add-ticket-assignment-system` - 工单分配与员工状态管理（假期状态）
 
 ## 使用方法
 

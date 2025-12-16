@@ -98,7 +98,7 @@ export default function CreateUserPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form method="post" onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">{t('form.emailRequired')}</Label>

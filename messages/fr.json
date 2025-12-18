@@ -13,6 +13,8 @@
     "filter": "Filtrer",
     "clear": "Effacer",
     "submit": "Soumettre",
+    "saving": "Enregistrement...",
+    "cancelling": "Annulation...",
     "back": "Retour",
     "next": "Suivant",
     "previous": "Précédent",
@@ -1090,6 +1092,22 @@
         "saveSuccess": "Paramètres enregistrés avec succès !",
         "saveError": "Échec de l'enregistrement des paramètres"
       }
+    },
+    "vacation": {
+      "title": "Paramètres de congés",
+      "description": "Définissez votre période d'absence. Pendant cette période, aucun nouveau ticket ne vous sera attribué.",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "replacementAgent": "Agent remplaçant (optionnel)",
+      "selectReplacement": "Sélectionnez un collègue...",
+      "noReplacement": "Aucun remplaçant",
+      "setVacation": "Définir les congés",
+      "updateVacation": "Mettre à jour les congés",
+      "cancelVacation": "Annuler les congés",
+      "setSuccess": "Période de congés définie avec succès",
+      "cancelSuccess": "Congés annulés",
+      "currentlyOnVacation": "Vous êtes actuellement en congés du {start} au {end}",
+      "replacement": "Remplaçant"
     },
     "conversations": {
       "pageTitle": "Gestion des conversations",

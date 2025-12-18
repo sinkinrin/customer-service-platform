@@ -13,6 +13,8 @@
     "filter": "Фильтр",
     "clear": "Очистить",
     "submit": "Отправить",
+    "saving": "Сохранение...",
+    "cancelling": "Отмена...",
     "back": "Назад",
     "next": "Далее",
     "previous": "Предыдущий",
@@ -1090,6 +1092,22 @@
         "saveSuccess": "Настройки успешно сохранены!",
         "saveError": "Не удалось сохранить настройки"
       }
+    },
+    "vacation": {
+      "title": "Настройки отпуска",
+      "description": "Установите период отсутствия. В это время вам не будут назначаться новые заявки.",
+      "startDate": "Дата начала",
+      "endDate": "Дата окончания",
+      "replacementAgent": "Замещающий сотрудник (необязательно)",
+      "selectReplacement": "Выберите коллегу...",
+      "noReplacement": "Без замещения",
+      "setVacation": "Установить отпуск",
+      "updateVacation": "Обновить отпуск",
+      "cancelVacation": "Отменить отпуск",
+      "setSuccess": "Период отпуска установлен",
+      "cancelSuccess": "Отпуск отменён",
+      "currentlyOnVacation": "Вы сейчас в отпуске с {start} по {end}",
+      "replacement": "Замещающий"
     },
     "conversations": {
       "pageTitle": "Управление беседами",

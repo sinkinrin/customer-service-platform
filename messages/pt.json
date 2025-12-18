@@ -13,6 +13,8 @@
     "filter": "Filtrar",
     "clear": "Limpar",
     "submit": "Enviar",
+    "saving": "Salvando...",
+    "cancelling": "Cancelando...",
     "back": "Voltar",
     "next": "Próximo",
     "previous": "Anterior",
@@ -1090,6 +1092,22 @@
         "saveSuccess": "Configurações salvas com sucesso!",
         "saveError": "Falha ao salvar configurações"
       }
+    },
+    "vacation": {
+      "title": "Configurações de férias",
+      "description": "Defina seu período de ausência. Durante este tempo, você não receberá novos tickets.",
+      "startDate": "Data de início",
+      "endDate": "Data de término",
+      "replacementAgent": "Agente substituto (opcional)",
+      "selectReplacement": "Selecione um colega...",
+      "noReplacement": "Sem substituto",
+      "setVacation": "Definir férias",
+      "updateVacation": "Atualizar férias",
+      "cancelVacation": "Cancelar férias",
+      "setSuccess": "Período de férias definido com sucesso",
+      "cancelSuccess": "Férias canceladas",
+      "currentlyOnVacation": "Você está atualmente de férias de {start} até {end}",
+      "replacement": "Substituto"
     },
     "conversations": {
       "pageTitle": "Gerenciamento de conversas",

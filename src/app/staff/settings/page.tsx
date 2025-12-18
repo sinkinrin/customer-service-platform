@@ -15,10 +15,12 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Save, User, Bell, Globe, Lock, Loader2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Save, User, Bell, Globe, Lock, Loader2, Plane } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
+import { VacationDialog } from '@/components/staff/vacation-dialog'
 
 interface StaffSettings {
   full_name: string
@@ -45,9 +47,16 @@ export default function StaffSettingsPage() {
   const tNotifications = useTranslations('staff.settings.notifications')
   const tPreferences = useTranslations('staff.settings.preferences')
   const tSecurity = useTranslations('staff.settings.security')
+  const tVacation = useTranslations('staff.vacation')
   const tToast = useTranslations('staff.settings.toast')
   const tCommon = useTranslations('common.localeNames')
   const [saving, setSaving] = useState(false)
+  const [vacationDialogOpen, setVacationDialogOpen] = useState(false)
+  const [vacationStatus, setVacationStatus] = useState<{
+    is_on_vacation: boolean
+    start_date: string | null
+    end_date: string | null
+  } | null>(null)
   const [settings, setSettings] = useState<StaffSettings>({
     full_name: '',
     email: '',
@@ -75,8 +84,22 @@ export default function StaffSettingsPage() {
         phone: user.phone || '',
         language: user.language || 'en',
       }))
+      // Fetch vacation status
+      fetchVacationStatus()
     }
   }, [user])
+
+  const fetchVacationStatus = async () => {
+    try {
+      const res = await fetch('/api/staff/vacation')
+      if (res.ok) {
+        const data = await res.json()
+        setVacationStatus(data.vacation)
+      }
+    } catch (error) {
+      console.error('Failed to fetch vacation status:', error)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -359,6 +382,50 @@ export default function StaffSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Vacation Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <Plane className="h-5 w-5" />
+            <div>
+              <CardTitle>{tVacation('title')}</CardTitle>
+              <CardDescription>{tVacation('description')}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {vacationStatus?.is_on_vacation ? (
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                    <Plane className="h-3 w-3 mr-1" />
+                    {tVacation('title')}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {vacationStatus.start_date} ~ {vacationStatus.end_date}
+                </p>
+              </div>
+              <Button variant="outline" onClick={() => setVacationDialogOpen(true)}>
+                {tVacation('updateVacation')}
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline" onClick={() => setVacationDialogOpen(true)}>
+              <Plane className="h-4 w-4 mr-2" />
+              {tVacation('setVacation')}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <VacationDialog
+        open={vacationDialogOpen}
+        onOpenChange={setVacationDialogOpen}
+        onSuccess={fetchVacationStatus}
+      />
 
       {/* Security Section */}
       <Card>

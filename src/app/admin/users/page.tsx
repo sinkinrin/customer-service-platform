@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label'
 import { Search, Edit, Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { REGIONS } from '@/lib/constants/regions'
 
 interface User {
   user_id: string
@@ -42,6 +43,7 @@ interface User {
   role: 'customer' | 'staff' | 'admin'
   phone?: string
   language?: string
+  region?: string
   created_at: string
 }
 
@@ -52,6 +54,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [regionFilter, setRegionFilter] = useState<string>('all')
   const [pagination, setPagination] = useState({ limit: 20, offset: 0, total: 0 })
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -86,7 +89,7 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [roleFilter]) // Re-fetch when role filter changes
 
   const handleSearch = () => {
     setPagination({ ...pagination, offset: 0 })
@@ -138,6 +141,12 @@ export default function UsersPage() {
     }
   }
 
+  const getRegionLabel = (regionValue?: string) => {
+    if (!regionValue) return '-'
+    const region = REGIONS.find(r => r.value === regionValue)
+    return region?.labelEn || regionValue
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
@@ -177,7 +186,7 @@ export default function UsersPage() {
               </Button>
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder={t('filterPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -185,6 +194,19 @@ export default function UsersPage() {
                 <SelectItem value="customer">{t('roles.customer')}</SelectItem>
                 <SelectItem value="staff">{t('roles.staff')}</SelectItem>
                 <SelectItem value="admin">{t('roles.admin')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={regionFilter} onValueChange={setRegionFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder={t('filters.allRegions')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('filters.allRegions')}</SelectItem>
+                {REGIONS.map(region => (
+                  <SelectItem key={region.value} value={region.value}>
+                    {region.labelEn}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -233,34 +255,38 @@ export default function UsersPage() {
                     <TableHead>{t('table.name')}</TableHead>
                     <TableHead>{t('table.email')}</TableHead>
                     <TableHead>{t('table.role')}</TableHead>
+                    <TableHead>{t('table.region')}</TableHead>
                     <TableHead>{t('table.phone')}</TableHead>
                     <TableHead>{t('table.createdAt')}</TableHead>
                     <TableHead>{t('table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.user_id}>
-                      <TableCell className="font-medium">{user.full_name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={getRoleBadgeVariant(user.role)}>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.phone || '-'}</TableCell>
-                      <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(user)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {users
+                    .filter(user => regionFilter === 'all' || user.region === regionFilter)
+                    .map((user) => (
+                      <TableRow key={user.user_id}>
+                        <TableCell className="font-medium">{user.full_name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={getRoleBadgeVariant(user.role)}>
+                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{getRegionLabel(user.region)}</TableCell>
+                        <TableCell>{user.phone || '-'}</TableCell>
+                        <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(user)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
 

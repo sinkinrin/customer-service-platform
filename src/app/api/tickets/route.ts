@@ -443,8 +443,19 @@ export async function POST(request: NextRequest) {
         if (agent.out_of_office) {
           const startDate = agent.out_of_office_start_at ? new Date(agent.out_of_office_start_at) : null
           const endDate = agent.out_of_office_end_at ? new Date(agent.out_of_office_end_at) : null
-          if (startDate && endDate && now >= startDate && now <= endDate) {
-            return false // On vacation
+
+          if (startDate && endDate) {
+            if (now >= startDate && now <= endDate) {
+              return false // On vacation (bounded period)
+            }
+          } else if (startDate && !endDate) {
+            if (now >= startDate) {
+              return false // On vacation (open-ended)
+            }
+          } else if (!startDate && endDate) {
+            if (now <= endDate) {
+              return false // On vacation until end date
+            }
           }
         }
 

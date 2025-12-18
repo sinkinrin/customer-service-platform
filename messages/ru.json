@@ -413,6 +413,7 @@
         "name": "Имя",
         "email": "Email",
         "role": "Роль",
+        "region": "Регион",
         "phone": "Телефон",
         "status": "Статус",
         "createdAt": "Дата создания",

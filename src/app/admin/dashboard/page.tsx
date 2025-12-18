@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PageTransition } from '@/components/ui/page-transition'
+import { TicketTrendChart } from '@/components/admin/charts/ticket-trend-chart'
+import { RegionDistributionChart } from '@/components/admin/charts/region-distribution-chart'
 
 interface TicketStats {
   total: number
@@ -234,7 +236,13 @@ export default function AdminDashboardPage() {
         )}
       </div>
 
-      {/* Regional Ticket Distribution */}
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TicketTrendChart />
+        <RegionDistributionChart data={regionStats} loading={loading} />
+      </div>
+
+      {/* Regional Details (text version) */}
       <Card>
         <CardHeader>
           <CardTitle>{t('regionalDistribution.title')}</CardTitle>

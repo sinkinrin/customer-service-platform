@@ -413,6 +413,7 @@
         "name": "Nombre",
         "email": "Correo",
         "role": "Rol",
+        "region": "Región",
         "phone": "Teléfono",
         "status": "Estado",
         "createdAt": "Creado el",

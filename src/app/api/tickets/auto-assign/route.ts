@@ -13,6 +13,7 @@ import { requireRole } from '@/lib/utils/auth'
 import {
     successResponse,
     serverErrorResponse,
+    errorResponse,
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
 
         // If CRON_SECRET is set but wrong secret provided, reject
         if (cronSecret && expectedSecret && cronSecret !== expectedSecret) {
-            return serverErrorResponse('Invalid cron secret', undefined, 403)
+            return errorResponse('FORBIDDEN', 'Invalid cron secret', undefined, 403)
         }
 
         // Get all tickets

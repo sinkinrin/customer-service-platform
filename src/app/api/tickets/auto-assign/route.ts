@@ -37,19 +37,21 @@ interface AssignmentResult {
  */
 export async function POST(request: NextRequest) {
     try {
-        // Only admin can trigger auto-assignment
-        await requireRole(['admin'])
-
-        // Optional: Check for secret key for cron job authentication
+        // Check for cron secret authentication first
         const cronSecret = request.headers.get('x-cron-secret')
         const expectedSecret = process.env.CRON_SECRET
 
-        // If CRON_SECRET is set, validate it (for external cron job calls)
-        if (expectedSecret && cronSecret !== expectedSecret) {
-            // Only require secret if it's defined, otherwise allow authenticated admin access
-            if (cronSecret) {
-                return serverErrorResponse('Invalid cron secret', undefined, 403)
-            }
+        // If cron secret is provided and matches, skip session auth
+        const isValidCronRequest = expectedSecret && cronSecret === expectedSecret
+
+        if (!isValidCronRequest) {
+            // For non-cron requests, require admin role
+            await requireRole(['admin'])
+        }
+
+        // If CRON_SECRET is set but wrong secret provided, reject
+        if (cronSecret && expectedSecret && cronSecret !== expectedSecret) {
+            return serverErrorResponse('Invalid cron secret', undefined, 403)
         }
 
         // Get all tickets

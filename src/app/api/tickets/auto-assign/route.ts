@@ -68,6 +68,8 @@ export async function POST(request: NextRequest) {
             return successResponse({
                 message: 'No unassigned tickets found',
                 processed: 0,
+                success: 0,
+                failed: 0,
                 results: [],
             })
         }

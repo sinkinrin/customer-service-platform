@@ -242,7 +242,7 @@ export function VacationDialog({ open, onOpenChange, onSuccess }: VacationDialog
                                     type="date"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    min={today}
+                                    min={vacationStatus?.is_on_vacation ? undefined : today}
                                     disabled={saving || cancelling}
                                 />
                             </div>

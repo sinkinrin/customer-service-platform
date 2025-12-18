@@ -76,13 +76,18 @@ function mapStateIdToString(stateId: number): string {
 /**
  * Transform Zammad ticket to include priority, state, and customer information
  */
-function transformTicket(ticket: RawZammadTicket, customerInfo?: { name?: string; email?: string }) {
+function transformTicket(
+  ticket: RawZammadTicket,
+  customerInfo?: { name?: string; email?: string },
+  ownerInfo?: { name?: string }
+) {
   return {
     ...ticket,
     priority: mapPriorityIdToString(ticket.priority_id),
     state: mapStateIdToString(ticket.state_id),
     customer: customerInfo?.name || customerInfo?.email || `Customer #${ticket.customer_id}`,
     customer_email: customerInfo?.email,
+    owner_name: ownerInfo?.name || (ticket.owner_id ? `Staff #${ticket.owner_id}` : undefined),
   }
 }
 
@@ -228,9 +233,12 @@ export async function GET(request: NextRequest) {
 
     // Collect unique customer IDs (to avoid duplicate fetches)
     const customerIds = [...new Set(limitedTickets.map((t: any) => t.customer_id))]
+    // Collect unique owner IDs
+    const ownerIds = [...new Set(limitedTickets.map((t: any) => t.owner_id).filter(Boolean))]
 
     // In-memory cache for this request to avoid duplicate fetches
     const customerMap = new Map<number, { name?: string; email?: string }>()
+    const ownerMap = new Map<number, { name?: string }>()
 
     // Fetch customer information with concurrency limit to avoid overwhelming Zammad
     const CONCURRENCY_LIMIT = 5  // Process 5 customers at a time
@@ -264,9 +272,39 @@ export async function GET(request: NextRequest) {
       // Continue even if batch fetch fails
     }
 
-    // Transform tickets to include priority, state, and customer information
+    // Fetch owner (staff) information
+    const ownerChunks: number[][] = []
+    for (let i = 0; i < ownerIds.length; i += CONCURRENCY_LIMIT) {
+      ownerChunks.push(ownerIds.slice(i, i + CONCURRENCY_LIMIT))
+    }
+
+    try {
+      for (const chunk of ownerChunks) {
+        await Promise.all(
+          chunk.map(async (ownerId) => {
+            try {
+              const owner = await zammadClient.getUser(ownerId)
+              const name = owner.firstname && owner.lastname
+                ? `${owner.firstname} ${owner.lastname}`.trim()
+                : owner.firstname || owner.lastname || owner.login || undefined
+              ownerMap.set(ownerId, { name })
+            } catch (error) {
+              console.error(`[DEBUG] Failed to fetch owner ${ownerId}:`, error)
+            }
+          })
+        )
+      }
+    } catch (error) {
+      console.error('[DEBUG] Error fetching owner information:', error)
+    }
+
+    // Transform tickets to include priority, state, customer and owner information
     const transformedTickets = limitedTickets.map((ticket: any) =>
-      transformTicket(ticket, customerMap.get(ticket.customer_id))
+      transformTicket(
+        ticket,
+        customerMap.get(ticket.customer_id),
+        ticket.owner_id ? ownerMap.get(ticket.owner_id) : undefined
+      )
     )
 
     return successResponse({
@@ -372,6 +410,68 @@ export async function POST(request: NextRequest) {
 
     console.log('[DEBUG] POST /api/tickets - Created ticket:', ticket.id)
 
+    // Auto-assign ticket to available agent with lowest workload
+    let assignedAgent = null
+    try {
+      // Get all agents with their workload
+      const allAgents = await zammadClient.getAgents(true)
+      const allTickets = await zammadClient.getAllTickets()
+
+      // Calculate ticket count per agent
+      const ticketCountByAgent: Record<number, number> = {}
+      for (const t of allTickets) {
+        if (t.owner_id && [1, 2, 3, 6].includes(t.state_id)) {
+          ticketCountByAgent[t.owner_id] = (ticketCountByAgent[t.owner_id] || 0) + 1
+        }
+      }
+
+      // Filter agents in the same group and not on vacation
+      // Exclude system accounts (howensupport, support@howentech.com) that shouldn't receive assignments
+      const EXCLUDED_EMAILS = ['support@howentech.com', 'howensupport@howentech.com']
+      const now = new Date()
+      const availableAgents = allAgents.filter(agent => {
+        // Exclude system/dispatcher accounts
+        if (EXCLUDED_EMAILS.some(email => agent.email?.toLowerCase() === email.toLowerCase())) {
+          return false
+        }
+
+        // Check if agent has access to this group
+        const agentGroupIds = agent.group_ids || {}
+        const hasGroupAccess = Object.keys(agentGroupIds).includes(String(groupId))
+
+        // Check if on vacation
+        if (agent.out_of_office) {
+          const startDate = agent.out_of_office_start_at ? new Date(agent.out_of_office_start_at) : null
+          const endDate = agent.out_of_office_end_at ? new Date(agent.out_of_office_end_at) : null
+          if (startDate && endDate && now >= startDate && now <= endDate) {
+            return false // On vacation
+          }
+        }
+
+        return hasGroupAccess
+      })
+
+      // Sort by ticket count (ascending) and pick the one with lowest load
+      if (availableAgents.length > 0) {
+        availableAgents.sort((a, b) => {
+          const loadA = ticketCountByAgent[a.id] || 0
+          const loadB = ticketCountByAgent[b.id] || 0
+          return loadA - loadB
+        })
+
+        assignedAgent = availableAgents[0]
+
+        // Assign ticket to this agent
+        await zammadClient.updateTicket(ticket.id, { owner_id: assignedAgent.id })
+        console.log('[DEBUG] POST /api/tickets - Auto-assigned to agent:', assignedAgent.id, assignedAgent.email)
+      } else {
+        console.log('[DEBUG] POST /api/tickets - No available agents for auto-assignment in group:', groupId)
+      }
+    } catch (autoAssignError) {
+      console.error('[DEBUG] POST /api/tickets - Auto-assignment failed:', autoAssignError)
+      // Continue without assignment, ticket is still created
+    }
+
     // R1: Broadcast ticket created event via SSE
     try {
       broadcastEvent({
@@ -383,6 +483,7 @@ export async function POST(request: NextRequest) {
           state_id: ticket.state_id,
           priority_id: ticket.priority_id,
           group_id: ticket.group_id,
+          owner_id: assignedAgent?.id,
         },
       })
       console.log('[SSE] Broadcasted ticket_created event for ticket:', ticket.id)

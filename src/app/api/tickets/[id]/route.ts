@@ -113,15 +113,20 @@ function mapPriorityStringToId(priority: string): number {
 }
 
 /**
- * Transform Zammad ticket to include priority, state, and customer information
+ * Transform Zammad ticket to include priority, state, customer and owner information
  */
-function transformTicket(ticket: RawZammadTicket, customerInfo?: { name?: string; email?: string }) {
+function transformTicket(
+  ticket: RawZammadTicket,
+  customerInfo?: { name?: string; email?: string },
+  ownerInfo?: { name?: string }
+) {
   return {
     ...ticket,
     priority: mapPriorityIdToString(ticket.priority_id),
     state: mapStateIdToString(ticket.state_id),
     customer: customerInfo?.name || customerInfo?.email || `Customer #${ticket.customer_id}`,
     customer_email: customerInfo?.email,
+    owner_name: ownerInfo?.name || (ticket.owner_id ? `Staff #${ticket.owner_id}` : undefined),
   }
 }
 
@@ -228,8 +233,23 @@ export async function GET(
       // Continue without customer info
     }
 
-    // Transform ticket to include priority, state, and customer information
-    const ticket = transformTicket(rawTicket, customerInfo)
+    // Fetch owner (staff) information
+    let ownerInfo: { name?: string } | undefined
+    if (rawTicket.owner_id) {
+      try {
+        const owner = await zammadClient.getUser(rawTicket.owner_id)
+        const name = owner.firstname && owner.lastname
+          ? `${owner.firstname} ${owner.lastname}`.trim()
+          : owner.firstname || owner.lastname || owner.login || undefined
+        ownerInfo = { name }
+      } catch (error) {
+        console.error(`[DEBUG] Failed to fetch owner ${rawTicket.owner_id}:`, error)
+        // Continue without owner info
+      }
+    }
+
+    // Transform ticket to include priority, state, customer and owner information
+    const ticket = transformTicket(rawTicket, customerInfo, ownerInfo)
 
     return successResponse({ ticket })
   } catch (error) {

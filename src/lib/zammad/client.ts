@@ -17,6 +17,8 @@ import type {
   ZammadUser,
   CreateUserRequest,
   UpdateUserRequest,
+  SetOutOfOfficeRequest,
+  OutOfOfficeStatus,
   ZammadGroup,
   CreateGroupRequest,
   ZammadSearchResponse,
@@ -492,6 +494,128 @@ export class ZammadClient {
   async searchUsers(query: string): Promise<ZammadUser[]> {
     const params = new URLSearchParams({ query })
     return this.request<ZammadUser[]>(`/users/search?${params}`)
+  }
+
+  // ============================================================================
+  // Out-of-Office (Vacation) Management
+  // ============================================================================
+
+  /**
+   * Get user's Out-of-Office status
+   * @param userId - User ID (if not provided, gets current user's status)
+   * @returns Out-of-Office status with replacement user info
+   */
+  async getOutOfOffice(userId?: number): Promise<OutOfOfficeStatus> {
+    const user = userId
+      ? await this.getUser(userId)
+      : await this.getCurrentUser()
+
+    const status: OutOfOfficeStatus = {
+      out_of_office: user.out_of_office,
+      out_of_office_start_at: user.out_of_office_start_at,
+      out_of_office_end_at: user.out_of_office_end_at,
+      out_of_office_replacement_id: user.out_of_office_replacement_id,
+    }
+
+    // Fetch replacement user details if set
+    if (user.out_of_office_replacement_id) {
+      try {
+        status.replacement_user = await this.getUser(user.out_of_office_replacement_id)
+      } catch {
+        // Replacement user might not exist anymore
+        status.replacement_user = null
+      }
+    }
+
+    return status
+  }
+
+  /**
+   * Set Out-of-Office status for a user
+   * @param userId - User ID
+   * @param data - Out-of-Office settings
+   * @returns Updated user object
+   */
+  async setOutOfOffice(userId: number, data: SetOutOfOfficeRequest): Promise<ZammadUser> {
+    return this.updateUser(userId, {
+      out_of_office: data.out_of_office,
+      out_of_office_start_at: data.out_of_office_start_at,
+      out_of_office_end_at: data.out_of_office_end_at,
+      out_of_office_replacement_id: data.out_of_office_replacement_id,
+    })
+  }
+
+  /**
+   * Cancel Out-of-Office status for a user
+   * @param userId - User ID
+   * @returns Updated user object
+   */
+  async cancelOutOfOffice(userId: number): Promise<ZammadUser> {
+    return this.updateUser(userId, {
+      out_of_office: false,
+      out_of_office_start_at: null,
+      out_of_office_end_at: null,
+      out_of_office_replacement_id: null,
+    })
+  }
+
+  // ============================================================================
+  // Agent Management
+  // ============================================================================
+
+  /**
+   * Get all agents (users with Agent role)
+   * Zammad role_id=2 is typically the Agent role
+   * @param activeOnly - If true, only return active agents (default: true)
+   * @returns Array of agent users
+   */
+  async getAgents(activeOnly: boolean = true): Promise<ZammadUser[]> {
+    // Get all users from Zammad
+    const allUsers = await this.request<ZammadUser[]>('/users')
+
+    // Filter for users with Agent role (role_id = 2)
+    // Note: role_ids is an array of role IDs the user has
+    const agents = allUsers.filter(user => {
+      const roleIds = user.role_ids || []
+      return roleIds.includes(2) // role_id 2 = Agent
+    })
+
+    if (activeOnly) {
+      return agents.filter(user => user.active)
+    }
+
+    return agents
+  }
+
+  /**
+   * Get available agents (not on vacation)
+   * @returns Array of available agent users
+   */
+  async getAvailableAgents(): Promise<ZammadUser[]> {
+    const agents = await this.getAgents(true)
+    const now = new Date()
+
+    return agents.filter(agent => {
+      // Not on vacation
+      if (!agent.out_of_office) return true
+
+      // Check if vacation period is current
+      const startDate = agent.out_of_office_start_at
+        ? new Date(agent.out_of_office_start_at)
+        : null
+      const endDate = agent.out_of_office_end_at
+        ? new Date(agent.out_of_office_end_at)
+        : null
+
+      // If start date is in future, agent is available
+      if (startDate && now < startDate) return true
+
+      // If end date is in past, agent is available
+      if (endDate && now > endDate) return true
+
+      // Agent is currently on vacation
+      return false
+    })
   }
 
   // ============================================================================

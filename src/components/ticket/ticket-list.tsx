@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Clock, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { Clock, AlertCircle, CheckCircle2, XCircle, UserPlus } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useAuth } from '@/lib/hooks/use-auth'
@@ -13,6 +14,7 @@ import { useTranslations } from 'next-intl'
 interface TicketListProps {
   tickets: ZammadTicket[]
   isLoading?: boolean
+  onAssign?: (ticket: { id: number; number: string; title: string; owner_id?: number | null }) => void
 }
 
 const getStatusIcon = (state: string | undefined) => {
@@ -78,7 +80,7 @@ const getPriorityColor = (priority: string | undefined) => {
   return 'bg-[#6366F1] text-white'
 }
 
-export function TicketList({ tickets, isLoading }: TicketListProps) {
+export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
   const router = useRouter()
   const { user } = useAuth()
   const t = useTranslations('tickets')
@@ -92,6 +94,18 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
       return `/staff/tickets/${ticketId}`
     } else {
       return `/customer/my-tickets/${ticketId}`
+    }
+  }
+
+  const handleAssignClick = (e: React.MouseEvent, ticket: ZammadTicket) => {
+    e.stopPropagation() // Prevent card click
+    if (onAssign) {
+      onAssign({
+        id: ticket.id,
+        number: ticket.number,
+        title: ticket.title,
+        owner_id: ticket.owner_id,
+      })
     }
   }
 
@@ -162,13 +176,29 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div className="flex items-center gap-4">
                 <span>{t('details.group')}: {ticket.group}</span>
-                {ticket.owner_id && <span>{tCommon('assigned')}</span>}
+                {ticket.owner_id && (
+                  <span className="text-blue-600 dark:text-blue-400">
+                    {t('details.assignedTo')}: {ticket.owner_name || `Staff #${ticket.owner_id}`}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>
-                  {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
-                </span>
+              <div className="flex items-center gap-2">
+                {user?.role === 'admin' && onAssign && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => handleAssignClick(e, ticket)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    {ticket.owner_id ? t('actions.reassign') : t('actions.assign')}
+                  </Button>
+                )}
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -177,4 +207,5 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
     </div>
   )
 }
+
 

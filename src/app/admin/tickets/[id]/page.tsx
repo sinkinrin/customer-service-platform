@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, MessageSquare, Trash2 } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Trash2, UserPlus } from 'lucide-react'
 import { TicketDetail } from '@/components/ticket/ticket-detail'
 import { TicketActions } from '@/components/ticket/ticket-actions'
 import { ArticleCard } from '@/components/ticket/article-content'
+import { TicketAssignDialog } from '@/components/admin/ticket-assign-dialog'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { format } from 'date-fns'
@@ -33,10 +34,11 @@ export default function AdminTicketDetailPage() {
   const params = useParams()
   const router = useRouter()
   const ticketId = params.id as string
-  
+
   const [ticket, setTicket] = useState<ZammadTicket | null>(null)
   const [articles, setArticles] = useState<TicketArticle[]>([])
   const [deleting, setDeleting] = useState(false)
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const { fetchTicketById, updateTicket, addArticle, fetchArticles, isLoading } = useTicket()
 
   useEffect(() => {
@@ -151,28 +153,34 @@ export default function AdminTicketDetailPage() {
             </p>
           </div>
         </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm" disabled={deleting}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              {t('deleteButton')}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {t('deleteDialog.description')}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                {t('deleteDialog.delete')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            {ticket.owner_id ? t('reassign') : t('assign')}
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={deleting}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t('deleteButton')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('deleteDialog.description')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+                  {t('deleteDialog.delete')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -220,6 +228,19 @@ export default function AdminTicketDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Assign Dialog */}
+      <TicketAssignDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        ticket={ticket ? {
+          id: ticket.id,
+          number: ticket.number,
+          title: ticket.title,
+          owner_id: ticket.owner_id
+        } : null}
+        onSuccess={loadTicket}
+      />
     </div>
   )
 }

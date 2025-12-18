@@ -60,7 +60,7 @@ export async function GET() {
 
             return {
                 id: agent.id,
-                name: [agent.firstname, agent.lastname].filter(Boolean).join(' ') || agent.login || agent.email,
+                name: `${agent.firstname} ${agent.lastname}`.trim() || agent.login,
                 email: agent.email,
                 is_available: !isOnVacation,
                 is_on_vacation: isOnVacation,

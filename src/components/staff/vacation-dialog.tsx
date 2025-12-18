@@ -84,29 +84,25 @@ export function VacationDialog({ open, onOpenChange, onSuccess }: VacationDialog
             // Fetch vacation status
             const vacationRes = await fetch('/api/staff/vacation')
             if (vacationRes.ok) {
-                const res = await vacationRes.json()
-                const vacation = res.data?.vacation
-                if (vacation) {
-                    setVacationStatus(vacation)
-                    if (vacation.start_date) {
-                        setStartDate(vacation.start_date)
-                    }
-                    if (vacation.end_date) {
-                        setEndDate(vacation.end_date)
-                    }
-                    if (vacation.replacement?.id) {
-                        setReplacementId(vacation.replacement.id.toString())
-                    }
+                const data = await vacationRes.json()
+                setVacationStatus(data.vacation)
+                if (data.vacation.start_date) {
+                    setStartDate(data.vacation.start_date)
+                }
+                if (data.vacation.end_date) {
+                    setEndDate(data.vacation.end_date)
+                }
+                if (data.vacation.replacement?.id) {
+                    setReplacementId(data.vacation.replacement.id.toString())
                 }
             }
 
             // Fetch available staff for replacement selection
             const staffRes = await fetch('/api/staff/available')
             if (staffRes.ok) {
-                const res = await staffRes.json()
-                const staffList = res.data?.staff
-                if (staffList && Array.isArray(staffList)) {
-                    setAvailableStaff(staffList.filter((s: StaffMember) => s.is_available))
+                const data = await staffRes.json()
+                if (data.staff && Array.isArray(data.staff)) {
+                    setAvailableStaff(data.staff.filter((s: StaffMember) => s.is_available))
                 }
             }
         } catch (err) {
@@ -147,8 +143,8 @@ export function VacationDialog({ open, onOpenChange, onSuccess }: VacationDialog
                 onSuccess?.()
                 onOpenChange(false)
             } else {
-                const result = await res.json()
-                setError(result.error?.message || 'Failed to set vacation')
+                const data = await res.json()
+                setError(data.error || 'Failed to set vacation')
             }
         } catch (err) {
             console.error('Failed to set vacation:', err)
@@ -176,8 +172,8 @@ export function VacationDialog({ open, onOpenChange, onSuccess }: VacationDialog
                 onSuccess?.()
                 onOpenChange(false)
             } else {
-                const result = await res.json()
-                setError(result.error?.message || 'Failed to cancel vacation')
+                const data = await res.json()
+                setError(data.error || 'Failed to cancel vacation')
             }
         } catch (err) {
             console.error('Failed to cancel vacation:', err)
@@ -242,7 +238,7 @@ export function VacationDialog({ open, onOpenChange, onSuccess }: VacationDialog
                                     type="date"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    min={vacationStatus?.is_on_vacation ? undefined : today}
+                                    min={today}
                                     disabled={saving || cancelling}
                                 />
                             </div>

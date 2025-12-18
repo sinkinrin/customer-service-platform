@@ -63,9 +63,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         let staffMember
         try {
             staffMember = await zammadClient.getUser(staff_id)
-            // Check via role_ids (Agent role is typically ID 2) - consistent with zammadClient.getAgents()
-            const isAgent = staffMember.role_ids?.includes(2) || staffMember.roles?.includes('Agent')
-            if (!isAgent) {
+            if (!staffMember.roles?.includes('Agent')) {
                 return validationErrorResponse('Selected user is not a staff member')
             }
         } catch {
@@ -115,7 +113,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             },
             assigned_to: {
                 id: staffMember.id,
-                name: [staffMember.firstname, staffMember.lastname].filter(Boolean).join(' ') || staffMember.login || staffMember.email,
+                name: `${staffMember.firstname} ${staffMember.lastname}`.trim(),
                 email: staffMember.email,
             }
         })

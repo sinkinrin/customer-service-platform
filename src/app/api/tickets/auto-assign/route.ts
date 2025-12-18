@@ -13,7 +13,6 @@ import { requireRole } from '@/lib/utils/auth'
 import {
     successResponse,
     serverErrorResponse,
-    errorResponse,
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
@@ -38,21 +37,19 @@ interface AssignmentResult {
  */
 export async function POST(request: NextRequest) {
     try {
-        // Check for cron secret authentication first
+        // Only admin can trigger auto-assignment
+        await requireRole(['admin'])
+
+        // Optional: Check for secret key for cron job authentication
         const cronSecret = request.headers.get('x-cron-secret')
         const expectedSecret = process.env.CRON_SECRET
 
-        // If cron secret is provided and matches, skip session auth
-        const isValidCronRequest = expectedSecret && cronSecret === expectedSecret
-
-        if (!isValidCronRequest) {
-            // For non-cron requests, require admin role
-            await requireRole(['admin'])
-        }
-
-        // If CRON_SECRET is set but wrong secret provided, reject
-        if (cronSecret && expectedSecret && cronSecret !== expectedSecret) {
-            return errorResponse('FORBIDDEN', 'Invalid cron secret', undefined, 403)
+        // If CRON_SECRET is set, validate it (for external cron job calls)
+        if (expectedSecret && cronSecret !== expectedSecret) {
+            // Only require secret if it's defined, otherwise allow authenticated admin access
+            if (cronSecret) {
+                return serverErrorResponse('Invalid cron secret', undefined, 403)
+            }
         }
 
         // Get all tickets
@@ -69,8 +66,6 @@ export async function POST(request: NextRequest) {
             return successResponse({
                 message: 'No unassigned tickets found',
                 processed: 0,
-                success: 0,
-                failed: 0,
                 results: [],
             })
         }
@@ -109,23 +104,8 @@ export async function POST(request: NextRequest) {
                 if (agent.out_of_office) {
                     const startDate = agent.out_of_office_start_at ? new Date(agent.out_of_office_start_at) : null
                     const endDate = agent.out_of_office_end_at ? new Date(agent.out_of_office_end_at) : null
-
-                    // Handle different OOO scenarios:
-                    // 1. Both dates set: check if currently within the range
-                    // 2. Only start date: open-ended vacation, on vacation if past start date
-                    // 3. Only end date: on vacation until end date
-                    if (startDate && endDate) {
-                        if (now >= startDate && now <= endDate) {
-                            return false // On vacation (bounded period)
-                        }
-                    } else if (startDate && !endDate) {
-                        if (now >= startDate) {
-                            return false // On vacation (open-ended)
-                        }
-                    } else if (!startDate && endDate) {
-                        if (now <= endDate) {
-                            return false // On vacation until end date
-                        }
+                    if (startDate && endDate && now >= startDate && now <= endDate) {
+                        return false // On vacation
                     }
                 }
 

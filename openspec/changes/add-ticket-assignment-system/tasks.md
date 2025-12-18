@@ -6,62 +6,62 @@
 ## 1. 假期状态管理（Zammad API）
 
 ### 1.1 扩展 ZammadClient
-- [ ] 1.1.1 在 `src/lib/zammad/client.ts` 添加 `setOutOfOffice()` 方法
-- [ ] 1.1.2 添加 `getOutOfOffice()` 方法
-- [ ] 1.1.3 添加 `cancelOutOfOffice()` 方法
+- [x] 1.1.1 在 `src/lib/zammad/client.ts` 添加 `setOutOfOffice()` 方法
+- [x] 1.1.2 添加 `getOutOfOffice()` 方法
+- [x] 1.1.3 添加 `cancelOutOfOffice()` 方法
 - **预计时间**：0.5天
 - **优先级**：P0
 
 ### 1.2 假期管理 API
-- [ ] 1.2.1 创建 `src/app/api/staff/vacation/route.ts`
-- [ ] 1.2.2 GET - 获取当前假期状态
-- [ ] 1.2.3 PUT - 设置假期时间和代理人
-- [ ] 1.2.4 DELETE - 取消假期
+- [x] 1.2.1 创建 `src/app/api/staff/vacation/route.ts`
+- [x] 1.2.2 GET - 获取当前假期状态
+- [x] 1.2.3 PUT - 设置假期时间和代理人
+- [x] 1.2.4 DELETE - 取消假期
 - **预计时间**：0.5天
 - **优先级**：P0
 
 ### 1.3 假期设置 UI
-- [ ] 1.3.1 创建 `src/components/staff/vacation-dialog.tsx`
-- [ ] 1.3.2 日期范围选择器
-- [ ] 1.3.3 代理人选择下拉框
-- [ ] 1.3.4 显示当前假期状态
+- [x] 1.3.1 创建 `src/components/staff/vacation-dialog.tsx`
+- [x] 1.3.2 日期范围选择器
+- [x] 1.3.3 代理人选择下拉框
+- [x] 1.3.4 显示当前假期状态
 - **预计时间**：1天
 - **优先级**：P0
 
 ### 1.4 Staff 设置页面更新
-- [ ] 1.4.1 更新 `src/app/staff/settings/page.tsx`
-- [ ] 1.4.2 添加假期管理卡片
+- [x] 1.4.1 更新 `src/app/staff/settings/page.tsx`
+- [x] 1.4.2 添加假期管理卡片
 - **预计时间**：0.5天
 - **优先级**：P1
 
 ## 2. 手动分配功能
 
 ### 2.1 分配 API
-- [ ] 2.1.1 创建 `src/app/api/tickets/[id]/assign/route.ts`
-- [ ] 2.1.2 PUT - 分配给指定员工（更新 Zammad ticket.owner_id）
-- [ ] 2.1.3 DELETE - 取消分配
+- [x] 2.1.1 创建 `src/app/api/tickets/[id]/assign/route.ts`
+- [x] 2.1.2 PUT - 分配给指定员工（更新 Zammad ticket.owner_id）
+- [x] 2.1.3 DELETE - 取消分配
 - **预计时间**：0.5天
 - **优先级**：P1
 
 ### 2.2 获取可分配员工 API
-- [ ] 2.2.1 创建 `src/app/api/staff/available/route.ts`
-- [ ] 2.2.2 获取所有 Staff（排除休假员工）
-- [ ] 2.2.3 返回每人当前工单数
+- [x] 2.2.1 创建 `src/app/api/staff/available/route.ts`
+- [x] 2.2.2 获取所有 Staff（排除休假员工）
+- [x] 2.2.3 返回每人当前工单数
 - **预计时间**：0.5天
 - **优先级**：P1
 
 ### 2.3 分配弹窗组件
-- [ ] 2.3.1 创建 `src/components/admin/ticket-assign-dialog.tsx`
-- [ ] 2.3.2 显示可分配员工列表
-- [ ] 2.3.3 显示员工当前工单数
-- [ ] 2.3.4 休假员工标记或隐藏
-- [ ] 2.3.5 按工单数排序，推荐负载低的员工
+- [x] 2.3.1 创建 `src/components/admin/ticket-assign-dialog.tsx`
+- [x] 2.3.2 显示可分配员工列表
+- [x] 2.3.3 显示员工当前工单数
+- [x] 2.3.4 休假员工标记或隐藏
+- [x] 2.3.5 按工单数排序，推荐负载低的员工
 - **预计时间**：1天
 - **优先级**：P1
 
 ### 2.4 工单列表集成
-- [ ] 2.4.1 在工单列表添加"分配"按钮
-- [ ] 2.4.2 在工单详情页添加"重新分配"功能
+- [x] 2.4.1 在工单列表添加"分配"按钮
+- [x] 2.4.2 在工单详情页添加"重新分配"功能
 - **预计时间**：0.5天
 - **优先级**：P1
 
@@ -89,9 +89,10 @@
 
 | 功能 | 实现方式 | 开发量 |
 |------|---------|--------|
-| 假期状态 | Zammad Out-of-Office API | 2.5天 |
-| 手动分配 | API + UI | 2.5天 |
+| 假期状态 | Zammad Out-of-Office API | 2.5天 ✅ |
+| 手动分配 | API + UI | 2.5天 ✅ |
 | 员工视图 | 前端开发 | 1天 |
 | **总计** | | **约 6天** |
 
 **已移除**：在线/忙碌状态管理（不适用于小团队）
+

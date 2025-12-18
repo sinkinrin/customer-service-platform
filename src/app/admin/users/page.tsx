@@ -35,6 +35,18 @@ import { Search, Edit, Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { REGIONS } from '@/lib/constants/regions'
+import { UserImportDialog } from '@/components/admin/user-import-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Switch } from '@/components/ui/switch'
 
 interface User {
   user_id: string
@@ -44,6 +56,8 @@ interface User {
   phone?: string
   language?: string
   region?: string
+  active?: boolean
+  zammad_id?: number
   created_at: string
 }
 
@@ -55,6 +69,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [regionFilter, setRegionFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [pagination, setPagination] = useState({ limit: 20, offset: 0, total: 0 })
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -153,6 +168,39 @@ export default function UsersPage() {
     return region?.labelEn || regionValue
   }
 
+  const handleStatusToggle = (user: User) => {
+    setStatusChangeUser(user)
+    setStatusDialogOpen(true)
+  }
+
+  const confirmStatusChange = async () => {
+    if (!statusChangeUser || !statusChangeUser.zammad_id) {
+      toast.error('Cannot change status: missing Zammad ID')
+      setStatusDialogOpen(false)
+      return
+    }
+
+    setChangingStatus(true)
+    try {
+      const response = await fetch(`/api/admin/users/${statusChangeUser.zammad_id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !statusChangeUser.active }),
+      })
+
+      if (!response.ok) throw new Error('Failed to change status')
+
+      toast.success(statusChangeUser.active ? 'User disabled' : 'User activated')
+      setStatusDialogOpen(false)
+      fetchUsers()
+    } catch (error) {
+      toast.error('Failed to change user status')
+      console.error(error)
+    } finally {
+      setChangingStatus(false)
+    }
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
@@ -218,6 +266,16 @@ export default function UsersPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="disabled">Disabled</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {loading ? (
@@ -265,6 +323,7 @@ export default function UsersPage() {
                     <TableHead>{t('table.email')}</TableHead>
                     <TableHead>{t('table.role')}</TableHead>
                     <TableHead>{t('table.region')}</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>{t('table.phone')}</TableHead>
                     <TableHead>{t('table.createdAt')}</TableHead>
                     <TableHead>{t('table.actions')}</TableHead>
@@ -273,6 +332,12 @@ export default function UsersPage() {
                 <TableBody>
                   {users
                     .filter(user => regionFilter === 'all' || user.region === regionFilter)
+                    .filter(user => {
+                      if (statusFilter === 'all') return true
+                      if (statusFilter === 'active') return user.active !== false
+                      if (statusFilter === 'disabled') return user.active === false
+                      return true
+                    })
                     .map((user) => (
                       <TableRow key={user.user_id}>
                         <TableCell className="font-medium">{user.full_name}</TableCell>
@@ -283,6 +348,18 @@ export default function UsersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>{getRegionLabel(user.region)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={user.active !== false}
+                              onCheckedChange={() => handleStatusToggle(user)}
+                              disabled={!user.zammad_id}
+                            />
+                            <Badge variant={user.active !== false ? 'default' : 'secondary'}>
+                              {user.active !== false ? 'Active' : 'Disabled'}
+                            </Badge>
+                          </div>
+                        </TableCell>
                         <TableCell>{user.phone || '-'}</TableCell>
                         <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>

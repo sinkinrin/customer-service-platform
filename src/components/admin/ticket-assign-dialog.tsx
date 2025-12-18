@@ -110,14 +110,14 @@ export function TicketAssignDialog({
                 body: JSON.stringify({ staff_id: selectedStaffId }),
             })
 
-            if (res.ok) {
-                const data = await res.json()
-                toast.success(t('assignSuccess', { name: data.assigned_to.name }))
+            const result = await res.json()
+            if (res.ok && result.success) {
+                const assignedTo = result.data?.assigned_to
+                toast.success(t('assignSuccess', { name: assignedTo?.name || 'Staff' }))
                 onSuccess?.()
                 onOpenChange(false)
             } else {
-                const data = await res.json()
-                setError(data.error || 'Failed to assign ticket')
+                setError(result.error?.message || 'Failed to assign ticket')
             }
         } catch (err) {
             console.error('Failed to assign ticket:', err)
@@ -138,13 +138,13 @@ export function TicketAssignDialog({
                 method: 'DELETE',
             })
 
-            if (res.ok) {
+            const result = await res.json()
+            if (res.ok && result.success) {
                 toast.success(t('unassignSuccess'))
                 onSuccess?.()
                 onOpenChange(false)
             } else {
-                const data = await res.json()
-                setError(data.error || 'Failed to unassign ticket')
+                setError(result.error?.message || 'Failed to unassign ticket')
             }
         } catch (err) {
             console.error('Failed to unassign ticket:', err)

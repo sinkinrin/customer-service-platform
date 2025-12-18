@@ -34,6 +34,19 @@ import { Label } from '@/components/ui/label'
 import { Search, Edit, Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { REGIONS } from '@/lib/constants/regions'
+import { UserImportDialog } from '@/components/admin/user-import-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Switch } from '@/components/ui/switch'
 
 interface User {
   user_id: string
@@ -42,6 +55,9 @@ interface User {
   role: 'customer' | 'staff' | 'admin'
   phone?: string
   language?: string
+  region?: string
+  active?: boolean
+  zammad_id?: number
   created_at: string
 }
 
@@ -52,10 +68,16 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [regionFilter, setRegionFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [pagination, setPagination] = useState({ limit: 20, offset: 0, total: 0 })
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [statusChangeUser, setStatusChangeUser] = useState<User | null>(null)
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false)
+  const [changingStatus, setChangingStatus] = useState(false)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -66,6 +88,8 @@ export default function UsersPage() {
       })
       if (search) params.append('search', search)
       if (roleFilter !== 'all') params.append('role', roleFilter)
+      if (regionFilter !== 'all') params.append('region', regionFilter)
+      if (statusFilter !== 'all') params.append('status', statusFilter)
 
       const response = await fetch(`/api/admin/users?${params}`)
       if (!response.ok) throw new Error('Failed to fetch users')
@@ -86,7 +110,7 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [roleFilter, regionFilter, statusFilter]) // Re-fetch when filters change
 
   const handleSearch = () => {
     setPagination({ ...pagination, offset: 0 })
@@ -138,6 +162,45 @@ export default function UsersPage() {
     }
   }
 
+  const getRegionLabel = (regionValue?: string) => {
+    if (!regionValue) return '-'
+    const region = REGIONS.find(r => r.value === regionValue)
+    return region?.labelEn || regionValue
+  }
+
+  const handleStatusToggle = (user: User) => {
+    setStatusChangeUser(user)
+    setStatusDialogOpen(true)
+  }
+
+  const confirmStatusChange = async () => {
+    if (!statusChangeUser || !statusChangeUser.zammad_id) {
+      toast.error('Cannot change status: missing Zammad ID')
+      setStatusDialogOpen(false)
+      return
+    }
+
+    setChangingStatus(true)
+    try {
+      const response = await fetch(`/api/admin/users/${statusChangeUser.zammad_id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !statusChangeUser.active }),
+      })
+
+      if (!response.ok) throw new Error('Failed to change status')
+
+      toast.success(statusChangeUser.active ? 'User disabled' : 'User activated')
+      setStatusDialogOpen(false)
+      fetchUsers()
+    } catch (error) {
+      toast.error('Failed to change user status')
+      console.error(error)
+    } finally {
+      setChangingStatus(false)
+    }
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
@@ -160,6 +223,9 @@ export default function UsersPage() {
                 {t('createButton')}
               </Button>
             </Link>
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+              Import Users
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -177,7 +243,7 @@ export default function UsersPage() {
               </Button>
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder={t('filterPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -185,6 +251,29 @@ export default function UsersPage() {
                 <SelectItem value="customer">{t('roles.customer')}</SelectItem>
                 <SelectItem value="staff">{t('roles.staff')}</SelectItem>
                 <SelectItem value="admin">{t('roles.admin')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={regionFilter} onValueChange={setRegionFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder={t('filters.allRegions')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('filters.allRegions')}</SelectItem>
+                {REGIONS.map(region => (
+                  <SelectItem key={region.value} value={region.value}>
+                    {region.labelEn}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="disabled">Disabled</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -233,6 +322,8 @@ export default function UsersPage() {
                     <TableHead>{t('table.name')}</TableHead>
                     <TableHead>{t('table.email')}</TableHead>
                     <TableHead>{t('table.role')}</TableHead>
+                    <TableHead>{t('table.region')}</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>{t('table.phone')}</TableHead>
                     <TableHead>{t('table.createdAt')}</TableHead>
                     <TableHead>{t('table.actions')}</TableHead>
@@ -247,6 +338,19 @@ export default function UsersPage() {
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                         </Badge>
+                      </TableCell>
+                      <TableCell>{getRegionLabel(user.region)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.active !== false}
+                            onCheckedChange={() => handleStatusToggle(user)}
+                            disabled={!user.zammad_id}
+                          />
+                          <Badge variant={user.active !== false ? 'default' : 'secondary'}>
+                            {user.active !== false ? 'Active' : 'Disabled'}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell>{user.phone || '-'}</TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
@@ -352,6 +456,35 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {statusChangeUser?.active ? 'Disable User' : 'Activate User'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {statusChangeUser?.active
+                ? `Are you sure you want to disable ${statusChangeUser?.email}? They will not be able to log in.`
+                : `Are you sure you want to activate ${statusChangeUser?.email}? They will be able to log in again.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={changingStatus}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusChange} disabled={changingStatus}>
+              {changingStatus ? 'Processing...' : 'Confirm'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Import Users Dialog */}
+      <UserImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportComplete={() => fetchUsers()}
+      />
     </div>
   )
 }

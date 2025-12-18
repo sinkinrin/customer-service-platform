@@ -51,6 +51,12 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
       'VSS2.6',
     ],
   },
+  {
+    name: 'Other',
+    models: [
+      'N/A',
+    ],
+  },
 ]
 
 /**

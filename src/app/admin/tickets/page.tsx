@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Search, Filter, Download, Wifi, WifiOff, Bell } from 'lucide-react'
+import { Search, Filter, Download, Wifi, WifiOff, Bell, Zap, Loader2 } from 'lucide-react'
 import { TicketList } from '@/components/ticket/ticket-list'
+import { TicketAssignDialog } from '@/components/admin/ticket-assign-dialog'
 import { useTicketsSearch, useTicketsList } from '@/lib/hooks/use-tickets-swr'
 import {
   Select,
@@ -20,6 +21,13 @@ import { REGIONS, getGroupIdByRegion } from '@/lib/constants/regions'
 import { useSSE } from '@/lib/hooks/use-sse'
 import { toast } from 'sonner'
 
+interface SelectedTicket {
+  id: number
+  number: string
+  title: string
+  owner_id?: number | null
+}
+
 export default function AdminTicketsPage() {
   const t = useTranslations('admin.tickets')
   const tToast = useTranslations('toast.admin.tickets')
@@ -29,11 +37,14 @@ export default function AdminTicketsPage() {
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
   const [hasNewUpdates, setHasNewUpdates] = useState(false)
   const [submittedQuery, setSubmittedQuery] = useState('') // Empty = fetch all
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [selectedTicket, setSelectedTicket] = useState<SelectedTicket | null>(null)
+  const [autoAssigning, setAutoAssigning] = useState(false)
 
   // Use SWR for caching - search when query exists, otherwise fetch all
   const searchResult = useTicketsSearch(submittedQuery, 100, !!submittedQuery)
   const listResult = useTicketsList(1000, undefined, !submittedQuery)
-  
+
   // Use search results if query exists, otherwise use list results
   const tickets = submittedQuery ? searchResult.tickets : listResult.tickets
   const isLoading = submittedQuery ? searchResult.isLoading : listResult.isLoading
@@ -115,6 +126,34 @@ export default function AdminTicketsPage() {
   const exportTickets = () => {
     // TODO: Implement CSV export
     console.log('Exporting tickets...', filteredTickets)
+  }
+
+  const handleAssign = (ticket: SelectedTicket) => {
+    setSelectedTicket(ticket)
+    setAssignDialogOpen(true)
+  }
+
+  const handleAssignSuccess = () => {
+    revalidate()
+  }
+
+  const handleAutoAssign = async () => {
+    setAutoAssigning(true)
+    try {
+      const res = await fetch('/api/tickets/auto-assign', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast.success(tToast('autoAssignSuccess', { success: data.data.success, failed: data.data.failed }))
+        revalidate()
+      } else {
+        toast.error(data.error?.message || tToast('autoAssignFailed'))
+      }
+    } catch (error) {
+      toast.error(tToast('autoAssignFailed'))
+      console.error('Auto-assign error:', error)
+    } finally {
+      setAutoAssigning(false)
+    }
   }
 
   return (
@@ -204,6 +243,18 @@ export default function AdminTicketsPage() {
             <Download className="h-4 w-4 mr-2" />
             {t('actions.export')}
           </Button>
+          <Button
+            variant="default"
+            onClick={handleAutoAssign}
+            disabled={autoAssigning}
+          >
+            {autoAssigning ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4 mr-2" />
+            )}
+            {t('actions.autoAssign')}
+          </Button>
         </div>
       </div>
 
@@ -237,9 +288,16 @@ export default function AdminTicketsPage() {
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
-          <TicketList tickets={filteredTickets} isLoading={isLoading} />
+          <TicketList tickets={filteredTickets} isLoading={isLoading} onAssign={handleAssign} />
         </TabsContent>
       </Tabs>
+
+      <TicketAssignDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        ticket={selectedTicket}
+        onSuccess={handleAssignSuccess}
+      />
     </div>
   )
 }

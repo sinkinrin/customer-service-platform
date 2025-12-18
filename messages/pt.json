@@ -13,6 +13,8 @@
     "filter": "Filtrar",
     "clear": "Limpar",
     "submit": "Enviar",
+    "saving": "Salvando...",
+    "cancelling": "Cancelando...",
     "back": "Voltar",
     "next": "Próximo",
     "previous": "Anterior",
@@ -145,6 +147,8 @@
     "passwordMinLength": "A senha deve ter pelo menos 6 caracteres",
     "passwordMismatch": "As senhas não coincidem",
     "fullNameRequired": "Nome completo é obrigatório",
+    "showPassword": "Mostrar senha",
+    "hidePassword": "Ocultar senha",
     "loginPage": {
       "title": "Entrar",
       "description": "Digite seu e-mail e senha para acessar sua conta",
@@ -409,6 +413,7 @@
         "name": "Nome",
         "email": "E-mail",
         "role": "Função",
+        "region": "Região",
         "phone": "Telefone",
         "status": "Status",
         "createdAt": "Criado em",
@@ -656,7 +661,20 @@
       },
       "conversation": "Conversa ({count})",
       "noArticles": "Nenhum artigo ainda",
-      "internalBadge": "Interno"
+      "internalBadge": "Interno",
+      "assign": "Atribuir",
+      "reassign": "Reatribuir"
+    },
+    "ticketAssign": {
+      "title": "Atribuir ticket",
+      "description": "Atribuir ticket #{number} - {title}",
+      "onVacation": "De férias",
+      "vacationUntil": "Retorna em {date}",
+      "noStaffAvailable": "Nenhum funcionário disponível",
+      "assign": "Atribuir",
+      "unassign": "Remover atribuição",
+      "assignSuccess": "Ticket atribuído a {name}",
+      "unassignSuccess": "Atribuição removida"
     }
   },
   "customer": {
@@ -775,6 +793,8 @@
         "categoryPlaceholder": "Selecione uma categoria de produto",
         "modelLabel": "Modelo do produto *",
         "modelPlaceholder": "Selecione um modelo de produto",
+        "categoryOther": "Outro",
+        "modelNotApplicable": "Não aplicável",
         "priorityLabel": "Prioridade *",
         "priorities": {
           "1": "Baixa - dúvida sobre uso do produto",
@@ -1073,6 +1093,22 @@
         "saveSuccess": "Configurações salvas com sucesso!",
         "saveError": "Falha ao salvar configurações"
       }
+    },
+    "vacation": {
+      "title": "Configurações de férias",
+      "description": "Defina seu período de ausência. Durante este tempo, você não receberá novos tickets.",
+      "startDate": "Data de início",
+      "endDate": "Data de término",
+      "replacementAgent": "Agente substituto (opcional)",
+      "selectReplacement": "Selecione um colega...",
+      "noReplacement": "Sem substituto",
+      "setVacation": "Definir férias",
+      "updateVacation": "Atualizar férias",
+      "cancelVacation": "Cancelar férias",
+      "setSuccess": "Período de férias definido com sucesso",
+      "cancelSuccess": "Férias canceladas",
+      "currentlyOnVacation": "Você está atualmente de férias de {start} até {end}",
+      "replacement": "Substituto"
     },
     "conversations": {
       "pageTitle": "Gerenciamento de conversas",
@@ -1485,6 +1521,9 @@
       "description": "Você ainda não enviou nenhum ticket",
       "noResults": "Nenhum ticket correspondente encontrado",
       "hint": "Por favor, crie um ticket pelo chat ao vivo."
+    },
+    "toast": {
+      "loadError": "Falha ao carregar tickets"
     },
     "table": {
       "id": "ID do ticket",

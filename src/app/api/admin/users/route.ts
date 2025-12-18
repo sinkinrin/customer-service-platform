@@ -1,7 +1,7 @@
 /**
  * Admin Users API
  *
- * GET /api/admin/users - Get all users with pagination and filtering
+ * GET /api/admin/users - Get all users with pagination and filtering (from Zammad)
  * POST /api/admin/users - Create a new user (admin only)
  */
 
@@ -15,7 +15,7 @@ import {
 } from '@/lib/utils/api-response'
 import { mockUsers, mockPasswords } from '@/lib/mock-auth'
 import { zammadClient } from '@/lib/zammad/client'
-import { getGroupIdByRegion, isValidRegion } from '@/lib/constants/regions'
+import { getGroupIdByRegion, isValidRegion, getRegionByGroupId } from '@/lib/constants/regions'
 import { z } from 'zod'
 
 // Validation schema for creating a new user
@@ -33,7 +33,25 @@ const CreateUserSchema = z.object({
   language: z.string().optional(),
 })
 
-// TODO: Replace with real database when implemented
+// Map Zammad role_ids to our role names
+function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
+  if (roleIds.includes(1)) return 'admin'
+  if (roleIds.includes(2)) return 'staff'
+  return 'customer'
+}
+
+// Get region from Zammad group_ids
+function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | undefined {
+  if (!groupIds) return undefined
+  for (const [groupId, permissions] of Object.entries(groupIds)) {
+    if (permissions.includes('full')) {
+      const region = getRegionByGroupId(parseInt(groupId))
+      if (region) return region
+    }
+  }
+  return undefined
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Allow both admin and staff to view users
@@ -45,9 +63,55 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
     const search = searchParams.get('search') || ''
     const roleFilter = searchParams.get('role') || ''
+    const regionFilter = searchParams.get('region') || ''
+    const source = searchParams.get('source') || 'zammad' // 'zammad' or 'mock'
 
-    // Convert mockUsers object to array
-    const allUsers = Object.values(mockUsers)
+    // Fetch from Zammad (primary source)
+    let allUsers: any[] = []
+
+    if (source === 'zammad') {
+      try {
+        const zammadUsers = await zammadClient.searchUsers('*')
+
+        allUsers = zammadUsers.map(user => {
+          const role = getRoleFromZammad(user.role_ids || [])
+          const region = getRegionFromGroupIds(user.group_ids)
+
+          // Augment with mockUsers data if available (for language preference etc.)
+          const mockUser = mockUsers[user.email]
+
+          return {
+            id: String(user.id),
+            user_id: String(user.id),
+            email: user.email,
+            full_name: `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.login,
+            role,
+            region: region || mockUser?.region,
+            phone: user.phone || mockUser?.phone || '',
+            language: mockUser?.language || 'en',
+            active: user.active,
+            verified: user.verified,
+            zammad_id: user.id,
+            created_at: user.created_at,
+          }
+        })
+      } catch (error) {
+        console.warn('[Admin Users API] Zammad unavailable, falling back to mock data:', error)
+        // Fall back to mock data
+        allUsers = Object.values(mockUsers).map(user => ({
+          ...user,
+          user_id: user.id,
+          active: true,
+        }))
+      }
+    } else {
+      // Use mock data directly
+      allUsers = Object.values(mockUsers).map(user => ({
+        ...user,
+        user_id: user.id,
+        active: true,
+      }))
+    }
 
     // Apply filters
     let filteredUsers = allUsers
@@ -55,8 +119,8 @@ export async function GET(request: NextRequest) {
     if (search) {
       const searchLower = search.toLowerCase()
       filteredUsers = filteredUsers.filter(user =>
-        user.full_name.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower)
+        user.full_name?.toLowerCase().includes(searchLower) ||
+        user.email?.toLowerCase().includes(searchLower)
       )
     }
 
@@ -64,22 +128,29 @@ export async function GET(request: NextRequest) {
       filteredUsers = filteredUsers.filter(user => user.role === roleFilter)
     }
 
+    if (regionFilter) {
+      filteredUsers = filteredUsers.filter(user => user.region === regionFilter)
+    }
+
+    // Status filter (active/disabled)
+    const statusFilter = searchParams.get('status') || ''
+    if (statusFilter === 'active') {
+      filteredUsers = filteredUsers.filter(user => user.active !== false)
+    } else if (statusFilter === 'disabled') {
+      filteredUsers = filteredUsers.filter(user => user.active === false)
+    }
+
     // Apply pagination
     const paginatedUsers = filteredUsers.slice(offset, offset + limit)
 
-    // Map id to user_id for frontend compatibility
-    const usersWithUserId = paginatedUsers.map(user => ({
-      ...user,
-      user_id: user.id,
-    }))
-
     return successResponse({
-      users: usersWithUserId,
+      users: paginatedUsers,
       pagination: {
         limit,
         offset,
         total: filteredUsers.length,
       },
+      source,
     })
   } catch (error: any) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {

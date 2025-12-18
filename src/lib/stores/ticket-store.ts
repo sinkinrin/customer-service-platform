@@ -12,6 +12,7 @@ export interface ZammadTicket {
   group_id?: number
   customer: string
   owner_id?: number
+  owner_name?: string // Display name of assigned staff
   created_at: string
   updated_at: string
 }

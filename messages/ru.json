@@ -13,6 +13,8 @@
     "filter": "Фильтр",
     "clear": "Очистить",
     "submit": "Отправить",
+    "saving": "Сохранение...",
+    "cancelling": "Отмена...",
     "back": "Назад",
     "next": "Далее",
     "previous": "Предыдущий",
@@ -145,6 +147,8 @@
     "passwordMinLength": "Пароль должен содержать не менее 6 символов",
     "passwordMismatch": "Пароли не совпадают",
     "fullNameRequired": "Полное имя обязательно",
+    "showPassword": "Показать пароль",
+    "hidePassword": "Скрыть пароль",
     "loginPage": {
       "title": "Войти",
       "description": "Введите email и пароль для доступа к аккаунту",
@@ -409,6 +413,7 @@
         "name": "Имя",
         "email": "Email",
         "role": "Роль",
+        "region": "Регион",
         "phone": "Телефон",
         "status": "Статус",
         "createdAt": "Дата создания",
@@ -656,7 +661,20 @@
       },
       "conversation": "Переписка ({count})",
       "noArticles": "Пока нет статей",
-      "internalBadge": "Внутренняя"
+      "internalBadge": "Внутренняя",
+      "assign": "Назначить",
+      "reassign": "Переназначить"
+    },
+    "ticketAssign": {
+      "title": "Назначить заявку",
+      "description": "Назначить заявку #{number} - {title}",
+      "onVacation": "В отпуске",
+      "vacationUntil": "Вернётся {date}",
+      "noStaffAvailable": "Нет доступных сотрудников",
+      "assign": "Назначить",
+      "unassign": "Снять назначение",
+      "assignSuccess": "Заявка назначена на {name}",
+      "unassignSuccess": "Назначение снято"
     }
   },
   "customer": {
@@ -775,6 +793,8 @@
         "categoryPlaceholder": "Выберите категорию продукта",
         "modelLabel": "Модель продукта *",
         "modelPlaceholder": "Выберите модель продукта",
+        "categoryOther": "Другое",
+        "modelNotApplicable": "Не применимо",
         "priorityLabel": "Приоритет *",
         "priorities": {
           "1": "Низкий - вопрос по использованию продукта",
@@ -1073,6 +1093,22 @@
         "saveSuccess": "Настройки успешно сохранены!",
         "saveError": "Не удалось сохранить настройки"
       }
+    },
+    "vacation": {
+      "title": "Настройки отпуска",
+      "description": "Установите период отсутствия. В это время вам не будут назначаться новые заявки.",
+      "startDate": "Дата начала",
+      "endDate": "Дата окончания",
+      "replacementAgent": "Замещающий сотрудник (необязательно)",
+      "selectReplacement": "Выберите коллегу...",
+      "noReplacement": "Без замещения",
+      "setVacation": "Установить отпуск",
+      "updateVacation": "Обновить отпуск",
+      "cancelVacation": "Отменить отпуск",
+      "setSuccess": "Период отпуска установлен",
+      "cancelSuccess": "Отпуск отменён",
+      "currentlyOnVacation": "Вы сейчас в отпуске с {start} по {end}",
+      "replacement": "Замещающий"
     },
     "conversations": {
       "pageTitle": "Управление беседами",
@@ -1485,6 +1521,9 @@
       "description": "Вы ещё не отправляли заявок",
       "noResults": "Не найдено подходящих заявок",
       "hint": "Пожалуйста, создайте заявку через онлайн-чат."
+    },
+    "toast": {
+      "loadError": "Не удалось загрузить заявки"
     },
     "table": {
       "id": "ID заявки",

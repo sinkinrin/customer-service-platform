@@ -46,7 +46,7 @@ export const mockUsers: Record<string, MockUser> = {
     phone: '+1234567890',
     language: 'en',
     region: 'asia-pacific',
-    created_at: new Date().toISOString(),
+    created_at: '2025-01-01T00:00:00.000Z',
   },
   'staff@test.com': {
     id: 'mock-staff-id',
@@ -57,7 +57,7 @@ export const mockUsers: Record<string, MockUser> = {
     phone: '+1234567891',
     language: 'en',
     region: 'asia-pacific',
-    created_at: new Date().toISOString(),
+    created_at: '2025-01-01T00:00:00.000Z',
   },
   'admin@test.com': {
     id: 'mock-admin-id',
@@ -68,7 +68,7 @@ export const mockUsers: Record<string, MockUser> = {
     phone: '+1234567892',
     language: 'en',
     region: undefined,  // Admin can access all regions
-    created_at: new Date().toISOString(),
+    created_at: '2025-01-01T00:00:00.000Z',
   },
   // Real user account for testing
   'jasper.deng@howentech.com': {
@@ -80,7 +80,7 @@ export const mockUsers: Record<string, MockUser> = {
     phone: undefined,
     language: 'zh-CN',
     region: 'asia-pacific',
-    created_at: new Date().toISOString(),
+    created_at: '2025-01-01T00:00:00.000Z',
   },
   // Playwright test user
   'playwright-test-user@example.com': {
@@ -92,7 +92,251 @@ export const mockUsers: Record<string, MockUser> = {
     phone: undefined,
     language: 'zh-CN',
     region: 'asia-pacific',
-    created_at: new Date().toISOString(),
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+
+  // ============ Real Staff Users from Zammad ============
+  'cody.li@howentech.com': {
+    id: 'staff-cody-li',
+    email: 'cody.li@howentech.com',
+    role: 'staff',
+    full_name: 'Cody Lee',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'asia-pacific',
+    zammad_id: 5,  // Matches Zammad user ID
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+
+  // ============ Asia-Pacific Region Test Users ============
+  'staff-ap-1@test.com': {
+    id: 'staff-ap-1-id',
+    email: 'staff-ap-1@test.com',
+    role: 'staff',
+    full_name: '亚太员工一',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'zh-CN',
+    region: 'asia-pacific',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'staff-ap-2@test.com': {
+    id: 'staff-ap-2-id',
+    email: 'staff-ap-2@test.com',
+    role: 'staff',
+    full_name: '亚太员工二',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'zh-CN',
+    region: 'asia-pacific',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-ap-1@test.com': {
+    id: 'customer-ap-1-id',
+    email: 'customer-ap-1@test.com',
+    role: 'customer',
+    full_name: '亚太客户一',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'zh-CN',
+    region: 'asia-pacific',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-ap-2@test.com': {
+    id: 'customer-ap-2-id',
+    email: 'customer-ap-2@test.com',
+    role: 'customer',
+    full_name: '亚太客户二',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'zh-CN',
+    region: 'asia-pacific',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+
+  // ============ Middle East Region Test Users ============
+  'staff-me-1@test.com': {
+    id: 'staff-me-1-id',
+    email: 'staff-me-1@test.com',
+    role: 'staff',
+    full_name: 'Middle East Staff 1',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'middle-east',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'staff-me-2@test.com': {
+    id: 'staff-me-2-id',
+    email: 'staff-me-2@test.com',
+    role: 'staff',
+    full_name: 'Middle East Staff 2',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'middle-east',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-me-1@test.com': {
+    id: 'customer-me-1-id',
+    email: 'customer-me-1@test.com',
+    role: 'customer',
+    full_name: 'Middle East Customer 1',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'middle-east',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-me-2@test.com': {
+    id: 'customer-me-2-id',
+    email: 'customer-me-2@test.com',
+    role: 'customer',
+    full_name: 'Middle East Customer 2',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'middle-east',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+
+  // ============ Africa Region Test Users ============
+  'staff-af-1@test.com': {
+    id: 'staff-af-1-id',
+    email: 'staff-af-1@test.com',
+    role: 'staff',
+    full_name: 'Africa Staff 1',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'africa',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'staff-af-2@test.com': {
+    id: 'staff-af-2-id',
+    email: 'staff-af-2@test.com',
+    role: 'staff',
+    full_name: 'Africa Staff 2',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'africa',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-af-1@test.com': {
+    id: 'customer-af-1-id',
+    email: 'customer-af-1@test.com',
+    role: 'customer',
+    full_name: 'Africa Customer 1',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'africa',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-af-2@test.com': {
+    id: 'customer-af-2-id',
+    email: 'customer-af-2@test.com',
+    role: 'customer',
+    full_name: 'Africa Customer 2',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'africa',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+
+  // ============ Europe Zone 1 Region Test Users ============
+  'staff-eu-1@test.com': {
+    id: 'staff-eu-1-id',
+    email: 'staff-eu-1@test.com',
+    role: 'staff',
+    full_name: 'Europe Staff 1',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'europe-zone-1',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'staff-eu-2@test.com': {
+    id: 'staff-eu-2-id',
+    email: 'staff-eu-2@test.com',
+    role: 'staff',
+    full_name: 'Europe Staff 2',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'europe-zone-1',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-eu-1@test.com': {
+    id: 'customer-eu-1-id',
+    email: 'customer-eu-1@test.com',
+    role: 'customer',
+    full_name: 'Europe Customer 1',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'europe-zone-1',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-eu-2@test.com': {
+    id: 'customer-eu-2-id',
+    email: 'customer-eu-2@test.com',
+    role: 'customer',
+    full_name: 'Europe Customer 2',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'en',
+    region: 'europe-zone-1',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+
+  // ============ CIS Region Test Users ============
+  'staff-cis-1@test.com': {
+    id: 'staff-cis-1-id',
+    email: 'staff-cis-1@test.com',
+    role: 'staff',
+    full_name: 'CIS Staff 1',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'ru',
+    region: 'cis',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'staff-cis-2@test.com': {
+    id: 'staff-cis-2-id',
+    email: 'staff-cis-2@test.com',
+    role: 'staff',
+    full_name: 'CIS Staff 2',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'ru',
+    region: 'cis',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-cis-1@test.com': {
+    id: 'customer-cis-1-id',
+    email: 'customer-cis-1@test.com',
+    role: 'customer',
+    full_name: 'CIS Customer 1',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'ru',
+    region: 'cis',
+    created_at: '2025-01-01T00:00:00.000Z',
+  },
+  'customer-cis-2@test.com': {
+    id: 'customer-cis-2-id',
+    email: 'customer-cis-2@test.com',
+    role: 'customer',
+    full_name: 'CIS Customer 2',
+    avatar_url: undefined,
+    phone: undefined,
+    language: 'ru',
+    region: 'cis',
+    created_at: '2025-01-01T00:00:00.000Z',
   },
 }
 
@@ -106,6 +350,31 @@ export const mockPasswords: Record<string, string> = {
   'admin@test.com': 'password123',
   'jasper.deng@howentech.com': '12345678',
   'playwright-test-user@example.com': 'testpass123',
+  // Asia-Pacific
+  'staff-ap-1@test.com': 'password123',
+  'staff-ap-2@test.com': 'password123',
+  'customer-ap-1@test.com': 'password123',
+  'customer-ap-2@test.com': 'password123',
+  // Middle East
+  'staff-me-1@test.com': 'password123',
+  'staff-me-2@test.com': 'password123',
+  'customer-me-1@test.com': 'password123',
+  'customer-me-2@test.com': 'password123',
+  // Africa
+  'staff-af-1@test.com': 'password123',
+  'staff-af-2@test.com': 'password123',
+  'customer-af-1@test.com': 'password123',
+  'customer-af-2@test.com': 'password123',
+  // Europe
+  'staff-eu-1@test.com': 'password123',
+  'staff-eu-2@test.com': 'password123',
+  'customer-eu-1@test.com': 'password123',
+  'customer-eu-2@test.com': 'password123',
+  // CIS
+  'staff-cis-1@test.com': 'password123',
+  'staff-cis-2@test.com': 'password123',
+  'customer-cis-1@test.com': 'password123',
+  'customer-cis-2@test.com': 'password123',
 }
 
 /**
@@ -148,22 +417,22 @@ export async function mockSignIn(email: string, password: string): Promise<{ use
 export async function mockSignUp(email: string, password: string, metadata?: { full_name?: string }): Promise<{ user: MockUser; session: MockSession; error: null }> {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 500))
-  
+
   const user: MockUser = {
     id: `mock-user-${Date.now()}`,
     email,
     role: 'customer',
     full_name: metadata?.full_name || 'New User',
-    created_at: new Date().toISOString(),
+    created_at: '2025-01-01T00:00:00.000Z',
   }
-  
+
   const session: MockSession = {
     access_token: 'mock-access-token',
     refresh_token: 'mock-refresh-token',
     expires_at: Date.now() + 3600000,
     user,
   }
-  
+
   return { user, session, error: null }
 }
 
@@ -226,7 +495,7 @@ export async function mockGetSession(): Promise<MockSession | null> {
 export async function mockUpdateUser(updates: Partial<MockUser>): Promise<{ user: MockUser; error: null }> {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300))
-  
+
   const user = { ...defaultMockUser, ...updates }
   return { user, error: null }
 }

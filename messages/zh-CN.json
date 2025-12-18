@@ -13,6 +13,8 @@
     "filter": "筛选",
     "clear": "清除",
     "submit": "提交",
+    "saving": "保存中...",
+    "cancelling": "取消中...",
     "back": "返回",
     "next": "下一步",
     "previous": "上一步",
@@ -145,6 +147,8 @@
     "passwordMinLength": "密码至少需要6个字符",
     "passwordMismatch": "两次密码输入不一致",
     "fullNameRequired": "姓名为必填项",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
     "loginPage": {
       "title": "登录",
       "description": "输入您的邮箱和密码以访问您的账户",
@@ -409,6 +413,7 @@
         "name": "姓名",
         "email": "邮箱",
         "role": "角色",
+        "region": "地区",
         "phone": "电话",
         "status": "状态",
         "createdAt": "创建时间",
@@ -656,7 +661,20 @@
       },
       "conversation": "对话 ({count})",
       "noArticles": "暂无文章",
-      "internalBadge": "内部"
+      "internalBadge": "内部",
+      "assign": "分配",
+      "reassign": "重新分配"
+    },
+    "ticketAssign": {
+      "title": "分配工单",
+      "description": "分配工单 #{number} - {title}",
+      "onVacation": "休假中",
+      "vacationUntil": "返回时间 {date}",
+      "noStaffAvailable": "没有可用的员工",
+      "assign": "分配",
+      "unassign": "取消分配",
+      "assignSuccess": "工单已分配给 {name}",
+      "unassignSuccess": "工单已取消分配"
     }
   },
   "customer": {
@@ -761,6 +779,8 @@
         "categoryPlaceholder": "请选择产品分类",
         "modelLabel": "产品型号 *",
         "modelPlaceholder": "请选择产品型号",
+        "categoryOther": "其他",
+        "modelNotApplicable": "不适用",
         "priorityLabel": "优先级 *",
         "priorities": {
           "1": "低 - 产品使用咨询",
@@ -1061,6 +1081,22 @@
         "saveSuccess": "设置保存成功！",
         "saveError": "设置保存失败"
       }
+    },
+    "vacation": {
+      "title": "假期设置",
+      "description": "设置您的休假时间。在此期间，系统不会将新工单分配给您。",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "replacementAgent": "代班人员（可选）",
+      "selectReplacement": "选择代班同事...",
+      "noReplacement": "不指定代班人员",
+      "setVacation": "设置假期",
+      "updateVacation": "更新假期",
+      "cancelVacation": "取消假期",
+      "setSuccess": "假期设置成功",
+      "cancelSuccess": "假期已取消",
+      "currentlyOnVacation": "您当前处于假期中，从 {start} 至 {end}",
+      "replacement": "代班人员"
     },
     "conversations": {
       "pageTitle": "对话管理",
@@ -1487,6 +1523,9 @@
       "description": "您还没有提交任何工单",
       "noResults": "未找到匹配的工单",
       "hint": "请通过在线聊天创建工单。"
+    },
+    "toast": {
+      "loadError": "加载工单失败"
     },
     "table": {
       "id": "工单 ID",

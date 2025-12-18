@@ -13,6 +13,8 @@
     "filter": "Filtrer",
     "clear": "Effacer",
     "submit": "Soumettre",
+    "saving": "Enregistrement...",
+    "cancelling": "Annulation...",
     "back": "Retour",
     "next": "Suivant",
     "previous": "Précédent",
@@ -145,6 +147,8 @@
     "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
     "passwordMismatch": "Les mots de passe ne correspondent pas",
     "fullNameRequired": "Le nom complet est requis",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
     "loginPage": {
       "title": "Se connecter",
       "description": "Entrez votre email et mot de passe pour accéder à votre compte",
@@ -409,6 +413,7 @@
         "name": "Nom",
         "email": "Email",
         "role": "Rôle",
+        "region": "Région",
         "phone": "Téléphone",
         "status": "Statut",
         "createdAt": "Créé le",
@@ -656,7 +661,20 @@
       },
       "conversation": "Conversation ({count})",
       "noArticles": "Aucun article pour le moment",
-      "internalBadge": "Interne"
+      "internalBadge": "Interne",
+      "assign": "Attribuer",
+      "reassign": "Réattribuer"
+    },
+    "ticketAssign": {
+      "title": "Attribuer le ticket",
+      "description": "Attribuer le ticket #{number} - {title}",
+      "onVacation": "En vacances",
+      "vacationUntil": "Retour le {date}",
+      "noStaffAvailable": "Aucun personnel disponible",
+      "assign": "Attribuer",
+      "unassign": "Désattribuer",
+      "assignSuccess": "Ticket attribué à {name}",
+      "unassignSuccess": "Ticket désattribué"
     }
   },
   "customer": {
@@ -775,6 +793,8 @@
         "categoryPlaceholder": "Veuillez sélectionner une catégorie de produit",
         "modelLabel": "Modèle de produit *",
         "modelPlaceholder": "Veuillez sélectionner un modèle de produit",
+        "categoryOther": "Autre",
+        "modelNotApplicable": "Non applicable",
         "priorityLabel": "Priorité *",
         "priorities": {
           "1": "Basse - question sur l'utilisation du produit",
@@ -1073,6 +1093,22 @@
         "saveSuccess": "Paramètres enregistrés avec succès !",
         "saveError": "Échec de l'enregistrement des paramètres"
       }
+    },
+    "vacation": {
+      "title": "Paramètres de congés",
+      "description": "Définissez votre période d'absence. Pendant cette période, aucun nouveau ticket ne vous sera attribué.",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "replacementAgent": "Agent remplaçant (optionnel)",
+      "selectReplacement": "Sélectionnez un collègue...",
+      "noReplacement": "Aucun remplaçant",
+      "setVacation": "Définir les congés",
+      "updateVacation": "Mettre à jour les congés",
+      "cancelVacation": "Annuler les congés",
+      "setSuccess": "Période de congés définie avec succès",
+      "cancelSuccess": "Congés annulés",
+      "currentlyOnVacation": "Vous êtes actuellement en congés du {start} au {end}",
+      "replacement": "Remplaçant"
     },
     "conversations": {
       "pageTitle": "Gestion des conversations",
@@ -1485,6 +1521,9 @@
       "description": "Vous n'avez pas encore soumis de tickets",
       "noResults": "Aucun ticket correspondant trouvé",
       "hint": "Veuillez créer un ticket via le chat en direct."
+    },
+    "toast": {
+      "loadError": "Échec du chargement des tickets"
     },
     "table": {
       "id": "ID du ticket",

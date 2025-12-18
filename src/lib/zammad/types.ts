@@ -235,6 +235,7 @@ export interface ZammadUser {
   updated_at: string
   role_ids?: number[]
   roles?: string[]
+  group_ids?: Record<string, string[]>
 }
 
 export interface CreateUserRequest {
@@ -265,6 +266,32 @@ export interface UpdateUserRequest {
   group_ids?: Record<string, string[]>
   active?: boolean
   verified?: boolean
+  out_of_office?: boolean
+  out_of_office_start_at?: string | null
+  out_of_office_end_at?: string | null
+  out_of_office_replacement_id?: number | null
+}
+
+/**
+ * Request to set Out-of-Office status
+ * Used for vacation/leave management
+ */
+export interface SetOutOfOfficeRequest {
+  out_of_office: boolean
+  out_of_office_start_at: string | null  // ISO date string: "2024-12-20"
+  out_of_office_end_at: string | null    // ISO date string: "2024-12-27"
+  out_of_office_replacement_id: number | null  // ID of the replacement agent
+}
+
+/**
+ * Response for Out-of-Office status
+ */
+export interface OutOfOfficeStatus {
+  out_of_office: boolean
+  out_of_office_start_at: string | null
+  out_of_office_end_at: string | null
+  out_of_office_replacement_id: number | null
+  replacement_user?: ZammadUser | null  // Populated when fetching status
 }
 
 // ============================================================================

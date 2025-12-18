@@ -21,28 +21,26 @@ export type RegionValue = typeof REGIONS[number]['value']
  * Region to Zammad Group ID Mapping
  *
  * NOTE: These Group IDs match the actual Zammad Groups in the system
- * Retrieved from Zammad API on 2025-01-15
+ * Retrieved from Zammad API on 2025-12-17
  *
  * Zammad Groups:
- * - ID 1: Users (default group)
- * - ID 2: Middle-East
- * - ID 3: European
- * - ID 4: Latin America
- * - ID 5: Asia-Pacific
- * - ID 6: CIS
- * - ID 7: North America
+ * - ID 1: 非洲 Users (default group)
+ * - ID 2: 欧洲
+ * - ID 3: 中东
+ * - ID 4: 亚太
+ * - ID 5: 独联体
  *
- * NOTE: Africa and Europe Zone 2 groups don't exist in Zammad yet (ID = 1 as fallback to Users group)
+ * NOTE: North America, Latin America, Europe Zone 2 groups don't exist in Zammad yet (ID = 1 as fallback to Users group)
  */
 export const REGION_GROUP_MAPPING: Record<RegionValue, number> = {
-  'asia-pacific': 5,      // Zammad Group: Asia-Pacific
-  'middle-east': 2,       // Zammad Group: Middle-East
-  'africa': 1,            // TODO: Create Africa group in Zammad (using Users as fallback)
-  'north-america': 7,     // Zammad Group: North America
-  'latin-america': 4,     // Zammad Group: Latin America
-  'europe-zone-1': 3,     // Zammad Group: European
+  'asia-pacific': 4,      // Zammad Group: 亚太
+  'middle-east': 3,       // Zammad Group: 中东
+  'africa': 1,            // Zammad Group: 非洲 Users (default)
+  'north-america': 1,     // TODO: Create North America group in Zammad (using Users as fallback)
+  'latin-america': 1,     // TODO: Create Latin America group in Zammad (using Users as fallback)
+  'europe-zone-1': 2,     // Zammad Group: 欧洲
   'europe-zone-2': 1,     // TODO: Create Europe Zone 2 group in Zammad (using Users as fallback)
-  'cis': 6,               // Zammad Group: CIS
+  'cis': 5,               // Zammad Group: 独联体
 }
 
 /**
@@ -57,14 +55,12 @@ export function getGroupIdByRegion(region: RegionValue): number {
  * Only includes groups that have a dedicated Zammad group (not fallback to Users group)
  */
 export const GROUP_REGION_MAPPING: Record<number, RegionValue> = {
-  5: 'asia-pacific',      // Zammad Group: Asia-Pacific
-  2: 'middle-east',       // Zammad Group: Middle-East
-  7: 'north-america',     // Zammad Group: North America
-  4: 'latin-america',     // Zammad Group: Latin America
-  3: 'europe-zone-1',     // Zammad Group: European
-  6: 'cis',               // Zammad Group: CIS
-  // Note: group_id = 1 (Users) is NOT mapped to any region
-  // It's a fallback group for africa and europe-zone-2 which don't have dedicated groups yet
+  4: 'asia-pacific',      // Zammad Group: 亚太
+  3: 'middle-east',       // Zammad Group: 中东
+  2: 'europe-zone-1',     // Zammad Group: 欧洲
+  5: 'cis',               // Zammad Group: 独联体
+  // Note: group_id = 1 (非洲 Users) is NOT mapped to any specific region
+  // It's a fallback group for africa, north-america, latin-america, europe-zone-2 which don't have dedicated groups yet
 }
 
 /**

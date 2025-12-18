@@ -169,11 +169,17 @@ export default function CustomerTicketDetailPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{tDetail('status')}</p>
-              <p className="mt-1">{getStatusBadge(ticket.state)}</p>
+              <div className="mt-1">{getStatusBadge(ticket.state)}</div>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">{tDetail('priority')}</p>
-              <p className="mt-1">{getPriorityBadge(ticket.priority_id)}</p>
+              <div className="mt-1">{getPriorityBadge(ticket.priority_id)}</div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">{tDetail('assignedTo')}</p>
+              <p className="mt-1">
+                {ticket.owner_name || (ticket.owner_id ? `Staff #${ticket.owner_id}` : tDetail('unassigned'))}
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">{tDetail('createdAt')}</p>

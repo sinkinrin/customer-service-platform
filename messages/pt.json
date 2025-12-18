@@ -658,7 +658,20 @@
       },
       "conversation": "Conversa ({count})",
       "noArticles": "Nenhum artigo ainda",
-      "internalBadge": "Interno"
+      "internalBadge": "Interno",
+      "assign": "Atribuir",
+      "reassign": "Reatribuir"
+    },
+    "ticketAssign": {
+      "title": "Atribuir ticket",
+      "description": "Atribuir ticket #{number} - {title}",
+      "onVacation": "De férias",
+      "vacationUntil": "Retorna em {date}",
+      "noStaffAvailable": "Nenhum funcionário disponível",
+      "assign": "Atribuir",
+      "unassign": "Remover atribuição",
+      "assignSuccess": "Ticket atribuído a {name}",
+      "unassignSuccess": "Atribuição removida"
     }
   },
   "customer": {

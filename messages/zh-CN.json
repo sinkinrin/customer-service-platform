@@ -660,7 +660,20 @@
       },
       "conversation": "对话 ({count})",
       "noArticles": "暂无文章",
-      "internalBadge": "内部"
+      "internalBadge": "内部",
+      "assign": "分配",
+      "reassign": "重新分配"
+    },
+    "ticketAssign": {
+      "title": "分配工单",
+      "description": "分配工单 #{number} - {title}",
+      "onVacation": "休假中",
+      "vacationUntil": "返回时间 {date}",
+      "noStaffAvailable": "没有可用的员工",
+      "assign": "分配",
+      "unassign": "取消分配",
+      "assignSuccess": "工单已分配给 {name}",
+      "unassignSuccess": "工单已取消分配"
     }
   },
   "customer": {

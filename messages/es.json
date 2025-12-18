@@ -658,7 +658,20 @@
       },
       "conversation": "Conversación ({count})",
       "noArticles": "Sin artículos aún",
-      "internalBadge": "Interno"
+      "internalBadge": "Interno",
+      "assign": "Asignar",
+      "reassign": "Reasignar"
+    },
+    "ticketAssign": {
+      "title": "Asignar ticket",
+      "description": "Asignar ticket #{number} - {title}",
+      "onVacation": "De vacaciones",
+      "vacationUntil": "Regresa el {date}",
+      "noStaffAvailable": "No hay personal disponible",
+      "assign": "Asignar",
+      "unassign": "Desasignar",
+      "assignSuccess": "Ticket asignado a {name}",
+      "unassignSuccess": "Ticket desasignado"
     }
   },
   "customer": {

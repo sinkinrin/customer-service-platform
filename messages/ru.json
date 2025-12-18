@@ -658,7 +658,20 @@
       },
       "conversation": "Переписка ({count})",
       "noArticles": "Пока нет статей",
-      "internalBadge": "Внутренняя"
+      "internalBadge": "Внутренняя",
+      "assign": "Назначить",
+      "reassign": "Переназначить"
+    },
+    "ticketAssign": {
+      "title": "Назначить заявку",
+      "description": "Назначить заявку #{number} - {title}",
+      "onVacation": "В отпуске",
+      "vacationUntil": "Вернётся {date}",
+      "noStaffAvailable": "Нет доступных сотрудников",
+      "assign": "Назначить",
+      "unassign": "Снять назначение",
+      "assignSuccess": "Заявка назначена на {name}",
+      "unassignSuccess": "Назначение снято"
     }
   },
   "customer": {

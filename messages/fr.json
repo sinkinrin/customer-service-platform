@@ -658,7 +658,20 @@
       },
       "conversation": "Conversation ({count})",
       "noArticles": "Aucun article pour le moment",
-      "internalBadge": "Interne"
+      "internalBadge": "Interne",
+      "assign": "Attribuer",
+      "reassign": "Réattribuer"
+    },
+    "ticketAssign": {
+      "title": "Attribuer le ticket",
+      "description": "Attribuer le ticket #{number} - {title}",
+      "onVacation": "En vacances",
+      "vacationUntil": "Retour le {date}",
+      "noStaffAvailable": "Aucun personnel disponible",
+      "assign": "Attribuer",
+      "unassign": "Désattribuer",
+      "assignSuccess": "Ticket attribué à {name}",
+      "unassignSuccess": "Ticket désattribué"
     }
   },
   "customer": {

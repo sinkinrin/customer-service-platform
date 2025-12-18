@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
         const teamStats = {
             totalStaff: performanceData.length,
             totalTicketsHandled: performanceData.reduce((sum, s) => sum + s.ticketsHandled, 0),
-            avgSatisfactionRate: Math.round(
-                performanceData.reduce((sum, s) => sum + s.satisfactionRate, 0) / performanceData.length
-            ),
+            avgSatisfactionRate: performanceData.length > 0
+                ? Math.round(performanceData.reduce((sum, s) => sum + s.satisfactionRate, 0) / performanceData.length)
+                : 0,
         }
 
         return successResponse({

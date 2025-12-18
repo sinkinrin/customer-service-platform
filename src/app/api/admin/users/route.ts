@@ -132,6 +132,14 @@ export async function GET(request: NextRequest) {
       filteredUsers = filteredUsers.filter(user => user.region === regionFilter)
     }
 
+    // Status filter (active/disabled)
+    const statusFilter = searchParams.get('status') || ''
+    if (statusFilter === 'active') {
+      filteredUsers = filteredUsers.filter(user => user.active !== false)
+    } else if (statusFilter === 'disabled') {
+      filteredUsers = filteredUsers.filter(user => user.active === false)
+    }
+
     // Apply pagination
     const paginatedUsers = filteredUsers.slice(offset, offset + limit)
 

@@ -88,6 +88,8 @@ export default function UsersPage() {
       })
       if (search) params.append('search', search)
       if (roleFilter !== 'all') params.append('role', roleFilter)
+      if (regionFilter !== 'all') params.append('region', regionFilter)
+      if (statusFilter !== 'all') params.append('status', statusFilter)
 
       const response = await fetch(`/api/admin/users?${params}`)
       if (!response.ok) throw new Error('Failed to fetch users')
@@ -108,7 +110,7 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roleFilter]) // Re-fetch when role filter changes
+  }, [roleFilter, regionFilter, statusFilter]) // Re-fetch when filters change
 
   const handleSearch = () => {
     setPagination({ ...pagination, offset: 0 })
@@ -328,49 +330,41 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users
-                    .filter(user => regionFilter === 'all' || user.region === regionFilter)
-                    .filter(user => {
-                      if (statusFilter === 'all') return true
-                      if (statusFilter === 'active') return user.active !== false
-                      if (statusFilter === 'disabled') return user.active === false
-                      return true
-                    })
-                    .map((user) => (
-                      <TableRow key={user.user_id}>
-                        <TableCell className="font-medium">{user.full_name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={getRoleBadgeVariant(user.role)}>
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  {users.map((user) => (
+                    <TableRow key={user.user_id}>
+                      <TableCell className="font-medium">{user.full_name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{getRegionLabel(user.region)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.active !== false}
+                            onCheckedChange={() => handleStatusToggle(user)}
+                            disabled={!user.zammad_id}
+                          />
+                          <Badge variant={user.active !== false ? 'default' : 'secondary'}>
+                            {user.active !== false ? 'Active' : 'Disabled'}
                           </Badge>
-                        </TableCell>
-                        <TableCell>{getRegionLabel(user.region)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={user.active !== false}
-                              onCheckedChange={() => handleStatusToggle(user)}
-                              disabled={!user.zammad_id}
-                            />
-                            <Badge variant={user.active !== false ? 'default' : 'secondary'}>
-                              {user.active !== false ? 'Active' : 'Disabled'}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.phone || '-'}</TableCell>
-                        <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.phone || '-'}</TableCell>
+                      <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(user)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
 

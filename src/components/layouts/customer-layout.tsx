@@ -8,7 +8,6 @@ import {
   HelpCircle,
   MessageSquare,
   FileText,
-  MessageCircle,
   Menu,
   X,
   ChevronDown,
@@ -62,20 +61,14 @@ const getNavigation = (t: (key: string) => string): NavItem[] => [
     icon: MessageSquare,
   },
   {
-    name: t('ticketManagement'),
+    name: t('submitTicket'),
+    href: "/customer/my-tickets/create",
     icon: FileText,
-    children: [
-      { name: t('submitTicket'), href: "/customer/my-tickets/create", icon: FileText },
-      { name: t('myTickets'), href: "/customer/my-tickets", icon: FileText },
-    ],
   },
   {
-    name: t('feedbackComplaints'),
-    icon: MessageCircle,
-    children: [
-      { name: t('submitFeedback'), href: "/customer/feedback", icon: MessageCircle },
-      { name: t('submitComplaint'), href: "/customer/complaints", icon: MessageCircle },
-    ],
+    name: t('myTickets'),
+    href: "/customer/my-tickets",
+    icon: FileText,
   },
 ]
 
@@ -88,7 +81,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
   // Get navigation with translated names
   const navigation = getNavigation(tSidebar)
-  const [expandedItems, setExpandedItems] = useState<string[]>([tSidebar('ticketManagement'), tSidebar('feedbackComplaints')])
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
 

@@ -20,7 +20,7 @@ export default function CreateTicketPage() {
   const tCreate = useTranslations('customer.myTickets.create')
   const tToast = useTranslations('toast.customer.tickets')
   const [loading, setLoading] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     category: '',
     model: '',
@@ -35,7 +35,7 @@ export default function CreateTicketPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
-    
+
     // Validate file count
     if (files.length + selectedFiles.length > 5) {
       toast.error(tToast('maxFilesExceeded'))
@@ -59,7 +59,7 @@ export default function CreateTicketPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!user?.email) {
       toast.error(tToast('loginRequired'))
       return
@@ -154,7 +154,9 @@ export default function CreateTicketPage() {
                 >
                   <option value="">{tCreate('categoryPlaceholder')}</option>
                   {PRODUCT_CATEGORIES.map(cat => (
-                    <option key={cat.name} value={cat.name}>{cat.name}</option>
+                    <option key={cat.name} value={cat.name}>
+                      {cat.name === 'Other' ? tCreate('categoryOther') : cat.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -171,7 +173,9 @@ export default function CreateTicketPage() {
                 >
                   <option value="">{tCreate('modelPlaceholder')}</option>
                   {selectedCategory?.models.map(model => (
-                    <option key={model} value={model}>{model}</option>
+                    <option key={model} value={model}>
+                      {model === 'N/A' ? tCreate('modelNotApplicable') : model}
+                    </option>
                   ))}
                 </select>
               </div>

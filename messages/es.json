@@ -145,6 +145,8 @@
     "passwordMinLength": "La contraseña debe tener al menos 6 caracteres",
     "passwordMismatch": "Las contraseñas no coinciden",
     "fullNameRequired": "El nombre completo es obligatorio",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
     "loginPage": {
       "title": "Iniciar sesión",
       "description": "Ingrese su correo electrónico y contraseña para acceder a su cuenta",
@@ -775,6 +777,8 @@
         "categoryPlaceholder": "Por favor selecciona una categoría de producto",
         "modelLabel": "Modelo del producto *",
         "modelPlaceholder": "Por favor selecciona un modelo de producto",
+        "categoryOther": "Otro",
+        "modelNotApplicable": "No aplica",
         "priorityLabel": "Prioridad *",
         "priorities": {
           "1": "Baja - pregunta sobre uso del producto",
@@ -1485,6 +1489,9 @@
       "description": "Aún no has enviado ningún ticket",
       "noResults": "No se encontraron tickets coincidentes",
       "hint": "Por favor crea un ticket a través del chat en vivo."
+    },
+    "toast": {
+      "loadError": "Error al cargar tickets"
     },
     "table": {
       "id": "ID del ticket",

@@ -145,6 +145,8 @@
     "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
     "passwordMismatch": "Les mots de passe ne correspondent pas",
     "fullNameRequired": "Le nom complet est requis",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
     "loginPage": {
       "title": "Se connecter",
       "description": "Entrez votre email et mot de passe pour accéder à votre compte",
@@ -775,6 +777,8 @@
         "categoryPlaceholder": "Veuillez sélectionner une catégorie de produit",
         "modelLabel": "Modèle de produit *",
         "modelPlaceholder": "Veuillez sélectionner un modèle de produit",
+        "categoryOther": "Autre",
+        "modelNotApplicable": "Non applicable",
         "priorityLabel": "Priorité *",
         "priorities": {
           "1": "Basse - question sur l'utilisation du produit",
@@ -1485,6 +1489,9 @@
       "description": "Vous n'avez pas encore soumis de tickets",
       "noResults": "Aucun ticket correspondant trouvé",
       "hint": "Veuillez créer un ticket via le chat en direct."
+    },
+    "toast": {
+      "loadError": "Échec du chargement des tickets"
     },
     "table": {
       "id": "ID du ticket",

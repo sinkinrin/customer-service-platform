@@ -94,12 +94,7 @@ export default function StaffSettingsPage() {
       const res = await fetch('/api/staff/vacation')
       if (res.ok) {
         const data = await res.json()
-        // successResponse wraps payload as { success, data }
-        if (data.success && data.data?.vacation) {
-          setVacationStatus(data.data.vacation)
-        } else if (data.error?.message) {
-          console.error('Failed to fetch vacation status:', data.error.message)
-        }
+        setVacationStatus(data.vacation)
       }
     } catch (error) {
       console.error('Failed to fetch vacation status:', error)

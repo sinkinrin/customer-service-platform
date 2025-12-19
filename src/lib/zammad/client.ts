@@ -487,13 +487,45 @@ export class ZammadClient {
   }
 
   /**
-   * Search users
+   * Search users with pagination
    * @param query - Search query (email, login, name, etc.)
+   * @param perPage - Number of results per page (default 100, Zammad max varies)
+   * @param page - Page number (1-indexed)
    * @returns Array of matching users
    */
-  async searchUsers(query: string): Promise<ZammadUser[]> {
-    const params = new URLSearchParams({ query })
+  async searchUsers(query: string, perPage: number = 100, page: number = 1): Promise<ZammadUser[]> {
+    const params = new URLSearchParams({
+      query,
+      per_page: perPage.toString(),
+      page: page.toString()
+    })
     return this.request<ZammadUser[]>(`/users/search?${params}`)
+  }
+
+  /**
+   * Get all users matching a query by iterating through all pages
+   * @param query - Search query (email, login, name, etc.), use '*' for all users
+   * @param maxPages - Maximum pages to fetch (safety limit, default 20 = ~2000 users)
+   * @returns Array of all matching users
+   */
+  async getAllUsers(query: string = '*', maxPages: number = 20): Promise<ZammadUser[]> {
+    const allUsers: ZammadUser[] = []
+    const perPage = 100
+    let page = 1
+
+    while (page <= maxPages) {
+      const users = await this.searchUsers(query, perPage, page)
+      allUsers.push(...users)
+
+      // If we got fewer users than requested, we've reached the last page
+      if (users.length < perPage) {
+        break
+      }
+      page++
+    }
+
+    console.log(`[Zammad] Fetched ${allUsers.length} users across ${page} pages`)
+    return allUsers
   }
 
   // ============================================================================

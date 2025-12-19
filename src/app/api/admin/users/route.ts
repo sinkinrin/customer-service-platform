@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     if (source === 'zammad') {
       try {
-        const zammadUsers = await zammadClient.searchUsers('*')
+        const zammadUsers = await zammadClient.getAllUsers('*')
 
         allUsers = zammadUsers.map(user => {
           const role = getRoleFromZammad(user.role_ids || [])

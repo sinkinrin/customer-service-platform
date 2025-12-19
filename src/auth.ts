@@ -66,8 +66,8 @@ function getProductionUserFromEnv(): { user: MockUser; password: string } | null
 
   const role =
     env.AUTH_DEFAULT_USER_ROLE === "customer" ||
-    env.AUTH_DEFAULT_USER_ROLE === "staff" ||
-    env.AUTH_DEFAULT_USER_ROLE === "admin"
+      env.AUTH_DEFAULT_USER_ROLE === "staff" ||
+      env.AUTH_DEFAULT_USER_ROLE === "admin"
       ? env.AUTH_DEFAULT_USER_ROLE
       : DEFAULT_PRODUCTION_ROLE
 
@@ -111,13 +111,17 @@ async function validateCredentials(
     return user
   }
 
-  // In production without mock auth, implement real authentication here
+  // In production without mock auth, use environment-configured credentials
   const productionCredentials = getProductionUserFromEnv()
 
   if (!productionCredentials) {
-    throw new Error(
-      "AUTH_CONFIG_MISSING"
+    // No production credentials configured - return null to indicate auth failure
+    // This allows NextAuth to return a proper 401 instead of throwing a 500 error
+    console.warn(
+      "[Auth] Mock auth is disabled but AUTH_DEFAULT_USER_EMAIL/PASSWORD are not set. " +
+      "Authentication will fail for all users until configured."
     )
+    return null
   }
 
   const { user: productionUser, password: productionPassword } = productionCredentials

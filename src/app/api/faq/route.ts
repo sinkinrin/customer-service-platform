@@ -18,6 +18,25 @@ import {
 } from '@/lib/utils/api-response'
 import { faqCache } from '@/lib/cache/simple-cache'
 
+/**
+ * Safely parse keywords JSON string
+ * Returns empty array if parsing fails, preventing API crashes from malformed data
+ */
+function safeParseKeywords(keywordsJson: string | null | undefined): string[] {
+  if (!keywordsJson) return []
+  try {
+    const parsed = JSON.parse(keywordsJson)
+    // Ensure it's an array of strings
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === 'string')
+    }
+    return []
+  } catch (error) {
+    console.warn('[FAQ API] Failed to parse keywords JSON:', keywordsJson, error)
+    return []
+  }
+}
+
 // ============================================================================
 // GET /api/faq
 // ============================================================================
@@ -107,7 +126,8 @@ export async function GET(request: NextRequest) {
 
         const titleMatch = translation.title.toLowerCase().includes(lowerQuery)
         const contentMatch = translation.content.toLowerCase().includes(lowerQuery)
-        const keywordsMatch = JSON.parse(translation.keywords).some((kw: string) =>
+        const keywords = safeParseKeywords(translation.keywords)
+        const keywordsMatch = keywords.some((kw: string) =>
           kw.toLowerCase().includes(lowerQuery)
         )
 
@@ -128,7 +148,7 @@ export async function GET(request: NextRequest) {
         category_id: article.categoryId.toString(), // Frontend expects string category_id
         category_name: article.category?.name || `Category ${article.categoryId}`, // Frontend expects category_name
         language: language, // Frontend expects language field
-        keywords: translation ? JSON.parse(translation.keywords) : [],
+        keywords: safeParseKeywords(translation?.keywords),
         view_count: article.views, // Frontend expects 'view_count'
         helpful_count: helpfulCount, // Frontend expects 'helpful_count'
         not_helpful_count: notHelpfulCount, // Frontend expects 'not_helpful_count'

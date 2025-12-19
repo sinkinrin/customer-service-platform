@@ -316,6 +316,10 @@
     "empty": {
       "noTicketsFound": "Nenhum ticket encontrado",
       "adjustFilters": "Tente ajustar sua pesquisa ou filtros"
+    },
+    "actions": {
+      "assign": "Assign",
+      "reassign": "Reassign"
     }
   },
   "admin": {
@@ -392,7 +396,8 @@
       "deleteUser": "Excluir usuário",
       "confirmDelete": "Tem certeza de que deseja excluir este usuário?",
       "filters": {
-        "allRoles": "Todas as funções"
+        "allRoles": "Todas as funções",
+        "allRegions": "All Regions"
       },
       "form": {
         "emailRequired": "Endereço de e-mail *",
@@ -637,7 +642,8 @@
         }
       },
       "actions": {
-        "export": "Exportar"
+        "export": "Exportar",
+        "autoAssign": "Auto Assign"
       },
       "tabs": {
         "all": "Todos os tickets",
@@ -754,20 +760,8 @@
         "loading": "Carregando...",
         "loadMore": "Carregar mais"
       },
-      "status": {
-        "1": "Novo",
-        "2": "Aberto",
-        "3": "Aguardando resposta",
-        "4": "Fechado",
-        "unknown": "Desconhecido"
-      },
-      "priority": {
-        "1": "Baixa",
-        "2": "Média",
-        "3": "Alta",
-        "4": "Urgente",
-        "unknown": "Desconhecido"
-      },
+      "status": "Status",
+      "priority": "Prioridade",
       "createPageTitle": "Enviar ticket",
       "createPageDescription": "Encontrou problemas? Envie um ticket e nossa equipe de suporte ajudará rapidamente.",
       "detailPageTitle": "Detalhes do ticket",
@@ -775,8 +769,6 @@
       "ticketNumber": "Ticket #",
       "createdAt": "Criado",
       "updatedAt": "Última atualização",
-      "status": "Status",
-      "priority": "Prioridade",
       "conversation": "Histórico de conversa",
       "messageCount": "{count} mensagens",
       "noConversation": "Nenhum histórico de conversa ainda",
@@ -840,7 +832,9 @@
         "characterCount": "{count}/{max} caracteres",
         "sending": "Enviando...",
         "sendReply": "Enviar resposta",
-        "closedMessage": "Este ticket está fechado. Por favor, crie um novo ticket para continuar a discussão."
+        "closedMessage": "Este ticket está fechado. Por favor, crie um novo ticket para continuar a discussão.",
+        "assignedTo": "Assigned To",
+        "unassigned": "Not yet assigned"
       },
       "statusLabels": {
         "new": "Novo",
@@ -963,7 +957,9 @@
         "aiAssistant": "Assistente de IA",
         "newMessageNotification": "Nova mensagem recebida - role para baixo para ver",
         "sseError": "Atualizações em tempo real indisponíveis: {error}",
-        "closedMessage": "A conversa está fechada. Por favor, inicie um novo chat para continuar."
+        "closedMessage": "A conversa está fechada. Por favor, inicie um novo chat para continuar.",
+        "aiDisclaimer": "AI may make mistakes. Please verify carefully or feel free to contact our support team.",
+        "humanModeHint": "You are now chatting with a human agent."
       },
       "placeholders": {
         "aiMode": "Pergunte ao assistente de IA...",
@@ -1124,7 +1120,9 @@
         "description": "Pesquisar e filtrar lista de conversas",
         "searchPlaceholder": "Pesquisar por nome do cliente, e-mail ou ID da conversa...",
         "statusPlaceholder": "Status",
-        "allStatuses": "Todos os status"
+        "allStatuses": "Todos os status",
+        "allRegions": "All Regions",
+        "regionPlaceholder": "Region"
       },
       "list": {
         "title": "Lista de conversas",
@@ -1159,7 +1157,11 @@
         "lastActivity": "Última atividade",
         "noActivity": "Sem atividade",
         "createdTime": "Hora de criação",
-        "viewButton": "Ver conversa"
+        "viewButton": "Ver conversa",
+        "customerRegion": "Customer Region",
+        "messages": "messages",
+        "region": "Region",
+        "staffRegion": "Staff Region"
       },
       "notification": {
         "newTransfer": "Nova conversa transferida",
@@ -1221,6 +1223,14 @@
           "viewHistory": "Ver histórico do cliente",
           "createTicket": "Criar ticket",
           "addNote": "Adicionar nota interna"
+        },
+        "claim": {
+          "alreadyClaimed": "This conversation has already been claimed",
+          "button": "Claim Conversation",
+          "claiming": "Claiming...",
+          "error": "Failed to claim conversation",
+          "success": "Conversation claimed successfully",
+          "waitingHint": "This conversation is waiting for a staff member to claim it"
         }
       }
     },
@@ -1363,7 +1373,9 @@
         "ticketCreated": "Novo ticket criado",
         "ticketUpdated": "Ticket atualizado",
         "ticketDeleted": "Ticket excluído",
-        "ticketChanged": "Ticket alterado"
+        "ticketChanged": "Ticket alterado",
+        "autoAssignSuccess": "Auto-assignment completed: {success} assigned, {failed} failed",
+        "autoAssignFailed": "Auto-assignment failed"
       },
       "ticketDetail": {
         "updateSuccess": "Ticket atualizado com sucesso",
@@ -1573,6 +1585,13 @@
           "switchToAI": "Mudar para IA",
           "switchingToAI": "Mudando...",
           "transferToHuman": "Transferir para humano"
+        },
+        "aiDescription": "Smart assistant at your service",
+        "online": "Online",
+        "status": {
+          "waiting": "Waiting for agent",
+          "active": "In conversation",
+          "closed": "Closed"
         }
       },
       "messageInput": {
@@ -1607,6 +1626,26 @@
         "title": "Histórico do chat de IA",
         "collapse": "Recolher",
         "expand": "Expandir"
+      },
+      "ratingDialog": {
+        "description": "How was your conversation with us? Your feedback helps us improve.",
+        "feedbackLabel": "Additional Feedback (Optional)",
+        "feedbackPlaceholder": "Tell us more about your experience...",
+        "pleaseSelectRating": "Please select a rating",
+        "scoreLabels": {
+          "1": "Very Dissatisfied",
+          "2": "Dissatisfied",
+          "3": "Neutral",
+          "4": "Satisfied",
+          "5": "Very Satisfied"
+        },
+        "skip": "Skip",
+        "starLabel": "{score} stars",
+        "submit": "Submit Rating",
+        "submitError": "Failed to submit rating",
+        "submitSuccess": "Thank you for your feedback!",
+        "submitting": "Submitting...",
+        "title": "Rate Your Experience"
       }
     }
   },

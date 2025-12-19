@@ -91,9 +91,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             }
         }
 
-        // Update ticket assignment
-        const updateData: { owner_id: number; group?: string } = {
+        // Update ticket assignment and state
+        // When assigning a ticket, also change state from 'new' to 'open'
+        const updateData: { owner_id: number; state?: string; group?: string } = {
             owner_id: staff_id,
+        }
+
+        // Only change state to 'open' if ticket is currently 'new' (state_id = 1)
+        if (ticket.state_id === 1) {
+            updateData.state = 'open'
         }
 
         // If group_id is provided, also update the group (for email tickets without region)

@@ -30,6 +30,8 @@ interface ParsedUser {
 interface ImportResult {
     success: boolean
     email: string
+    full_name?: string
+    password?: string
     error?: string
     zammad_id?: number
 }
@@ -233,7 +235,7 @@ export async function POST(request: NextRequest) {
                 }
                 mockPasswords[user.email] = user.password!
 
-                results.push({ success: true, email: user.email, zammad_id: zammadUser.id })
+                results.push({ success: true, email: user.email, full_name: user.full_name, password: user.password, zammad_id: zammadUser.id })
                 successCount++
 
             } catch (error: any) {

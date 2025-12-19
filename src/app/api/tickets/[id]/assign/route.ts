@@ -68,6 +68,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             if (!isAgent) {
                 return validationErrorResponse('Selected user is not a staff member')
             }
+            // Check if user is active (not disabled)
+            if (staffMember.active === false) {
+                return validationErrorResponse('Cannot assign ticket to a disabled staff member')
+            }
         } catch {
             return notFoundResponse('Staff member not found')
         }

@@ -68,57 +68,17 @@
     @apply border-border;
   }
 
-  /* Use scrollbar-gutter to always reserve space for scrollbar */
-  html {
-    scrollbar-gutter: stable;
-  }
-
   body {
     @apply bg-background text-foreground;
   }
 
-  /* 
-   * Fix Radix UI scroll lock causing layout shift
-   * Radix uses react-remove-scroll which adds margin-right to body
-   * These overrides prevent the layout shift when dropdowns/modals open
+  /*
+   * Ensure standard Radix behavior doesn't cause jumpienss
+   * IF modal=true is ever used.
    */
-  
-  /* When scroll is locked by Radix, prevent all layout-shifting margins/padding */
   body[data-scroll-locked] {
-    overflow: visible !important;
     margin-right: 0 !important;
     padding-right: 0 !important;
-  }
-
-  /* Also handle the html element which may get styles applied */
-  html[data-scroll-locked],
-  html[style*="margin-right"] {
-    margin-right: 0 !important;
-    padding-right: 0 !important;
-  }
-
-  /* Ensure body never gets margin-right from Radix scroll lock */
-  body[style*="margin-right"] {
-    margin-right: 0 !important;
-  }
-  body[style*="padding-right"] {
-    padding-right: 0 !important;
-  }
-
-  /* For browsers that support scrollbar-gutter, ensure consistent scrollbar space */
-  @supports (scrollbar-gutter: stable) {
-    html, body {
-      scrollbar-gutter: stable;
-    }
-    
-    /* Override any inline styles that Radix might add */
-    body[data-scroll-locked],
-    body[style*="overflow: hidden"],
-    body[style*="overflow:hidden"] {
-      scrollbar-gutter: stable !important;
-      margin-right: 0 !important;
-      padding-right: 0 !important;
-    }
   }
 
   /* Custom scrollbar styles */
@@ -170,12 +130,10 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      110deg,
-      transparent 20%,
-      rgba(255, 255, 255, 0.45) 45%,
-      transparent 70%
-    );
+    background: linear-gradient(110deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.45) 45%,
+        transparent 70%);
     animation: shimmer 1.4s ease-in-out infinite;
     pointer-events: none;
   }
@@ -235,6 +193,7 @@
 
   /* Global reduced motion support */
   @media (prefers-reduced-motion: reduce) {
+
     *,
     ::before,
     ::after {
@@ -259,6 +218,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -268,18 +228,21 @@
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(100%);
   }
 }
 
 @keyframes dot-wave {
+
   0%,
   60%,
   100% {
     transform: translateY(0);
     opacity: 0.45;
   }
+
   30% {
     transform: translateY(-8px);
     opacity: 1;
@@ -288,10 +251,14 @@
 
 /* Typing indicator animation for chat */
 @keyframes typing-dot {
-  0%, 60%, 100% {
+
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
     opacity: 0.4;
   }
+
   30% {
     transform: translateY(-4px);
     opacity: 1;
@@ -304,6 +271,7 @@
     opacity: 0;
     transform: translateY(8px) scale(0.96);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -312,9 +280,12 @@
 
 /* Subtle pulse for active states */
 @keyframes subtle-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }

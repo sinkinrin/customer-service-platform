@@ -43,6 +43,8 @@ interface PreviewUser {
 interface ImportResult {
     success: boolean
     email: string
+    full_name?: string
+    password?: string
     error?: string
     zammad_id?: number
 }
@@ -150,12 +152,29 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
     }
 
     const downloadTemplate = () => {
-        const template = 'email,full_name,role,region,phone\nexample@company.com,John Doe,customer,asia-pacific,+1234567890'
+        const template = 'email,full_name,role,region,phone,password\nexample@company.com,John Doe,customer,asia-pacific,+1234567890,MyPassword123!\njane@company.com,Jane Smith,staff,europe,+9876543210,'
         const blob = new Blob([template], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
         a.download = 'user-import-template.csv'
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
+    const downloadCredentials = () => {
+        const successUsers = importResults.filter(r => r.success && r.password)
+        if (successUsers.length === 0) return
+
+        const header = 'email,full_name,password'
+        const rows = successUsers.map(u => `${u.email},"${u.full_name || ''}",${u.password}`)
+        const csv = [header, ...rows].join('\n')
+
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `imported-users-credentials-${new Date().toISOString().split('T')[0]}.csv`
         a.click()
         URL.revokeObjectURL(url)
     }
@@ -288,7 +307,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                         </div>
 
                         {importResults.filter(r => !r.success).length > 0 && (
-                            <ScrollArea className="h-[200px] border rounded-md p-3">
+                            <ScrollArea className="h-[150px] border rounded-md p-3">
                                 <p className="font-medium mb-2">Failed Imports:</p>
                                 {importResults.filter(r => !r.success).map((result, i) => (
                                     <div key={i} className="flex items-center gap-2 text-sm text-red-600 mb-1">
@@ -297,6 +316,42 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                                     </div>
                                 ))}
                             </ScrollArea>
+                        )}
+
+                        {/* Show successful imports with credentials */}
+                        {importResults.filter(r => r.success && r.password).length > 0 && (
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <p className="font-medium">Successfully Imported Users:</p>
+                                    <Button variant="outline" size="sm" onClick={downloadCredentials}>
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Download Credentials
+                                    </Button>
+                                </div>
+                                <ScrollArea className="h-[150px] border rounded-md">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Email</TableHead>
+                                                <TableHead>Name</TableHead>
+                                                <TableHead>Password</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {importResults.filter(r => r.success && r.password).map((result, i) => (
+                                                <TableRow key={i}>
+                                                    <TableCell className="font-mono text-sm">{result.email}</TableCell>
+                                                    <TableCell>{result.full_name}</TableCell>
+                                                    <TableCell className="font-mono text-sm text-green-600">{result.password}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </ScrollArea>
+                                <p className="text-xs text-muted-foreground">
+                                    ⚠️ Please save these credentials. They will not be shown again.
+                                </p>
+                            </div>
                         )}
                     </div>
                 )}

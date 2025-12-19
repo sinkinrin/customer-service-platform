@@ -153,8 +153,12 @@ export async function POST(request: NextRequest) {
             const selectedAgent = availableAgents[0]
 
             try {
-                // Assign ticket to this agent
-                await zammadClient.updateTicket(ticket.id, { owner_id: selectedAgent.id })
+                // Assign ticket to this agent and change state to 'open' if it was 'new'
+                const updateData: { owner_id: number; state?: string } = { owner_id: selectedAgent.id }
+                if (ticket.state_id === 1) {
+                    updateData.state = 'open'
+                }
+                await zammadClient.updateTicket(ticket.id, updateData)
 
                 // Update local count for next assignment
                 ticketCountByAgent[selectedAgent.id] = (ticketCountByAgent[selectedAgent.id] || 0) + 1

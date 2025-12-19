@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         const roleFilter = searchParams.get('role') // 'admin', 'staff', 'customer', or null for all
 
         // Fetch all users from Zammad
-        const zammadUsers = await zammadClient.searchUsers('*')
+        const zammadUsers = await zammadClient.getAllUsers('*')
 
         // Filter and transform users
         let users = zammadUsers.map(user => {

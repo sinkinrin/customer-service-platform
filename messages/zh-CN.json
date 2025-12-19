@@ -316,6 +316,10 @@
     "empty": {
       "noTicketsFound": "未找到工单",
       "adjustFilters": "请调整搜索条件或筛选器"
+    },
+    "actions": {
+      "assign": "分配",
+      "reassign": "重新分配"
     }
   },
   "admin": {
@@ -392,7 +396,8 @@
       "deleteUser": "删除用户",
       "confirmDelete": "确定要删除此用户吗？",
       "filters": {
-        "allRoles": "所有角色"
+        "allRoles": "所有角色",
+        "allRegions": "所有地区"
       },
       "form": {
         "emailRequired": "邮箱地址 *",
@@ -637,7 +642,8 @@
         }
       },
       "actions": {
-        "export": "导出"
+        "export": "导出",
+        "autoAssign": "自动分配"
       },
       "tabs": {
         "all": "所有工单",
@@ -826,7 +832,9 @@
         "characterCount": "{count}/{max} 字符",
         "sending": "发送中...",
         "sendReply": "发送回复",
-        "closedMessage": "此工单已关闭。如需继续讨论，请创建新工单。"
+        "closedMessage": "此工单已关闭。如需继续讨论，请创建新工单。",
+        "assignedTo": "负责人",
+        "unassigned": "尚未分配"
       },
       "statusLabels": {
         "new": "新建",
@@ -1365,7 +1373,9 @@
         "ticketCreated": "工单已创建",
         "ticketUpdated": "工单已更新",
         "ticketDeleted": "工单已删除",
-        "ticketChanged": "工单已变更"
+        "ticketChanged": "工单已变更",
+        "autoAssignSuccess": "自动分配完成：{success} 个已分配，{failed} 个失败",
+        "autoAssignFailed": "自动分配失败"
       },
       "ticketDetail": {
         "updateSuccess": "工单更新成功",

@@ -1,6 +1,8 @@
 /**
  * Ticket 统计 API
  * 返回工单趋势数据，支持时间范围选择
+ * 
+ * 使用真实的 Zammad 数据统计工单趋势
  */
 
 import { NextRequest } from 'next/server'
@@ -10,31 +12,14 @@ import {
     serverErrorResponse,
     unauthorizedResponse,
 } from '@/lib/utils/api-response'
-import { subDays, format } from 'date-fns'
+import { zammadClient } from '@/lib/zammad/client'
+import { subDays, format, parseISO, startOfDay, endOfDay } from 'date-fns'
 
 interface TicketTrendData {
     date: string
     new: number
     open: number
     closed: number
-}
-
-// Generate mock trend data for demo
-function generateMockTrendData(days: number): TicketTrendData[] {
-    const data: TicketTrendData[] = []
-    const now = new Date()
-
-    for (let i = days - 1; i >= 0; i--) {
-        const date = subDays(now, i)
-        data.push({
-            date: format(date, 'yyyy-MM-dd'),
-            new: Math.floor(Math.random() * 20) + 5,
-            open: Math.floor(Math.random() * 15) + 3,
-            closed: Math.floor(Math.random() * 18) + 4,
-        })
-    }
-
-    return data
 }
 
 export async function GET(request: NextRequest) {
@@ -58,9 +43,71 @@ export async function GET(request: NextRequest) {
                 days = 7
         }
 
-        // Generate mock data for demo
-        // In production, this would query Zammad API for actual ticket data
-        const trendData = generateMockTrendData(days)
+        // Get all tickets from Zammad
+        const allTickets = await zammadClient.getAllTickets()
+
+        // Calculate date range
+        const now = new Date()
+        const startDate = startOfDay(subDays(now, days - 1))
+
+        // Initialize daily counts
+        const dailyCounts: Record<string, { new: number; open: number; closed: number }> = {}
+
+        // Initialize all days with zero counts
+        for (let i = days - 1; i >= 0; i--) {
+            const date = subDays(now, i)
+            const dateKey = format(date, 'yyyy-MM-dd')
+            dailyCounts[dateKey] = { new: 0, open: 0, closed: 0 }
+        }
+
+        // Process tickets and count by creation date
+        for (const ticket of allTickets) {
+            const createdDate = parseISO(ticket.created_at)
+
+            // Only count tickets within the date range
+            if (createdDate >= startDate) {
+                const dateKey = format(createdDate, 'yyyy-MM-dd')
+
+                if (dailyCounts[dateKey]) {
+                    // Count as new on creation date
+                    dailyCounts[dateKey].new++
+
+                    // If ticket is open (state_id 2) or new (state_id 1), count as open
+                    if ([1, 2, 3, 7].includes(ticket.state_id)) {
+                        dailyCounts[dateKey].open++
+                    }
+                }
+            }
+
+            // Count closed tickets by close date or updated date
+            if ([4, 5].includes(ticket.state_id)) {
+                const closedDate = ticket.close_at
+                    ? parseISO(ticket.close_at)
+                    : parseISO(ticket.updated_at)
+
+                if (closedDate >= startDate) {
+                    const dateKey = format(closedDate, 'yyyy-MM-dd')
+                    if (dailyCounts[dateKey]) {
+                        dailyCounts[dateKey].closed++
+                    }
+                }
+            }
+        }
+
+        // Convert to array format
+        const trendData: TicketTrendData[] = []
+        for (let i = days - 1; i >= 0; i--) {
+            const date = subDays(now, i)
+            const dateKey = format(date, 'yyyy-MM-dd')
+            const counts = dailyCounts[dateKey] || { new: 0, open: 0, closed: 0 }
+
+            trendData.push({
+                date: dateKey,
+                new: counts.new,
+                open: counts.open,
+                closed: counts.closed,
+            })
+        }
 
         // Calculate summary stats
         const summary = {
@@ -69,6 +116,10 @@ export async function GET(request: NextRequest) {
             totalClosed: trendData.reduce((sum, d) => sum + d.closed, 0),
             avgNew: Math.round(trendData.reduce((sum, d) => sum + d.new, 0) / days),
             avgClosed: Math.round(trendData.reduce((sum, d) => sum + d.closed, 0) / days),
+            // Current overall status
+            currentTotal: allTickets.length,
+            currentOpen: allTickets.filter(t => [1, 2, 3, 7].includes(t.state_id)).length,
+            currentClosed: allTickets.filter(t => [4, 5].includes(t.state_id)).length,
         }
 
         return successResponse({
@@ -76,6 +127,7 @@ export async function GET(request: NextRequest) {
             days,
             trend: trendData,
             summary,
+            source: 'zammad', // Indicate real data source
         })
     } catch (error: any) {
         console.error('[Stats Tickets API] Error:', error)

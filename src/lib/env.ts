@@ -30,9 +30,6 @@ interface EnvConfig {
   // Database
   DATABASE_URL?: string
 
-  // Socket.IO
-  SOCKET_IO_PORT?: string
-
   // AI Configuration
   FASTGPT_API_KEY?: string
 
@@ -147,7 +144,6 @@ export function getEnv(): EnvConfig {
     ZAMMAD_URL: process.env.ZAMMAD_URL || "",
     ZAMMAD_API_TOKEN: process.env.ZAMMAD_API_TOKEN || "",
     DATABASE_URL: process.env.DATABASE_URL,
-    SOCKET_IO_PORT: process.env.SOCKET_IO_PORT,
     FASTGPT_API_KEY: process.env.FASTGPT_API_KEY,
     LOG_LEVEL: process.env.LOG_LEVEL || "info",
     NODE_ENV: process.env.NODE_ENV || "development",

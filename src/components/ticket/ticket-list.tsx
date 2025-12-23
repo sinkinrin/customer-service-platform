@@ -175,22 +175,20 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
           <CardContent>
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div className="flex items-center gap-4">
-                <span>{t('details.group')}: {ticket.group}</span>
-                {ticket.owner_id && (
-                  <span className="text-blue-600 dark:text-blue-400">
-                    {t('details.assignedTo')}: {ticket.owner_name || `Staff #${ticket.owner_id}`}
-                  </span>
-                )}
+                {ticket.group && <span>{t('details.group')}: {ticket.group}</span>}
               </div>
               <div className="flex items-center gap-2">
                 {user?.role === 'admin' && onAssign && (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant={ticket.owner_id ? "outline" : "default"}
                     onClick={(e) => handleAssignClick(e, ticket)}
+                    className="gap-1"
                   >
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    {ticket.owner_id ? t('actions.reassign') : t('actions.assign')}
+                    <UserPlus className="h-4 w-4" />
+                    {ticket.owner_id 
+                      ? (ticket.owner_name || `Staff #${ticket.owner_id}`)
+                      : t('actions.assign')}
                   </Button>
                 )}
                 <div className="flex items-center gap-1">

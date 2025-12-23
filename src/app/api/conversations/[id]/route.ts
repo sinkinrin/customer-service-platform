@@ -3,17 +3,16 @@
  *
  * GET /api/conversations/[id] - Get conversation details
  * PUT /api/conversations/[id] - Update conversation
- * DELETE /api/conversations/[id] - Delete conversation (admin only)
+ * DELETE /api/conversations/[id] - Delete conversation
  *
- * Implementation: Uses local file storage
+ * Implementation: Uses local file storage for AI conversations only
  */
 
 import { NextRequest } from 'next/server'
-import { requireAuth, requireRole } from '@/lib/utils/auth'
+import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
   unauthorizedResponse,
-  forbiddenResponse,
   notFoundResponse,
   validationErrorResponse,
   serverErrorResponse,
@@ -25,7 +24,6 @@ import {
   deleteConversation,
   getConversationMessages,
 } from '@/lib/local-conversation-storage'
-import { broadcastConversationEvent } from '@/lib/sse/conversation-broadcaster'
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -41,7 +39,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Verify access: customer can only access their own conversations
-    if (user.role === 'customer' && conversation.customer_email !== user.email) {
+    if (conversation.customer_email !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -49,20 +47,15 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     const messages = await getConversationMessages(conversationId)
     const messageCount = messages.length
 
-    // Transform to API format with customer and staff information
+    // Transform to API format
     const response = {
       id: conversation.id,
       customer_id: conversation.customer_id,
       customer_email: conversation.customer_email,
-      staff_id: conversation.staff_id || null,
       business_type_id: null,
       status: conversation.status,
       mode: conversation.mode,
-      zammad_ticket_id: conversation.zammad_ticket_id,
-      transferred_at: conversation.transferred_at,
-      transfer_reason: conversation.transfer_reason,
       message_count: messageCount,
-      rating: conversation.rating || null,
       created_at: conversation.created_at,
       updated_at: conversation.updated_at,
       last_message_at: conversation.last_message_at,
@@ -71,10 +64,6 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
         full_name: conversation.customer_email?.split('@')[0] || 'Customer',
         email: conversation.customer_email,
       },
-      staff: conversation.staff_id ? {
-        id: conversation.staff_id,
-        full_name: conversation.staff_name || 'Staff',
-      } : null,
     }
 
     return successResponse(response)
@@ -100,6 +89,11 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
       return notFoundResponse('Conversation not found')
     }
 
+    // Verify access: customer can only update their own conversations
+    if (conversation.customer_email !== user.email) {
+      return notFoundResponse('Conversation not found')
+    }
+
     // Parse and validate request body
     const body = await request.json()
     const validation = UpdateConversationSchema.safeParse(body)
@@ -108,24 +102,9 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
       return validationErrorResponse(validation.error.errors)
     }
 
-    // Check permissions
-    const isStaffOrAdmin = user.role === 'staff' || user.role === 'admin'
-    const isOwner = conversation.customer_email === user.email
-
-    if (!isStaffOrAdmin && !isOwner) {
-      return forbiddenResponse('You do not have permission to update this conversation')
-    }
-
-    // P1 Fix: Restrict staff_id mutations to staff/admin only
-    // Customers (owners) can only update status, not staff_id
-    let updateData = validation.data
-    if (!isStaffOrAdmin && isOwner) {
-      const { staff_id, ...allowedFields } = validation.data
-      updateData = allowedFields
-    }
-
-    // Update conversation
-    const updated = await updateConversation(conversationId, updateData)
+    // Update conversation (only status allowed for customers)
+    const { status } = validation.data
+    const updated = await updateConversation(conversationId, { status })
 
     if (!updated) {
       return notFoundResponse('Conversation not found')
@@ -135,20 +114,15 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
     const messages = await getConversationMessages(conversationId)
     const messageCount = messages.length
 
-    // Transform to API format with customer and staff information
+    // Transform to API format
     const response = {
       id: updated.id,
       customer_id: updated.customer_id,
       customer_email: updated.customer_email,
-      staff_id: updated.staff_id || null,
       business_type_id: null,
       status: updated.status,
       mode: updated.mode,
-      zammad_ticket_id: updated.zammad_ticket_id,
-      transferred_at: updated.transferred_at,
-      transfer_reason: updated.transfer_reason,
       message_count: messageCount,
-      rating: updated.rating || null,
       created_at: updated.created_at,
       updated_at: updated.updated_at,
       last_message_at: updated.last_message_at,
@@ -157,30 +131,6 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
         full_name: updated.customer_email?.split('@')[0] || 'Customer',
         email: updated.customer_email,
       },
-      staff: updated.staff_id ? {
-        id: updated.staff_id,
-        full_name: updated.staff_name || 'Staff',
-      } : null,
-    }
-
-    // Broadcast conversation updated event via SSE to both customer and staff
-    try {
-      const targetUserIds = [updated.customer_id]
-      if (updated.staff_id) {
-        targetUserIds.push(updated.staff_id)
-      }
-
-      broadcastConversationEvent(
-        {
-          type: 'conversation_updated',
-          conversationId,
-          data: response,
-        },
-        targetUserIds
-      )
-      console.log('[SSE] Broadcasted conversation_updated event to:', targetUserIds, 'for conversation:', conversationId)
-    } catch (error) {
-      console.error('[SSE] Failed to broadcast conversation update:', error)
     }
 
     return successResponse(response)
@@ -196,15 +146,23 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
-    await requireRole(['admin'])
+    const user = await requireAuth()
     const conversationId = params.id
 
-    // Delete conversation and its messages
-    const deleted = await deleteConversation(conversationId)
+    // Get conversation
+    const conversation = await getConversation(conversationId)
 
-    if (!deleted) {
+    if (!conversation) {
       return notFoundResponse('Conversation not found')
     }
+
+    // Verify access: customer can only delete their own conversations
+    if (conversation.customer_email !== user.email) {
+      return notFoundResponse('Conversation not found')
+    }
+
+    // Delete conversation and its messages
+    await deleteConversation(conversationId)
 
     console.log('[LocalStorage] Deleted conversation:', conversationId)
 
@@ -213,9 +171,6 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     console.error('DELETE /api/conversations/[id] error:', error)
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
-    }
-    if (error.message === 'Forbidden') {
-      return forbiddenResponse('Only admins can delete conversations')
     }
     return serverErrorResponse('Failed to delete conversation', error.message)
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Users, Ticket, Activity, Settings, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Users, Ticket, Activity, Settings, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,6 +35,18 @@ interface RecentActivity {
   title?: string
   state?: string
   timestamp: string
+}
+
+interface RatingStats {
+  total: number
+  positive: number
+  negative: number
+  satisfactionRate: number
+  recentNegative: Array<{
+    ticketId: number
+    reason: string
+    createdAt: string
+  }>
 }
 
 const getActivityIcon = (state: string) => {
@@ -74,6 +86,7 @@ export default function AdminDashboardPage() {
   const [ticketStats, setTicketStats] = useState<TicketStats>({ total: 0, open: 0, pending: 0, closed: 0 })
   const [regionStats, setRegionStats] = useState<RegionStats[]>([])
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
+  const [ratingStats, setRatingStats] = useState<RatingStats>({ total: 0, positive: 0, negative: 0, satisfactionRate: 0, recentNegative: [] })
   const [totalUsers, setTotalUsers] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -88,6 +101,7 @@ export default function AdminDashboardPage() {
       loadRegionStats(),
       loadUserStats(),
       loadRecentActivities(),
+      loadRatingStats(),
     ])
     setLoading(false)
   }
@@ -161,6 +175,20 @@ export default function AdminDashboardPage() {
       }
     } catch (error) {
       console.error('Failed to load recent activities:', error)
+    }
+  }
+
+  const loadRatingStats = async () => {
+    try {
+      const response = await fetch('/api/admin/stats/ratings')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          setRatingStats(data.data)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load rating stats:', error)
     }
   }
 
@@ -402,26 +430,45 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('platformMetrics.title')}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <ThumbsUp className="h-5 w-5 text-green-600" />
+              {t('platformMetrics.title')}
+            </CardTitle>
             <CardDescription>{t('platformMetrics.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('platformMetrics.avgResponseTime')}</span>
-              <span className="text-sm font-medium">2.3 hours</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('platformMetrics.resolutionRate')}</span>
-              <span className="text-sm font-medium">94.5%</span>
-            </div>
-            <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">{t('platformMetrics.customerSatisfaction')}</span>
-              <span className="text-sm font-medium">4.8/5.0</span>
+              <span className="text-sm font-medium text-green-600">{ratingStats.satisfactionRate}%</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('platformMetrics.uptime')}</span>
-              <span className="text-sm font-medium">99.9%</span>
+              <span className="text-sm text-gray-600 flex items-center gap-1">
+                <ThumbsUp className="h-3 w-3" /> Satisfied
+              </span>
+              <span className="text-sm font-medium text-green-600">{ratingStats.positive}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 flex items-center gap-1">
+                <ThumbsDown className="h-3 w-3" /> Not Satisfied
+              </span>
+              <span className="text-sm font-medium text-red-600">{ratingStats.negative}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Total Ratings</span>
+              <span className="text-sm font-medium">{ratingStats.total}</span>
+            </div>
+            {ratingStats.recentNegative.length > 0 && (
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-2">Recent Negative Feedback:</p>
+                {ratingStats.recentNegative.slice(0, 2).map((item, idx) => (
+                  <Link key={idx} href={`/admin/tickets/${item.ticketId}`} className="block">
+                    <p className="text-xs text-red-600 hover:underline truncate">
+                      #{item.ticketId}: {item.reason}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

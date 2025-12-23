@@ -43,6 +43,7 @@ export default function EditUserPage() {
         firstname: '',
         lastname: '',
         phone: '',
+        region: '',
         active: true,
     })
 
@@ -61,6 +62,7 @@ export default function EditUserPage() {
                         firstname: u.firstname || '',
                         lastname: u.lastname || '',
                         phone: u.phone || '',
+                        region: u.region || '',
                         active: u.active,
                     })
                 } else {
@@ -176,6 +178,28 @@ export default function EditUserPage() {
                             <Label htmlFor="role">Role</Label>
                             <Input id="role" value={user.role} disabled className="bg-muted capitalize" />
                             <p className="text-xs text-muted-foreground">Role changes require additional permissions</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="region">Region</Label>
+                            <Select
+                                value={formData.region}
+                                onValueChange={(value) => setFormData({ ...formData, region: value })}
+                            >
+                                <SelectTrigger id="region">
+                                    <SelectValue placeholder="Select region" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {REGIONS.map((region) => (
+                                        <SelectItem key={region.value} value={region.value}>
+                                            {region.labelEn}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Region determines which tickets staff can access
+                            </p>
                         </div>
 
                         <div className="flex items-center justify-between">

@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Users,
   HelpCircle,
-  Briefcase,
   Settings,
   Menu,
   X,
@@ -76,11 +75,6 @@ export function AdminLayout({
       name: t('faqManagement'),
       href: "/admin/faq",
       icon: HelpCircle,
-    },
-    {
-      name: t('businessTypes'),
-      href: "/admin/business-types",
-      icon: Briefcase,
     },
     {
       name: t('systemSettings'),
@@ -217,10 +211,10 @@ export function AdminLayout({
               <DropdownMenuLabel>{tCommon('layout.myAccount')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/admin/profile">{tCommon('layout.profileSettings')}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/admin/settings">{tCommon('layout.systemSettings')}</Link>
+                <Link href="/admin/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  {t('settings')}
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onLogout} className="text-destructive">
@@ -271,10 +265,10 @@ export function AdminLayout({
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/admin/profile">{tCommon('layout.profileSettings')}</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/settings">{tCommon('layout.systemSettings')}</Link>
+                    <Link href="/admin/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      {t('settings')}
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout} className="text-destructive">

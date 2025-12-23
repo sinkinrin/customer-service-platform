@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,10 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, Users, Mail, Phone, MapPin, Calendar } from 'lucide-react'
+import { Search, Users, Mail, Phone, MapPin, Calendar, Ticket } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { useTranslations } from 'next-intl'
+import { TicketHistoryDialog } from '@/components/admin/ticket-history-dialog'
 
 interface Customer {
   user_id: string
@@ -39,7 +39,6 @@ interface Customer {
 }
 
 export default function StaffCustomersPage() {
-  const router = useRouter()
   const t = useTranslations('staff.customers')
   const tStats = useTranslations('staff.customers.stats')
   const tFilter = useTranslations('staff.customers.filter')
@@ -50,6 +49,8 @@ export default function StaffCustomersPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [regionFilter, setRegionFilter] = useState<string>('all')
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false)
 
   useEffect(() => {
     loadCustomers()
@@ -95,69 +96,52 @@ export default function StaffCustomersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
-        <p className="text-muted-foreground mt-2">
-          {t('pageDescription')}
-        </p>
+    <div className="space-y-4">
+      {/* Compact Header with Stats */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">{t('pageTitle')}</h1>
+          <p className="text-sm text-muted-foreground">{t('pageDescription')}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge variant="secondary" className="gap-1">
+            <Users className="h-3 w-3" />
+            {stats.total} {tStats('totalCustomers')}
+          </Badge>
+          <Badge variant="outline" className="gap-1">
+            <Phone className="h-3 w-3" />
+            {stats.withPhone}
+          </Badge>
+          <Badge variant="outline" className="gap-1">
+            <MapPin className="h-3 w-3" />
+            {stats.byRegion} {tStats('regions')}
+          </Badge>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{tStats('totalCustomers')}</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{tStats('withPhone')}</CardTitle>
-            <Phone className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.withPhone}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{tStats('regions')}</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.byRegion}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
+      {/* Customers Table with Integrated Filter */}
       <Card>
-        <CardHeader>
-          <CardTitle>{tFilter('title')}</CardTitle>
-          <CardDescription>{tFilter('description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">{tList('title')}</CardTitle>
+              <CardDescription className="text-xs">
+                {tList('found', { count: filteredCustomers.length })}
+              </CardDescription>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={tFilter('searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-8 h-9 w-full sm:w-64"
                 />
               </div>
-            </div>
-            <div className="w-full md:w-48">
               <Select value={regionFilter} onValueChange={setRegionFilter}>
-                <SelectTrigger>
-                  <MapPin className="h-4 w-4 mr-2" />
+                <SelectTrigger className="h-9 w-full sm:w-36">
+                  <MapPin className="h-3 w-3 mr-1" />
                   <SelectValue placeholder={tFilter('regionPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -169,21 +153,11 @@ export default function StaffCustomersPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button onClick={loadCustomers} variant="outline" size="sm" className="h-9">
+                {tFilter('refresh')}
+              </Button>
             </div>
-            <Button onClick={loadCustomers} variant="outline">
-              {tFilter('refresh')}
-            </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Customers Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{tList('title')}</CardTitle>
-          <CardDescription>
-            {tList('found', { count: filteredCustomers.length })}
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -265,8 +239,12 @@ export default function StaffCustomersPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => router.push(`/staff/tickets?customer=${customer.email}`)}
+                        onClick={() => {
+                          setSelectedCustomer(customer)
+                          setTicketDialogOpen(true)
+                        }}
                       >
+                        <Ticket className="h-4 w-4 mr-1" />
                         {tTable('viewTickets')}
                       </Button>
                     </TableCell>
@@ -277,6 +255,17 @@ export default function StaffCustomersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Ticket History Dialog */}
+      {selectedCustomer && (
+        <TicketHistoryDialog
+          open={ticketDialogOpen}
+          onOpenChange={setTicketDialogOpen}
+          userId={selectedCustomer.user_id}
+          userName={selectedCustomer.full_name}
+          userEmail={selectedCustomer.email}
+        />
+      )}
     </div>
   )
 }

@@ -58,16 +58,18 @@ describe('Region Authorization', () => {
       expect(hasGroupAccess(adminUser, 7)).toBe(true)
     })
 
-    it('should allow staff to access their region group and Users group', () => {
-      // Staff Asia should have access to group 5 (asia-pacific) and group 1 (Users)
-      expect(hasGroupAccess(staffAsia, 5)).toBe(true)
-      expect(hasGroupAccess(staffAsia, 1)).toBe(true)
-      expect(hasGroupAccess(staffAsia, 2)).toBe(false) // middle-east
+    it('should allow staff to access only their region group', () => {
+      // Staff Asia should have access to group 4 (asia-pacific) only
+      // After 2025-12-23 update, all regions have dedicated groups
+      expect(hasGroupAccess(staffAsia, 4)).toBe(true)  // asia-pacific
+      expect(hasGroupAccess(staffAsia, 1)).toBe(false) // africa
+      expect(hasGroupAccess(staffAsia, 3)).toBe(false) // middle-east
     })
 
-    it('should allow customer to access only Users group', () => {
-      expect(hasGroupAccess(customer, 1)).toBe(true)
-      expect(hasGroupAccess(customer, 5)).toBe(false)
+    it('should allow customer to access their region group', () => {
+      // Customer with asia-pacific region can access group 4
+      expect(hasGroupAccess(customer, 4)).toBe(true)   // asia-pacific
+      expect(hasGroupAccess(customer, 1)).toBe(false)  // africa
     })
   })
 
@@ -77,16 +79,20 @@ describe('Region Authorization', () => {
       expect(groups).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
     })
 
-    it('should return region group and Users group for staff', () => {
+    it('should return only region group for staff', () => {
       const groups = getAccessibleGroupIds(staffAsia)
-      expect(groups).toContain(5) // asia-pacific
-      expect(groups).toContain(1) // Users
-      expect(groups).not.toContain(2) // middle-east
+      expect(groups).toEqual([4]) // asia-pacific only
+      expect(groups).not.toContain(3) // middle-east
     })
 
-    it('should return only Users group for customer', () => {
+    it('should return region group for customer', () => {
       const groups = getAccessibleGroupIds(customer)
-      expect(groups).toEqual([1])
+      expect(groups).toEqual([4]) // asia-pacific
+    })
+
+    it('should return default group for customer without region', () => {
+      const groups = getAccessibleGroupIds(customerNoRegion)
+      expect(groups).toEqual([1]) // default to africa
     })
 
     it('should return empty array for staff without region', () => {
@@ -121,11 +127,13 @@ describe('Region Authorization', () => {
   })
 
   describe('filterTicketsByRegion', () => {
+    // Updated group_ids based on 2025-12-23 mapping:
+    // 1=africa, 2=europe-zone-1, 3=middle-east, 4=asia-pacific, 5=cis, 6=north-america, 7=latin-america, 8=europe-zone-2
     const tickets = [
-      { id: 1, group_id: 1, customer_id: 1 },  // Users group
-      { id: 2, group_id: 5, customer_id: 1 },  // asia-pacific
-      { id: 3, group_id: 2, customer_id: 2 },  // middle-east
-      { id: 4, group_id: 3, customer_id: 1 },  // europe-zone-1
+      { id: 1, group_id: 1, customer_id: 1 },  // africa
+      { id: 2, group_id: 4, customer_id: 1 },  // asia-pacific
+      { id: 3, group_id: 3, customer_id: 2 },  // middle-east
+      { id: 4, group_id: 2, customer_id: 1 },  // europe-zone-1
     ]
 
     it('should return all tickets for admin', () => {
@@ -141,9 +149,9 @@ describe('Region Authorization', () => {
 
     it('should filter tickets by region for staff', () => {
       const filtered = filterTicketsByRegion(tickets, staffAsia)
-      expect(filtered).toHaveLength(2) // group 1 (Users) and 5 (asia-pacific)
-      expect(filtered.map(t => t.group_id)).toContain(1)
-      expect(filtered.map(t => t.group_id)).toContain(5)
+      expect(filtered).toHaveLength(1) // only group 4 (asia-pacific)
+      expect(filtered.map(t => t.group_id)).toContain(4)
+      expect(filtered.map(t => t.group_id)).not.toContain(1) // no africa access
     })
 
     it('should exclude tickets without group_id for staff', () => {
@@ -175,12 +183,13 @@ describe('Region Authorization', () => {
     })
 
     it('should not throw for staff accessing their region group', () => {
-      expect(() => validateTicketAccess(staffAsia, 5)).not.toThrow() // asia-pacific
-      expect(() => validateTicketAccess(staffAsia, 1)).not.toThrow() // Users
+      // asia-pacific = group 4 (after 2025-12-23 update)
+      expect(() => validateTicketAccess(staffAsia, 4)).not.toThrow() // asia-pacific
     })
 
     it('should throw for staff accessing other region group', () => {
-      expect(() => validateTicketAccess(staffAsia, 2)).toThrow() // middle-east
+      expect(() => validateTicketAccess(staffAsia, 3)).toThrow() // middle-east
+      expect(() => validateTicketAccess(staffAsia, 1)).toThrow() // africa
     })
   })
 

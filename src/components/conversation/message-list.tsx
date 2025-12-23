@@ -1,7 +1,7 @@
 /**
  * Message List Component
  *
- * Minimalist design with elegant aesthetics
+ * Minimalist design with elegant aesthetics (AI-only mode)
  */
 
 'use client'
@@ -13,11 +13,9 @@ import { FileText, Download, Bot } from 'lucide-react'
 import { type Message } from '@/lib/stores/conversation-store'
 import { cn } from '@/lib/utils'
 import { SystemMessage } from './system-message'
-import { TransferHistoryMessage } from './transfer-history-message'
 import { MarkdownMessage } from './markdown-message'
 import { AIThinkingIndicator } from './ai-thinking-indicator'
 import { useTranslations } from 'next-intl'
-import { useAuth } from '@/lib/hooks/use-auth'
 
 interface MessageListProps {
   messages: Message[]
@@ -30,17 +28,12 @@ interface MessageListProps {
 export function MessageList({
   messages,
   isLoading = false,
-  isTyping = false,
-  typingUser = null,
   isAiLoading = false,
 }: MessageListProps) {
   const t = useTranslations('components.conversation.messageList')
-  const { user } = useAuth()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when new messages arrive or AI is loading
-  // Use scrollIntoView with block: 'nearest' to only scroll the nearest scrollable ancestor
-  // This prevents the entire page from scrolling
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
@@ -251,40 +244,20 @@ export function MessageList({
 
   return (
     <div className="space-y-1 py-4">
-      {groupedMessages.map((group, _groupIndex) => {
+      {groupedMessages.map((group) => {
         const message = group.messages[0]
 
         // Handle system messages
         if (message.message_type === 'system' || message.sender?.role === 'system') {
-          const messageType = message.metadata?.type === 'transfer_success' ? 'success' : 'info'
           return (
             <div key={message.id} className="py-2">
               <SystemMessage
                 content={message.content}
-                type={messageType}
+                type="info"
                 timestamp={message.created_at}
               />
             </div>
           )
-        }
-
-        // Handle transfer history messages (only for staff)
-        if (message.message_type === 'transfer_history' && user?.role === 'staff') {
-          const aiHistory = message.metadata?.aiHistory || []
-          const transferredAt = message.metadata?.transferredAt || message.created_at
-          return (
-            <div key={message.id} className="py-2">
-              <TransferHistoryMessage
-                aiHistory={aiHistory}
-                transferredAt={transferredAt}
-              />
-            </div>
-          )
-        }
-
-        // Skip transfer history for customer view
-        if (message.message_type === 'transfer_history') {
-          return null
         }
 
         // Regular messages
@@ -384,29 +357,6 @@ export function MessageList({
 
       {/* AI Thinking indicator */}
       {isAiLoading && <AIThinkingIndicator />}
-
-      {/* Typing indicator */}
-      {isTyping && typingUser && (
-        <div className="flex gap-3 px-2 mt-4">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 text-xs font-medium">
-              {getInitials(typingUser)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col items-start">
-            <span className="text-xs text-muted-foreground mb-1 ml-1">
-              {typingUser}
-            </span>
-            <div className="px-4 py-3 rounded-2xl rounded-tl-md bg-muted/60">
-              <div className="flex gap-1.5 items-center h-5">
-                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div ref={bottomRef} className="h-4" />
     </div>

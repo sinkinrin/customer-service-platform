@@ -1,9 +1,7 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { User, Calendar, Clock, Tag } from 'lucide-react'
 import { format } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useTranslations } from 'next-intl'
@@ -62,91 +60,46 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
   const t = useTranslations('tickets.details')
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-2xl">
-              {t('ticketNumber', { number: ticket.number })}
-            </CardTitle>
-            <p className="text-lg text-muted-foreground mt-2">
-              {ticket.title}
-            </p>
+    <Card className="p-4">
+      {/* Compact Header */}
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-xl font-bold">{t('ticketNumber', { number: ticket.number })}</h2>
+            <Badge className={getStatusColor(ticket.state)}>{ticket.state}</Badge>
+            <Badge className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>
           </div>
-          <div className="flex flex-col items-end gap-2 ml-4">
-            <Badge className={getStatusColor(ticket.state)}>
-              {ticket.state}
-            </Badge>
-            <Badge className={getPriorityColor(ticket.priority)}>
-              {ticket.priority}
-            </Badge>
-          </div>
+          <p className="text-muted-foreground mt-1 truncate">{ticket.title}</p>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <Separator />
+      </div>
 
-          {/* Customer Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-start gap-3">
-              <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">{t('customer')}</p>
-                <p className="text-sm text-muted-foreground">{ticket.customer}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Tag className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">{t('group')}</p>
-                <p className="text-sm text-muted-foreground">{ticket.group}</p>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Timestamps */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">{t('created')}</p>
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(ticket.created_at), 'PPpp')}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-sm font-medium">{t('lastUpdated')}</p>
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(ticket.updated_at), 'PPpp')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {ticket.owner_id && (
-            <>
-              <Separator />
-              <div className="flex items-start gap-3">
-                <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">{t('assignedTo')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('ownerId', { id: ticket.owner_id })}
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
+      {/* Compact Meta Info Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm border-t pt-3">
+        <div>
+          <span className="text-muted-foreground">{t('customer')}:</span>
+          <p className="font-medium truncate">{ticket.customer}</p>
         </div>
-      </CardContent>
+        {ticket.group && (
+          <div>
+            <span className="text-muted-foreground">{t('group')}:</span>
+            <p className="font-medium truncate">{ticket.group}</p>
+          </div>
+        )}
+        {ticket.owner_id && (
+          <div>
+            <span className="text-muted-foreground">{t('assignedTo')}:</span>
+            <p className="font-medium truncate">{ticket.owner_name || `Staff #${ticket.owner_id}`}</p>
+          </div>
+        )}
+        <div>
+          <span className="text-muted-foreground">{t('created')}:</span>
+          <p className="font-medium">{format(new Date(ticket.created_at), 'MM-dd HH:mm')}</p>
+        </div>
+        <div>
+          <span className="text-muted-foreground">{t('lastUpdated')}:</span>
+          <p className="font-medium">{format(new Date(ticket.updated_at), 'MM-dd HH:mm')}</p>
+        </div>
+      </div>
     </Card>
   )
 }

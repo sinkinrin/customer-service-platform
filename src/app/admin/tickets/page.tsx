@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Search, Filter, Download, Wifi, WifiOff, Bell, Zap, Loader2 } from 'lucide-react'
+import { Search, Filter, Download, Zap, Loader2, RefreshCw } from 'lucide-react'
 import { TicketList } from '@/components/ticket/ticket-list'
 import { TicketAssignDialog } from '@/components/admin/ticket-assign-dialog'
 import { useTicketsSearch, useTicketsList } from '@/lib/hooks/use-tickets-swr'
@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { REGIONS, getGroupIdByRegion } from '@/lib/constants/regions'
-import { useSSE } from '@/lib/hooks/use-sse'
 import { toast } from 'sonner'
 
 interface SelectedTicket {
@@ -35,7 +34,6 @@ export default function AdminTicketsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>('all')
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
-  const [hasNewUpdates, setHasNewUpdates] = useState(false)
   const [submittedQuery, setSubmittedQuery] = useState('') // Empty = fetch all
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<SelectedTicket | null>(null)
@@ -50,35 +48,14 @@ export default function AdminTicketsPage() {
   const isLoading = submittedQuery ? searchResult.isLoading : listResult.isLoading
   const revalidate = submittedQuery ? searchResult.revalidate : listResult.revalidate
 
-  // SSE connection for real-time updates
-  const { state: sseState, isConnected } = useSSE({
-    url: '/api/sse/tickets',
-    enabled: true,
-    onMessage: (event) => {
-      if (event.type === 'ticket_updated' || event.type === 'ticket_created' || event.type === 'ticket_deleted') {
-        // Show notification badge
-        setHasNewUpdates(true)
-
-        // Show toast
-        const messages = {
-          ticket_created: tToast('ticketCreated'),
-          ticket_updated: tToast('ticketUpdated'),
-          ticket_deleted: tToast('ticketDeleted'),
-        }
-        toast.info(messages[event.type as keyof typeof messages] || tToast('ticketChanged'))
-      }
-    },
-  })
-
   const handleSearch = () => {
     const query = searchQuery.trim()
     setSubmittedQuery(query)
-    setHasNewUpdates(false) // Clear notification badge after refresh
   }
 
   const handleRefresh = () => {
     revalidate()
-    setHasNewUpdates(false)
+    toast.info(t('status.refreshed'))
   }
 
   const handleTabChange = (value: string) => {
@@ -123,9 +100,34 @@ export default function AdminTicketsPage() {
     return true
   })
 
-  const exportTickets = () => {
-    // TODO: Implement CSV export
-    console.log('Exporting tickets...', filteredTickets)
+  const exportTickets = async () => {
+    try {
+      toast.info(t('status.exporting'))
+      const response = await fetch('/api/tickets/export')
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+      
+      // Get the filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || 'tickets-export.csv'
+      
+      // Create blob and download
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      toast.success(t('status.exported'))
+    } catch (error) {
+      console.error('Export error:', error)
+      toast.error(t('status.exportFailed'))
+    }
   }
 
   const handleAssign = (ticket: SelectedTicket) => {
@@ -167,30 +169,12 @@ export default function AdminTicketsPage() {
           </p>
         </div>
 
-        {/* SSE Status Indicator */}
+        {/* Refresh Button */}
         <div className="flex items-center gap-2">
-          {hasNewUpdates && (
-            <Badge variant="destructive" className="animate-pulse motion-reduce:animate-none">
-              <Bell className="h-3 w-3 mr-1" />
-              {t('status.newUpdates')}
-            </Badge>
-          )}
-          {isConnected ? (
-            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-              <Wifi className="h-4 w-4" />
-              <span>{t('status.live')}</span>
-            </div>
-          ) : sseState === 'connecting' ? (
-            <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
-              <WifiOff className="h-4 w-4 animate-pulse motion-reduce:animate-none" />
-              <span>{t('status.connecting')}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <WifiOff className="h-4 w-4" />
-              <span>{t('status.offline')}</span>
-            </div>
-          )}
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {t('actions.refresh')}
+          </Button>
         </div>
       </div>
 

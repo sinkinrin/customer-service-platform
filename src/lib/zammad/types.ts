@@ -63,6 +63,13 @@ export interface CreateTicketRequest {
     body: string
     type: string
     internal: boolean
+    sender?: 'Customer' | 'Agent' | 'System'
+    origin_by_id?: number // Zammad user ID who actually wrote the article
+    attachments?: {
+      filename: string
+      data: string // base64 encoded
+      'mime-type': string
+    }[]
   }
   mentions?: number[]
 }

@@ -49,7 +49,7 @@ export type CreateConversationRequest = z.infer<typeof CreateConversationSchema>
 
 export const UpdateConversationSchema = z.object({
   staff_id: z.string().uuid().optional(),
-  status: z.enum(['active', 'waiting', 'closed']).optional(),
+  status: z.enum(['active', 'closed']).optional(),
 })
 
 export type UpdateConversationRequest = z.infer<typeof UpdateConversationSchema>

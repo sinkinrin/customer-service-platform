@@ -15,7 +15,7 @@ import {
 } from '@/lib/utils/api-response'
 import { mockUsers, mockPasswords } from '@/lib/mock-auth'
 import { zammadClient } from '@/lib/zammad/client'
-import { getGroupIdByRegion, isValidRegion, getRegionByGroupId } from '@/lib/constants/regions'
+import { getGroupIdByRegion, isValidRegion, getRegionByGroupId, type RegionValue } from '@/lib/constants/regions'
 import { z } from 'zod'
 
 // Validation schema for creating a new user
@@ -40,7 +40,7 @@ function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
   return 'customer'
 }
 
-// Get region from Zammad group_ids
+// Get region from Zammad group_ids (for staff/admin)
 function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | undefined {
   if (!groupIds) return undefined
   for (const [groupId, permissions] of Object.entries(groupIds)) {
@@ -52,10 +52,20 @@ function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | un
   return undefined
 }
 
+// Get region from Zammad note field (for customers)
+function getRegionFromNote(note?: string): string | undefined {
+  if (!note) return undefined
+  const match = note.match(/Region:\s*(\S+)/)
+  if (match && isValidRegion(match[1])) {
+    return match[1]
+  }
+  return undefined
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Allow both admin and staff to view users
-    await requireRole(['admin', 'staff'])
+    const currentUser = await requireRole(['admin', 'staff'])
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
@@ -63,7 +73,11 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
     const search = searchParams.get('search') || ''
     const roleFilter = searchParams.get('role') || ''
-    const regionFilter = searchParams.get('region') || ''
+    // Staff can only see users from their own region (enforced server-side)
+    // Admin can see all regions or filter by specific region
+    const regionFilter = currentUser.role === 'staff' && currentUser.region 
+      ? currentUser.region 
+      : (searchParams.get('region') || '')
     const source = searchParams.get('source') || 'zammad' // 'zammad' or 'mock'
 
     // Fetch from Zammad (primary source)
@@ -75,7 +89,15 @@ export async function GET(request: NextRequest) {
 
         allUsers = zammadUsers.map(user => {
           const role = getRoleFromZammad(user.role_ids || [])
-          const region = getRegionFromGroupIds(user.group_ids)
+          // For staff/admin: get region from group_ids first, fallback to note field
+          // For customers: get from note field only
+          // Note: Some regions (europe-zone-2, north-america, latin-america, africa) 
+          // don't have dedicated Zammad groups, so we also check note field for staff
+          const regionFromGroups = getRegionFromGroupIds(user.group_ids)
+          const regionFromNote = getRegionFromNote(user.note)
+          const region = role === 'customer'
+            ? regionFromNote
+            : (regionFromGroups || regionFromNote)
 
           // Augment with mockUsers data if available (for language preference etc.)
           const mockUser = mockUsers[user.email]

@@ -77,18 +77,24 @@ export function getAccessibleGroupIds(user: RegionAuthUser): number[] {
     return [1, 2, 3, 4, 5, 6, 7, 8]
   }
 
-  // Customers always have access to group ID 1 (Users group)
-  // This is where customer-initiated tickets are created
+  // Customers can access their region's group
+  // Note: In practice, Customer ticket access is handled by Zammad's X-On-Behalf-Of
+  // This function is mainly used for Staff region filtering
   if (user.role === 'customer') {
+    if (user.region) {
+      const groupId = getGroupIdByRegion(user.region as RegionValue)
+      return [groupId]
+    }
+    // Default to Africa (group_id=1) if no region set
     return [1]
   }
 
-  // Staff can access their region's group AND the Users group (ID=1)
-  // Users group contains legacy customer tickets created before region-based routing
+  // Staff can only access their region's group
+  // Since all 8 regions now have dedicated Zammad groups (2025-12-23 update),
+  // we no longer need to include a fallback group
   if (user.role === 'staff' && user.region) {
     const groupId = getGroupIdByRegion(user.region as RegionValue)
-    // Include group 1 (Users) for backward compatibility with legacy tickets
-    return groupId === 1 ? [1] : [groupId, 1]
+    return [groupId]
   }
 
   return []

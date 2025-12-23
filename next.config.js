@@ -9,6 +9,10 @@ const nextConfig = {
       // TODO: Add image domains when needed
     ],
   },
+  // Skip URL normalization for development/testing
+  // This allows LAN access from any IP
+  skipProxyUrlNormalize: true,
+  skipTrailingSlashRedirect: true,
   // Next.js 16: PPR (cacheComponents) 暂不启用
   // 原因：
   // 1. API 路由使用认证（headers()），与 prerendering 不兼容

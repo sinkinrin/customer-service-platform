@@ -1,57 +1,55 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { Search, Filter, Wifi, WifiOff, Bell } from 'lucide-react'
+import { Search, Filter, RefreshCw } from 'lucide-react'
 import { TicketList } from '@/components/ticket/ticket-list'
 import { useTicketsSearch, invalidateTicketsCache } from '@/lib/hooks/use-tickets-swr'
-import { useSSE } from '@/lib/hooks/use-sse'
 import { toast } from 'sonner'
 
 export default function TicketsPage() {
   const t = useTranslations('staff.tickets')
-  const tToast = useTranslations('toast.staff.tickets')
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  
+  // Read initial tab from URL or default to 'all'
+  const tabFromUrl = searchParams.get('tab') as 'all' | 'open' | 'pending' | 'closed' | null
+  const validTabs = ['all', 'open', 'pending', 'closed']
+  const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'all'
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('state:*') // Actual query sent to API
-  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>('all')
-  const [hasNewUpdates, setHasNewUpdates] = useState(false)
+  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>(initialTab)
 
   // Use SWR for caching - only fetches when submittedQuery changes
   const { tickets, isLoading, isValidating, revalidate } = useTicketsSearch(submittedQuery, 50)
 
-  // SSE connection for real-time updates
-  const { state: sseState, isConnected } = useSSE({
-    url: '/api/sse/tickets',
-    enabled: true,
-    onMessage: (event) => {
-      if (event.type === 'ticket_updated' || event.type === 'ticket_created') {
-        // Show notification badge
-        setHasNewUpdates(true)
-
-        // Show toast
-        toast.info(tToast('ticketUpdated'))
-      }
-    },
-  })
-
   const handleSearch = () => {
     const query = searchQuery.trim() || 'state:*'
     setSubmittedQuery(query)
-    setHasNewUpdates(false) // Clear notification badge after refresh
   }
 
   const handleRefresh = () => {
     revalidate()
-    setHasNewUpdates(false)
+    toast.info(t('status.refreshed'))
   }
 
   const handleTabChange = (value: string) => {
-    setActiveTab(value as typeof activeTab)
-    // Filtering is done client-side via filteredTickets, no need to update store
+    const newTab = value as typeof activeTab
+    setActiveTab(newTab)
+    // Update URL with new tab value for state persistence
+    const params = new URLSearchParams(searchParams.toString())
+    if (newTab === 'all') {
+      params.delete('tab')
+    } else {
+      params.set('tab', newTab)
+    }
+    router.push(`${pathname}?${params.toString()}`, { scroll: false })
   }
 
   const filteredTickets = tickets.filter((ticket) => {
@@ -81,30 +79,12 @@ export default function TicketsPage() {
           </p>
         </div>
 
-        {/* SSE Status Indicator */}
+        {/* Refresh Button */}
         <div className="flex items-center gap-2">
-          {hasNewUpdates && (
-            <Badge variant="destructive" className="animate-pulse motion-reduce:animate-none">
-              <Bell className="h-3 w-3 mr-1" />
-              {t('status.newUpdates')}
-            </Badge>
-          )}
-          {isConnected ? (
-            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-              <Wifi className="h-4 w-4" />
-              <span>{t('status.live')}</span>
-            </div>
-          ) : sseState === 'connecting' ? (
-            <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
-              <WifiOff className="h-4 w-4 animate-pulse motion-reduce:animate-none" />
-              <span>{t('status.connecting')}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <WifiOff className="h-4 w-4" />
-              <span>{t('status.offline')}</span>
-            </div>
-          )}
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {t('actions.refresh')}
+          </Button>
         </div>
       </div>
 

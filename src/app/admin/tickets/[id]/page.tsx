@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, MessageSquare, Trash2, UserPlus } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Trash2, UserPlus, Activity } from 'lucide-react'
 import { TicketDetail } from '@/components/ticket/ticket-detail'
 import { TicketActions } from '@/components/ticket/ticket-actions'
 import { ArticleCard } from '@/components/ticket/article-content'
@@ -154,10 +154,6 @@ export default function AdminTicketDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            {ticket.owner_id ? t('reassign') : t('assign')}
-          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" disabled={deleting}>
@@ -183,16 +179,25 @@ export default function AdminTicketDetailPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Ticket Details and Articles */}
-        <div className="lg:col-span-2 space-y-6">
-          <TicketDetail ticket={ticket} />
+      {/* AI Summary Placeholder */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+        <CardContent className="py-3">
+          <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+            <Activity className="h-4 w-4" />
+            <span className="font-medium">AI Summary:</span>
+            <span className="text-muted-foreground italic">Coming soon - AI will summarize this conversation</span>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Articles */}
+      {/* Main Content - Conversation focused layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Conversation (Main Focus) */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Conversation */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <MessageSquare className="h-5 w-5" />
                 {t('conversation', { count: articles.length })}
               </CardTitle>
@@ -203,12 +208,9 @@ export default function AdminTicketDetailPage() {
                   {t('noArticles')}
                 </p>
               ) : (
-                <div className="space-y-6">
-                  {articles.map((article, index) => (
-                    <div key={article.id}>
-                      {index > 0 && <Separator className="my-6" />}
-                      <ArticleCard article={article} />
-                    </div>
+                <div className="space-y-4">
+                  {articles.map((article) => (
+                    <ArticleCard key={article.id} article={article} />
                   ))}
                 </div>
               )}
@@ -216,9 +218,48 @@ export default function AdminTicketDetailPage() {
           </Card>
         </div>
 
-        {/* Right Column - Actions */}
+        {/* Right Column - Ticket Info & Actions (Sticky Sidebar) */}
         <div className="lg:col-span-1">
-          <div className="lg:sticky lg:top-20">
+          <div className="lg:sticky lg:top-20 space-y-4">
+            {/* Compact Ticket Info */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Ticket Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Customer:</span>
+                  <p className="font-medium">{ticket.customer}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Assigned To:</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="font-medium">
+                      {ticket.owner_name || (ticket.owner_id ? `Staff #${ticket.owner_id}` : 'Unassigned')}
+                    </p>
+                    <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setAssignDialogOpen(true)}>
+                      <UserPlus className="h-3 w-3 mr-1" />
+                      {ticket.owner_id ? 'Reassign' : 'Assign'}
+                    </Button>
+                  </div>
+                </div>
+                <Separator />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Created</span>
+                    <p className="text-xs">{format(new Date(ticket.created_at), 'MM-dd HH:mm')}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Updated</span>
+                    <p className="text-xs">{format(new Date(ticket.updated_at), 'MM-dd HH:mm')}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Ticket Actions */}
             <TicketActions
               ticket={ticket}
               onUpdate={handleUpdate}

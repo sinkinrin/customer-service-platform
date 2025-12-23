@@ -4,7 +4,7 @@
  * GET /api/conversations/[id]/messages - Get messages for a conversation
  * POST /api/conversations/[id]/messages - Send a message in a conversation
  *
- * Implementation: Uses local file storage with SSE for real-time updates
+ * Implementation: Uses local file storage for AI conversations only
  */
 
 import { NextRequest } from 'next/server'
@@ -21,9 +21,7 @@ import {
   getConversation,
   getConversationMessages,
   addMessage,
-  incrementUnreadCount,
 } from '@/lib/local-conversation-storage'
-import { broadcastConversationEvent } from '@/lib/sse/conversation-broadcaster'
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -39,7 +37,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Verify access: customer can only access their own conversations
-    if (user.role === 'customer' && conversation.customer_email !== user.email) {
+    if (conversation.customer_email !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -51,7 +49,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // Get messages from local storage
     const allMessages = await getConversationMessages(conversationId)
 
-    // Sort by created_at descending (newest first) to ensure latest messages are loaded by default
+    // Sort by created_at descending (newest first)
     const sorted = allMessages.sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
@@ -61,23 +59,16 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
 
     // Transform to API format
     const messages = paginated.map((msg) => {
-      // Determine sender name based on role and stored data
+      // Determine sender name based on role
       let senderName = 'Unknown'
       if (msg.sender_role === 'ai') {
         senderName = 'AI Assistant'
       } else if (msg.metadata?.sender_name) {
-        // Use stored sender name from metadata
         senderName = msg.metadata.sender_name
       } else if (msg.sender_id === user.id) {
-        // Current user
         senderName = user.full_name || user.email
-      } else {
-        // Other user - try to infer from conversation
-        if (msg.sender_role === 'customer') {
-          senderName = conversation.customer_name || conversation.customer_email
-        } else if (msg.sender_role === 'staff') {
-          senderName = 'Staff Member'
-        }
+      } else if (msg.sender_role === 'customer') {
+        senderName = conversation.customer_name || conversation.customer_email
       }
 
       return {
@@ -129,7 +120,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     }
 
     // Verify access: customer can only post to their own conversations
-    if (user.role === 'customer' && conversation.customer_email !== user.email) {
+    if (conversation.customer_email !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -144,16 +135,13 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       return validationErrorResponse(validation.error.errors)
     }
 
-    // Determine sender role (explicitly typed to match LocalMessage.sender_role)
-    // R2: Support metadata.role='ai' to allow AI messages to be stored with correct sender_role
-    // Security: Only allow AI role if conversation is in AI mode to prevent spoofing
-    let senderRole: 'customer' | 'ai' | 'staff' | 'system'
-    if (validation.data.metadata?.role === 'ai' && user.role === 'customer' && conversation.mode === 'ai') {
-      // Allow customers to save AI messages ONLY when conversation is in AI mode
+    // Determine sender role
+    // Allow customers to save AI messages (metadata.role='ai')
+    let senderRole: 'customer' | 'ai'
+    if (validation.data.metadata?.role === 'ai') {
       senderRole = 'ai'
     } else {
-      // Default role based on authenticated user
-      senderRole = user.role === 'customer' ? 'customer' : 'staff'
+      senderRole = 'customer'
     }
 
     // Prepare metadata with sender name
@@ -162,7 +150,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       sender_name: senderRole === 'ai' ? 'AI Assistant' : (user.full_name || user.email),
     }
 
-    // R2: Add message to local storage with message_type to preserve attachments
+    // Add message to local storage
     const newMessage = await addMessage(
       conversationId,
       senderRole,
@@ -173,16 +161,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     )
 
     console.log('[LocalStorage] Created message:', newMessage.id, 'in conversation:', conversationId)
-
-    // Increment unread count for the recipient(s) in human mode
-    // - If sender is customer: increment staff's unread count
-    // - If sender is staff: increment customer's unread count
-    // Note: AI messages are handled separately and don't use this API endpoint
-    if (conversation.mode === 'human') {
-      const recipientRole = senderRole === 'customer' ? 'staff' : 'customer'
-      await incrementUnreadCount(conversationId, recipientRole)
-      console.log('[LocalStorage] Incremented unread count for', recipientRole, 'in conversation:', conversationId)
-    }
 
     // Transform to API format
     const message = {
@@ -200,28 +178,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         avatar_url: user.avatar_url,
         role: user.role,
       },
-    }
-
-    // Broadcast new message event via SSE to all participants
-    // Customer + staff (if assigned) + AI system
-    const targetUserIds = [conversation.customer_id]
-    if (conversation.staff_id) {
-      targetUserIds.push(conversation.staff_id)
-    }
-
-    try {
-      broadcastConversationEvent(
-        {
-          type: 'new_message',
-          conversationId,
-          data: message,
-        },
-        targetUserIds
-      )
-      console.log('[SSE] Broadcasted new_message event to:', targetUserIds, 'for conversation:', conversationId)
-    } catch (error) {
-      console.error('[SSE] Failed to broadcast message:', error)
-      // Don't fail the request if SSE broadcast fails
     }
 
     return successResponse(message, 201)

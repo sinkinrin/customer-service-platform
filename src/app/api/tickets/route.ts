@@ -18,7 +18,6 @@ import { filterTicketsByRegion, validateTicketCreation } from '@/lib/utils/regio
 import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
-import { broadcastEvent } from '@/lib/sse/ticket-broadcaster'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 
 // ============================================================================
@@ -159,6 +158,11 @@ const createTicketSchema = z.object({
     body: z.string().min(1),
     type: z.enum(['note', 'email', 'phone', 'web']).default('note'),
     internal: z.boolean().default(false),
+    attachments: z.array(z.object({
+      filename: z.string(),
+      data: z.string(), // base64 encoded
+      'mime-type': z.string(),
+    })).optional(),
   }),
 })
 
@@ -184,7 +188,11 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') // open, closed, etc.
+    const priority = searchParams.get('priority') // 1, 2, 3 (low, normal, high)
+    const sort = searchParams.get('sort') || 'created_at' // created_at, updated_at, priority
+    const order = searchParams.get('order') || 'desc' // asc, desc
     const limit = parseInt(searchParams.get('limit') || '50')
+    const customerEmail = searchParams.get('customer_email') // Filter by customer email
 
     // Get tickets based on user role
     // P1 Fix: Use getAllTickets to handle Zammad pagination (default 50 per page)
@@ -224,9 +232,32 @@ export async function GET(request: NextRequest) {
       filteredTickets = filteredTickets.filter((ticket: any) => {
         if (status === 'open') return ticket.state_id === 2
         if (status === 'closed') return ticket.state_id === 4
+        if (status === 'new') return ticket.state_id === 1
+        if (status === 'pending') return ticket.state_id === 3 || ticket.state_id === 7
         return true
       })
     }
+
+    // Filter by priority if provided
+    if (priority) {
+      const priorityId = parseInt(priority, 10)
+      if (!isNaN(priorityId)) {
+        filteredTickets = filteredTickets.filter((ticket: any) => ticket.priority_id === priorityId)
+      }
+    }
+
+    // Sort tickets
+    filteredTickets.sort((a: any, b: any) => {
+      let comparison = 0
+      if (sort === 'created_at') {
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      } else if (sort === 'updated_at') {
+        comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
+      } else if (sort === 'priority') {
+        comparison = a.priority_id - b.priority_id
+      }
+      return order === 'desc' ? -comparison : comparison
+    })
 
     // Apply limit
     const limitedTickets = filteredTickets.slice(0, limit)
@@ -299,7 +330,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform tickets to include priority, state, customer and owner information
-    const transformedTickets = limitedTickets.map((ticket: any) =>
+    let transformedTickets = limitedTickets.map((ticket: any) =>
       transformTicket(
         ticket,
         customerMap.get(ticket.customer_id),
@@ -307,9 +338,16 @@ export async function GET(request: NextRequest) {
       )
     )
 
+    // Filter by customer email if provided (post-transform filter)
+    if (customerEmail) {
+      transformedTickets = transformedTickets.filter((ticket: any) => 
+        ticket.customer_email?.toLowerCase() === customerEmail.toLowerCase()
+      )
+    }
+
     return successResponse({
       tickets: transformedTickets,
-      total: filteredTickets.length,
+      total: customerEmail ? transformedTickets.length : filteredTickets.length,
     })
   } catch (error) {
     console.error('GET /api/tickets error:', error)
@@ -392,21 +430,32 @@ export async function POST(request: NextRequest) {
     const groupId = getGroupIdByRegion(region)
     console.log('[DEBUG] POST /api/tickets - Using region group:', groupId, 'for region:', region)
 
-    // Create ticket (using admin token, customer field will set the owner)
-    const ticket = await zammadClient.createTicket({
-      title: ticketData.title,
-      group: ticketData.group,
-      group_id: groupId, // Assign to appropriate group based on user role
-      customer_id: zammadUser.id, // Use customer_id instead of customer email
-      state_id: 2, // open
-      priority_id: ticketData.priority_id,
-      article: {
-        subject: ticketData.article.subject,
-        body: ticketData.article.body,
-        type: ticketData.article.type,
-        internal: ticketData.article.internal,
+    // Create ticket with X-On-Behalf-Of to ensure correct sender identity
+    // This shows the actual user's name instead of the API token user (e.g., "Howen Support")
+    const isCustomer = user.role === 'customer'
+    const ticket = await zammadClient.createTicket(
+      {
+        title: ticketData.title,
+        group: ticketData.group,
+        group_id: groupId, // Assign to appropriate group based on user role
+        customer_id: zammadUser.id, // Use customer_id instead of customer email
+        state_id: 2, // open
+        priority_id: ticketData.priority_id,
+        article: {
+          subject: ticketData.article.subject,
+          body: ticketData.article.body,
+          type: ticketData.article.type,
+          internal: ticketData.article.internal,
+          // Set sender to Customer when customer creates ticket, otherwise Agent
+          sender: isCustomer ? 'Customer' : 'Agent',
+          // Set origin_by_id for customers to properly attribute the article
+          ...(isCustomer && { origin_by_id: zammadUser.id }),
+          // Pass attachments if provided (base64 encoded for Zammad)
+          ...(ticketData.article.attachments && { attachments: ticketData.article.attachments }),
+        },
       },
-    })
+      user.email  // Pass user email for X-On-Behalf-Of to show correct sender name
+    )
 
     console.log('[DEBUG] POST /api/tickets - Created ticket:', ticket.id)
 
@@ -481,25 +530,6 @@ export async function POST(request: NextRequest) {
     } catch (autoAssignError) {
       console.error('[DEBUG] POST /api/tickets - Auto-assignment failed:', autoAssignError)
       // Continue without assignment, ticket is still created
-    }
-
-    // R1: Broadcast ticket created event via SSE
-    try {
-      broadcastEvent({
-        type: 'ticket_created',
-        data: {
-          id: ticket.id,
-          number: ticket.number,
-          title: ticket.title,
-          state_id: ticket.state_id,
-          priority_id: ticket.priority_id,
-          group_id: ticket.group_id,
-          owner_id: assignedAgent?.id,
-        },
-      })
-      console.log('[SSE] Broadcasted ticket_created event for ticket:', ticket.id)
-    } catch (error) {
-      console.error('[SSE] Failed to broadcast ticket creation:', error)
     }
 
     return successResponse(

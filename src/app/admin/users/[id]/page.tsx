@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { REGIONS } from '@/lib/constants/regions'
+import { TicketHistoryDialog } from '@/components/admin/ticket-history-dialog'
 
 interface UserDetails {
     id: number
@@ -55,6 +56,7 @@ export default function UserDetailsPage() {
     const [user, setUser] = useState<UserDetails | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [ticketHistoryOpen, setTicketHistoryOpen] = useState(false)
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -235,9 +237,18 @@ export default function UserDetailsPage() {
                 {/* Ticket Statistics */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Ticket className="h-5 w-5" />
-                            Ticket Statistics
+                        <CardTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                                <Ticket className="h-5 w-5" />
+                                Ticket Statistics
+                            </span>
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setTicketHistoryOpen(true)}
+                            >
+                                View Tickets
+                            </Button>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -291,6 +302,15 @@ export default function UserDetailsPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Ticket History Dialog */}
+            <TicketHistoryDialog
+                open={ticketHistoryOpen}
+                onOpenChange={setTicketHistoryOpen}
+                userId={userId}
+                userName={user.full_name}
+                userEmail={user.email}
+            />
         </div>
     )
 }

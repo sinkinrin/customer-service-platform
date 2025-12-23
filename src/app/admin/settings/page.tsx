@@ -6,30 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+// Table and Textarea imports removed - no longer needed
 import { Loader2, Save, CheckCircle2, XCircle, Wifi } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useTranslations } from 'next-intl'
-
-interface BusinessType {
-  id: string
-  name: string
-  description?: string
-  created_at: string
-}
-
-interface Settings {
-  businessTypes: BusinessType[]
-}
 
 interface AISettings {
   enabled: boolean
@@ -43,10 +24,6 @@ interface AISettings {
 
 export default function SettingsPage() {
   const t = useTranslations('settings.ai')
-  const tSettings = useTranslations('admin.settings')
-  const tToast = useTranslations('toast.admin.settings')
-  const [settings, setSettings] = useState<Settings | null>(null)
-  const [loading, setLoading] = useState(true)
   const [aiSettings, setAISettings] = useState<AISettings>({
     enabled: false,
     model: 'GPT-4o-mini',
@@ -58,22 +35,6 @@ export default function SettingsPage() {
   })
   const [aiLoading, setAILoading] = useState(true)
   const [aiSaving, setAISaving] = useState(false)
-
-  const fetchSettings = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/admin/settings')
-      if (!response.ok) throw new Error('Failed to fetch settings')
-
-      const data = await response.json()
-      setSettings(data)
-    } catch (error) {
-      toast.error(tToast('saveError'))
-      console.error(error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const fetchAISettings = async () => {
     setAILoading(true)
@@ -112,16 +73,15 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    fetchSettings()
     fetchAISettings()
   }, [])
 
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">{tSettings('pageTitle')}</h1>
+        <h1 className="text-3xl font-bold">System Settings</h1>
         <p className="text-muted-foreground mt-2">
-          {tSettings('pageDescription')}
+          Manage system settings and configurations
         </p>
       </div>
 
@@ -160,58 +120,7 @@ export default function SettingsPage() {
 
               {aiSettings.enabled && (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="ai-model">{t('modelLabel')}</Label>
-                    <Input
-                      id="ai-model"
-                      value={aiSettings.model}
-                      onChange={(e) =>
-                        setAISettings({ ...aiSettings, model: e.target.value })
-                      }
-                      placeholder="gpt-3.5-turbo"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('modelHint')}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="ai-temperature">{t('temperatureLabel')}</Label>
-                    <Input
-                      id="ai-temperature"
-                      type="number"
-                      min="0"
-                      max="2"
-                      step="0.1"
-                      value={aiSettings.temperature}
-                      onChange={(e) =>
-                        setAISettings({
-                          ...aiSettings,
-                          temperature: parseFloat(e.target.value),
-                        })
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('temperatureHint')}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="ai-prompt">{t('promptLabel')}</Label>
-                    <Textarea
-                      id="ai-prompt"
-                      value={aiSettings.system_prompt}
-                      onChange={(e) =>
-                        setAISettings({ ...aiSettings, system_prompt: e.target.value })
-                      }
-                      rows={4}
-                      placeholder={t('promptPlaceholder')}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('promptHint')}
-                    </p>
-                  </div>
-
+                  {/* AI model, temperature, system prompt removed - configured in FastGPT */}
                   <div className="border-t pt-4 space-y-4">
                     <h3 className="text-sm font-medium">{t('fastgpt.title')}</h3>
 
@@ -289,96 +198,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{tSettings('businessTypes.title')}</CardTitle>
-              <CardDescription>
-                {tSettings('businessTypes.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {settings?.businessTypes && settings.businessTypes.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{tSettings('businessTypes.table.name')}</TableHead>
-                      <TableHead>{tSettings('businessTypes.table.description')}</TableHead>
-                      <TableHead>{tSettings('businessTypes.table.createdAt')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {settings.businessTypes.map((type) => (
-                      <TableRow key={type.id}>
-                        <TableCell className="font-medium">{type.name}</TableCell>
-                        <TableCell>{type.description || '-'}</TableCell>
-                        <TableCell>
-                          {new Date(type.created_at).toLocaleDateString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  {tSettings('businessTypes.noTypes')}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{tSettings('systemConfig.title')}</CardTitle>
-              <CardDescription>
-                {tSettings('systemConfig.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b">
-                  <div>
-                    <p className="font-medium">{tSettings('systemConfig.defaultLanguage.title')}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {tSettings('systemConfig.defaultLanguage.description')}
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    {tSettings('systemConfig.configure')}
-                  </Button>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <div>
-                    <p className="font-medium">{tSettings('systemConfig.sessionTimeout.title')}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {tSettings('systemConfig.sessionTimeout.description')}
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    {tSettings('systemConfig.configure')}
-                  </Button>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <div>
-                    <p className="font-medium">{tSettings('systemConfig.emailNotifications.title')}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {tSettings('systemConfig.emailNotifications.description')}
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    {tSettings('systemConfig.configure')}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+      {/* Business Types and System Configuration sections removed - not needed for this system */}
     </div>
   )
 }

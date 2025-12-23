@@ -320,6 +320,28 @@
     "actions": {
       "assign": "Assign",
       "reassign": "Reassign"
+    },
+    "rating": {
+      "title": "Rate This Support",
+      "description": "How was your experience with this ticket?",
+      "positive": "Satisfied",
+      "negative": "Not Satisfied",
+      "positiveReason": "What did we do well? (optional)",
+      "negativeReason": "How can we improve? (optional)",
+      "reasonPlaceholder": "Share your feedback...",
+      "submit": "Submit Feedback",
+      "submitSuccess": "Thank you for your feedback!",
+      "submitError": "Failed to submit feedback",
+      "thankYou": "Thank you for your feedback!"
+    },
+    "reopen": {
+      "button": "Reopen Ticket",
+      "dialogTitle": "Reopen This Ticket?",
+      "dialogDescription": "This will change the ticket status from Closed to Open. You can continue the conversation after reopening.",
+      "confirm": "Yes, Reopen",
+      "cancel": "Cancel",
+      "success": "Ticket reopened successfully",
+      "error": "Failed to reopen ticket"
     }
   },
   "admin": {
@@ -626,7 +648,11 @@
         "newUpdates": "New Updates",
         "live": "Live",
         "connecting": "Connecting...",
-        "offline": "Offline"
+        "offline": "Offline",
+        "refreshed": "Tickets refreshed",
+        "exporting": "Exporting tickets...",
+        "exported": "Tickets exported successfully",
+        "exportFailed": "Failed to export tickets"
       },
       "search": {
         "placeholder": "Search tickets by number, title, or customer...",
@@ -643,7 +669,8 @@
       },
       "actions": {
         "export": "Export",
-        "autoAssign": "Auto Assign"
+        "autoAssign": "Auto Assign",
+        "refresh": "Refresh"
       },
       "tabs": {
         "all": "All Tickets",
@@ -1068,7 +1095,8 @@
         "phonePlaceholder": "+1 (555) 000-0000",
         "languageLabel": "Language",
         "changeAvatar": "Change Avatar",
-        "avatarHint": "JPG, PNG or GIF. Max size 2MB"
+        "avatarHint": "JPG, PNG or GIF. Max size 2MB",
+        "avatarUpdated": "Avatar updated successfully"
       },
       "notifications": {
         "title": "Notifications",

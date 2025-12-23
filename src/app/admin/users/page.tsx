@@ -127,18 +127,28 @@ export default function UsersPage() {
 
     setSaving(true)
     try {
-      const response = await fetch(`/api/admin/users/${editingUser.user_id}`, {
+      const updateData: Record<string, unknown> = {
+        role: editingUser.role,
+        full_name: editingUser.full_name,
+        phone: editingUser.phone,
+        language: editingUser.language,
+      }
+      // Only include region if it has a valid value
+      if (editingUser.region) {
+        updateData.region = editingUser.region
+      }
+
+      const response = await fetch(`/api/admin/users/${editingUser.zammad_id || editingUser.user_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role: editingUser.role,
-          full_name: editingUser.full_name,
-          phone: editingUser.phone,
-          language: editingUser.language,
-        }),
+        body: JSON.stringify(updateData),
       })
 
-      if (!response.ok) throw new Error('Failed to update user')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error:', errorData)
+        throw new Error(errorData.error || 'Failed to update user')
+      }
 
       toast.success(tToast('updateSuccess'))
       setEditDialogOpen(false)
@@ -424,7 +434,7 @@ export default function UsersPage() {
                 <Label>{t('editDialog.role')}</Label>
                 <Select
                   value={editingUser.role}
-                  onValueChange={(value: any) => setEditingUser({ ...editingUser, role: value })}
+                  onValueChange={(value: 'customer' | 'staff' | 'admin') => setEditingUser({ ...editingUser, role: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -435,6 +445,27 @@ export default function UsersPage() {
                     <SelectItem value="admin">{t('roles.admin')}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>{t('table.region')}</Label>
+                <Select
+                  value={editingUser.region || ''}
+                  onValueChange={(value) => setEditingUser({ ...editingUser, region: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REGIONS.map(region => (
+                      <SelectItem key={region.value} value={region.value}>
+                        {region.labelEn}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Region determines which tickets staff can access
+                </p>
               </div>
               <div>
                 <Label>{t('editDialog.phone')}</Label>

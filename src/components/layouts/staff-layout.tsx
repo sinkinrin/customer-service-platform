@@ -1,11 +1,10 @@
 "use client"
 
-import { ReactNode, useState, useEffect } from "react"
+import { ReactNode, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import {
-  MessageSquare,
   Ticket,
   Users,
   Settings,
@@ -28,7 +27,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
-import { UnreadBadge } from "@/components/ui/unread-badge"
 import { getRegionLabel, type RegionValue } from "@/lib/constants/regions"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/ui/logo"
@@ -44,7 +42,6 @@ interface StaffLayoutProps {
     region?: string
   }
   onLogout?: () => void
-  conversationCount?: number
   ticketCount?: number
 }
 
@@ -52,26 +49,14 @@ export function StaffLayout({
   children,
   user,
   onLogout,
-  conversationCount = 0,
   ticketCount = 0,
 }: StaffLayoutProps) {
-  const t = useTranslations('auth.layout')
   const tCommon = useTranslations('common')
   const tNav = useTranslations('nav')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
 
-  // Check if current page is a conversation detail page
-  const isConversationDetailPage = pathname.match(/\/conversations\/[^/]+$/)
-
   const navigation = [
-    {
-      name: tNav('conversations'),
-      href: "/staff/conversations",
-      icon: MessageSquare,
-      badge: "conversationCount",
-    },
     {
       name: tNav('tickets'),
       href: "/staff/tickets",
@@ -90,38 +75,13 @@ export function StaffLayout({
     },
   ]
 
-  // Fetch unread count
-  useEffect(() => {
-    const fetchUnreadCount = async () => {
-      try {
-        const response = await fetch('/api/conversations/unread-count')
-        const data = await response.json()
-        if (data.success) {
-          setUnreadCount(data.data.unreadCount || 0)
-        }
-      } catch (error) {
-        console.error('Failed to fetch unread count:', error)
-      }
-    }
-
-    fetchUnreadCount()
-
-    // Refresh unread count every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
   const getBadgeCount = (badgeKey?: string) => {
-    if (badgeKey === "conversationCount") return unreadCount > 0 ? unreadCount : conversationCount
     if (badgeKey === "ticketCount") return ticketCount
     return 0
   }
 
   return (
-    <div className={cn(
-      "flex",
-      isConversationDetailPage ? "h-screen overflow-hidden" : "min-h-screen"
-    )}>
+    <div className="flex min-h-screen">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -133,7 +93,7 @@ export function StaffLayout({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-0 flex flex-col",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:z-40 flex flex-col",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -159,7 +119,6 @@ export function StaffLayout({
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
             const badgeCount = getBadgeCount(item.badge)
             const Icon = item.icon
-            const isConversationsLink = item.href === "/staff/conversations"
 
             return (
               <Link
@@ -177,10 +136,7 @@ export function StaffLayout({
                   <Icon className="h-5 w-5" />
                   <span>{item.name}</span>
                 </div>
-                {isConversationsLink && unreadCount > 0 && (
-                  <UnreadBadge count={unreadCount} dotOnly className="absolute top-2 right-2" />
-                )}
-                {!isConversationsLink && badgeCount > 0 && (
+                {badgeCount > 0 && (
                   <Badge variant={isActive ? "secondary" : "default"} className="ml-auto">
                     {badgeCount}
                   </Badge>
@@ -225,10 +181,10 @@ export function StaffLayout({
               <DropdownMenuLabel>{tCommon('layout.myAccount')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/staff/profile">{tCommon('layout.profileSettings')}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/staff/settings">{tCommon('layout.preferences')}</Link>
+                <Link href="/staff/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  {tNav('settings')}
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onLogout} className="text-destructive">
@@ -241,7 +197,7 @@ export function StaffLayout({
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         {/* Top Bar */}
         <header className="h-16 border-b bg-background flex items-center justify-between px-6">
           <Button
@@ -279,10 +235,10 @@ export function StaffLayout({
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/staff/profile">{tCommon('layout.profileSettings')}</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/staff/settings">{tCommon('layout.preferences')}</Link>
+                    <Link href="/staff/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      {tNav('settings')}
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout} className="text-destructive">
@@ -296,11 +252,8 @@ export function StaffLayout({
         </header>
 
         {/* Page Content */}
-        <main className={cn(
-          "flex-1 flex flex-col",
-          isConversationDetailPage ? "min-h-0 overflow-hidden p-0" : "overflow-auto p-6"
-        )}>
-          <PageTransition key={pathname} className={isConversationDetailPage ? "flex-1 flex flex-col min-h-0" : ""}>
+        <main className="flex-1 flex flex-col overflow-auto p-6">
+          <PageTransition key={pathname}>
             {children}
           </PageTransition>
         </main>
@@ -310,4 +263,3 @@ export function StaffLayout({
 }
 
 export default StaffLayout
-

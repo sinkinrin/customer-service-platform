@@ -19,7 +19,6 @@ import {
 import { validateTicketAccess } from '@/lib/utils/region-auth'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
-import { broadcastEvent } from '@/lib/sse/ticket-broadcaster'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 
 // ============================================================================
@@ -418,24 +417,6 @@ export async function PUT(
     // Transform ticket to include priority and state strings
     const ticket = transformTicket(rawTicket)
 
-    // R1: Broadcast ticket updated event via SSE
-    try {
-      broadcastEvent({
-        type: 'ticket_updated',
-        data: {
-          id: ticket.id,
-          number: ticket.number,
-          title: ticket.title,
-          state_id: rawTicket.state_id,
-          priority_id: rawTicket.priority_id,
-          group_id: rawTicket.group_id,
-        },
-      })
-      console.log('[SSE] Broadcasted ticket_updated event for ticket:', ticket.id)
-    } catch (error) {
-      console.error('[SSE] Failed to broadcast ticket update:', error)
-    }
-
     return successResponse({ ticket })
   } catch (error) {
     console.error('PUT /api/tickets/[id] error:', error)
@@ -497,19 +478,6 @@ export async function DELETE(
 
     // Delete ticket using admin client (no X-On-Behalf-Of)
     await zammadClient.deleteTicket(ticketId)
-
-    // R1: Broadcast ticket deleted event via SSE
-    try {
-      broadcastEvent({
-        type: 'ticket_deleted',
-        data: {
-          id: ticketId,
-        },
-      })
-      console.log('[SSE] Broadcasted ticket_deleted event for ticket:', ticketId)
-    } catch (error) {
-      console.error('[SSE] Failed to broadcast ticket deletion:', error)
-    }
 
     return successResponse({ message: 'Ticket deleted successfully' })
   } catch (error) {

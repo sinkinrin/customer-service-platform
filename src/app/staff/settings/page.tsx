@@ -14,9 +14,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { AvatarUpload } from '@/components/ui/avatar-upload'
 import { Badge } from '@/components/ui/badge'
-import { Save, User, Bell, Globe, Lock, Loader2, Plane } from 'lucide-react'
+import { Save, User, Bell, Lock, Loader2, Plane } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
@@ -109,9 +109,12 @@ export default function StaffSettingsPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      // Simulate API call - in production, this would update user settings
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success(tToast('saveSuccess'))
+      // Demo mode: Settings are stored in session only
+      // In production, this would call a real API to persist user settings
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      toast.success(tToast('saveSuccess'), {
+        description: 'Note: Settings will reset on logout (demo mode)',
+      })
     } catch (error) {
       console.error('Failed to save settings:', error)
       toast.error(tToast('saveError'))
@@ -142,20 +145,14 @@ export default function StaffSettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4 mb-6">
-            <Avatar className="h-20 w-20">
-              <AvatarFallback className="text-2xl">
-                {settings.full_name?.charAt(0) || 'S'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <Button variant="outline" size="sm" disabled>
-                {tPersonal('changeAvatar')}
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                {tPersonal('avatarHint')}
-              </p>
-            </div>
+          <div className="mb-6">
+            <AvatarUpload
+              currentAvatarUrl={user?.avatar_url}
+              fallbackText={settings.full_name?.charAt(0) || 'S'}
+              onUploadSuccess={(url) => {
+                toast.success(tPersonal('avatarUpdated'))
+              }}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -198,28 +195,7 @@ export default function StaffSettingsPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="language">{tPersonal('languageLabel')}</Label>
-              <Select
-                value={settings.language}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, language: value })
-                }
-              >
-                <SelectTrigger id="language">
-                  <Globe className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">{tCommon('en')}</SelectItem>
-                  <SelectItem value="zh-CN">{tCommon('zh-CN')}</SelectItem>
-                  <SelectItem value="fr">{tCommon('fr')}</SelectItem>
-                  <SelectItem value="es">{tCommon('es')}</SelectItem>
-                  <SelectItem value="ru">{tCommon('ru')}</SelectItem>
-                  <SelectItem value="pt">{tCommon('pt')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Language setting removed - use global language switcher in header instead */}
           </div>
         </CardContent>
       </Card>

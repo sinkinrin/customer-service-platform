@@ -11,6 +11,7 @@ interface ArticleContentProps {
   article: TicketArticle
   showAttachments?: boolean
   className?: string
+  noBubbleStyle?: boolean // Skip sender-specific background in content
 }
 
 /**
@@ -86,7 +87,7 @@ function filterInlineAttachments(attachments: TicketArticleAttachment[]): Ticket
  * 2. 显示发送者类型标签
  * 3. 显示附件列表和下载链接
  */
-export function ArticleContent({ article, showAttachments = true, className }: ArticleContentProps) {
+export function ArticleContent({ article, showAttachments = true, className, noBubbleStyle = false }: ArticleContentProps) {
   // 安全处理 HTML 内容
   const sanitizedBody = useMemo(() => {
     if (article.content_type === 'text/html' || article.content_type?.includes('html')) {
@@ -123,26 +124,28 @@ export function ArticleContent({ article, showAttachments = true, className }: A
 
   return (
     <div className={cn('space-y-3', className)}>
-      {/* 发送者标签 */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Badge variant="outline" className={senderStyle.labelColor}>
-          {senderStyle.label}
-        </Badge>
-        {article.internal && (
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-            内部备注
+      {/* 发送者标签 - 仅在非气泡模式显示 */}
+      {!noBubbleStyle && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className={senderStyle.labelColor}>
+            {senderStyle.label}
           </Badge>
-        )}
-        <Badge variant="outline" className="text-xs">
-          {article.type}
-        </Badge>
-      </div>
+          {article.internal && (
+            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+              内部备注
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-xs">
+            {article.type}
+          </Badge>
+        </div>
+      )}
 
       {/* 正文内容 */}
       <div className={cn(
-        'rounded-lg border p-4',
-        senderStyle.bgColor,
-        senderStyle.borderColor
+        !noBubbleStyle && 'rounded-lg border p-4',
+        !noBubbleStyle && senderStyle.bgColor,
+        !noBubbleStyle && senderStyle.borderColor
       )}>
         {sanitizedBody ? (
           // HTML 内容
@@ -170,9 +173,8 @@ export function ArticleContent({ article, showAttachments = true, className }: A
           {displayAttachments.map((att) => (
             <a
               key={att.id}
-              href={`/api/files/${att.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={`/api/tickets/${article.ticket_id}/articles/${article.id}/attachments/${att.id}`}
+              download={att.filename}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm 
                 bg-gray-100 dark:bg-gray-800 rounded-md 
                 hover:bg-gray-200 dark:hover:bg-gray-700 
@@ -193,7 +195,12 @@ export function ArticleContent({ article, showAttachments = true, className }: A
 }
 
 /**
- * Article 卡片组件 - 完整的 article 展示
+ * Article 卡片组件 - 聊天气泡风格展示
+ * 
+ * 样式区分：
+ * - Customer: 左对齐，浅灰/蓝色背景
+ * - Agent: 右对齐，绿色背景
+ * - System: 居中，黄色背景
  */
 interface ArticleCardProps {
   article: TicketArticle
@@ -202,30 +209,90 @@ interface ArticleCardProps {
 
 export function ArticleCard({ article, showMeta = true }: ArticleCardProps) {
   const senderStyle = getSenderStyle(article.sender)
+  const isCustomer = article.sender === 'Customer'
+  const isSystem = article.sender === 'System'
+  const isAgent = article.sender === 'Agent'
+  
+  // System messages: centered, full width
+  if (isSystem) {
+    return (
+      <div className="flex justify-center">
+        <div className="max-w-[90%] bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg px-4 py-2">
+          <div className="flex items-center justify-center gap-2 text-xs text-yellow-700 dark:text-yellow-300 mb-1">
+            <Badge variant="outline" className={senderStyle.labelColor}>
+              {senderStyle.label}
+            </Badge>
+            <time className="text-muted-foreground">
+              {new Date(article.created_at).toLocaleString('zh-CN')}
+            </time>
+          </div>
+          <p className="text-sm text-center text-yellow-800 dark:text-yellow-200">
+            {article.body}
+          </p>
+        </div>
+      </div>
+    )
+  }
   
   return (
-    <div className="space-y-2">
-      {showMeta && (
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <p className="font-medium truncate">{article.from || article.created_by}</p>
-            {article.to && (
-              <p className="text-xs text-muted-foreground truncate">
-                收件人: {article.to}
-              </p>
-            )}
-            {article.subject && (
-              <p className="text-sm text-muted-foreground truncate">
-                {article.subject}
-              </p>
+    <div className={cn(
+      'flex',
+      isCustomer ? 'justify-start' : 'justify-end'
+    )}>
+      <div className={cn(
+        'max-w-[80%] space-y-1',
+        isCustomer ? 'items-start' : 'items-end'
+      )}>
+        {/* Header: sender info and time */}
+        {showMeta && (
+          <div className={cn(
+            'flex flex-col gap-0.5 text-xs mb-1',
+            isCustomer ? 'items-start' : 'items-end'
+          )}>
+            <div className={cn(
+              'flex items-center gap-2',
+              isCustomer ? 'flex-row' : 'flex-row-reverse'
+            )}>
+              <Badge variant="outline" className={senderStyle.labelColor}>
+                {senderStyle.label}
+              </Badge>
+              <span className="text-muted-foreground font-medium">
+                {article.from?.split('<')[0]?.trim() || article.created_by}
+              </span>
+              <time className="text-muted-foreground">
+                {new Date(article.created_at).toLocaleString('zh-CN')}
+              </time>
+            </div>
+            {/* Show full email on second line if available */}
+            {article.from?.includes('<') && (
+              <span className="text-muted-foreground/70 text-[10px]">
+                {article.from.match(/<(.+)>/)?.[1] || ''}
+              </span>
             )}
           </div>
-          <time className="text-xs text-muted-foreground whitespace-nowrap">
-            {new Date(article.created_at).toLocaleString('zh-CN')}
-          </time>
+        )}
+        
+        {/* Message bubble */}
+        <div className={cn(
+          'rounded-2xl px-4 py-3 shadow-sm',
+          isCustomer 
+            ? 'bg-gray-100 dark:bg-gray-800 rounded-tl-sm' 
+            : 'bg-green-500 dark:bg-green-600 text-white rounded-tr-sm',
+          article.internal && 'border-2 border-dashed border-yellow-400'
+        )}>
+          {article.internal && (
+            <Badge className="mb-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+              内部备注
+            </Badge>
+          )}
+          <ArticleContent 
+            article={article} 
+            showAttachments={true}
+            noBubbleStyle={true}
+            className={isAgent && !article.internal ? '[&_.prose]:text-white [&_.prose_*]:text-white' : ''}
+          />
         </div>
-      )}
-      <ArticleContent article={article} />
+      </div>
     </div>
   )
 }

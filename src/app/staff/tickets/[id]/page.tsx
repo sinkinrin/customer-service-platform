@@ -202,11 +202,8 @@ export default function StaffTicketDetailPage() {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {articles.map((article, index) => (
-                    <div key={article.id}>
-                      {index > 0 && <Separator className="my-4" />}
-                      <ArticleCard article={article} />
-                    </div>
+                  {articles.map((article) => (
+                    <ArticleCard key={article.id} article={article} />
                   ))}
                 </div>
               )}

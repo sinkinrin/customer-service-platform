@@ -57,6 +57,20 @@ export default function CreateTicketPage() {
     setFiles(files.filter((_, i) => i !== index))
   }
 
+  // Convert File to base64 for Zammad API
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        // Remove data URL prefix (e.g., "data:image/png;base64,")
+        const base64 = (reader.result as string).split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = reject
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -86,13 +100,31 @@ export default function CreateTicketPage() {
         },
       }
 
-      // TODO: Handle file attachments
-      // Zammad API supports attachments, but we need to implement file upload
+      // Convert files to base64 attachments for Zammad API
+      let attachments: { filename: string; data: string; 'mime-type': string }[] = []
+      if (files.length > 0) {
+        attachments = await Promise.all(
+          files.map(async (file) => ({
+            filename: file.name,
+            data: await fileToBase64(file),
+            'mime-type': file.type || 'application/octet-stream',
+          }))
+        )
+      }
+
+      // Add attachments to ticket data if any
+      const ticketDataWithAttachments = {
+        ...ticketData,
+        article: {
+          ...ticketData.article,
+          ...(attachments.length > 0 && { attachments }),
+        },
+      }
 
       const response = await fetch('/api/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ticketData),
+        body: JSON.stringify(ticketDataWithAttachments),
       })
 
       if (!response.ok) {

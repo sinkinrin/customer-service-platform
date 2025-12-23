@@ -207,28 +207,19 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     const articleData = validationResult.data
 
-    // Admin and Staff create articles without X-On-Behalf-Of (staff access already validated by region)
-    // Customer uses X-On-Behalf-Of to ensure proper ownership
-    const article = user.role === 'customer'
-      ? await zammadClient.createArticle(
-          {
-            ticket_id: ticketId,
-            subject: articleData.subject,
-            body: articleData.body,
-            content_type: articleData.content_type,
-            type: articleData.type,
-            internal: articleData.internal,
-          },
-          user.email
-        )
-      : await zammadClient.createArticle({
-          ticket_id: ticketId,
-          subject: articleData.subject,
-          body: articleData.body,
-          content_type: articleData.content_type,
-          type: articleData.type,
-          internal: articleData.internal,
-        })
+    // All users create articles with X-On-Behalf-Of to ensure correct sender identity
+    // This shows the actual user's name instead of the API token user (e.g., "Howen Support")
+    const article = await zammadClient.createArticle(
+      {
+        ticket_id: ticketId,
+        subject: articleData.subject,
+        body: articleData.body,
+        content_type: articleData.content_type,
+        type: articleData.type,
+        internal: articleData.internal,
+      },
+      user.email  // Pass user email for all roles to show correct sender name
+    )
 
     return successResponse(
       {

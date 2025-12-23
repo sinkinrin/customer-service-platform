@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Send, Loader2, Clock, Tag, MessageSquare } from 'lucide-react'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import { ArticleCard } from '@/components/ticket/article-content'
+import { TicketRating } from '@/components/ticket/ticket-rating'
+import { TicketReopenButton } from '@/components/ticket/ticket-reopen-button'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -208,12 +210,9 @@ export default function CustomerTicketDetailPage() {
           {articles.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">{tDetail('noMessages')}</p>
           ) : (
-            <div className="space-y-6">
-              {articles.map((article, index) => (
-                <div key={article.id}>
-                  {index > 0 && <Separator className="my-6" />}
-                  <ArticleCard article={article} />
-                </div>
+            <div className="space-y-4">
+              {articles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
               ))}
             </div>
           )}
@@ -264,14 +263,33 @@ export default function CustomerTicketDetailPage() {
         </Card>
       )}
 
+      {/* Closed ticket message and rating section */}
       {ticket.state === 'closed' && (
-        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
-          <CardContent className="pt-6">
-            <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              {tDetail('closedMessage')}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {/* Rating component */}
+          <TicketRating 
+            ticketId={parseInt(ticketId)} 
+            isVisible={true} 
+          />
+          
+          {/* Reopen option */}
+          <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  {tDetail('closedMessage')}
+                </p>
+                <TicketReopenButton 
+                  ticketId={parseInt(ticketId)} 
+                  onSuccess={() => {
+                    loadTicket()
+                    loadArticles()
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )

@@ -1,7 +1,7 @@
 /**
  * File Management API
- * 
- * GET /api/files/[id] - Get file download URL
+ *
+ * GET /api/files/[id] - Get file metadata
  * DELETE /api/files/[id] - Delete a file
  */
 
@@ -10,26 +10,29 @@ import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
   unauthorizedResponse,
+  notFoundResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { getFileMetadata, deleteFile } from '@/lib/file-storage'
 
-// TODO: Replace with real file storage when implemented
 export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   try {
     await requireAuth()
 
-    // TODO: Replace with real file storage
-    // For now, return mock file URL
-    const mockFileUrl = `/uploads/mock/${params.id}`
+    const file = await getFileMetadata(params.id)
+
+    if (!file) {
+      return notFoundResponse('File not found')
+    }
 
     return successResponse({
-      id: params.id,
-      file_name: `file_${params.id}`,
-      file_size: 0,
-      mime_type: 'application/octet-stream',
-      url: mockFileUrl,
-      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      id: file.id,
+      file_name: file.fileName,
+      file_size: file.fileSize,
+      mime_type: file.mimeType,
+      url: `/api/files/${file.id}/download`,
+      created_at: file.createdAt.toISOString(),
     })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
@@ -41,13 +44,18 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
 
 export async function DELETE(
   _request: NextRequest,
-  _context: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const params = await props.params
   try {
-    await requireAuth()
+    const user = await requireAuth()
 
-    // TODO: Replace with real file storage
-    // For now, just return success
+    const success = await deleteFile(params.id, user.id)
+
+    if (!success) {
+      return notFoundResponse('File not found or unauthorized')
+    }
+
     return successResponse({ message: 'File deleted successfully' })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {

@@ -1,7 +1,7 @@
 /**
  * File Upload API
- * 
- * POST /api/files/upload - Upload a file to Supabase Storage
+ *
+ * POST /api/files/upload - Upload a file to local storage
  */
 
 import { NextRequest } from 'next/server'
@@ -13,6 +13,7 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { FileUploadSchema } from '@/types/api.types'
+import { uploadFile } from '@/lib/file-storage'
 
 const BUCKET_MAP = {
   message: process.env.STORAGE_BUCKET_MESSAGE_ATTACHMENTS || 'message-attachments',
@@ -83,25 +84,25 @@ export async function POST(request: NextRequest) {
     // Get bucket name
     const bucketName = BUCKET_MAP[validation.data.reference_type]
 
-    // Generate unique file path
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-
-    // TODO: Replace with real file storage
-    // For now, return mock file URL
-    const mockFileId = `file_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    const mockPublicUrl = `/uploads/${bucketName}/${fileName}`
+    // Upload file to storage
+    const uploadedFile = await uploadFile({
+      file,
+      userId: user.id,
+      bucketName,
+      referenceType: validation.data.reference_type,
+      referenceId: validation.data.reference_id,
+    })
 
     return successResponse(
       {
-        id: mockFileId,
-        bucket_name: bucketName,
-        file_path: fileName,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-        url: mockPublicUrl,
-        file_url: mockPublicUrl, // P1 Fix: Add file_url for client compatibility
+        id: uploadedFile.id,
+        bucket_name: uploadedFile.bucketName,
+        file_path: uploadedFile.filePath,
+        file_name: uploadedFile.fileName,
+        file_size: uploadedFile.fileSize,
+        mime_type: uploadedFile.mimeType,
+        url: uploadedFile.url,
+        file_url: uploadedFile.url, // P1 Fix: Add file_url for client compatibility
       },
       201
     )

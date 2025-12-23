@@ -17,6 +17,15 @@ build/
 # Data files (runtime data should not be committed)
 data/conversations/*.json
 
+# Uploaded files
+uploads/
+
+# Database
+dev.db
+dev.db-journal
+*.db
+*.db-journal
+
 # IDE and Editor files
 .vscode/
 .idea/

@@ -9,7 +9,8 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Send, Loader2, Clock, Tag, MessageSquare } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { ArrowLeft, Send, Loader2, Clock, Tag, MessageSquare, Upload, X } from 'lucide-react'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import { ArticleCard } from '@/components/ticket/article-content'
 import { TicketRating } from '@/components/ticket/ticket-rating'
@@ -30,8 +31,46 @@ export default function CustomerTicketDetailPage() {
   const [articles, setArticles] = useState<TicketArticle[]>([])
   const [replyText, setReplyText] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
 
   const { fetchTicketById, fetchArticles, isLoading } = useTicket()
+
+  // Convert File to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        // Remove data:*/*;base64, prefix
+        const base64String = (reader.result as string).split(',')[1]
+        resolve(base64String)
+      }
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || [])
+
+    // Validate file count
+    if (files.length + selectedFiles.length > 5) {
+      toast.error(t('fileUpload.maxFiles'))
+      return
+    }
+
+    // Validate file sizes (10MB per file)
+    const invalidFiles = selectedFiles.filter(file => file.size > 10 * 1024 * 1024)
+    if (invalidFiles.length > 0) {
+      toast.error(t('fileUpload.fileTooLarge'))
+      return
+    }
+
+    setFiles([...files, ...selectedFiles])
+  }
+
+  const handleRemoveFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index))
+  }
 
   useEffect(() => {
     loadTicket()
@@ -59,7 +98,19 @@ export default function CustomerTicketDetailPage() {
 
     setSubmitting(true)
     try {
-      // Call API directly instead of using addArticle hook
+      // Convert files to base64 attachments
+      let attachments: { filename: string; data: string; 'mime-type': string }[] = []
+      if (files.length > 0) {
+        attachments = await Promise.all(
+          files.map(async (file) => ({
+            filename: file.name,
+            data: await fileToBase64(file),
+            'mime-type': file.type || 'application/octet-stream',
+          }))
+        )
+      }
+
+      // Call API with attachments
       const response = await fetch(`/api/tickets/${ticketId}/articles`, {
         method: 'POST',
         headers: {
@@ -70,6 +121,7 @@ export default function CustomerTicketDetailPage() {
           body: replyText,
           type: 'web',
           internal: false,
+          attachments: attachments.length > 0 ? attachments : undefined,
         }),
       })
 
@@ -80,6 +132,7 @@ export default function CustomerTicketDetailPage() {
 
       toast.success(tToast('replySent'))
       setReplyText('')
+      setFiles([])
       await loadArticles()
     } catch (error: any) {
       console.error('Failed to send reply:', error)
@@ -237,6 +290,62 @@ export default function CustomerTicketDetailPage() {
                 rows={6}
                 maxLength={2000}
               />
+
+              {/* File Upload Section */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="reply-files"
+                    type="file"
+                    onChange={handleFileChange}
+                    multiple
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('reply-files')?.click()}
+                    disabled={files.length >= 5}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {tDetail('attachFiles')}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {tDetail('maxFiles', { max: 5 })} • Max 10MB per file
+                  </span>
+                </div>
+
+                {/* File List */}
+                {files.length > 0 && (
+                  <div className="space-y-2">
+                    {files.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 bg-muted rounded-md"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Upload className="h-4 w-4 flex-shrink-0" />
+                          <span className="text-sm truncate">{file.name}</span>
+                          <span className="text-xs text-muted-foreground flex-shrink-0">
+                            ({(file.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveFile(index)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
                   {tDetail('characterCount', { count: replyText.length, max: 2000 })}

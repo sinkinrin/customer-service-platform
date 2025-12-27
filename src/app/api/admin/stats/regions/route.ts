@@ -35,7 +35,7 @@ export async function GET(_request: NextRequest) {
       waiting: 0,
     }))
 
-    // Add "Unassigned" category for tickets in Users group (group_id = 1)
+    // Add "Unassigned" category for tickets without group_id
     const unassignedStats = {
       region: 'unassigned',
       label: '未分配 (Unassigned)',
@@ -48,15 +48,25 @@ export async function GET(_request: NextRequest) {
 
     // Count tickets by region
     allTickets.forEach((ticket: any) => {
-      if (!ticket.group_id) return
+      // Tickets without group_id are truly unassigned
+      if (!ticket.group_id) {
+        unassignedStats.total++
+        if (ticket.state_id === 1) unassignedStats.waiting++
+        else if (ticket.state_id === 2) unassignedStats.open++
+        else if (ticket.state_id === 4) unassignedStats.closed++
+        return
+      }
 
       const region = getRegionByGroupId(ticket.group_id)
-      
-      // If no region mapping (e.g., group_id = 1 Users group), count as unassigned
-      const stat = region 
-        ? regionStats.find((s) => s.region === region)
-        : unassignedStats
 
+      // All group_ids 1-8 now have valid region mappings
+      // If somehow there's an unknown group, skip it (don't count as unassigned)
+      if (!region) {
+        console.warn(`[Stats] Unknown group_id ${ticket.group_id} for ticket ${ticket.id}`)
+        return
+      }
+
+      const stat = regionStats.find((s) => s.region === region)
       if (!stat) return
 
       stat.total++
@@ -72,7 +82,7 @@ export async function GET(_request: NextRequest) {
     })
 
     // Add unassigned stats if there are any unassigned tickets
-    const allRegionStats = unassignedStats.total > 0 
+    const allRegionStats = unassignedStats.total > 0
       ? [...regionStats, unassignedStats]
       : regionStats
 

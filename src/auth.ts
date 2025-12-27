@@ -1,9 +1,9 @@
 /**
  * NextAuth.js v5 Configuration
  *
- * This configuration supports both:
- * - Development mode: Mock credentials authentication
- * - Production mode: Real authentication (credentials or OAuth)
+ * This configuration supports:
+ * - Zammad authentication: Real user authentication via Zammad API
+ * - Mock authentication: Fallback for development/testing
  *
  * Features:
  * - Credentials provider for email/password login
@@ -17,8 +17,10 @@ import Credentials from "next-auth/providers/credentials"
 import type { NextAuthConfig } from "next-auth"
 import { ensureEnvValidation, isMockAuthEnabled, env } from "@/lib/env"
 import { PUBLIC_ROUTES, STATIC_ROUTES, isRouteMatch } from "@/lib/constants/routes"
+import { zammadClient } from "@/lib/zammad/client"
+import { getRegionByGroupId } from "@/lib/constants/regions"
 
-// Import mock auth for development mode
+// Import mock auth for development/fallback mode
 import { mockUsers, mockPasswords, type MockUser } from "@/lib/mock-auth"
 
 ensureEnvValidation()
@@ -51,6 +53,30 @@ declare module "next-auth" {
 }
 
 const DEFAULT_PRODUCTION_ROLE: MockUser["role"] = "staff"
+
+/**
+ * Map Zammad role_ids to our role names
+ */
+function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
+  // Zammad role IDs: 1 = Admin, 2 = Agent, 3 = Customer
+  if (roleIds.includes(1)) return 'admin'
+  if (roleIds.includes(2)) return 'staff'
+  return 'customer'
+}
+
+/**
+ * Get region from Zammad group_ids
+ */
+function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | undefined {
+  if (!groupIds) return undefined
+  for (const [groupId, permissions] of Object.entries(groupIds)) {
+    if (permissions.includes('full')) {
+      const region = getRegionByGroupId(parseInt(groupId))
+      if (region) return region
+    }
+  }
+  return undefined
+}
 
 /**
  * Read a single production credential from environment variables
@@ -88,7 +114,56 @@ function getProductionUserFromEnv(): { user: MockUser; password: string } | null
 }
 
 /**
- * Validate credentials against mock users (development) or real authentication (production)
+ * Authenticate user via Zammad API
+ * @param email - User email
+ * @param password - User password
+ * @returns MockUser compatible object or null
+ */
+async function authenticateWithZammad(
+  email: string,
+  password: string
+): Promise<MockUser | null> {
+  try {
+    console.log('[Auth] Attempting Zammad authentication for:', email)
+
+    const zammadUser = await zammadClient.authenticateUser(email, password)
+
+    if (!zammadUser) {
+      console.log('[Auth] Zammad authentication failed for:', email)
+      return null
+    }
+
+    console.log('[Auth] Zammad authentication successful for:', email, 'User ID:', zammadUser.id)
+
+    // Convert Zammad user to our user format
+    const role = getRoleFromZammad(zammadUser.role_ids || [])
+    const region = getRegionFromGroupIds(zammadUser.group_ids)
+
+    const user: MockUser = {
+      id: `zammad-${zammadUser.id}`,
+      email: zammadUser.email,
+      role,
+      full_name: `${zammadUser.firstname || ''} ${zammadUser.lastname || ''}`.trim() || zammadUser.login,
+      avatar_url: zammadUser.image || undefined,
+      phone: zammadUser.phone || undefined,
+      language: zammadUser.preferences?.locale || 'en',
+      region,
+      zammad_id: zammadUser.id,
+      created_at: zammadUser.created_at,
+    }
+
+    return user
+  } catch (error) {
+    console.error('[Auth] Zammad authentication error:', error)
+    return null
+  }
+}
+
+/**
+ * Validate credentials using multiple authentication strategies:
+ * 1. First try Zammad authentication (if configured)
+ * 2. Then try mock users (if enabled)
+ * 3. Finally try production env credentials
  */
 async function validateCredentials(
   email: string,
@@ -96,28 +171,38 @@ async function validateCredentials(
 ): Promise<MockUser | null> {
   const normalizedEmail = email.trim().toLowerCase()
 
-  // In development or when mock auth is enabled, use mock users
-  if (isMockAuthEnabled()) {
-    const user = mockUsers[normalizedEmail]
-    if (!user) {
-      return null
+  // Strategy 1: Try Zammad authentication first (if Zammad is configured)
+  if (process.env.ZAMMAD_URL && process.env.ZAMMAD_API_TOKEN) {
+    const zammadUser = await authenticateWithZammad(normalizedEmail, password)
+    if (zammadUser) {
+      console.log('[Auth] User authenticated via Zammad')
+      return zammadUser
     }
-
-    const expectedPassword = mockPasswords[normalizedEmail]
-    if (password !== expectedPassword) {
-      return null
-    }
-
-    return user
+    console.log('[Auth] Zammad auth failed, trying fallback methods...')
   }
 
-  // In production without mock auth, implement real authentication here
+  // Strategy 2: Try mock users (if mock auth is enabled)
+  if (isMockAuthEnabled()) {
+    const user = mockUsers[normalizedEmail]
+    if (user) {
+      const expectedPassword = mockPasswords[normalizedEmail]
+      if (password === expectedPassword) {
+        console.log('[Auth] User authenticated via mock auth')
+        return user
+      }
+    }
+    // In mock auth mode, if user not found in mock, still return null
+    // (don't fall through to production credentials)
+    console.log('[Auth] Mock auth: user not found or password mismatch')
+    return null
+  }
+
+  // Strategy 3: Try production credentials from env
   const productionCredentials = getProductionUserFromEnv()
 
   if (!productionCredentials) {
-    throw new Error(
-      "AUTH_CONFIG_MISSING"
-    )
+    console.log('[Auth] No authentication method available')
+    throw new Error("AUTH_CONFIG_MISSING")
   }
 
   const { user: productionUser, password: productionPassword } = productionCredentials
@@ -130,6 +215,7 @@ async function validateCredentials(
     return null
   }
 
+  console.log('[Auth] User authenticated via env credentials')
   return productionUser
 }
 

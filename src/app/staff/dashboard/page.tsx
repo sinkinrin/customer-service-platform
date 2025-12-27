@@ -31,14 +31,28 @@ export default function StaffDashboardPage() {
   const loadDashboardData = async () => {
     setIsLoading(true)
     try {
-      const result = await searchTickets('state:*', 50)
+      // Reduced from 50 to 20 for optimal performance
+      const result = await searchTickets('state:*', 20)
       if (result) {
         const tickets = result.tickets
-        const openCount = tickets.filter(t => t.state.toLowerCase().includes('new') || t.state.toLowerCase().includes('open')).length
-        const pendingCount = tickets.filter(t => t.state.toLowerCase().includes('pending')).length
-        const resolvedCount = tickets.filter(t => t.state.toLowerCase().includes('resolved')).length
-        const closedCount = tickets.filter(t => t.state.toLowerCase().includes('closed')).length
-        setStats({ open: openCount, pending: pendingCount, resolved: resolvedCount, closed: closedCount })
+        // Single-pass count calculation (performance optimization)
+        const counts = tickets.reduce(
+          (acc, t) => {
+            const stateLower = t.state.toLowerCase()
+            if (stateLower.includes('new') || stateLower.includes('open')) {
+              acc.open++
+            } else if (stateLower.includes('pending')) {
+              acc.pending++
+            } else if (stateLower.includes('resolved')) {
+              acc.resolved++
+            } else if (stateLower.includes('closed')) {
+              acc.closed++
+            }
+            return acc
+          },
+          { open: 0, pending: 0, resolved: 0, closed: 0 }
+        )
+        setStats(counts)
         setRecentTickets(tickets.slice(0, 10))
       }
     } catch (error) {

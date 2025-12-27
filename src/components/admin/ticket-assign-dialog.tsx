@@ -50,7 +50,7 @@ interface TicketAssignDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     ticket: TicketInfo | null
-    onSuccess?: () => void
+    onSuccess?: () => void | Promise<void>
 }
 
 export function TicketAssignDialog({
@@ -103,6 +103,19 @@ export function TicketAssignDialog({
         setAssigning(true)
         setError(null)
 
+        // Optimistically update UI: decrease previous owner's count, increase new owner's count
+        const previousOwnerId = ticket.owner_id
+        const optimisticStaffList = staffList.map(staff => {
+            if (staff.id === previousOwnerId && previousOwnerId) {
+                return { ...staff, ticket_count: Math.max(0, staff.ticket_count - 1) }
+            }
+            if (staff.id === selectedStaffId) {
+                return { ...staff, ticket_count: staff.ticket_count + 1 }
+            }
+            return staff
+        })
+        setStaffList(optimisticStaffList)
+
         try {
             const res = await fetch(`/api/tickets/${ticket.id}/assign`, {
                 method: 'PUT',
@@ -114,13 +127,22 @@ export function TicketAssignDialog({
             if (res.ok && result.success) {
                 const assignedTo = result.data?.assigned_to
                 toast.success(t('assignSuccess', { name: assignedTo?.name || 'Staff' }))
-                onSuccess?.()
+
+                // Refresh staff list after successful assignment to ensure accuracy
+                await fetchStaff()
+
+                // Call onSuccess callback to refresh parent component (wait for completion)
+                await onSuccess?.()
                 onOpenChange(false)
             } else {
+                // Revert optimistic update on error
+                setStaffList(staffList)
                 setError(result.error?.message || 'Failed to assign ticket')
             }
         } catch (err) {
             console.error('Failed to assign ticket:', err)
+            // Revert optimistic update on error
+            setStaffList(staffList)
             setError('Failed to assign ticket')
         } finally {
             setAssigning(false)
@@ -133,6 +155,18 @@ export function TicketAssignDialog({
         setAssigning(true)
         setError(null)
 
+        // Optimistically update UI: decrease previous owner's count
+        const previousOwnerId = ticket.owner_id
+        if (previousOwnerId) {
+            const optimisticStaffList = staffList.map(staff => {
+                if (staff.id === previousOwnerId) {
+                    return { ...staff, ticket_count: Math.max(0, staff.ticket_count - 1) }
+                }
+                return staff
+            })
+            setStaffList(optimisticStaffList)
+        }
+
         try {
             const res = await fetch(`/api/tickets/${ticket.id}/assign`, {
                 method: 'DELETE',
@@ -141,13 +175,22 @@ export function TicketAssignDialog({
             const result = await res.json()
             if (res.ok && result.success) {
                 toast.success(t('unassignSuccess'))
-                onSuccess?.()
+
+                // Refresh staff list after successful unassignment
+                await fetchStaff()
+
+                // Call onSuccess callback to refresh parent component (wait for completion)
+                await onSuccess?.()
                 onOpenChange(false)
             } else {
+                // Revert optimistic update on error
+                setStaffList(staffList)
                 setError(result.error?.message || 'Failed to unassign ticket')
             }
         } catch (err) {
             console.error('Failed to unassign ticket:', err)
+            // Revert optimistic update on error
+            setStaffList(staffList)
             setError('Failed to unassign ticket')
         } finally {
             setAssigning(false)

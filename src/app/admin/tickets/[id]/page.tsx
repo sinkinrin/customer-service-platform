@@ -71,7 +71,7 @@ export default function AdminTicketDetailPage() {
     }
   }
 
-  const handleAddNote = async (note: string, internal: boolean) => {
+  const handleAddNote = async (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>) => {
     // Generate a temporary message ID
     const tempMessageId = `temp-${Date.now()}`
 
@@ -79,6 +79,7 @@ export default function AdminTicketDetailPage() {
       subject: ticket?.title || 'Note',
       body: note,
       internal,
+      attachments,
     })
 
     if (article) {
@@ -148,6 +149,7 @@ export default function AdminTicketDetailPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{t('ticketNumber', { number: ticket.number })}</h1>
+            <p className="text-base text-foreground mt-1">{ticket.title}</p>
             <p className="text-sm text-muted-foreground">
               {t('created', { date: format(new Date(ticket.created_at), 'PPp') })}
             </p>

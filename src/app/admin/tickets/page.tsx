@@ -31,7 +31,19 @@ export default function AdminTicketsPage() {
   const t = useTranslations('admin.tickets')
   const tToast = useTranslations('toast.admin.tickets')
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>('all')
+
+  // Get initial tab from localStorage or default to 'all'
+  const getInitialTab = () => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('admin-tickets-tab') as 'all' | 'open' | 'pending' | 'closed' | null
+      if (savedTab && ['all', 'open', 'pending', 'closed'].includes(savedTab)) {
+        return savedTab
+      }
+    }
+    return 'all'
+  }
+
+  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>(getInitialTab())
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
   const [submittedQuery, setSubmittedQuery] = useState('') // Empty = fetch all
@@ -59,8 +71,13 @@ export default function AdminTicketsPage() {
   }
 
   const handleTabChange = (value: string) => {
-    setActiveTab(value as typeof activeTab)
-    // Filtering is done client-side via filteredTickets
+    const newTab = value as typeof activeTab
+    setActiveTab(newTab)
+
+    // Save to localStorage for persistence across navigations
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin-tickets-tab', newTab)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -99,6 +116,64 @@ export default function AdminTicketsPage() {
 
     return true
   })
+
+  // Calculate counts for all tabs to prevent layout shifts
+  const tabCounts = {
+    all: tickets.filter((ticket) => {
+      // Apply region and priority filters only
+      if (selectedRegion !== 'all') {
+        const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
+        if (ticket.group_id && ticket.group_id !== expectedGroupId) return false
+      }
+      if (selectedPriority !== 'all') {
+        const priorityLower = ticket.priority?.toLowerCase() || ''
+        if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
+      }
+      return true
+    }).length,
+    open: tickets.filter((ticket) => {
+      const stateLower = ticket.state?.toLowerCase() || ''
+      if (!stateLower.includes('new') && !stateLower.includes('open')) return false
+      // Apply region and priority filters
+      if (selectedRegion !== 'all') {
+        const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
+        if (ticket.group_id && ticket.group_id !== expectedGroupId) return false
+      }
+      if (selectedPriority !== 'all') {
+        const priorityLower = ticket.priority?.toLowerCase() || ''
+        if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
+      }
+      return true
+    }).length,
+    pending: tickets.filter((ticket) => {
+      const stateLower = ticket.state?.toLowerCase() || ''
+      if (!stateLower.includes('pending')) return false
+      // Apply region and priority filters
+      if (selectedRegion !== 'all') {
+        const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
+        if (ticket.group_id && ticket.group_id !== expectedGroupId) return false
+      }
+      if (selectedPriority !== 'all') {
+        const priorityLower = ticket.priority?.toLowerCase() || ''
+        if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
+      }
+      return true
+    }).length,
+    closed: tickets.filter((ticket) => {
+      const stateLower = ticket.state?.toLowerCase() || ''
+      if (!stateLower.includes('closed')) return false
+      // Apply region and priority filters
+      if (selectedRegion !== 'all') {
+        const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
+        if (ticket.group_id && ticket.group_id !== expectedGroupId) return false
+      }
+      if (selectedPriority !== 'all') {
+        const priorityLower = ticket.priority?.toLowerCase() || ''
+        if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
+      }
+      return true
+    }).length,
+  }
 
   const exportTickets = async () => {
     try {
@@ -245,28 +320,28 @@ export default function AdminTicketsPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">
+          <TabsTrigger value="all" className="min-w-[120px]">
             {t('tabs.all')}
-            {activeTab === 'all' && (
-              <span className="ml-2 text-xs">({filteredTickets.length})</span>
+            {!isLoading && (
+              <span className="ml-2 text-xs">({tabCounts.all})</span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="open">
+          <TabsTrigger value="open" className="min-w-[120px]">
             {t('tabs.open')}
-            {activeTab === 'open' && (
-              <span className="ml-2 text-xs">({filteredTickets.length})</span>
+            {!isLoading && (
+              <span className="ml-2 text-xs">({tabCounts.open})</span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="pending">
+          <TabsTrigger value="pending" className="min-w-[120px]">
             {t('tabs.pending')}
-            {activeTab === 'pending' && (
-              <span className="ml-2 text-xs">({filteredTickets.length})</span>
+            {!isLoading && (
+              <span className="ml-2 text-xs">({tabCounts.pending})</span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="closed">
+          <TabsTrigger value="closed" className="min-w-[120px]">
             {t('tabs.closed')}
-            {activeTab === 'closed' && (
-              <span className="ml-2 text-xs">({filteredTickets.length})</span>
+            {!isLoading && (
+              <span className="ml-2 text-xs">({tabCounts.closed})</span>
             )}
           </TabsTrigger>
         </TabsList>

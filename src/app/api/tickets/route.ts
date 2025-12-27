@@ -439,7 +439,7 @@ export async function POST(request: NextRequest) {
         group: ticketData.group,
         group_id: groupId, // Assign to appropriate group based on user role
         customer_id: zammadUser.id, // Use customer_id instead of customer email
-        state_id: 2, // open
+        state_id: 1, // new - required for ticket creation (state_id: 2 'open' is not allowed for new tickets)
         priority_id: ticketData.priority_id,
         article: {
           subject: ticketData.article.subject,

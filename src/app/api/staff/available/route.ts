@@ -3,14 +3,28 @@
  *
  * GET /api/staff/available - Get list of available staff for ticket assignment
  * Returns staff members who are not on vacation, with their current ticket load
+ *
+ * Security: Staff can only see agents in their own region(s), Admin can see all
+ * Performance: Implements 30-second cache to improve loading speed
  */
 
-import { requireRole } from '@/lib/utils/auth'
+import { requireRole, getCurrentUser } from '@/lib/utils/auth'
 import {
     successResponse,
     serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
+
+// Simple in-memory cache (30 seconds TTL)
+let staffCache: {
+    data: any | null
+    timestamp: number
+    expiresIn: number // milliseconds
+} = {
+    data: null,
+    timestamp: 0,
+    expiresIn: 30000 // 30 seconds
+}
 
 /**
  * GET /api/staff/available
@@ -18,14 +32,64 @@ import { zammadClient } from '@/lib/zammad/client'
  */
 export async function GET() {
     try {
+        // Get current user to check role and region
+        const currentUser = await getCurrentUser()
+        if (!currentUser) {
+            return serverErrorResponse('Authentication required')
+        }
+
         // Only admin and staff can view available staff
         await requireRole(['admin', 'staff'])
 
-        // Get all agents
-        const allAgents = await zammadClient.getAgents(true)
+        // Check cache first
+        const now = Date.now()
+        const cacheAge = now - staffCache.timestamp
+        const isCacheValid = staffCache.data && cacheAge < staffCache.expiresIn
 
-        // Get all open tickets to calculate load
-        const allTickets = await zammadClient.getAllTickets()
+        let allAgents, allTickets
+
+        if (isCacheValid) {
+            console.log('[API] Using cached staff data (age:', Math.round(cacheAge / 1000), 'seconds)')
+            allAgents = staffCache.data.agents
+            allTickets = staffCache.data.tickets
+        } else {
+            console.log('[API] Fetching fresh staff data')
+            // Fetch agents and tickets in parallel for better performance
+            const [agentsResult, ticketsResult] = await Promise.all([
+                zammadClient.getAgents(true),
+                zammadClient.getAllTickets()
+            ])
+
+            allAgents = agentsResult
+            allTickets = ticketsResult
+
+            // Update cache
+            staffCache = {
+                data: { agents: allAgents, tickets: allTickets },
+                timestamp: now,
+                expiresIn: 30000
+            }
+        }
+
+        // Filter agents by region for staff users
+        let filteredAgents = allAgents
+        if (currentUser.role === 'staff') {
+            // Staff can only see agents in their accessible groups
+            const currentUserDetails = await zammadClient.getUser(parseInt(currentUser.id))
+            const accessibleGroupIds = currentUserDetails.group_ids
+                ? Object.keys(currentUserDetails.group_ids).map(Number)
+                : []
+
+            filteredAgents = allAgents.filter((agent: any) => {
+                const agentGroupIds = agent.group_ids
+                    ? Object.keys(agent.group_ids).map(Number)
+                    : []
+
+                // Check if there's any overlap in group access
+                return agentGroupIds.some((gid: number) => accessibleGroupIds.includes(gid))
+            })
+        }
+        // Admin can see all agents (no filtering)
 
         // Calculate ticket count per agent
         const ticketCountByAgent: Record<number, number> = {}
@@ -36,10 +100,10 @@ export async function GET() {
             }
         }
 
-        const now = new Date()
+        const now2 = new Date()
 
         // Build staff list with availability and load
-        const staffList = allAgents.map(agent => {
+        const staffList = filteredAgents.map((agent: any) => {
             // Determine if currently on vacation
             let isOnVacation = false
             if (agent.out_of_office) {
@@ -52,16 +116,17 @@ export async function GET() {
 
                 // Check if vacation is current
                 if (startDate && endDate) {
-                    isOnVacation = now >= startDate && now <= endDate
+                    isOnVacation = now2 >= startDate && now2 <= endDate
                 } else if (startDate && !endDate) {
-                    isOnVacation = now >= startDate
+                    isOnVacation = now2 >= startDate
                 }
             }
 
             return {
                 id: agent.id,
                 name: [agent.firstname, agent.lastname].filter(Boolean).join(' ') || agent.login || agent.email,
-                email: agent.email,
+                // Only show email to admin users for privacy
+                email: currentUser.role === 'admin' ? agent.email : undefined,
                 is_available: !isOnVacation,
                 is_on_vacation: isOnVacation,
                 vacation_end_date: isOnVacation ? agent.out_of_office_end_at : null,
@@ -70,7 +135,7 @@ export async function GET() {
         })
 
         // Sort: available first, then by ticket count (ascending)
-        staffList.sort((a, b) => {
+        staffList.sort((a: any, b: any) => {
             if (a.is_available !== b.is_available) {
                 return a.is_available ? -1 : 1
             }
@@ -80,7 +145,7 @@ export async function GET() {
         return successResponse({
             staff: staffList,
             total: staffList.length,
-            available_count: staffList.filter(s => s.is_available).length,
+            available_count: staffList.filter((s: any) => s.is_available).length,
         })
     } catch (error) {
         console.error('[API] Get available staff error:', error)

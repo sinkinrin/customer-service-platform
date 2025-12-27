@@ -637,7 +637,9 @@
         }
       },
       "actions": {
-        "export": "导出"
+        "export": "导出",
+        "refresh": "刷新",
+        "autoAssign": "自动分配"
       },
       "tabs": {
         "all": "所有工单",
@@ -781,6 +783,12 @@
         "modelPlaceholder": "请选择产品型号",
         "categoryOther": "其他",
         "modelNotApplicable": "不适用",
+        "versionLabel": "版本号",
+        "versionPlaceholder": "例如：V1.2.3",
+        "snImeiLabel": "SN/IMEI（选填）",
+        "snImeiPlaceholder": "设备序列号或IMEI",
+        "platformLabel": "使用平台 *",
+        "platformPlaceholder": "例如：VSS 2.5、CMS 3.0",
         "priorityLabel": "优先级 *",
         "priorities": {
           "1": "低 - 产品使用咨询",
@@ -789,9 +797,21 @@
         },
         "titleLabel": "问题标题 *",
         "titlePlaceholder": "简要描述您的问题",
+        "issueDescriptionLabel": "问题描述与现象 *",
+        "issueDescriptionPlaceholder": "详细描述问题现象，包括：\n1. 问题发生的时间和频率\n2. 错误消息或异常行为\n3. 对业务的影响",
+        "testEnvironmentLabel": "测试环境 *",
+        "testEnvironmentPlaceholder": "请提供：\n- 测试版本号与MCU版本号\n- 设备组合信息",
+        "quantityAndProbabilityLabel": "出现数量与概率 *",
+        "quantityAndProbabilityPlaceholder": "设备总数与出现问题设备数量，例如：10台设备中有3台出现此问题",
+        "reproductionStepsLabel": "复现步骤 *",
+        "reproductionStepsPlaceholder": "请详细描述操作复现步骤：\n1. 第一步...\n2. 第二步...\n3. 第三步...",
+        "expectedResultLabel": "预期结果 *",
+        "expectedResultPlaceholder": "您期望的正确行为或结果",
+        "actualResultLabel": "实际结果 *",
+        "actualResultPlaceholder": "实际发生的错误行为或结果",
         "descriptionLabel": "问题描述 *",
         "descriptionPlaceholder": "详细描述问题，包括：\n1. 问题发生的时间和频率\n2. 错误消息或异常行为\n3. 您已尝试的排查步骤\n4. 对业务的影响",
-        "attachmentsLabel": "附件（可选）",
+        "attachmentsLabel": "附件日志（可选）",
         "selectFiles": "选择文件",
         "uploadInfo": "支持图片、PDF、文档。最多5个文件，每个最大512MB。",
         "actions": {
@@ -805,6 +825,19 @@
           "tip2": "- 截图或错误日志对我们的排查非常有帮助。",
           "tip3": "- 说明问题发生的时机（总是、偶尔、特定操作后）。",
           "tip4": "- 您可以在\"我的工单\"中跟踪工单状态并回复支持团队。"
+        },
+        "template": {
+          "productInfo": "产品信息",
+          "model": "型号",
+          "version": "版本",
+          "snImei": "SN/IMEI",
+          "platform": "使用平台",
+          "issueDescription": "问题描述与现象",
+          "testEnvironment": "测试环境",
+          "quantityAndProbability": "出现数量与概率",
+          "reproductionSteps": "复现步骤",
+          "expectedResult": "预期结果",
+          "actualResult": "实际结果"
         }
       },
       "detail": {
@@ -1238,6 +1271,9 @@
       "search": {
         "placeholder": "按工单号、标题或客户搜索...",
         "button": "搜索"
+      },
+      "actions": {
+        "refresh": "刷新"
       },
       "filters": {
         "button": "筛选"

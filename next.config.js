@@ -13,6 +13,21 @@ const nextConfig = {
   // This allows LAN access from any IP
   skipProxyUrlNormalize: true,
   skipTrailingSlashRedirect: true,
+
+  // Performance optimizations
+  experimental: {
+    // Enable CSS optimization to reduce render-blocking CSS
+    optimizeCss: true,
+  },
+
+  // Compiler optimizations
+  compiler: {
+    // Remove console.log in production
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
   // Next.js 16: PPR (cacheComponents) 暂不启用
   // 原因：
   // 1. API 路由使用认证（headers()），与 prerendering 不兼容

@@ -113,11 +113,24 @@ export default function AdminDashboardPage() {
         const data = await response.json()
         const tickets = data.data?.tickets || []
 
+        // Get today's date at midnight for comparison
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const todayTimestamp = today.getTime()
+
+        // Filter tickets created today
+        const todayTickets = tickets.filter((t: any) => {
+          const createdDate = new Date(t.created_at)
+          createdDate.setHours(0, 0, 0, 0)
+          return createdDate.getTime() === todayTimestamp
+        })
+
+        // Calculate today's stats
         const stats = {
-          total: tickets.length,
-          open: tickets.filter((t: any) => t.state?.toLowerCase().includes('open') || t.state?.toLowerCase().includes('new')).length,
-          pending: tickets.filter((t: any) => t.state?.toLowerCase().includes('pending')).length,
-          closed: tickets.filter((t: any) => t.state?.toLowerCase().includes('closed')).length,
+          total: todayTickets.length,
+          open: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('open') || t.state?.toLowerCase().includes('new')).length,
+          pending: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('pending')).length,
+          closed: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('closed')).length,
         }
         setTicketStats(stats)
       }
@@ -235,7 +248,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{ticketStats.total}</div>
-                <p className="text-xs text-muted-foreground mt-1">{t('stats.allRegions')}</p>
+                <p className="text-xs text-muted-foreground mt-1">Created today</p>
               </CardContent>
             </Card>
 
@@ -246,7 +259,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-600">{ticketStats.open}</div>
-                <p className="text-xs text-muted-foreground mt-1">{t('stats.needsAttention')}</p>
+                <p className="text-xs text-muted-foreground mt-1">New today</p>
               </CardContent>
             </Card>
 
@@ -257,7 +270,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">{ticketStats.closed}</div>
-                <p className="text-xs text-muted-foreground mt-1">{t('stats.resolved')}</p>
+                <p className="text-xs text-muted-foreground mt-1">Resolved today</p>
               </CardContent>
             </Card>
           </>

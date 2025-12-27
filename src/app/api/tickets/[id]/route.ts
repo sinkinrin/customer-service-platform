@@ -250,7 +250,12 @@ export async function GET(
     // Transform ticket to include priority, state, customer and owner information
     const ticket = transformTicket(rawTicket, customerInfo, ownerInfo)
 
-    return successResponse({ ticket })
+    // Return response with no-cache headers to prevent stale data
+    const response = successResponse({ ticket })
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    return response
   } catch (error) {
     console.error('GET /api/tickets/[id] error:', error)
 

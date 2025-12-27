@@ -98,7 +98,7 @@ export default function StaffTicketDetailPage() {
     }
   }
 
-  const handleAddNote = async (note: string, internal: boolean) => {
+  const handleAddNote = async (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>) => {
     // Generate a temporary message ID
     const tempMessageId = `temp-${Date.now()}`
 
@@ -106,6 +106,7 @@ export default function StaffTicketDetailPage() {
       subject: ticket?.title || 'Note',
       body: note,
       internal,
+      attachments,
     })
 
     if (article) {

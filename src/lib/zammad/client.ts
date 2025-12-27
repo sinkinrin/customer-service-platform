@@ -496,6 +496,71 @@ export class ZammadClient {
     return this.request<ZammadUser[]>(`/users/search?${params}`)
   }
 
+  /**
+   * Authenticate user with email and password using HTTP Basic Auth
+   * @param email - User email or login
+   * @param password - User password
+   * @returns Authenticated user object or null if authentication fails
+   */
+  async authenticateUser(email: string, password: string): Promise<ZammadUser | null> {
+    // Validate configuration
+    if (!this.baseUrl) {
+      console.error('[Zammad Auth] Base URL not configured')
+      return null
+    }
+
+    const url = `${this.baseUrl}/api/v1/users/me`
+
+    try {
+      // Use HTTP Basic Authentication
+      const credentials = Buffer.from(`${email}:${password}`).toString('base64')
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(this.timeout),
+      })
+
+      if (!response.ok) {
+        console.log('[Zammad Auth] Authentication failed:', response.status)
+        return null
+      }
+
+      const userData = await response.json()
+
+      if (!userData || !userData.id) {
+        console.log('[Zammad Auth] No user data in response')
+        return null
+      }
+
+      return userData as ZammadUser
+    } catch (error) {
+      console.error('[Zammad Auth] Error during authentication:', error)
+      return null
+    }
+  }
+
+  /**
+   * Get user by email
+   * @param email - User email
+   * @returns User object or null if not found
+   */
+  async getUserByEmail(email: string): Promise<ZammadUser | null> {
+    try {
+      const users = await this.searchUsers(email)
+      // Find exact match by email
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase())
+      return user || null
+    } catch (error) {
+      console.error('[Zammad] Error fetching user by email:', error)
+      return null
+    }
+  }
+
   // ============================================================================
   // Out-of-Office (Vacation) Management
   // ============================================================================

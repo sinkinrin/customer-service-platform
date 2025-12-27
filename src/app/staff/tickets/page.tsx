@@ -16,18 +16,33 @@ export default function TicketsPage() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  
-  // Read initial tab from URL or default to 'all'
+
+  // Read initial tab from URL, localStorage, or default to 'all'
   const tabFromUrl = searchParams.get('tab') as 'all' | 'open' | 'pending' | 'closed' | null
   const validTabs = ['all', 'open', 'pending', 'closed']
-  const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'all'
-  
+
+  // Get initial tab: prioritize URL > localStorage > default 'all'
+  const getInitialTab = () => {
+    if (tabFromUrl && validTabs.includes(tabFromUrl)) {
+      return tabFromUrl
+    }
+    // Try to restore from localStorage if no URL param
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('staff-tickets-tab') as 'all' | 'open' | 'pending' | 'closed' | null
+      if (savedTab && validTabs.includes(savedTab)) {
+        return savedTab
+      }
+    }
+    return 'all'
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('state:*') // Actual query sent to API
-  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>(initialTab)
+  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>(getInitialTab())
 
   // Use SWR for caching - only fetches when submittedQuery changes
-  const { tickets, isLoading, isValidating, revalidate } = useTicketsSearch(submittedQuery, 50)
+  // Reduced from 50 to 20 for optimal initial load performance
+  const { tickets, isLoading, isValidating, revalidate } = useTicketsSearch(submittedQuery, 20)
 
   const handleSearch = () => {
     const query = searchQuery.trim() || 'state:*'
@@ -42,6 +57,12 @@ export default function TicketsPage() {
   const handleTabChange = (value: string) => {
     const newTab = value as typeof activeTab
     setActiveTab(newTab)
+
+    // Save to localStorage for persistence across navigations
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('staff-tickets-tab', newTab)
+    }
+
     // Update URL with new tab value for state persistence
     const params = new URLSearchParams(searchParams.toString())
     if (newTab === 'all') {
@@ -54,7 +75,7 @@ export default function TicketsPage() {
 
   const filteredTickets = tickets.filter((ticket) => {
     if (activeTab === 'all') return true
-    
+
     const stateLower = ticket.state.toLowerCase()
     if (activeTab === 'open') {
       return stateLower.includes('new') || stateLower.includes('open')
@@ -67,6 +88,22 @@ export default function TicketsPage() {
     }
     return true
   })
+
+  // Calculate counts for all tabs in a single pass (performance optimization)
+  const tabCounts = tickets.reduce(
+    (acc, ticket) => {
+      const stateLower = ticket.state.toLowerCase()
+      if (stateLower.includes('new') || stateLower.includes('open')) {
+        acc.open++
+      } else if (stateLower.includes('pending')) {
+        acc.pending++
+      } else if (stateLower.includes('closed')) {
+        acc.closed++
+      }
+      return acc
+    },
+    { all: tickets.length, open: 0, pending: 0, closed: 0 }
+  )
 
   return (
     <div className="space-y-6">
@@ -117,29 +154,29 @@ export default function TicketsPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">
+          <TabsTrigger value="all" className="min-w-[120px]">
             {t('tabs.all')}
-            {activeTab === 'all' && (
-              <span className="ml-2 text-xs">({filteredTickets.length})</span>
-            )}
+            <span className="ml-2 text-xs">
+              ({isLoading ? '...' : tabCounts.all})
+            </span>
           </TabsTrigger>
-          <TabsTrigger value="open">
+          <TabsTrigger value="open" className="min-w-[120px]">
             {t('tabs.open')}
-            {activeTab === 'open' && (
-              <span className="ml-2 text-xs">({filteredTickets.length})</span>
-            )}
+            <span className="ml-2 text-xs">
+              ({isLoading ? '...' : tabCounts.open})
+            </span>
           </TabsTrigger>
-          <TabsTrigger value="pending">
+          <TabsTrigger value="pending" className="min-w-[120px]">
             {t('tabs.pending')}
-            {activeTab === 'pending' && (
-              <span className="ml-2 text-xs">({filteredTickets.length})</span>
-            )}
+            <span className="ml-2 text-xs">
+              ({isLoading ? '...' : tabCounts.pending})
+            </span>
           </TabsTrigger>
-          <TabsTrigger value="closed">
+          <TabsTrigger value="closed" className="min-w-[120px]">
             {t('tabs.closed')}
-            {activeTab === 'closed' && (
-              <span className="ml-2 text-xs">({filteredTickets.length})</span>
-            )}
+            <span className="ml-2 text-xs">
+              ({isLoading ? '...' : tabCounts.closed})
+            </span>
           </TabsTrigger>
         </TabsList>
 

@@ -13,9 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Save, X, Clock } from 'lucide-react'
+import { Save, X, Clock, Upload } from 'lucide-react'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 
 interface TicketActionsProps {
   ticket: ZammadTicket
@@ -25,7 +26,7 @@ interface TicketActionsProps {
     owner_id?: number
     pending_time?: string
   }) => Promise<void>
-  onAddNote: (note: string, internal: boolean) => Promise<void>
+  onAddNote: (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>) => Promise<void>
   isLoading?: boolean
 }
 
@@ -58,6 +59,41 @@ export function TicketActions({
   const [isInternal, setIsInternal] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [showPendingTime, setShowPendingTime] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
+
+  // Convert File to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        const base64String = (reader.result as string).split(',')[1]
+        resolve(base64String)
+      }
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || [])
+
+    if (files.length + selectedFiles.length > 5) {
+      toast.error('Maximum 5 files allowed')
+      return
+    }
+
+    const invalidFiles = selectedFiles.filter(file => file.size > 10 * 1024 * 1024)
+    if (invalidFiles.length > 0) {
+      toast.error('File size must be less than 10MB')
+      return
+    }
+
+    setFiles([...files, ...selectedFiles])
+  }
+
+  const handleRemoveFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index))
+  }
 
   // Check if current state requires pending time
   useEffect(() => {
@@ -126,9 +162,27 @@ export function TicketActions({
 
   const handleAddNote = async () => {
     if (note.trim()) {
-      await onAddNote(note, isInternal)
+      // Convert files to base64 attachments
+      let attachments: { filename: string; data: string; 'mime-type': string }[] = []
+      if (files.length > 0) {
+        try {
+          attachments = await Promise.all(
+            files.map(async (file) => ({
+              filename: file.name,
+              data: await fileToBase64(file),
+              'mime-type': file.type || 'application/octet-stream',
+            }))
+          )
+        } catch (error) {
+          toast.error('Failed to process attachments')
+          return
+        }
+      }
+
+      await onAddNote(note, isInternal, attachments.length > 0 ? attachments : undefined)
       setNote('')
       setIsInternal(false)
+      setFiles([])
     }
   }
 
@@ -232,6 +286,61 @@ export function TicketActions({
               onChange={(e) => setNote(e.target.value)}
               rows={4}
             />
+          </div>
+
+          {/* File Upload Section */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Input
+                id="note-files"
+                type="file"
+                onChange={handleFileChange}
+                multiple
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('note-files')?.click()}
+                disabled={files.length >= 5}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Attach Files
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Max 5 files • 10MB each
+              </span>
+            </div>
+
+            {/* File List */}
+            {files.length > 0 && (
+              <div className="space-y-2">
+                {files.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-muted rounded-md"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Upload className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-sm truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveFile(index)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

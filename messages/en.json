@@ -828,6 +828,12 @@
         "modelPlaceholder": "Please select a product model",
         "categoryOther": "Other",
         "modelNotApplicable": "Not Applicable",
+        "versionLabel": "Version",
+        "versionPlaceholder": "e.g., V1.2.3",
+        "snImeiLabel": "SN/IMEI (Optional)",
+        "snImeiPlaceholder": "Device serial number or IMEI",
+        "platformLabel": "Platform *",
+        "platformPlaceholder": "e.g., VSS 2.5, CMS 3.0",
         "priorityLabel": "Priority *",
         "priorities": {
           "1": "Low - product usage question",
@@ -836,9 +842,21 @@
         },
         "titleLabel": "Issue title *",
         "titlePlaceholder": "Briefly describe your issue",
+        "issueDescriptionLabel": "Issue description *",
+        "issueDescriptionPlaceholder": "Describe the issue in detail, including:\n1. When and how often it occurs\n2. Error messages or abnormal behavior\n3. Impact on your business",
+        "testEnvironmentLabel": "Test environment *",
+        "testEnvironmentPlaceholder": "Please provide:\n- Firmware version and MCU version\n- Device combination info",
+        "quantityAndProbabilityLabel": "Quantity and probability *",
+        "quantityAndProbabilityPlaceholder": "Total devices and affected devices, e.g., 3 out of 10 devices have this issue",
+        "reproductionStepsLabel": "Reproduction steps *",
+        "reproductionStepsPlaceholder": "Please describe the steps to reproduce:\n1. First step...\n2. Second step...\n3. Third step...",
+        "expectedResultLabel": "Expected result *",
+        "expectedResultPlaceholder": "The correct behavior or result you expected",
+        "actualResultLabel": "Actual result *",
+        "actualResultPlaceholder": "The actual error behavior or result that occurred",
         "descriptionLabel": "Issue description *",
         "descriptionPlaceholder": "Describe the problem in detail, including:\n1. When and how often it occurs\n2. Error messages or behavior\n3. Troubleshooting steps you have tried\n4. Impact on your business",
-        "attachmentsLabel": "Attachments (Optional)",
+        "attachmentsLabel": "Log attachments (Optional)",
         "selectFiles": "Select files",
         "uploadInfo": "Supports images, PDFs, documents. Max 5 files, 512MB each.",
         "actions": {
@@ -852,6 +870,19 @@
           "tip2": "- Screenshots or error logs greatly help our troubleshooting.",
           "tip3": "- Specify when the issue occurs (always, intermittently, after specific actions).",
           "tip4": "- You can track ticket status and reply to the support team under \"My Tickets.\""
+        },
+        "template": {
+          "productInfo": "Product Information",
+          "model": "Model",
+          "version": "Version",
+          "snImei": "SN/IMEI",
+          "platform": "Platform",
+          "issueDescription": "Issue Description",
+          "testEnvironment": "Test Environment",
+          "quantityAndProbability": "Quantity and Probability",
+          "reproductionSteps": "Reproduction Steps",
+          "expectedResult": "Expected Result",
+          "actualResult": "Actual Result"
         }
       },
       "detail": {
@@ -1288,6 +1319,9 @@
       "search": {
         "placeholder": "Search tickets by number, title, or customer...",
         "button": "Search"
+      },
+      "actions": {
+        "refresh": "Refresh"
       },
       "filters": {
         "button": "Filters"

@@ -207,6 +207,7 @@ export function useTicket() {
       subject: string
       body: string
       internal?: boolean
+      attachments?: Array<{filename: string; data: string; 'mime-type': string}>
     }
   ): Promise<TicketArticle | null> => {
     setIsLoading(true)

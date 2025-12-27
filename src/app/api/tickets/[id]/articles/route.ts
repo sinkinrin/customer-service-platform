@@ -30,6 +30,11 @@ const createArticleSchema = z.object({
   type: z.enum(['note', 'email', 'phone', 'web']).default('note'),
   internal: z.boolean().default(false),
   sender: z.string().optional(),
+  attachments: z.array(z.object({
+    filename: z.string(),
+    data: z.string(), // base64 encoded
+    'mime-type': z.string(),
+  })).optional(),
 })
 
 // ============================================================================
@@ -217,6 +222,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         content_type: articleData.content_type,
         type: articleData.type,
         internal: articleData.internal,
+        ...(articleData.attachments && { attachments: articleData.attachments }),
       },
       user.email  // Pass user email for all roles to show correct sender name
     )

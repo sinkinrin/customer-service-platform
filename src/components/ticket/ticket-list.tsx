@@ -111,16 +111,25 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-3/4" />
+      <div className="space-y-4 min-h-[1000px]">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+          <Card key={i} className="min-h-[132px]">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+                <div className="flex flex-col items-end gap-2 ml-4">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-6 w-16" />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-1/3" />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-40" />
               </div>
             </CardContent>
           </Card>
@@ -144,7 +153,7 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-h-[1000px]">
       {tickets.map((ticket) => (
         <Card
           key={ticket.id}
@@ -160,6 +169,18 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
                 <p className="text-sm text-muted-foreground mt-1">
                   {t('details.customer')}: {ticket.customer}
                 </p>
+                {/* Assignment Status Badge */}
+                <div className="mt-2">
+                  {ticket.owner_id ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      ✓ Assigned to: {ticket.owner_name || `Staff #${ticket.owner_id}`}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                      ⚠ Unassigned
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="flex flex-col items-end gap-2 ml-4">
                 <Badge className={getStatusColor(ticket.state)}>
@@ -177,7 +198,7 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
               <div className="flex items-center gap-4">
                 {ticket.group && <span>{t('details.group')}: {ticket.group}</span>}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
                 {user?.role === 'admin' && onAssign && (
                   <Button
                     size="sm"
@@ -186,16 +207,24 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
                     className="gap-1"
                   >
                     <UserPlus className="h-4 w-4" />
-                    {ticket.owner_id 
+                    {ticket.owner_id
                       ? (ticket.owner_name || `Staff #${ticket.owner_id}`)
                       : t('actions.assign')}
                   </Button>
                 )}
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-xs">
+                      Created {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-xs">
+                      Updated {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

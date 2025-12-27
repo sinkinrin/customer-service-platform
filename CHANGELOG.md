@@ -5,6 +5,111 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-12-27
+
+### 🐛 Bug修复
+
+#### 修复9项关键工单系统问题（基于2025-12-26用户反馈）
+- **提交**: `2864a39`
+- **反馈来源**: AI智能服务反馈—Ticket系统测试-2025年12月26日.csv
+- **变更规模**: 31个文件，1588行新增，288行删除
+- **修复率**: 9/14问题已完全解决（64%），2/14部分解决（14%）
+
+**已修复问题**:
+
+1. **工单列表Tab状态持久化** (`src/app/admin/tickets/page.tsx`, `src/app/staff/tickets/page.tsx`)
+   - 使用localStorage保存tab选择状态
+   - 页面返回时自动恢复之前的tab状态
+   - 优先级：URL参数 > localStorage > 默认值
+
+2. **客户工单显示优化** (`src/components/ticket/ticket-list.tsx`)
+   - 改进布局间距和视觉效果
+   - 优化骨架屏加载状态（3个扩展到10个）
+   - 添加min-height防止布局抖动
+
+3. **Dashboard显示今日新增数据** (`src/app/admin/dashboard/page.tsx`)
+   - 从显示总数改为显示今日新增
+   - 过滤今天创建的工单
+   - 更新标签："Created today"、"New today"、"Resolved today"
+
+4. **工单分配状态显示** (`src/components/ticket/ticket-list.tsx`)
+   - 添加分配状态Badge（已分配/待分配）
+   - 显示分配的staff名称
+   - 绿色标记已分配，黄色标记待分配
+
+5. **修复工单分配逻辑** (`src/app/api/tickets/[id]/assign/route.ts`)
+   - 修复跨区域分配问题（如64032工单）
+   - 增强权限验证：检查用户active状态、Agent角色
+   - 支持跨区域分配：自动移动工单到staff有权限的group
+   - 自动状态更新：分配时将'new'状态改为'open'
+   - 详细的错误提示和日志
+
+6. **工单详情页显示主题** (`src/app/staff/tickets/[id]/page.tsx`)
+   - 在详情页header显示工单标题
+   - 使用truncate防止标题过长
+
+7. **Admin回复支持附件** (`src/components/ticket/ticket-actions.tsx`, `src/app/staff/tickets/[id]/page.tsx`)
+   - 添加文件上传功能（最多5个文件，每个10MB）
+   - 支持图片、PDF、文档等格式
+   - Base64编码上传到Zammad
+   - 文件预览和删除功能
+
+8. **工单创建和更新时间显示** (`src/components/ticket/ticket-list.tsx`)
+   - 同时显示创建时间和更新时间
+   - 使用相对时间格式（"2 hours ago"）
+   - 分别显示Created和Updated标签
+
+9. **客户二次回复支持附件** (`src/app/customer/my-tickets/[id]/page.tsx`)
+   - 添加文件上传组件（最多5个文件，每个10MB）
+   - 支持多种文件格式
+   - Base64编码上传
+
+### ✨ 新增功能
+
+#### Zammad真实认证集成
+- **文件**: `src/auth.ts`
+- **功能**:
+  - 从Mock认证升级到真实Zammad API认证
+  - 支持通过Zammad验证用户凭据
+  - 自动映射Zammad角色（Admin/Agent/Customer）到系统角色
+  - 提取用户的region信息
+- **影响**: 生产级认证，真实用户登录
+
+#### 创建工单表单重构
+- **文件**: `src/app/customer/my-tickets/create/page.tsx`, `messages/*.json`
+- **新增字段**:
+  - 版本号（Version）
+  - SN/IMEI（可选）
+  - 使用平台（Platform）
+  - 问题描述与现象
+  - 测试环境
+  - 出现数量与概率
+  - 复现步骤
+  - 预期结果
+  - 实际结果
+- **功能**: 生成结构化的工单内容模板
+- **影响**: 更规范的问题反馈流程
+
+### 🌐 国际化
+
+- 更新所有6种语言文件（en, zh-CN, fr, es, ru, pt）
+- 添加工单模板字段翻译
+- 添加分配、刷新等新功能的翻译
+
+### ⚠️ 已知问题（未修复）
+
+以下3个问题需要后续处理（已创建OpenSpec提案）：
+
+1. **实时消息提醒和未读高亮** - 需要WebSocket/SSE实现
+2. **状态变化实时同步到聊天页面** - 需要实时更新机制
+3. **客户邮件通知** - 需要Zammad后端配置
+
+### 📦 测试
+
+- 更新区域权限测试用例 (`__tests__/unit/regions.test.ts`)
+
+---
+
 ## [0.3.1] - 2025-12-05
 
 ### 🔒 安全

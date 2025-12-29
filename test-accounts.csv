@@ -1,0 +1,17 @@
+email,full_name,role,region,phone,password
+customer.apac@test.com,APAC Customer,customer,asia-pacific,+861234567001,12345678
+staff.apac@test.com,APAC Staff,staff,asia-pacific,+861234567002,12345678
+customer.me@test.com,Middle East Customer,customer,middle-east,+9711234567001,12345678
+staff.me@test.com,Middle East Staff,staff,middle-east,+9711234567002,12345678
+customer.africa@test.com,Africa Customer,customer,africa,+271234567001,12345678
+staff.africa@test.com,Africa Staff,staff,africa,+271234567002,12345678
+customer.na@test.com,North America Customer,customer,north-america,+11234567001,12345678
+staff.na@test.com,North America Staff,staff,north-america,+11234567002,12345678
+customer.latam@test.com,Latin America Customer,customer,latin-america,+551234567001,12345678
+staff.latam@test.com,Latin America Staff,staff,latin-america,+551234567002,12345678
+customer.eu1@test.com,Europe Zone 1 Customer,customer,europe-zone-1,+441234567001,12345678
+staff.eu1@test.com,Europe Zone 1 Staff,staff,europe-zone-1,+441234567002,12345678
+customer.eu2@test.com,Europe Zone 2 Customer,customer,europe-zone-2,+491234567001,12345678
+staff.eu2@test.com,Europe Zone 2 Staff,staff,europe-zone-2,+491234567002,12345678
+customer.cis@test.com,CIS Customer,customer,cis,+71234567001,12345678
+staff.cis@test.com,CIS Staff,staff,cis,+71234567002,12345678

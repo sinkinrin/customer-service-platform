@@ -26,8 +26,16 @@
 ### 2. 客户邮件通知
 - **来源**: 12/26 #8 (SHAMY)
 - **描述**: 客户有任何回复或状态变化，都需要发邮件给客户
-- **状态**: [ ] 待处理（需要Zammad后端配置）
-- **备注**: 需要在Zammad管理面板配置邮件触发器
+- **状态**: [x] 已完成
+- **解决方案**: 
+  - 添加 Zammad Trigger API 类型和方法到 `src/lib/zammad/client.ts`
+  - 创建 `/api/admin/triggers` 管理端点
+  - 创建 `/api/admin/triggers/setup` 一键初始化触发器
+  - 添加 `scripts/setup-email-triggers.ts` 脚本
+  - **高优先级工单自动排除**，不发送邮件通知
+- **使用方法**: 
+  1. 调用 `POST /api/admin/triggers/setup` 初始化默认触发器
+  2. 或运行 `npx tsx scripts/setup-email-triggers.ts`
 
 ---
 

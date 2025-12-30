@@ -41,8 +41,12 @@ const getStatusColor = (state: string | undefined) => {
     return 'bg-[#9CA3AF] text-white'
   }
   const stateLower = state.toLowerCase()
+  // New (新建) - Bright Green for attention
+  if (stateLower === 'new') {
+    return 'bg-[#22C55E] text-white'
+  }
   // Open (进行中) - Bright Blue
-  if (stateLower === 'open' || stateLower === 'new') {
+  if (stateLower === 'open') {
     return 'bg-[#3B82F6] text-white'
   }
   // Pending Reminder (等待提醒) - Amber Yellow

@@ -23,7 +23,9 @@ function TicketStatusBadge({ state }: { state?: string }) {
   const stateLower = state.toLowerCase()
   
   let className = 'text-xs '
-  if (stateLower === 'open' || stateLower === 'new') {
+  if (stateLower === 'new') {
+    className += 'bg-green-500 text-white hover:bg-green-500'
+  } else if (stateLower === 'open') {
     className += 'bg-blue-500 text-white hover:bg-blue-500'
   } else if (stateLower === 'pending reminder') {
     className += 'bg-amber-400 text-gray-900 hover:bg-amber-400'

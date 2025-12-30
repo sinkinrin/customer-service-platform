@@ -99,121 +99,34 @@ export default function AdminDashboardPage() {
 
   const loadDashboardData = async () => {
     setLoading(true)
-    await Promise.allSettled([
-      loadTicketStats(),
-      loadRegionStats(),
-      loadUserStats(),
-      loadRecentActivities(),
-      loadRatingStats(),
-    ])
-    setLoading(false)
-  }
-
-  const loadTicketStats = async () => {
     try {
-      const response = await fetch('/api/tickets?limit=1000')
-      if (response.ok) {
-        const data = await response.json()
-        const tickets = data.data?.tickets || []
+      // Use unified dashboard API for better performance
+      const [dashboardRes, ratingsRes] = await Promise.all([
+        fetch('/api/admin/stats/dashboard'),
+        fetch('/api/admin/stats/ratings'),
+      ])
 
-        // Get today's date at midnight for comparison
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const todayTimestamp = today.getTime()
-
-        // Filter tickets created today
-        const todayTickets = tickets.filter((t: any) => {
-          const createdDate = new Date(t.created_at)
-          createdDate.setHours(0, 0, 0, 0)
-          return createdDate.getTime() === todayTimestamp
-        })
-
-        // Calculate today's stats
-        const todayStats = {
-          total: todayTickets.length,
-          open: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('open') || t.state?.toLowerCase().includes('new')).length,
-          pending: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('pending')).length,
-          closed: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('closed')).length,
+      if (dashboardRes.ok) {
+        const data = await dashboardRes.json()
+        if (data.success && data.data) {
+          setTicketStats(data.data.ticketStats.today)
+          setAllTimeStats(data.data.ticketStats.allTime)
+          setRegionStats(data.data.regionStats)
+          setRecentActivities(data.data.recentActivities)
+          setTotalUsers(data.data.totalUsers)
         }
-        setTicketStats(todayStats)
-
-        // Calculate all-time stats
-        const allStats = {
-          total: tickets.length,
-          open: tickets.filter((t: any) => t.state?.toLowerCase().includes('open') || t.state?.toLowerCase().includes('new')).length,
-          pending: tickets.filter((t: any) => t.state?.toLowerCase().includes('pending')).length,
-          closed: tickets.filter((t: any) => t.state?.toLowerCase().includes('closed')).length,
-        }
-        setAllTimeStats(allStats)
       }
-    } catch (error) {
-      console.error('Failed to load ticket stats:', error)
-    }
-  }
 
-  const loadRegionStats = async () => {
-    try {
-      const response = await fetch('/api/admin/stats/regions')
-      if (response.ok) {
-        const data = await response.json()
-        setRegionStats(data.data?.regions || [])
-      }
-    } catch (error) {
-      console.error('Failed to load region stats:', error)
-    }
-  }
-
-  const loadUserStats = async () => {
-    try {
-      const response = await fetch('/api/admin/users')
-      if (response.ok) {
-        const data = await response.json()
-        const users = data.data?.users || []
-        setTotalUsers(users.length)
-      }
-    } catch (error) {
-      console.error('Failed to load user stats:', error)
-    }
-  }
-
-  const loadRecentActivities = async () => {
-    try {
-      const response = await fetch('/api/tickets?limit=10')
-      if (response.ok) {
-        const data = await response.json()
-        const tickets = data.data?.tickets || []
-
-        // Convert tickets to activities
-        const activities: RecentActivity[] = tickets
-          .sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-          .slice(0, 10)
-          .map((ticket: any) => ({
-            id: ticket.id.toString(),
-            type: 'ticket_updated',
-            ticketNumber: ticket.number,
-            title: ticket.title,
-            state: ticket.state,
-            timestamp: ticket.updated_at,
-          }))
-
-        setRecentActivities(activities)
-      }
-    } catch (error) {
-      console.error('Failed to load recent activities:', error)
-    }
-  }
-
-  const loadRatingStats = async () => {
-    try {
-      const response = await fetch('/api/admin/stats/ratings')
-      if (response.ok) {
-        const data = await response.json()
+      if (ratingsRes.ok) {
+        const data = await ratingsRes.json()
         if (data.success && data.data) {
           setRatingStats(data.data)
         }
       }
     } catch (error) {
-      console.error('Failed to load rating stats:', error)
+      console.error('Failed to load dashboard data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ExternalLink, Ticket, Clock, AlertCircle } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 
 interface TicketHistoryItem {
   id: number
@@ -143,7 +143,7 @@ export function TicketHistoryDialog({
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         <span>
-                          Created {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
+                          {format(new Date(ticket.created_at), 'yyyy-MM-dd HH:mm')}
                         </span>
                       </div>
                     </div>

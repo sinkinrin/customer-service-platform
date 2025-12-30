@@ -475,78 +475,10 @@ export async function POST(request: NextRequest) {
 
     console.log('[DEBUG] POST /api/tickets - Created ticket:', ticket.id)
 
-    // Auto-assign ticket to available agent with lowest workload
-    let assignedAgent = null
-    try {
-      // Get all agents with their workload
-      const allAgents = await zammadClient.getAgents(true)
-      const allTickets = await zammadClient.getAllTickets()
-
-      // Calculate ticket count per agent
-      const ticketCountByAgent: Record<number, number> = {}
-      for (const t of allTickets) {
-        if (t.owner_id && [1, 2, 3, 7].includes(t.state_id)) {
-          ticketCountByAgent[t.owner_id] = (ticketCountByAgent[t.owner_id] || 0) + 1
-        }
-      }
-
-      // Filter agents in the same group and not on vacation
-      // Exclude system accounts (howensupport, support@howentech.com) that shouldn't receive assignments
-      const EXCLUDED_EMAILS = ['support@howentech.com', 'howensupport@howentech.com']
-      const now = new Date()
-      const availableAgents = allAgents.filter(agent => {
-        // Exclude system/dispatcher accounts
-        if (EXCLUDED_EMAILS.some(email => agent.email?.toLowerCase() === email.toLowerCase())) {
-          return false
-        }
-
-        // Check if agent has access to this group
-        const agentGroupIds = agent.group_ids || {}
-        const hasGroupAccess = Object.keys(agentGroupIds).includes(String(groupId))
-
-        // Check if on vacation
-        if (agent.out_of_office) {
-          const startDate = agent.out_of_office_start_at ? new Date(agent.out_of_office_start_at) : null
-          const endDate = agent.out_of_office_end_at ? new Date(agent.out_of_office_end_at) : null
-
-          if (startDate && endDate) {
-            if (now >= startDate && now <= endDate) {
-              return false // On vacation (bounded period)
-            }
-          } else if (startDate && !endDate) {
-            if (now >= startDate) {
-              return false // On vacation (open-ended)
-            }
-          } else if (!startDate && endDate) {
-            if (now <= endDate) {
-              return false // On vacation until end date
-            }
-          }
-        }
-
-        return hasGroupAccess
-      })
-
-      // Sort by ticket count (ascending) and pick the one with lowest load
-      if (availableAgents.length > 0) {
-        availableAgents.sort((a, b) => {
-          const loadA = ticketCountByAgent[a.id] || 0
-          const loadB = ticketCountByAgent[b.id] || 0
-          return loadA - loadB
-        })
-
-        assignedAgent = availableAgents[0]
-
-        // Assign ticket to this agent
-        await zammadClient.updateTicket(ticket.id, { owner_id: assignedAgent.id })
-        console.log('[DEBUG] POST /api/tickets - Auto-assigned to agent:', assignedAgent.id, assignedAgent.email)
-      } else {
-        console.log('[DEBUG] POST /api/tickets - No available agents for auto-assignment in group:', groupId)
-      }
-    } catch (autoAssignError) {
-      console.error('[DEBUG] POST /api/tickets - Auto-assignment failed:', autoAssignError)
-      // Continue without assignment, ticket is still created
-    }
+    // OpenSpec: New tickets remain UNASSIGNED by default
+    // Auto-assignment is now only triggered via /api/tickets/auto-assign endpoint
+    // This ensures unassigned tickets are only visible to Admin (per permission rules)
+    console.log('[DEBUG] POST /api/tickets - Ticket created without assignment (unassigned)')
 
     return successResponse(
       {

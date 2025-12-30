@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Clock } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useTranslations } from 'next-intl'
 
@@ -107,7 +107,7 @@ export function RecentTickets({ tickets, isLoading }: RecentTicketsProps) {
                   <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     <span>
-                      {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
+                      {format(new Date(ticket.created_at), 'yyyy-MM-dd HH:mm')}
                     </span>
                   </div>
                 </div>

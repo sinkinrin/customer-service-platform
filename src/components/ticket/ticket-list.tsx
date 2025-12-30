@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Clock, AlertCircle, CheckCircle2, XCircle, UserPlus } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
@@ -231,13 +231,13 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
                     <span className="text-xs">
-                      Created {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
+                      {format(new Date(ticket.created_at), 'yyyy-MM-dd HH:mm')}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
                     <span className="text-xs">
-                      Updated {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}
+                      {format(new Date(ticket.updated_at), 'yyyy-MM-dd HH:mm')}
                     </span>
                   </div>
                 </div>

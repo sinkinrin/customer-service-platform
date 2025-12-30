@@ -95,12 +95,9 @@ export async function GET(request: NextRequest) {
 
         // Fetch real ticket data from Zammad
         const startDate = subDays(new Date(), days)
-        const startDateStr = format(startDate, 'yyyy-MM-dd')
         
-        // Search for tickets created within the date range
-        // Use a broader search to get all tickets that might be relevant
-        const searchResult = await zammadClient.searchTickets('*', 1000)
-        const allTickets = searchResult.tickets || []
+        // Use getAllTickets to fetch all tickets (not searchTickets which has query formatting issues)
+        const allTickets = await zammadClient.getAllTickets(undefined, 20) // Up to 2000 tickets
         
         // Filter tickets to only include those within our date range
         const relevantTickets = allTickets.filter(ticket => {

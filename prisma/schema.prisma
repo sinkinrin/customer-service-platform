@@ -145,3 +145,16 @@ model ReplyTemplate {
   @@index([isActive])
   @@map("reply_templates")
 }
+
+// Ticket Updates (for real-time notifications via webhook + polling)
+model TicketUpdate {
+  id        String   @id @default(cuid())
+  ticketId  Int      // Zammad ticket ID
+  event     String   // 'article_created' | 'status_changed' | 'assigned' | 'created'
+  data      String?  // JSON: { articleId, newState, assignedTo, senderEmail }
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
+  @@map("ticket_updates")
+}

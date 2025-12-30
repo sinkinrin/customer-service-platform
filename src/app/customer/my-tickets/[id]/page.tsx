@@ -16,6 +16,7 @@ import { ArticleCard } from '@/components/ticket/article-content'
 import { TicketRating } from '@/components/ticket/ticket-rating'
 import { TicketReopenButton } from '@/components/ticket/ticket-reopen-button'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
+import { useUnreadStore } from '@/lib/stores/unread-store'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 
@@ -34,6 +35,7 @@ export default function CustomerTicketDetailPage() {
   const [files, setFiles] = useState<File[]>([])
 
   const { fetchTicketById, fetchArticles, isLoading } = useTicket()
+  const { markAsRead } = useUnreadStore()
 
   // Convert File to base64
   const fileToBase64 = (file: File): Promise<string> => {
@@ -75,6 +77,11 @@ export default function CustomerTicketDetailPage() {
   useEffect(() => {
     loadTicket()
     loadArticles()
+    // Mark ticket as read when viewing details
+    const numericId = parseInt(ticketId, 10)
+    if (!isNaN(numericId)) {
+      markAsRead(numericId)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
 

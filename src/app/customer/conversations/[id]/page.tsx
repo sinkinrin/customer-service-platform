@@ -68,14 +68,21 @@ export default function ConversationDetailPage() {
     }
   }, [conversationId])
 
-  // Handle AI chat
+  // Handle AI chat with duplicate prevention
   const handleAIMessage = async (content: string) => {
+    // Prevent duplicate submissions
+    if (isAiLoading) return
+
     try {
       setIsAiLoading(true)
 
+      // Trim and validate content
+      const trimmedContent = content.trim()
+      if (!trimmedContent) return
+
       const newUserMessage = {
         role: 'user' as const,
-        content,
+        content: trimmedContent,
         timestamp: new Date().toISOString()
       }
       setAiMessages(prev => [...prev, newUserMessage])
@@ -86,7 +93,7 @@ export default function ConversationDetailPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content,
+            content: trimmedContent,
             message_type: 'text',
             metadata: { aiMode: true, role: 'customer' }
           }),
@@ -95,14 +102,14 @@ export default function ConversationDetailPage() {
         console.error('Failed to persist user AI message:', error)
       }
 
-      // Get AI response
+      // Get AI response - use current aiMessages state (not including newUserMessage to avoid duplication)
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId,
-          message: content,
-          history: [...aiMessages, newUserMessage].map(msg => ({ role: msg.role, content: msg.content })),
+          message: trimmedContent,
+          history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
         }),
       })
 

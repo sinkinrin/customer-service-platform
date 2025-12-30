@@ -14,6 +14,7 @@ import { ArticleCard } from '@/components/ticket/article-content'
 import { TicketAssignDialog } from '@/components/admin/ticket-assign-dialog'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
+import { useUnreadStore } from '@/lib/stores/unread-store'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import {
@@ -40,10 +41,16 @@ export default function AdminTicketDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const { fetchTicketById, updateTicket, addArticle, fetchArticles, isLoading } = useTicket()
+  const { markAsRead } = useUnreadStore()
 
   useEffect(() => {
     loadTicket()
     loadArticles()
+    // Mark ticket as read when viewing details
+    const numericId = parseInt(ticketId, 10)
+    if (!isNaN(numericId)) {
+      markAsRead(numericId)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
 

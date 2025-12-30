@@ -18,9 +18,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 interface TrendData {
     date: string
-    new: number
-    open: number
-    closed: number
+    new: number      // 当日新增工单数
+    closed: number   // 当日关闭工单数
 }
 
 interface TicketTrendChartProps {
@@ -68,8 +67,8 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
         <Card className={className}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div>
-                    <CardTitle className="text-base font-medium">Ticket Trends</CardTitle>
-                    <CardDescription>Ticket volume over time</CardDescription>
+                    <CardTitle className="text-base font-medium">Daily Ticket Trends</CardTitle>
+                    <CardDescription>Daily new and closed tickets</CardDescription>
                 </div>
                 <Select value={range} onValueChange={setRange}>
                     <SelectTrigger className="w-[100px]">
@@ -96,10 +95,6 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
                                 <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
                                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="colorOpen" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                                 </linearGradient>
                                 <linearGradient id="colorClosed" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
@@ -129,23 +124,15 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
                             <Area
                                 type="monotone"
                                 dataKey="new"
-                                name="New"
+                                name="New Tickets"
                                 stroke="#3b82f6"
                                 fillOpacity={1}
                                 fill="url(#colorNew)"
                             />
                             <Area
                                 type="monotone"
-                                dataKey="open"
-                                name="Open"
-                                stroke="#f59e0b"
-                                fillOpacity={1}
-                                fill="url(#colorOpen)"
-                            />
-                            <Area
-                                type="monotone"
                                 dataKey="closed"
-                                name="Closed"
+                                name="Closed Tickets"
                                 stroke="#22c55e"
                                 fillOpacity={1}
                                 fill="url(#colorClosed)"

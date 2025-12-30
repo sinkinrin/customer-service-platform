@@ -10,6 +10,8 @@ import { formatDistanceToNow } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
+import { useUnreadStore } from '@/lib/stores/unread-store'
+import { cn } from '@/lib/utils'
 
 interface TicketListProps {
   tickets: ZammadTicket[]
@@ -85,6 +87,7 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
   const { user } = useAuth()
   const t = useTranslations('tickets')
   const tCommon = useTranslations('common.status')
+  const { unreadTickets, unreadCounts } = useUnreadStore()
 
   // Determine the base path based on user role
   const getTicketDetailPath = (ticketId: number) => {
@@ -154,17 +157,29 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
 
   return (
     <div className="space-y-4 min-h-[1000px]">
-      {tickets.map((ticket) => (
+      {tickets.map((ticket) => {
+        const isUnread = unreadTickets.includes(ticket.id)
+        const unreadCount = unreadCounts[ticket.id] || 0
+        
+        return (
         <Card
           key={ticket.id}
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className={cn(
+            "cursor-pointer hover:shadow-md transition-shadow",
+            isUnread && "border-l-4 border-l-blue-500 bg-blue-50/50"
+          )}
           onClick={() => router.push(getTicketDetailPath(ticket.id))}
         >
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg truncate">
+                <CardTitle className={cn("text-lg truncate", isUnread && "font-bold")}>
                   #{ticket.number} - {ticket.title}
+                  {unreadCount > 0 && (
+                    <Badge className="ml-2 bg-red-500 text-white text-xs">
+                      {unreadCount} new
+                    </Badge>
+                  )}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
                   {t('details.customer')}: {ticket.customer}
@@ -230,7 +245,8 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
             </div>
           </CardContent>
         </Card>
-      ))}
+        )
+      })}
     </div>
   )
 }

@@ -27,9 +27,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PageTransition } from "@/components/ui/page-transition"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/ui/logo"
+import { useUnreadStore } from "@/lib/stores/unread-store"
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -54,6 +56,10 @@ export function AdminLayout({
   const router = useRouter()
   const t = useTranslations('nav')
   const tCommon = useTranslations('common')
+  const { getTotalUnread } = useUnreadStore()
+
+  const unreadCount = getTotalUnread()
+  const displayUnread = unreadCount > 99 ? '99+' : unreadCount
 
   const navigation = [
     {
@@ -70,6 +76,7 @@ export function AdminLayout({
       name: t('tickets'),
       href: "/admin/tickets",
       icon: Ticket,
+      badge: displayUnread,
     },
     {
       name: t('faqManagement'),
@@ -167,7 +174,7 @@ export function AdminLayout({
                 href={item.href}
                 prefetch
                 className={cn(
-                  "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -176,8 +183,15 @@ export function AdminLayout({
                 onFocus={() => router.prefetch(item.href)}
                 onClick={() => setSidebarOpen(false)}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.name}</span>
+                <div className="flex items-center space-x-3">
+                  <Icon className="h-5 w-5" />
+                  <span>{item.name}</span>
+                </div>
+                {item.badge && (typeof item.badge === 'string' || item.badge > 0) && (
+                  <Badge variant={isActive ? "secondary" : "default"} className="ml-auto">
+                    {item.badge}
+                  </Badge>
+                )}
               </Link>
             )
           })}

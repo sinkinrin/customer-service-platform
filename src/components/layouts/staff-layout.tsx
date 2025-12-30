@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils"
 import { getRegionLabel, type RegionValue } from "@/lib/constants/regions"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/ui/logo"
+import { useUnreadStore } from "@/lib/stores/unread-store"
 
 interface StaffLayoutProps {
   children: ReactNode
@@ -55,13 +56,14 @@ export function StaffLayout({
   const tNav = useTranslations('nav')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const { getTotalUnread } = useUnreadStore()
 
   const navigation = [
     {
       name: tNav('tickets'),
       href: "/staff/tickets",
       icon: Ticket,
-      badge: "ticketCount",
+      badge: "unreadCount",
     },
     {
       name: tNav('customers'),
@@ -75,8 +77,12 @@ export function StaffLayout({
     },
   ]
 
-  const getBadgeCount = (badgeKey?: string) => {
+  const getBadgeCount = (badgeKey?: string): number | string => {
     if (badgeKey === "ticketCount") return ticketCount
+    if (badgeKey === "unreadCount") {
+      const unread = getTotalUnread()
+      return unread > 99 ? '99+' : unread
+    }
     return 0
   }
 
@@ -136,7 +142,7 @@ export function StaffLayout({
                   <Icon className="h-5 w-5" />
                   <span>{item.name}</span>
                 </div>
-                {badgeCount > 0 && (
+                {(typeof badgeCount === 'string' || badgeCount > 0) && (
                   <Badge variant={isActive ? "secondary" : "default"} className="ml-auto">
                     {badgeCount}
                   </Badge>

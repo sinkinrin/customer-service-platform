@@ -75,10 +75,25 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         const { staff_id, group_id } = validationResult.data
 
-        // Verify ticket exists
+        // Verify ticket exists and get previous owner info
         let ticket
+        let previousOwner: { id: number; email: string; name: string } | null = null
         try {
             ticket = await zammadClient.getTicket(ticketId)
+            
+            // Check if ticket has an existing owner (owner_id > 1 means assigned, 1 is system/unassigned)
+            if (ticket.owner_id && ticket.owner_id > 1) {
+                try {
+                    const prevOwnerData = await zammadClient.getUser(ticket.owner_id)
+                    previousOwner = {
+                        id: prevOwnerData.id,
+                        email: prevOwnerData.email,
+                        name: [prevOwnerData.firstname, prevOwnerData.lastname].filter(Boolean).join(' ') || prevOwnerData.login || prevOwnerData.email,
+                    }
+                } catch (err) {
+                    console.warn(`[API] Could not get previous owner info for owner_id ${ticket.owner_id}:`, err)
+                }
+            }
         } catch {
             return notFoundResponse('Ticket not found')
         }
@@ -191,6 +206,41 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         const ownerName = [staffMember.firstname, staffMember.lastname]
             .filter(Boolean)
             .join(' ') || staffMember.login || staffMember.email
+
+        // Send email notification to previous owner if ticket was reassigned
+        if (previousOwner && previousOwner.id !== staff_id && previousOwner.email) {
+            try {
+                console.log(`[API] Sending reassignment notification to previous owner: ${previousOwner.email}`)
+                
+                // Create an email article to notify the previous owner
+                await zammadClient.createArticle({
+                    ticket_id: ticketId,
+                    subject: `Ticket #${updatedTicket.number} has been reassigned`,
+                    body: `
+<p>Hello ${previousOwner.name},</p>
+
+<p>This is to inform you that ticket <strong>#${updatedTicket.number}</strong> - "${updatedTicket.title}" has been reassigned to another staff member.</p>
+
+<p><strong>New assignee:</strong> ${ownerName}</p>
+
+<p>You no longer need to handle this ticket. If you have any questions, please contact your administrator.</p>
+
+<p>Best regards,<br>
+Support System</p>
+                    `.trim(),
+                    content_type: 'text/html',
+                    type: 'email',
+                    internal: false,
+                    sender: 'Agent',
+                    to: previousOwner.email,
+                })
+                
+                console.log(`[API] Reassignment notification sent to ${previousOwner.email}`)
+            } catch (emailError) {
+                // Log error but don't fail the assignment
+                console.error(`[API] Failed to send reassignment notification to ${previousOwner.email}:`, emailError)
+            }
+        }
 
         return successResponse({
             message: 'Ticket assigned successfully',

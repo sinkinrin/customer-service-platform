@@ -128,9 +128,11 @@ export interface CreateArticleRequest {
   subject?: string
   body: string
   content_type: string
-  type: string
+  type: string  // 'note' = internal, 'email' = send email to customer
   internal: boolean
-  sender?: string
+  sender?: string  // 'Agent' | 'Customer' | 'System'
+  to?: string  // Required for type='email', recipient email address
+  cc?: string  // Optional CC recipients
   time_unit?: string
   attachments?: {
     filename: string

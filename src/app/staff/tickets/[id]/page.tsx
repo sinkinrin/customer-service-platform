@@ -105,7 +105,7 @@ export default function StaffTicketDetailPage() {
     }
   }
 
-  const handleAddNote = async (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>) => {
+  const handleAddNote = async (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>, replyType?: 'note' | 'email') => {
     // Generate a temporary message ID
     const tempMessageId = `temp-${Date.now()}`
 
@@ -114,11 +114,12 @@ export default function StaffTicketDetailPage() {
       body: note,
       internal,
       attachments,
+      type: replyType || 'note',  // Use replyType to determine if email should be sent
     })
 
     if (article) {
       setArticles([...articles, article])
-      toast.success(tToast('noteAdded'))
+      toast.success(replyType === 'email' ? tToast('emailSent') : tToast('noteAdded'))
     }
   }
 

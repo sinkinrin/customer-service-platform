@@ -26,8 +26,9 @@ interface TicketActionsProps {
     owner_id?: number
     pending_time?: string
   }) => Promise<void>
-  onAddNote: (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>) => Promise<void>
+  onAddNote: (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>, replyType?: 'note' | 'email') => Promise<void>
   isLoading?: boolean
+  customerEmail?: string  // Customer email for sending email replies
 }
 
 const STATE_KEYS = [
@@ -57,6 +58,7 @@ export function TicketActions({
   const [pendingTime, setPendingTime] = useState('')
   const [note, setNote] = useState('')
   const [isInternal, setIsInternal] = useState(false)
+  const [replyType, setReplyType] = useState<'note' | 'email'>('note')  // 'note' = internal, 'email' = send to customer
   const [hasChanges, setHasChanges] = useState(false)
   const [showPendingTime, setShowPendingTime] = useState(false)
   const [files, setFiles] = useState<File[]>([])
@@ -179,9 +181,12 @@ export function TicketActions({
         }
       }
 
-      await onAddNote(note, isInternal, attachments.length > 0 ? attachments : undefined)
+      // For email type, internal is always false
+      const finalInternal = replyType === 'email' ? false : isInternal
+      await onAddNote(note, finalInternal, attachments.length > 0 ? attachments : undefined, replyType)
       setNote('')
       setIsInternal(false)
+      setReplyType('note')
       setFiles([])
     }
   }
@@ -271,17 +276,51 @@ export function TicketActions({
         </CardContent>
       </Card>
 
-      {/* Add Note */}
+      {/* Add Note / Send Email */}
       <Card>
         <CardHeader>
           <CardTitle>{t('addNote')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Reply Type Selection */}
+          <div className="space-y-2">
+            <Label>{t('replyType') || 'Reply Type'}</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="replyType"
+                  value="note"
+                  checked={replyType === 'note'}
+                  onChange={() => setReplyType('note')}
+                  className="h-4 w-4"
+                />
+                <span className="text-sm">{t('replyTypeNote') || 'Note (Internal)'}</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="replyType"
+                  value="email"
+                  checked={replyType === 'email'}
+                  onChange={() => setReplyType('email')}
+                  className="h-4 w-4"
+                />
+                <span className="text-sm">{t('replyTypeEmail') || 'Email (Send to Customer)'}</span>
+              </label>
+            </div>
+            {replyType === 'email' && (
+              <p className="text-sm text-muted-foreground">
+                {t('emailWillBeSent') || 'This reply will be sent to the customer via email.'}
+              </p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="note">{t('noteContent')}</Label>
             <Textarea
               id="note"
-              placeholder={t('notePlaceholder')}
+              placeholder={replyType === 'email' ? (t('emailPlaceholder') || 'Type your email reply...') : t('notePlaceholder')}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={4}
@@ -343,25 +382,29 @@ export function TicketActions({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="internal"
-              checked={isInternal}
-              onChange={(e) => setIsInternal(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            <Label htmlFor="internal" className="cursor-pointer">
-              {t('internalNoteCheckbox')}
-            </Label>
-          </div>
+          {/* Internal checkbox only for note type */}
+          {replyType === 'note' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="internal"
+                checked={isInternal}
+                onChange={(e) => setIsInternal(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="internal" className="cursor-pointer">
+                {t('internalNoteCheckbox')}
+              </Label>
+            </div>
+          )}
 
           <Button
             onClick={handleAddNote}
             disabled={!note.trim() || isLoading}
             className="w-full"
+            variant={replyType === 'email' ? 'default' : 'outline'}
           >
-            {t('addNote')}
+            {replyType === 'email' ? (t('sendEmail') || 'Send Email') : t('addNote')}  
           </Button>
         </CardContent>
       </Card>

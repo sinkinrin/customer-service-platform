@@ -30,6 +30,8 @@ const createArticleSchema = z.object({
   type: z.enum(['note', 'email', 'phone', 'web']).default('note'),
   internal: z.boolean().default(false),
   sender: z.string().optional(),
+  to: z.string().email().optional(),  // Recipient email for type='email'
+  cc: z.string().optional(),  // CC recipients for type='email'
   attachments: z.array(z.object({
     filename: z.string(),
     data: z.string(), // base64 encoded
@@ -212,6 +214,23 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     const articleData = validationResult.data
 
+    // For email type, we need to get the customer's email as recipient
+    let recipientEmail = articleData.to
+    if (articleData.type === 'email' && !recipientEmail) {
+      // Auto-fill recipient from ticket customer
+      try {
+        const ticketCustomer = await zammadClient.getUser(ticket.customer_id)
+        recipientEmail = ticketCustomer.email
+      } catch (error) {
+        console.warn('[Articles API] Failed to get customer email for email article:', error)
+      }
+    }
+
+    // Validate that email type has a recipient
+    if (articleData.type === 'email' && !recipientEmail) {
+      return errorResponse('INVALID_REQUEST', 'Email articles require a recipient (to) address', undefined, 400)
+    }
+
     // All users create articles with X-On-Behalf-Of to ensure correct sender identity
     // This shows the actual user's name instead of the API token user (e.g., "Howen Support")
     const article = await zammadClient.createArticle(
@@ -222,6 +241,12 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         content_type: articleData.content_type,
         type: articleData.type,
         internal: articleData.internal,
+        // For email type, set sender to Agent and include recipient
+        ...(articleData.type === 'email' && {
+          sender: 'Agent',
+          to: recipientEmail,
+          ...(articleData.cc && { cc: articleData.cc }),
+        }),
         ...(articleData.attachments && { attachments: articleData.attachments }),
       },
       user.email  // Pass user email for all roles to show correct sender name

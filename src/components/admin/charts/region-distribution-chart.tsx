@@ -18,6 +18,7 @@ import { REGIONS } from '@/lib/constants/regions'
 interface RegionData {
     region: string
     label: string
+    labelEn: string
     total: number
     open: number
     closed: number
@@ -96,9 +97,9 @@ export function RegionDistributionChart({ data, loading, className }: RegionDist
                         />
                         <YAxis
                             type="category"
-                            dataKey="label"
-                            width={80}
-                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                            dataKey="labelEn"
+                            width={100}
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                             tickLine={{ stroke: 'hsl(var(--muted))' }}
                         />
                         <Tooltip

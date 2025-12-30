@@ -23,6 +23,7 @@ interface TicketStats {
 interface RegionStats {
   region: string
   label: string
+  labelEn: string
   total: number
   open: number
   closed: number

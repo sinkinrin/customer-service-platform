@@ -52,6 +52,8 @@ interface User {
   user_id: string
   email: string
   full_name: string
+  firstname?: string
+  lastname?: string
   role: 'customer' | 'staff' | 'admin'
   phone?: string
   language?: string
@@ -129,7 +131,8 @@ export default function UsersPage() {
     try {
       const updateData: Record<string, unknown> = {
         role: editingUser.role,
-        full_name: editingUser.full_name,
+        firstname: editingUser.firstname || '',
+        lastname: editingUser.lastname || '',
         phone: editingUser.phone,
         language: editingUser.language,
       }
@@ -419,12 +422,23 @@ export default function UsersPage() {
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4">
-              <div>
-                <Label>{t('editDialog.name')}</Label>
-                <Input
-                  value={editingUser.full_name}
-                  onChange={(e) => setEditingUser({ ...editingUser, full_name: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>{t('editDialog.firstName')}</Label>
+                  <Input
+                    value={editingUser.firstname || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, firstname: e.target.value })}
+                    placeholder="First name"
+                  />
+                </div>
+                <div>
+                  <Label>{t('editDialog.lastName')}</Label>
+                  <Input
+                    value={editingUser.lastname || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, lastname: e.target.value })}
+                    placeholder="Last name"
+                  />
+                </div>
               </div>
               <div>
                 <Label>{t('editDialog.email')}</Label>

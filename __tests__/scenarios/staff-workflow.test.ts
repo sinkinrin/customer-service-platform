@@ -15,6 +15,7 @@ import {
   filterConversationsByRegion,
   filterTicketsByRegion,
 } from '@/lib/utils/region-auth'
+import { getGroupIdByRegion } from '@/lib/constants/regions'
 
 describe('Staff Workflow: 客服日常工作', () => {
   // 模拟不同区域的客服
@@ -94,22 +95,26 @@ describe('Staff Workflow: 客服日常工作', () => {
   })
 
   describe('场景2: 客服处理工单', () => {
-    it('亚太区客服只能处理亚太区和 Users 组的工单', () => {
+    it('亚太区客服只能处理亚太区工单', () => {
+      const asiaGroupId = getGroupIdByRegion('asia-pacific')
+      const europeGroupId = getGroupIdByRegion('europe-zone-1')
+      const northAmericaGroupId = getGroupIdByRegion('north-america')
+
       const allTickets = [
-        { id: 1, group_id: 5, customer_id: 1 },  // asia-pacific
-        { id: 2, group_id: 1, customer_id: 2 },  // Users (legacy)
-        { id: 3, group_id: 3, customer_id: 3 },  // europe-zone-1
-        { id: 4, group_id: 7, customer_id: 4 },  // north-america
+        { id: 1, group_id: asiaGroupId, customer_id: 1 },
+        { id: 2, group_id: 1, customer_id: 2 }, // legacy Users group (should be filtered out for staff)
+        { id: 3, group_id: europeGroupId, customer_id: 3 },
+        { id: 4, group_id: northAmericaGroupId, customer_id: 4 },
       ]
 
       const visibleTickets = filterTicketsByRegion(allTickets, staffAsia)
 
-      expect(visibleTickets.length).toBe(2)
-      expect(visibleTickets.map(t => t.group_id).sort()).toEqual([1, 5])
+      expect(visibleTickets.length).toBe(1)
+      expect(visibleTickets[0].group_id).toBe(asiaGroupId)
     })
 
     it('客服不能越权处理其他区域的工单', () => {
-      const europeTicketGroupId = 3 // europe-zone-1
+      const europeTicketGroupId = getGroupIdByRegion('europe-zone-1')
 
       const hasAccess = hasRegionAccess(staffAsia, 'europe-zone-1')
 

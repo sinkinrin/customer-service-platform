@@ -152,9 +152,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (firstname !== undefined) updateData.firstname = firstname
     if (lastname !== undefined) updateData.lastname = lastname
     if (full_name) {
-      const [first, ...lastArr] = full_name.split(' ')
-      updateData.firstname = first
-      updateData.lastname = lastArr.join(' ') || first
+      // Split full_name into firstname and lastname
+      // If only one word, use it as firstname and leave lastname empty
+      const parts = full_name.trim().split(/\s+/)
+      updateData.firstname = parts[0] || ''
+      updateData.lastname = parts.slice(1).join(' ') || ''
     }
     if (phone !== undefined) updateData.phone = phone
     if (active !== undefined) updateData.active = active

@@ -455,6 +455,8 @@
         "title": "Edit User",
         "description": "Update user information and role",
         "name": "Name",
+        "firstName": "First Name",
+        "lastName": "Last Name",
         "email": "Email",
         "role": "Role",
         "phone": "Phone",

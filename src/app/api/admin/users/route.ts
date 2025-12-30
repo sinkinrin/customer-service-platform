@@ -107,6 +107,8 @@ export async function GET(request: NextRequest) {
             user_id: String(user.id),
             email: user.email,
             full_name: `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.login,
+            firstname: user.firstname || '',
+            lastname: user.lastname || '',
             role,
             region: region || mockUser?.region,
             phone: user.phone || mockUser?.phone || '',

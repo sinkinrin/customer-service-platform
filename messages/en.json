@@ -906,7 +906,16 @@
         "sendReply": "Send Reply",
         "closedMessage": "This ticket is closed. Please create a new ticket to continue discussion.",
         "assignedTo": "Assigned To",
-        "unassigned": "Not yet assigned"
+        "unassigned": "Not yet assigned",
+        "closeTicket": "Close Ticket",
+        "closeDialog": {
+          "title": "Close Ticket",
+          "description": "Are you sure you want to close this ticket? You can reopen it later if needed.",
+          "cancel": "Cancel",
+          "confirm": "Close Ticket"
+        },
+        "attachFiles": "Attach Files",
+        "maxFiles": "Maximum {max} files"
       },
       "statusLabels": {
         "new": "New",
@@ -1459,7 +1468,9 @@
         "replyAdded": "Reply added",
         "emailSent": "Email sent to customer",
         "deleteSuccess": "Ticket deleted successfully",
-        "deleteError": "Failed to delete ticket"
+        "deleteError": "Failed to delete ticket",
+        "closeSuccess": "Ticket closed successfully",
+        "closeError": "Failed to close ticket"
       }
     },
     "customer": {
@@ -1474,7 +1485,9 @@
         "loadError": "Failed to load tickets",
         "replyRequired": "Please enter reply content",
         "replySent": "Reply sent",
-        "replyError": "Failed to send reply"
+        "replyError": "Failed to send reply",
+        "closeSuccess": "Ticket closed successfully",
+        "closeError": "Failed to close ticket"
       },
       "complaints": {
         "submitSuccess": "Your complaint has been submitted",

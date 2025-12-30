@@ -10,7 +10,18 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Send, Loader2, Clock, Tag, MessageSquare, Upload, X } from 'lucide-react'
+import { ArrowLeft, Send, Loader2, Clock, Tag, MessageSquare, Upload, X, CheckCircle } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import { ArticleCard } from '@/components/ticket/article-content'
 import { TicketRating } from '@/components/ticket/ticket-rating'
@@ -33,6 +44,7 @@ export default function CustomerTicketDetailPage() {
   const [replyText, setReplyText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  const [closing, setClosing] = useState(false)
 
   const { fetchTicketById, fetchArticles, isLoading } = useTicket()
   const { markAsRead } = useUnreadStore()
@@ -95,6 +107,35 @@ export default function CustomerTicketDetailPage() {
   const loadArticles = async () => {
     const data = await fetchArticles(ticketId)
     setArticles(data)
+  }
+
+  const handleCloseTicket = async () => {
+    setClosing(true)
+    try {
+      const response = await fetch(`/api/tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          state: 'closed',
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || tToast('closeError'))
+      }
+
+      toast.success(tToast('closeSuccess'))
+      await loadTicket()
+      await loadArticles()
+    } catch (error: any) {
+      console.error('Failed to close ticket:', error)
+      toast.error(error.message || tToast('closeError'))
+    } finally {
+      setClosing(false)
+    }
   }
 
   const handleReply = async () => {
@@ -215,9 +256,38 @@ export default function CustomerTicketDetailPage() {
               </span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             {getStatusBadge(ticket.state)}
             {getPriorityBadge(ticket.priority_id)}
+            {/* Close Ticket Button - only show if not already closed */}
+            {ticket.state !== 'closed' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={closing}>
+                    {closing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                    )}
+                    {tDetail('closeTicket')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{tDetail('closeDialog.title')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {tDetail('closeDialog.description')}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{tDetail('closeDialog.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCloseTicket}>
+                      {tDetail('closeDialog.confirm')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
       </div>

@@ -859,7 +859,18 @@
         "characterCount": "{count}/{max} 字符",
         "sending": "发送中...",
         "sendReply": "发送回复",
-        "closedMessage": "此工单已关闭。如需继续讨论，请创建新工单。"
+        "closedMessage": "此工单已关闭。如需继续讨论，请创建新工单。",
+        "assignedTo": "分配给",
+        "unassigned": "未分配",
+        "closeTicket": "关闭工单",
+        "closeDialog": {
+          "title": "关闭工单",
+          "description": "确定要关闭此工单吗？您可以在需要时重新打开。",
+          "cancel": "取消",
+          "confirm": "关闭工单"
+        },
+        "attachFiles": "添加附件",
+        "maxFiles": "最多 {max} 个文件"
       },
       "statusLabels": {
         "new": "新建",
@@ -1424,7 +1435,9 @@
         "loadError": "工单加载失败",
         "replyRequired": "请输入回复内容",
         "replySent": "回复已发送",
-        "replyError": "发送回复失败"
+        "replyError": "发送回复失败",
+        "closeSuccess": "工单已关闭",
+        "closeError": "关闭工单失败"
       },
       "complaints": {
         "submitSuccess": "您的投诉已提交",

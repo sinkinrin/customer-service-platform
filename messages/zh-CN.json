@@ -756,8 +756,6 @@
         "loading": "加载中...",
         "loadMore": "加载更多"
       },
-      "status": "状态",
-      "priority": "优先级",
       "createPageTitle": "提交工单",
       "createPageDescription": "遇到问题？提交工单，我们的支持团队会迅速为您解决。",
       "detailPageTitle": "工单详情",

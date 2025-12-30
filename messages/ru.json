@@ -775,8 +775,6 @@
       "ticketNumber": "Заявка #",
       "createdAt": "Создано",
       "updatedAt": "Последнее обновление",
-      "status": "Статус",
-      "priority": "Приоритет",
       "conversation": "История переписки",
       "messageCount": "{count} сообщений",
       "noConversation": "Истории переписки пока нет",

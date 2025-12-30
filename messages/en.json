@@ -808,8 +808,6 @@
       "ticketNumber": "Ticket #",
       "createdAt": "Created",
       "updatedAt": "Last updated",
-      "status": "Status",
-      "priority": "Priority",
       "conversation": "Conversation History",
       "messageCount": "{count} messages",
       "noConversation": "No conversation history yet",

@@ -5,6 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Clock, AlertCircle, CheckCircle2, XCircle, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
@@ -177,14 +183,23 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <CardTitle className={cn("text-lg truncate", isUnread && "font-bold")}>
-                  #{ticket.number} - {ticket.title}
-                  {unreadCount > 0 && (
-                    <Badge className="ml-2 bg-red-500 text-white text-xs">
-                      {unreadCount} new
-                    </Badge>
-                  )}
-                </CardTitle>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CardTitle className={cn("text-lg truncate cursor-default", isUnread && "font-bold")}>
+                        #{ticket.number} - {ticket.title}
+                        {unreadCount > 0 && (
+                          <Badge className="ml-2 bg-red-500 text-white text-xs">
+                            {unreadCount} new
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-md">
+                      <p>#{ticket.number} - {ticket.title}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <p className="text-sm text-muted-foreground mt-1">
                   {t('details.customer')}: {ticket.customer}
                 </p>

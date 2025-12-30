@@ -347,6 +347,13 @@ const authConfig: NextAuthConfig = {
   // Secret for JWT signing
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 
+  // Trust host header (required for reverse proxy/frp)
+  trustHost: true,
+
+  // Disable secure cookies for HTTP proxy (frp)
+  // When false, cookies work over HTTP (not just HTTPS)
+  useSecureCookies: false,
+
   // Debug mode in development
   debug: process.env.NODE_ENV === "development",
 }

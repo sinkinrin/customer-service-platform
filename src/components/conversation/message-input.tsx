@@ -39,10 +39,16 @@ export function MessageInput({
 
   const actualPlaceholder = placeholder || t('placeholder')
 
+  // Track if currently processing to prevent double submission
+  const [isProcessing, setIsProcessing] = useState(false)
+
   // Handle send message
   const handleSend = async () => {
     if (!message.trim() && !selectedFile) return
-    if (isSending || isUploading) return
+    if (isSending || isUploading || isProcessing) return
+
+    // Prevent double submission
+    setIsProcessing(true)
 
     try {
       let messageType: 'text' | 'image' | 'file' = 'text'
@@ -101,6 +107,8 @@ export function MessageInput({
       console.error('Error sending message:', error)
       toast.error(tToast('sendError'))
       setIsUploading(false)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -148,7 +156,7 @@ export function MessageInput({
     }
   }
 
-  const isDisabled = disabled || isSending || isUploading
+  const isDisabled = disabled || isSending || isUploading || isProcessing
   const canSend = (message.trim() || selectedFile) && !isDisabled
   const isImage = selectedFile?.type.startsWith('image/')
 

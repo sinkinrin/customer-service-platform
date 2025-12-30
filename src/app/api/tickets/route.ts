@@ -14,7 +14,8 @@ import {
   serverErrorResponse,
   errorResponse,
 } from '@/lib/utils/api-response'
-import { filterTicketsByRegion, validateTicketCreation } from '@/lib/utils/region-auth'
+import { validateTicketCreation } from '@/lib/utils/region-auth'
+import { filterTicketsByPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
@@ -217,11 +218,26 @@ export async function GET(request: NextRequest) {
       tickets = await zammadClient.getAllTickets()
     }
 
-    // Filter by region (staff can only see their region, admin sees all)
-    console.log('[DEBUG] GET /api/tickets - Before region filter:', tickets.length, 'tickets')
-    console.log('[DEBUG] GET /api/tickets - User role:', user.role, 'Region:', user.region)
-    let filteredTickets = filterTicketsByRegion(tickets, user)
-    console.log('[DEBUG] GET /api/tickets - After region filter:', filteredTickets.length, 'tickets')
+    // Use unified permission filter for all roles
+    // This ensures:
+    // - Customer only sees their own tickets (by customer_id)
+    // - Staff only sees assigned or regional tickets (unassigned hidden)
+    // - Admin sees all tickets
+    console.log('[DEBUG] GET /api/tickets - Before permission filter:', tickets.length, 'tickets')
+    console.log('[DEBUG] GET /api/tickets - User role:', user.role, 'Region:', user.region, 'Zammad ID:', user.zammad_id)
+    
+    // Build permission user object
+    const permissionUser: PermissionUser = {
+      id: user.id,
+      email: user.email,
+      role: user.role as 'admin' | 'staff' | 'customer',
+      zammad_id: user.zammad_id,
+      group_ids: user.group_ids,
+      region: user.region,
+    }
+    
+    let filteredTickets = filterTicketsByPermission(tickets as unknown as PermissionTicket[], permissionUser)
+    console.log('[DEBUG] GET /api/tickets - After permission filter:', filteredTickets.length, 'tickets')
 
     if (filteredTickets.length > 0) {
       console.log('[DEBUG] GET /api/tickets - Sample ticket group_ids:', filteredTickets.slice(0, 3).map((t: any) => t.group_id))

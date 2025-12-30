@@ -35,6 +35,7 @@ declare module "next-auth" {
     language?: string
     region?: string
     zammad_id?: number
+    group_ids?: number[]
   }
 
   interface Session {
@@ -48,6 +49,7 @@ declare module "next-auth" {
       language?: string
       region?: string
       zammad_id?: number
+      group_ids?: number[]
     }
   }
 }
@@ -76,6 +78,14 @@ function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | un
     }
   }
   return undefined
+}
+
+/**
+ * Extract numeric group IDs from Zammad group_ids object
+ */
+function extractGroupIds(groupIds?: Record<string, string[]>): number[] {
+  if (!groupIds) return []
+  return Object.keys(groupIds).map(id => parseInt(id)).filter(id => !isNaN(id))
 }
 
 /**
@@ -139,6 +149,8 @@ async function authenticateWithZammad(
     const role = getRoleFromZammad(zammadUser.role_ids || [])
     const region = getRegionFromGroupIds(zammadUser.group_ids)
 
+    const groupIds = extractGroupIds(zammadUser.group_ids)
+
     const user: MockUser = {
       id: `zammad-${zammadUser.id}`,
       email: zammadUser.email,
@@ -149,6 +161,7 @@ async function authenticateWithZammad(
       language: zammadUser.preferences?.locale || 'en',
       region,
       zammad_id: zammadUser.id,
+      group_ids: groupIds,
       created_at: zammadUser.created_at,
     }
 
@@ -270,6 +283,7 @@ const authConfig: NextAuthConfig = {
         token.language = user.language
         token.region = user.region
         token.zammad_id = user.zammad_id
+        token.group_ids = user.group_ids
       }
       return token
     },
@@ -288,6 +302,7 @@ const authConfig: NextAuthConfig = {
           language: token.language as string | undefined,
           region: token.region as string | undefined,
           zammad_id: token.zammad_id as number | undefined,
+          group_ids: token.group_ids as number[] | undefined,
         }
       }
       return session

@@ -11,7 +11,7 @@
 ### 约束
 - 必须兼容现有 Zammad 后端的 group_id 和 owner_id 机制
 - 不能破坏现有的工单创建和分配流程
-- 需要支持 6 个区域（asia-pacific, middle-east, europe-zone-1, europe-zone-2, north-america, latin-america, africa）
+- 需要支持 8 个区域（asia-pacific, middle-east, europe-zone-1, europe-zone-2, north-america, latin-america, africa, cis）
 
 ### 利益相关者
 - Admin：需要全局工单视图和管理权限
@@ -71,7 +71,13 @@ export function filterTicketsByPermission(tickets: Ticket[], user: AuthUser): Ti
 1. **Customer**：只能看到 `customer_id === user.id` 的工单
 2. **Staff**：只能看到 `owner_id === user.id` 或 `group_id in user.group_ids` 的工单
 3. **Admin**：可以看到所有工单
-4. **未分配工单**：`owner_id === null && group_id === null`，仅 Admin 可见
+4. **未分配工单**：`owner_id` 为空、0、或 1，视为未分配，仅 Admin 可见
+
+**边界补充**：
+- **用户 ID 对齐**：`user.id` 指用户在 Zammad 中的 ID（`session.user.zammad_id`）
+- **未分配判定**：`owner_id` 为空、0、或 1 均视为未分配
+- **区域解析优先级**：`group_id -> region` 映射优先，其次 `note` 中的 `Region:` 标记；无法解析则视为未知区域
+- **未知区域工单**：仅 Admin 可见，Staff 不可见（除非已明确分配给该 Staff）
 
 ### 决策 3：未分配工单处理
 

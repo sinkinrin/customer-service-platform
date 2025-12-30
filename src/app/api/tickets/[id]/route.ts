@@ -16,7 +16,7 @@ import {
   validationErrorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
-import { validateTicketAccess } from '@/lib/utils/region-auth'
+import { checkTicketPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
@@ -185,36 +185,38 @@ export async function GET(
       return notFoundResponse('Ticket not found')
     }
 
-    // OpenSpec: Validate region/ownership access control
-    // Staff can only access tickets in their region, customer can only access their own tickets
-    if (user.role === 'staff') {
-      try {
-        validateTicketAccess(user, rawTicket.group_id)
-      } catch (error) {
-        console.warn('[Ticket API] Staff access denied:', error instanceof Error ? error.message : 'Unknown error')
-        return errorResponse('FORBIDDEN', 'You do not have permission to access this ticket', undefined, 403)
-      }
-    } else if (user.role === 'customer') {
-      // Customer can only access their own tickets
-      // Note: X-On-Behalf-Of already filters by customer, but we add explicit check for security
-      const customerEmail = user.email.toLowerCase()
-      try {
-        const ticketCustomer = await zammadClient.getUser(rawTicket.customer_id)
-        // Guard against missing email from Zammad
-        if (!ticketCustomer.email) {
-          console.warn('[Ticket API] Customer access denied: ticket customer has no email')
-          return notFoundResponse('Ticket not found')
-        }
-        if (ticketCustomer.email.toLowerCase() !== customerEmail) {
-          console.warn('[Ticket API] Customer access denied: ticket belongs to different customer')
-          return notFoundResponse('Ticket not found') // Return 404 instead of 403 to not leak ticket existence
-        }
-      } catch (error) {
-        console.error('[Ticket API] Failed to verify ticket ownership:', error)
+    // Use unified permission check for all roles
+    const permissionUser: PermissionUser = {
+      id: user.id,
+      email: user.email,
+      role: user.role as 'admin' | 'staff' | 'customer',
+      zammad_id: user.zammad_id,
+      group_ids: user.group_ids,
+      region: user.region,
+    }
+    
+    const permissionTicket: PermissionTicket = {
+      id: rawTicket.id,
+      customer_id: rawTicket.customer_id,
+      owner_id: rawTicket.owner_id,
+      group_id: rawTicket.group_id,
+      state_id: rawTicket.state_id,
+    }
+    
+    const permissionResult = checkTicketPermission({
+      user: permissionUser,
+      ticket: permissionTicket,
+      action: 'view',
+    })
+    
+    if (!permissionResult.allowed) {
+      console.warn('[Ticket API] Access denied:', permissionResult.reason)
+      // Return 404 for customers to not leak ticket existence, 403 for staff
+      if (user.role === 'customer') {
         return notFoundResponse('Ticket not found')
       }
+      return errorResponse('FORBIDDEN', 'You do not have permission to access this ticket', undefined, 403)
     }
-    // Admin has full access, no additional checks needed
 
     // Fetch customer information
     let customerInfo: { name?: string; email?: string } | undefined
@@ -358,31 +360,36 @@ export async function PUT(
       return notFoundResponse('Ticket not found')
     }
 
-    // Validate access control
-    if (user.role === 'staff') {
-      try {
-        validateTicketAccess(user, existingTicket.group_id)
-      } catch (error) {
-        console.warn('[Ticket API] Staff update access denied:', error instanceof Error ? error.message : 'Unknown error')
-        return errorResponse('FORBIDDEN', 'You do not have permission to update this ticket', undefined, 403)
-      }
-    } else if (user.role === 'customer') {
-      // Customer can only update their own tickets
-      try {
-        const ticketCustomer = await zammadClient.getUser(existingTicket.customer_id)
-        // Guard against missing email from Zammad
-        if (!ticketCustomer.email) {
-          console.warn('[Ticket API] Customer update access denied: ticket customer has no email')
-          return notFoundResponse('Ticket not found')
-        }
-        if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
-          console.warn('[Ticket API] Customer update access denied: ticket belongs to different customer')
-          return notFoundResponse('Ticket not found')
-        }
-      } catch (error) {
-        console.error('[Ticket API] Failed to verify ticket ownership for update:', error)
+    // Use unified permission check for update action
+    const permissionUser: PermissionUser = {
+      id: user.id,
+      email: user.email,
+      role: user.role as 'admin' | 'staff' | 'customer',
+      zammad_id: user.zammad_id,
+      group_ids: user.group_ids,
+      region: user.region,
+    }
+    
+    const permissionTicket: PermissionTicket = {
+      id: existingTicket.id,
+      customer_id: existingTicket.customer_id,
+      owner_id: existingTicket.owner_id,
+      group_id: existingTicket.group_id,
+      state_id: existingTicket.state_id,
+    }
+    
+    const permissionResult = checkTicketPermission({
+      user: permissionUser,
+      ticket: permissionTicket,
+      action: 'edit',
+    })
+    
+    if (!permissionResult.allowed) {
+      console.warn('[Ticket API] Update access denied:', permissionResult.reason)
+      if (user.role === 'customer') {
         return notFoundResponse('Ticket not found')
       }
+      return errorResponse('FORBIDDEN', 'You do not have permission to update this ticket', undefined, 403)
     }
 
     // Admin and Staff update without X-On-Behalf-Of (staff access already validated by region)

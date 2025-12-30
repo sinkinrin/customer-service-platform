@@ -10,6 +10,7 @@
 - **GIVEN** 用户角色为 Customer
 - **WHEN** 用户请求工单列表
 - **THEN** 系统 SHALL 只返回 `customer_id` 等于当前用户 ID 的工单
+- **AND** 当前用户 ID SHALL 以用户在 Zammad 中的 ID 为准（即 `session.user.zammad_id`）
 - **AND** 系统 SHALL 不返回其他客户创建的工单
 
 #### Scenario: Staff 只能查看分配给自己或所属区域的工单
@@ -17,11 +18,12 @@
 - **WHEN** 用户请求工单列表
 - **THEN** 系统 SHALL 返回 `owner_id` 等于当前用户 ID 的工单
 - **OR** 系统 SHALL 返回 `group_id` 属于当前用户 `group_ids` 的工单
+- **AND** 当前用户 ID SHALL 以用户在 Zammad 中的 ID 为准（即 `session.user.zammad_id`）
 - **AND** 系统 SHALL 不返回未分配的工单
 
 #### Scenario: Staff 无法查看未分配工单
 - **GIVEN** 用户角色为 Staff
-- **AND** 存在未分配工单（`owner_id` 和 `group_id` 均为空）
+- **AND** 存在未分配工单（`owner_id` 为空、0、或 1）
 - **WHEN** 用户请求工单列表
 - **THEN** 系统 SHALL 不返回该未分配工单
 
@@ -46,6 +48,18 @@
 - **AND** 目标工单的 `group_id` 不在当前用户的 `group_ids` 中
 - **WHEN** 用户请求该工单详情
 - **THEN** 系统 SHALL 返回 403 Forbidden 错误
+
+### Requirement: 未知区域工单边界
+
+系统 SHALL 明确定义无法解析区域工单的可见性边界。
+
+#### Scenario: 区域无法解析仅 Admin 可见
+- **GIVEN** 工单无法解析区域（`group_id` 为空或不在映射表中）
+- **AND** 工单 note 中不存在有效的 `Region:` 标记
+- **WHEN** Staff 请求工单列表
+- **THEN** 系统 SHALL 不返回该工单
+- **WHEN** Admin 请求工单列表
+- **THEN** 系统 SHALL 返回该工单
 
 ### Requirement: 新工单默认未分配
 

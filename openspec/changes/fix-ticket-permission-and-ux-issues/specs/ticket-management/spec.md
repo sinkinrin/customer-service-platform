@@ -55,3 +55,14 @@ Admin 用户 SHALL 能够删除工单。
 - **WHEN** 附件格式不支持或大小超限
 - **THEN** 系统 SHALL 显示错误提示
 - **AND** 系统 SHALL 不发送该附件
+
+### Requirement: 无区域工单手工处理
+
+系统 SHALL 确保无法解析区域的工单不进入自动分配流程。
+
+#### Scenario: 无区域工单不进入自动分配
+- **GIVEN** 工单无法解析区域（`group_id` 为空或不在映射表中）
+- **AND** 工单 note 中不存在有效的 `Region:` 标记
+- **WHEN** 自动分配流程执行
+- **THEN** 系统 SHALL 不为该工单分配 `owner_id`
+- **AND** 该工单 SHALL 仅由 Admin 手工处理

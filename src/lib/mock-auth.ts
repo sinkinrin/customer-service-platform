@@ -17,6 +17,7 @@ export interface MockUser {
   language?: string
   region?: string  // User's assigned region (for staff/customer)
   zammad_id?: number  // Zammad user ID for API integration
+  group_ids?: number[]  // Zammad group IDs for permission filtering
   created_at: string
 }
 

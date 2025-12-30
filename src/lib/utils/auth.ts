@@ -24,6 +24,7 @@ export interface AuthUser {
   language?: string
   region?: string
   zammad_id?: number
+  group_ids?: number[]
   created_at?: string
 }
 

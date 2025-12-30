@@ -469,7 +469,7 @@ export async function POST(request: NextRequest) {
       // Calculate ticket count per agent
       const ticketCountByAgent: Record<number, number> = {}
       for (const t of allTickets) {
-        if (t.owner_id && [1, 2, 3, 6].includes(t.state_id)) {
+        if (t.owner_id && [1, 2, 3, 7].includes(t.state_id)) {
           ticketCountByAgent[t.owner_id] = (ticketCountByAgent[t.owner_id] || 0) + 1
         }
       }

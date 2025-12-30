@@ -212,7 +212,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             try {
                 console.log(`[API] Sending reassignment notification to previous owner: ${previousOwner.email}`)
                 
-                // Create an email article to notify the previous owner
+                // Create an internal email article to notify the previous owner
+                // internal: true ensures this notification is not visible to customers
                 await zammadClient.createArticle({
                     ticket_id: ticketId,
                     subject: `Ticket #${updatedTicket.number} has been reassigned`,
@@ -230,7 +231,7 @@ Support System</p>
                     `.trim(),
                     content_type: 'text/html',
                     type: 'email',
-                    internal: false,
+                    internal: true,  // Hide from customer view, but still send email
                     sender: 'Agent',
                     to: previousOwner.email,
                 })

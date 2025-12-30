@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         // Exclude owner_id=1 (unassigned) from counting
         const ticketCountByAgent: Record<number, number> = {}
         for (const ticket of allTickets) {
-            if (ticket.owner_id && ticket.owner_id !== 1 && [1, 2, 3, 6].includes(ticket.state_id)) {
+            if (ticket.owner_id && ticket.owner_id !== 1 && [1, 2, 3, 7].includes(ticket.state_id)) {
                 ticketCountByAgent[ticket.owner_id] = (ticketCountByAgent[ticket.owner_id] || 0) + 1
             }
         }

@@ -214,6 +214,18 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     const articleData = validationResult.data
 
+    // Security: Only staff/admin can send email type articles
+    // Customers should not be able to send emails on behalf of the system
+    if (articleData.type === 'email' && user.role === 'customer') {
+      return errorResponse('FORBIDDEN', 'Customers cannot send email articles', undefined, 403)
+    }
+
+    // Security: Customers cannot specify custom recipients
+    // This prevents email relay/spoofing attacks
+    if (user.role === 'customer' && (articleData.to || articleData.cc)) {
+      return errorResponse('FORBIDDEN', 'Customers cannot specify email recipients', undefined, 403)
+    }
+
     // For email type, we need to get the customer's email as recipient
     let recipientEmail = articleData.to
     if (articleData.type === 'email' && !recipientEmail) {

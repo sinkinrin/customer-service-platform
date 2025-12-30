@@ -75,7 +75,18 @@ export async function GET() {
         let filteredAgents = allAgents
         if (currentUser.role === 'staff') {
             // Staff can only see agents in their accessible groups
-            const currentUserDetails = await zammadClient.getUser(parseInt(currentUser.id))
+            // Use zammad_id from session, or fall back to email lookup
+            let currentUserDetails
+            if (currentUser.zammad_id) {
+                currentUserDetails = await zammadClient.getUser(currentUser.zammad_id)
+            } else {
+                // Fallback: look up by email
+                currentUserDetails = await zammadClient.getUserByEmail(currentUser.email)
+                if (!currentUserDetails) {
+                    console.warn('[API] Could not find Zammad user for staff:', currentUser.email)
+                    return serverErrorResponse('User not linked to Zammad')
+                }
+            }
             const accessibleGroupIds = currentUserDetails.group_ids
                 ? Object.keys(currentUserDetails.group_ids).map(Number)
                 : []
@@ -94,8 +105,8 @@ export async function GET() {
         // Calculate ticket count per agent
         const ticketCountByAgent: Record<number, number> = {}
         for (const ticket of allTickets) {
-            // Only count open/new tickets (state_id: 1=new, 2=open, 3=pending reminder, 6=pending close)
-            if (ticket.owner_id && [1, 2, 3, 6].includes(ticket.state_id)) {
+            // Only count active tickets (state_id: 1=new, 2=open, 3=pending reminder, 7=pending close)
+            if (ticket.owner_id && [1, 2, 3, 7].includes(ticket.state_id)) {
                 ticketCountByAgent[ticket.owner_id] = (ticketCountByAgent[ticket.owner_id] || 0) + 1
             }
         }

@@ -16,7 +16,6 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { z } from 'zod'
-import { mockUsers, type MockUser } from '@/lib/mock-auth'
 
 // Schema for setting vacation
 const SetVacationSchema = z.object({
@@ -29,10 +28,24 @@ const SetVacationSchema = z.object({
 )
 
 /**
- * Helper to find mock user by email
+ * Helper to get Zammad user ID from session or by email lookup
+ * @param user - AuthUser from session
+ * @returns Zammad user ID or null if not found
  */
-function findMockUserByEmail(email: string): MockUser | undefined {
-    return Object.values(mockUsers).find((u: MockUser) => u.email === email)
+async function getZammadUserId(user: { email: string; zammad_id?: number }): Promise<number | null> {
+    // First try to use zammad_id from session (stored in database)
+    if (user.zammad_id) {
+        return user.zammad_id
+    }
+    
+    // Fallback: look up user by email in Zammad
+    try {
+        const zammadUser = await zammadClient.getUserByEmail(user.email)
+        return zammadUser?.id || null
+    } catch (error) {
+        console.error('[API] Failed to get Zammad user by email:', error)
+        return null
+    }
 }
 
 /**
@@ -48,13 +61,13 @@ export async function GET() {
             return forbiddenResponse('Only staff members can access vacation settings')
         }
 
-        // Get Zammad user ID from mock users
-        const mockUser = findMockUserByEmail(user.email)
-        if (!mockUser?.zammad_id) {
+        // Get Zammad user ID from session or by email lookup
+        const zammadUserId = await getZammadUserId(user)
+        if (!zammadUserId) {
             return serverErrorResponse('User not linked to Zammad')
         }
 
-        const vacationStatus = await zammadClient.getOutOfOffice(mockUser.zammad_id)
+        const vacationStatus = await zammadClient.getOutOfOffice(zammadUserId)
 
         return successResponse({
             vacation: {
@@ -95,9 +108,9 @@ export async function PUT(request: NextRequest) {
 
         const { start_date, end_date, replacement_id } = validationResult.data
 
-        // Get Zammad user ID
-        const mockUser = findMockUserByEmail(user.email)
-        if (!mockUser?.zammad_id) {
+        // Get Zammad user ID from session or by email lookup
+        const zammadUserId = await getZammadUserId(user)
+        if (!zammadUserId) {
             return serverErrorResponse('User not linked to Zammad')
         }
 
@@ -114,7 +127,7 @@ export async function PUT(request: NextRequest) {
             }
         }
 
-        await zammadClient.setOutOfOffice(mockUser.zammad_id, {
+        await zammadClient.setOutOfOffice(zammadUserId, {
             out_of_office: true,
             out_of_office_start_at: start_date,
             out_of_office_end_at: end_date,
@@ -148,12 +161,13 @@ export async function DELETE() {
             return forbiddenResponse('Only staff members can cancel vacation')
         }
 
-        const mockUser = findMockUserByEmail(user.email)
-        if (!mockUser?.zammad_id) {
+        // Get Zammad user ID from session or by email lookup
+        const zammadUserId = await getZammadUserId(user)
+        if (!zammadUserId) {
             return serverErrorResponse('User not linked to Zammad')
         }
 
-        await zammadClient.cancelOutOfOffice(mockUser.zammad_id)
+        await zammadClient.cancelOutOfOffice(zammadUserId)
 
         return successResponse({
             message: 'Vacation cancelled successfully',

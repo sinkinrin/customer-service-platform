@@ -85,6 +85,8 @@ export default function AdminDashboardPage() {
   const tCommon = useTranslations('common')
   const adminName = user?.full_name || user?.email?.split('@')[0] || tCommon('layout.administrator')
   const [ticketStats, setTicketStats] = useState<TicketStats>({ total: 0, open: 0, pending: 0, closed: 0 })
+  const [allTimeStats, setAllTimeStats] = useState<TicketStats>({ total: 0, open: 0, pending: 0, closed: 0 })
+  const [statsMode, setStatsMode] = useState<'today' | 'all'>('today')
   const [regionStats, setRegionStats] = useState<RegionStats[]>([])
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [ratingStats, setRatingStats] = useState<RatingStats>({ total: 0, positive: 0, negative: 0, satisfactionRate: 0, recentNegative: [] })
@@ -127,13 +129,22 @@ export default function AdminDashboardPage() {
         })
 
         // Calculate today's stats
-        const stats = {
+        const todayStats = {
           total: todayTickets.length,
           open: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('open') || t.state?.toLowerCase().includes('new')).length,
           pending: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('pending')).length,
           closed: todayTickets.filter((t: any) => t.state?.toLowerCase().includes('closed')).length,
         }
-        setTicketStats(stats)
+        setTicketStats(todayStats)
+
+        // Calculate all-time stats
+        const allStats = {
+          total: tickets.length,
+          open: tickets.filter((t: any) => t.state?.toLowerCase().includes('open') || t.state?.toLowerCase().includes('new')).length,
+          pending: tickets.filter((t: any) => t.state?.toLowerCase().includes('pending')).length,
+          closed: tickets.filter((t: any) => t.state?.toLowerCase().includes('closed')).length,
+        }
+        setAllTimeStats(allStats)
       }
     } catch (error) {
       console.error('Failed to load ticket stats:', error)
@@ -214,7 +225,28 @@ export default function AdminDashboardPage() {
         <p className="text-gray-600 mt-2">{t('overview')}</p>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Statistics Cards with Toggle */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">Statistics Overview</h2>
+        <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+          <Button
+            variant={statsMode === 'today' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setStatsMode('today')}
+            className="h-8"
+          >
+            Today
+          </Button>
+          <Button
+            variant={statsMode === 'all' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setStatsMode('all')}
+            className="h-8"
+          >
+            All Time
+          </Button>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {loading ? (
           [1, 2, 3, 4].map((item) => (
@@ -248,8 +280,12 @@ export default function AdminDashboardPage() {
                 <Ticket className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{ticketStats.total}</div>
-                <p className="text-xs text-muted-foreground mt-1">Created today</p>
+                <div className="text-2xl font-bold">
+                  {statsMode === 'today' ? ticketStats.total : allTimeStats.total}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {statsMode === 'today' ? 'Created today' : 'All tickets'}
+                </p>
               </CardContent>
             </Card>
 
@@ -259,8 +295,12 @@ export default function AdminDashboardPage() {
                 <AlertCircle className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{ticketStats.open}</div>
-                <p className="text-xs text-muted-foreground mt-1">New today</p>
+                <div className="text-2xl font-bold text-orange-600">
+                  {statsMode === 'today' ? ticketStats.open : allTimeStats.open}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {statsMode === 'today' ? 'New today' : 'Currently open'}
+                </p>
               </CardContent>
             </Card>
 
@@ -270,8 +310,12 @@ export default function AdminDashboardPage() {
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{ticketStats.closed}</div>
-                <p className="text-xs text-muted-foreground mt-1">Resolved today</p>
+                <div className="text-2xl font-bold text-green-600">
+                  {statsMode === 'today' ? ticketStats.closed : allTimeStats.closed}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {statsMode === 'today' ? 'Resolved today' : 'Total resolved'}
+                </p>
               </CardContent>
             </Card>
           </>

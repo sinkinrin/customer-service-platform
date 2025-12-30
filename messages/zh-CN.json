@@ -1407,6 +1407,7 @@
         "updateSuccess": "工单更新成功",
         "noteAdded": "内部备注已添加",
         "replyAdded": "回复已添加",
+        "emailSent": "邮件已发送给客户",
         "deleteSuccess": "工单删除成功",
         "deleteError": "工单删除失败"
       }
@@ -1479,6 +1480,7 @@
         "updateSuccess": "工单更新成功！",
         "updateError": "工单更新失败",
         "noteAdded": "备注添加成功",
+        "emailSent": "邮件已发送给客户",
         "ticketUpdated": "工单已更新 - 刷新以查看更改"
       },
       "customers": {

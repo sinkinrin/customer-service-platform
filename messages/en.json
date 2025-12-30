@@ -1457,6 +1457,7 @@
         "updateSuccess": "Ticket updated successfully",
         "noteAdded": "Internal note added",
         "replyAdded": "Reply added",
+        "emailSent": "Email sent to customer",
         "deleteSuccess": "Ticket deleted successfully",
         "deleteError": "Failed to delete ticket"
       }
@@ -1529,6 +1530,7 @@
         "updateSuccess": "Ticket updated successfully!",
         "updateError": "Failed to update ticket",
         "noteAdded": "Note added successfully",
+        "emailSent": "Email sent to customer",
         "ticketUpdated": "Ticket updated - refresh to see changes"
       },
       "customers": {

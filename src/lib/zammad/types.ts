@@ -461,3 +461,63 @@ export interface ZammadKnowledgeBaseSearchResult {
   url: string
 }
 
+// ============================================================================
+// Trigger Types (for Email Notifications)
+// ============================================================================
+
+export interface ZammadTriggerCondition {
+  operator: 'is' | 'is not' | 'contains' | 'contains not' | 'starts with' | 'ends with' | 'regex match'
+  value: string | string[]
+}
+
+export interface ZammadTriggerPerformEmail {
+  recipient: 'ticket_customer' | 'ticket_owner' | 'ticket_agents' | 'article_last_sender' | string[]
+  subject: string
+  body: string
+  include_attachments?: 'true' | 'false'
+}
+
+export interface ZammadTriggerPerform {
+  'notification.email'?: ZammadTriggerPerformEmail
+  'ticket.state_id'?: { value: string }
+  'ticket.priority_id'?: { value: string }
+  'ticket.owner_id'?: { value: string }
+  'ticket.tags'?: { operator: 'add' | 'remove'; value: string }
+  [key: string]: unknown
+}
+
+export interface ZammadTrigger {
+  id: number
+  name: string
+  condition: Record<string, ZammadTriggerCondition>
+  perform: ZammadTriggerPerform
+  disable_notification: boolean
+  active: boolean
+  execution_condition_mode: 'selective' | 'always'
+  note: string | null
+  updated_by_id: number
+  created_by_id: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTriggerRequest {
+  name: string
+  condition: Record<string, ZammadTriggerCondition>
+  perform: ZammadTriggerPerform
+  active?: boolean
+  disable_notification?: boolean
+  execution_condition_mode?: 'selective' | 'always'
+  note?: string
+}
+
+export interface UpdateTriggerRequest {
+  name?: string
+  condition?: Record<string, ZammadTriggerCondition>
+  perform?: ZammadTriggerPerform
+  active?: boolean
+  disable_notification?: boolean
+  execution_condition_mode?: 'selective' | 'always'
+  note?: string
+}
+

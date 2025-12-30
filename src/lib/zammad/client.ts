@@ -28,6 +28,9 @@ import type {
   ZammadKnowledgeBaseCategory,
   ZammadKnowledgeBaseAnswer,
   ZammadKnowledgeBaseSearchResult,
+  ZammadTrigger,
+  CreateTriggerRequest,
+  UpdateTriggerRequest,
 } from './types'
 
 export class ZammadClient {
@@ -780,6 +783,69 @@ export class ZammadClient {
       limit: limit.toString(),
     })
     return this.request<ZammadKnowledgeBaseSearchResult[]>(`/knowledge_bases/search?${params}`)
+  }
+
+  // ==========================================================================
+  // Trigger API (for Email Notifications)
+  // ==========================================================================
+
+  /**
+   * Get all triggers
+   * @returns Array of triggers
+   */
+  async getTriggers(): Promise<ZammadTrigger[]> {
+    return this.request<ZammadTrigger[]>('/triggers')
+  }
+
+  /**
+   * Get a trigger by ID
+   * @param id - Trigger ID
+   */
+  async getTrigger(id: number): Promise<ZammadTrigger> {
+    return this.request<ZammadTrigger>(`/triggers/${id}`)
+  }
+
+  /**
+   * Create a new trigger
+   * @param trigger - Trigger configuration
+   */
+  async createTrigger(trigger: CreateTriggerRequest): Promise<ZammadTrigger> {
+    return this.request<ZammadTrigger>('/triggers', {
+      method: 'POST',
+      body: JSON.stringify(trigger),
+    })
+  }
+
+  /**
+   * Update an existing trigger
+   * @param id - Trigger ID
+   * @param trigger - Updated trigger configuration
+   */
+  async updateTrigger(id: number, trigger: UpdateTriggerRequest): Promise<ZammadTrigger> {
+    return this.request<ZammadTrigger>(`/triggers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(trigger),
+    })
+  }
+
+  /**
+   * Delete a trigger
+   * @param id - Trigger ID
+   */
+  async deleteTrigger(id: number): Promise<void> {
+    await this.request<void>(`/triggers/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  /**
+   * Find a trigger by name
+   * @param name - Trigger name to search for
+   * @returns Trigger if found, null otherwise
+   */
+  async findTriggerByName(name: string): Promise<ZammadTrigger | null> {
+    const triggers = await this.getTriggers()
+    return triggers.find(t => t.name === name) || null
   }
 }
 

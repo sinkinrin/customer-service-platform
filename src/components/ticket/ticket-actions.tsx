@@ -53,6 +53,8 @@ export function TicketActions({
 }: TicketActionsProps) {
   const t = useTranslations('tickets.details')
   const tCommon = useTranslations('common')
+  const tToast = useTranslations('toast.customer.tickets')
+  const tToastComponents = useTranslations('toast.components.messageInput')
   const [state, setState] = useState(ticket.state)
   const [priority, setPriority] = useState(ticket.priority)
   const [pendingTime, setPendingTime] = useState('')
@@ -80,13 +82,13 @@ export function TicketActions({
     const selectedFiles = Array.from(e.target.files || [])
 
     if (files.length + selectedFiles.length > 5) {
-      toast.error('Maximum 5 files allowed')
+      toast.error(tToast('maxFilesExceeded'))
       return
     }
 
     const invalidFiles = selectedFiles.filter(file => file.size > 10 * 1024 * 1024)
     if (invalidFiles.length > 0) {
-      toast.error('File size must be less than 10MB')
+      toast.error(tToastComponents('fileSizeError'))
       return
     }
 
@@ -176,7 +178,7 @@ export function TicketActions({
             }))
           )
         } catch (error) {
-          toast.error('Failed to process attachments')
+          toast.error(tToastComponents('sendError'))
           return
         }
       }
@@ -346,10 +348,10 @@ export function TicketActions({
                 disabled={files.length >= 5}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Attach Files
+                {t('attachFiles')}
               </Button>
               <span className="text-xs text-muted-foreground">
-                Max 5 files • 10MB each
+                {t('attachFilesHint')}
               </span>
             </div>
 

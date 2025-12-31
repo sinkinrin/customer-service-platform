@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { PageTransition } from '@/components/ui/page-transition'
 import { TicketTrendChart } from '@/components/admin/charts/ticket-trend-chart'
 import { RegionDistributionChart } from '@/components/admin/charts/region-distribution-chart'
+import { isValidRegion, type RegionValue } from '@/lib/constants/regions'
 
 interface TicketStats {
   total: number
@@ -22,8 +23,6 @@ interface TicketStats {
 
 interface RegionStats {
   region: string
-  label: string
-  labelEn: string
   total: number
   open: number
   closed: number
@@ -64,7 +63,10 @@ const getActivityIcon = (state: string) => {
   return <Activity className="h-4 w-4 text-gray-600" />
 }
 
-const formatRelativeTime = (dateString: string) => {
+const formatRelativeTime = (
+  dateString: string,
+  tTime: (key: string) => string
+) => {
   const date = new Date(dateString)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -72,10 +74,10 @@ const formatRelativeTime = (dateString: string) => {
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  if (diffMins < 1) return tTime('justNow')
+  if (diffMins < 60) return `${diffMins} ${tTime('minutes')} ${tTime('ago')}`
+  if (diffHours < 24) return `${diffHours} ${tTime('hours')} ${tTime('ago')}`
+  if (diffDays < 7) return `${diffDays} ${tTime('days')} ${tTime('ago')}`
   return date.toLocaleDateString()
 }
 
@@ -83,6 +85,9 @@ export default function AdminDashboardPage() {
   const { user } = useAuth()
   const t = useTranslations('admin.dashboard')
   const tCommon = useTranslations('common')
+  const tRating = useTranslations('tickets.rating')
+  const tRegions = useTranslations('common.regions')
+  const tTime = useTranslations('common.time')
   const adminName = user?.full_name || user?.email?.split('@')[0] || tCommon('layout.administrator')
   const [ticketStats, setTicketStats] = useState<TicketStats>({ total: 0, open: 0, pending: 0, closed: 0 })
   const [allTimeStats, setAllTimeStats] = useState<TicketStats>({ total: 0, open: 0, pending: 0, closed: 0 })
@@ -140,7 +145,7 @@ export default function AdminDashboardPage() {
 
       {/* Statistics Cards with Toggle */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Statistics Overview</h2>
+        <h2 className="text-lg font-semibold">{t('statsOverview')}</h2>
         <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
           <Button
             variant={statsMode === 'today' ? 'default' : 'ghost'}
@@ -148,7 +153,7 @@ export default function AdminDashboardPage() {
             onClick={() => setStatsMode('today')}
             className="h-8"
           >
-            Today
+            {t('statsMode.today')}
           </Button>
           <Button
             variant={statsMode === 'all' ? 'default' : 'ghost'}
@@ -156,7 +161,7 @@ export default function AdminDashboardPage() {
             onClick={() => setStatsMode('all')}
             className="h-8"
           >
-            All Time
+            {t('statsMode.allTime')}
           </Button>
         </div>
       </div>
@@ -197,7 +202,7 @@ export default function AdminDashboardPage() {
                   {statsMode === 'today' ? ticketStats.total : allTimeStats.total}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {statsMode === 'today' ? 'Created today' : 'All tickets'}
+                  {statsMode === 'today' ? t('statsSubtitles.createdToday') : t('statsSubtitles.allTickets')}
                 </p>
               </CardContent>
             </Card>
@@ -212,7 +217,7 @@ export default function AdminDashboardPage() {
                   {statsMode === 'today' ? ticketStats.open : allTimeStats.open}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {statsMode === 'today' ? 'New today' : 'Currently open'}
+                  {statsMode === 'today' ? t('statsSubtitles.newToday') : t('statsSubtitles.currentlyOpen')}
                 </p>
               </CardContent>
             </Card>
@@ -227,7 +232,7 @@ export default function AdminDashboardPage() {
                   {statsMode === 'today' ? ticketStats.closed : allTimeStats.closed}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {statsMode === 'today' ? 'Resolved today' : 'Total resolved'}
+                  {statsMode === 'today' ? t('statsSubtitles.resolvedToday') : t('statsSubtitles.totalResolved')}
                 </p>
               </CardContent>
             </Card>
@@ -270,7 +275,13 @@ export default function AdminDashboardPage() {
               {regionStats.map((region) => (
                 <div key={region.region} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium">{region.label}</p>
+                    <p className="font-medium">
+                      {region.region === 'unassigned'
+                        ? tRegions('unassigned')
+                        : isValidRegion(region.region)
+                          ? tRegions(region.region as RegionValue)
+                          : region.region}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {region.open} {t('regionalDistribution.open')} / {region.closed} {t('regionalDistribution.closed')}
                     </p>
@@ -361,7 +372,7 @@ export default function AdminDashboardPage() {
                         <Badge variant="outline" className="text-xs">
                           {activity.state}
                         </Badge>
-                        <p className="text-xs text-gray-500">{formatRelativeTime(activity.timestamp)}</p>
+                        <p className="text-xs text-gray-500">{formatRelativeTime(activity.timestamp, tTime)}</p>
                       </div>
                     </div>
                   </div>
@@ -414,23 +425,23 @@ export default function AdminDashboardPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 flex items-center gap-1">
-                <ThumbsUp className="h-3 w-3" /> Satisfied
+                <ThumbsUp className="h-3 w-3" /> {tRating('positive')}
               </span>
               <span className="text-sm font-medium text-green-600">{ratingStats.positive}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 flex items-center gap-1">
-                <ThumbsDown className="h-3 w-3" /> Not Satisfied
+                <ThumbsDown className="h-3 w-3" /> {tRating('negative')}
               </span>
               <span className="text-sm font-medium text-red-600">{ratingStats.negative}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Total Ratings</span>
+              <span className="text-sm text-gray-600">{t('ratings.total')}</span>
               <span className="text-sm font-medium">{ratingStats.total}</span>
             </div>
             {ratingStats.recentNegative.length > 0 && (
               <div className="pt-2 border-t">
-                <p className="text-xs text-muted-foreground mb-2">Recent Negative Feedback:</p>
+                <p className="text-xs text-muted-foreground mb-2">{t('ratings.recentNegative')}</p>
                 {ratingStats.recentNegative.slice(0, 2).map((item, idx) => (
                   <Link key={idx} href={`/admin/tickets/${item.ticketId}`} className="block">
                     <p className="text-xs text-red-600 hover:underline truncate">

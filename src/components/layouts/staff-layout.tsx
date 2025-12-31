@@ -27,7 +27,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
-import { getRegionLabel, type RegionValue } from "@/lib/constants/regions"
+import { isValidRegion, type RegionValue } from "@/lib/constants/regions"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/ui/logo"
 import { useUnreadStore } from "@/lib/stores/unread-store"
@@ -54,6 +54,8 @@ export function StaffLayout({
 }: StaffLayoutProps) {
   const tCommon = useTranslations('common')
   const tNav = useTranslations('nav')
+  const tRegions = useTranslations('common.regions')
+  const tRoles = useTranslations('common.roles')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { getTotalUnread } = useUnreadStore()
@@ -167,14 +169,16 @@ export function StaffLayout({
                 </Avatar>
                 <div className="flex flex-col items-start flex-1 min-w-0">
                   <p className="text-sm font-medium truncate w-full">
-                    {user.name || "Staff"}
+                    {user.name || tRoles('staff')}
                   </p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     {user.region && (
                       <>
                         <Globe className="h-3 w-3" />
                         <span className="truncate">
-                          {getRegionLabel(user.region as RegionValue, 'zh').split(' ')[0]}
+                          {isValidRegion(user.region)
+                            ? tRegions(user.region as RegionValue)
+                            : user.region}
                         </span>
                       </>
                     )}
@@ -235,7 +239,7 @@ export function StaffLayout({
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{user.name || "Staff"}</p>
+                      <p className="text-sm font-medium">{user.name || tRoles('staff')}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </DropdownMenuLabel>

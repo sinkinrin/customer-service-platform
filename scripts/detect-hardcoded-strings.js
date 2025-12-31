@@ -24,10 +24,10 @@ const fs = require('fs')
 const path = require('path')
 
 // Directories to scan
-const SCAN_DIRS = ['src/app', 'src/components']
+const SCAN_DIRS = ['src/app', 'src/components', 'src/lib']
 
 // File extensions to scan
-const FILE_EXTENSIONS = ['.tsx', '.ts']
+const FILE_EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js']
 
 // Whitelist: Technical terms and acceptable strings
 const WHITELIST = [
@@ -46,6 +46,7 @@ const WHITELIST = [
   'SEO',
   'SQL',
   'FAQ',
+  'Promise',
 ]
 
 // Component names to ignore
@@ -119,8 +120,10 @@ function isChinese(str) {
  * Check if a string looks like English text
  */
 function isEnglishText(str) {
-  // Must start with uppercase and have at least one space or be a sentence
-  return /^[A-Z][a-zA-Z\s,.:;!?'-]+$/.test(str.trim()) && str.trim().length > 1
+  const text = str.trim()
+  if (!text || text.length <= 1) return false
+  if (!/[A-Za-z]/.test(text)) return false
+  return /^[A-Za-z0-9\s,.:;!?'"()\-+&/%$#@*]+$/.test(text)
 }
 
 /**
@@ -199,75 +202,87 @@ function detectToastStrings(content, filePath) {
 }
 
 /**
- * Detect hardcoded placeholder strings
- * Pattern: placeholder="text"
+ * Detect hardcoded strings in JSX attributes
  */
-function detectPlaceholders(content, filePath) {
+function detectJsxAttributeStrings(content, filePath) {
   const issues = []
+  const targets = [
+    { name: 'placeholder', type: 'Placeholder', suggestion: "Use placeholder={t('namespace.fieldPlaceholder')}" },
+    { name: 'aria-label', type: 'ARIA Label', suggestion: "Use aria-label={t('namespace.ariaLabel')}" },
+    { name: 'aria-description', type: 'ARIA Description', suggestion: "Use aria-description={t('namespace.ariaDescription')}" },
+    { name: 'aria-roledescription', type: 'ARIA Role Description', suggestion: "Use aria-roledescription={t('namespace.ariaRoleDescription')}" },
+    { name: 'aria-placeholder', type: 'ARIA Placeholder', suggestion: "Use aria-placeholder={t('namespace.ariaPlaceholder')}" },
+    { name: 'aria-valuetext', type: 'ARIA Value Text', suggestion: "Use aria-valuetext={t('namespace.ariaValueText')}" },
+    { name: 'title', type: 'Title', suggestion: "Use title={t('namespace.title')}" },
+    { name: 'alt', type: 'Alt Text', suggestion: "Use alt={t('namespace.imageAlt')}" },
+  ]
 
-  // Match placeholder="..."
-  const placeholderPattern = /placeholder\s*=\s*['"`]([^'"`]+)['"`]/g
-  let match
+  targets.forEach((target) => {
+    const literalPattern = new RegExp(`${target.name}\\s*=\\s*['\"\\`]([^'\"\\`]+)['\"\\`]`, 'g')
+    const jsxLiteralPattern = new RegExp(`${target.name}\\s*=\\s*{\\s*['\"\\`]([^'\"\\`]+)['\"\\`]\\s*}`, 'g')
+    const patterns = [literalPattern, jsxLiteralPattern]
 
-  while ((match = placeholderPattern.exec(content)) !== null) {
-    const text = match[1]
+    patterns.forEach((pattern) => {
+      let match
+      while ((match = pattern.exec(content)) !== null) {
+        const text = match[1]
 
-    // Skip if it's already using translation
-    if (text.includes('t(') || text.includes('{')) {
-      continue
-    }
+        // Skip if it's already using translation
+        if (text.includes('t(') || text.includes('{')) {
+          continue
+        }
 
-    // Skip whitelisted
-    if (isWhitelisted(text)) {
-      continue
-    }
+        // Skip whitelisted
+        if (isWhitelisted(text)) {
+          continue
+        }
 
-    // Check if it's translatable text
-    if (isChinese(text) || isEnglishText(text)) {
-      const lineNumber = content.substring(0, match.index).split('\n').length
-
-      issues.push({
-        type: 'Placeholder',
-        file: filePath,
-        line: lineNumber,
-        content: text,
-        suggestion: `Use placeholder={t('namespace.fieldPlaceholder')}`,
-      })
-    }
-  }
+        if (isChinese(text) || isEnglishText(text)) {
+          const lineNumber = content.substring(0, match.index).split('\n').length
+          issues.push({
+            type: target.type,
+            file: filePath,
+            line: lineNumber,
+            content: text,
+            suggestion: target.suggestion,
+          })
+        }
+      }
+    })
+  })
 
   return issues
 }
 
 /**
- * Detect hardcoded aria-label strings
- * Pattern: aria-label="text"
+ * Detect hardcoded strings in object literals (label/title/description)
  */
-function detectAriaLabels(content, filePath) {
+function detectObjectLiteralStrings(content, filePath) {
   const issues = []
-
-  // Match aria-label="..."
-  const ariaPattern = /aria-label\s*=\s*['"`]([^'"`]+)['"`]/g
+  const keys = ['label', 'title', 'description', 'placeholder', 'helperText', 'tooltip', 'text']
+  const pattern = new RegExp(`\\b(${keys.join('|')})\\s*:\\s*['\"\\`]([^'\"\\`]+)['\"\\`]`, 'g')
   let match
 
-  while ((match = ariaPattern.exec(content)) !== null) {
-    const text = match[1]
+  while ((match = pattern.exec(content)) !== null) {
+    const key = match[1]
+    const text = match[2]
 
-    // Skip if it's already using translation
     if (text.includes('t(') || text.includes('{')) {
       continue
     }
 
-    // Check if it's translatable text
+    if (isWhitelisted(text)) {
+      continue
+    }
+
     if (isChinese(text) || isEnglishText(text)) {
       const lineNumber = content.substring(0, match.index).split('\n').length
-
       issues.push({
-        type: 'ARIA Label',
+        type: `Object ${key}`,
         file: filePath,
         line: lineNumber,
         content: text,
-        suggestion: `Use aria-label={t('namespace.ariaLabel')}`,
+        suggestion: `Use t('namespace.${key}') instead of hardcoded "${text}"`,
       })
     }
   }
@@ -285,8 +300,8 @@ function scanFile(filePath) {
 
   issues = issues.concat(detectJSXStrings(content, filePath))
   issues = issues.concat(detectToastStrings(content, filePath))
-  issues = issues.concat(detectPlaceholders(content, filePath))
-  issues = issues.concat(detectAriaLabels(content, filePath))
+  issues = issues.concat(detectJsxAttributeStrings(content, filePath))
+  issues = issues.concat(detectObjectLiteralStrings(content, filePath))
 
   return issues
 }
@@ -299,11 +314,17 @@ function groupIssues(issues) {
     admin: [],
     customer: [],
     staff: [],
+    api: [],
+    lib: [],
     components: [],
   }
 
   issues.forEach((issue) => {
-    if (issue.file.includes('app/admin') || issue.file.includes('app\\admin')) {
+    if (issue.file.includes('app/api') || issue.file.includes('app\\api')) {
+      grouped.api.push(issue)
+    } else if (issue.file.includes(`${path.sep}lib${path.sep}`) || issue.file.includes('lib/')) {
+      grouped.lib.push(issue)
+    } else if (issue.file.includes('app/admin') || issue.file.includes('app\\admin')) {
       grouped.admin.push(issue)
     } else if (issue.file.includes('app/customer') || issue.file.includes('app\\customer')) {
       grouped.customer.push(issue)
@@ -336,6 +357,8 @@ function printResults(allIssues) {
   log(`   - Admin pages: ${grouped.admin.length}`, 'cyan')
   log(`   - Customer pages: ${grouped.customer.length}`, 'cyan')
   log(`   - Staff pages: ${grouped.staff.length}`, 'cyan')
+  log(`   - API routes: ${grouped.api.length}`, 'cyan')
+  log(`   - Lib: ${grouped.lib.length}`, 'cyan')
   log(`   - Components: ${grouped.components.length}`, 'cyan')
 
   // Detailed report
@@ -343,6 +366,8 @@ function printResults(allIssues) {
     { name: 'Admin Pages', issues: grouped.admin },
     { name: 'Customer Pages', issues: grouped.customer },
     { name: 'Staff Pages', issues: grouped.staff },
+    { name: 'API Routes', issues: grouped.api },
+    { name: 'Lib', issues: grouped.lib },
     { name: 'Shared Components', issues: grouped.components },
   ]
 

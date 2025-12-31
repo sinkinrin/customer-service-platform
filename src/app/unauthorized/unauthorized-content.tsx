@@ -71,7 +71,7 @@ export function UnauthorizedContent({ userRole }: UnauthorizedContentProps) {
           <Button asChild variant="default" className="flex-1">
             <Link href={getDashboardUrl()} className="flex items-center gap-2">
               <Home className="h-4 w-4" />
-              Dashboard
+              {t("dashboard")}
             </Link>
           </Button>
         </CardFooter>

@@ -30,6 +30,7 @@ interface SelectedTicket {
 export default function AdminTicketsPage() {
   const t = useTranslations('admin.tickets')
   const tToast = useTranslations('toast.admin.tickets')
+  const tRegions = useTranslations('common.regions')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Get initial tab from localStorage or default to 'all'
@@ -281,7 +282,7 @@ export default function AdminTicketsPage() {
               <SelectItem value="all">{t('filters.allRegions')}</SelectItem>
               {REGIONS.map((region) => (
                 <SelectItem key={region.value} value={region.value}>
-                  {region.labelEn}
+                  {tRegions(region.value)}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -30,6 +30,7 @@ import {
     Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 interface PreviewUser {
@@ -54,6 +55,10 @@ interface UserImportDialogProps {
 }
 
 export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserImportDialogProps) {
+    const t = useTranslations('admin.users.importDialog')
+    const tUsers = useTranslations('admin.users')
+    const tToast = useTranslations('toast.admin.users')
+    const tCommon = useTranslations('common')
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [file, setFile] = useState<File | null>(null)
     const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload')
@@ -68,7 +73,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
         if (!selectedFile) return
 
         if (!selectedFile.name.endsWith('.csv')) {
-            toast.error('Please select a CSV file')
+            toast.error(tToast('validationError'))
             return
         }
 
@@ -95,7 +100,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                 toast.error(data.error || 'Failed to parse CSV')
             }
         } catch (error) {
-            toast.error('Failed to upload file')
+            toast.error(tToast('createError'))
         } finally {
             setLoading(false)
         }
@@ -124,7 +129,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                 setSummary(data.data.summary)
                 setStep('complete')
                 if (data.data.summary.success > 0) {
-                    toast.success(`Successfully imported ${data.data.summary.success} users`)
+                    toast.success(tToast('importSuccess', { count: data.data.summary.success }))
                     onImportComplete?.()
                 }
             } else {
@@ -132,7 +137,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                 setStep('preview')
             }
         } catch (error) {
-            toast.error('Import failed')
+            toast.error(tToast('createError'))
             setStep('preview')
         } finally {
             setLoading(false)
@@ -166,13 +171,10 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Upload className="h-5 w-5" />
-                        Bulk User Import
+                        {t('title')}
                     </DialogTitle>
                     <DialogDescription>
-                        {step === 'upload' && 'Upload a CSV file to import multiple users at once'}
-                        {step === 'preview' && 'Review the users to be imported'}
-                        {step === 'importing' && 'Importing users...'}
-                        {step === 'complete' && 'Import complete'}
+                        {t(`description.${step}`)}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -199,12 +201,12 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                                 <FileText className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
                             )}
                             <p className="text-sm text-muted-foreground">
-                                {loading ? 'Processing...' : 'Click to select a CSV file or drag and drop'}
+                                {loading ? t('dropzone.processing') : t('dropzone.ready')}
                             </p>
                         </div>
                         <Button variant="outline" size="sm" onClick={downloadTemplate}>
                             <Download className="h-4 w-4 mr-2" />
-                            Download Template
+                            {t('downloadTemplate')}
                         </Button>
                     </div>
                 )}
@@ -216,20 +218,20 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-3">
                                 <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-2">
                                     <AlertCircle className="h-4 w-4" />
-                                    <span className="font-medium">Parse Warnings ({parseErrors.length})</span>
+                                    <span className="font-medium">{t('parseWarnings', { count: parseErrors.length })}</span>
                                 </div>
                                 <ul className="text-sm text-yellow-700 dark:text-yellow-300 list-disc list-inside">
                                     {parseErrors.slice(0, 5).map((err, i) => (
                                         <li key={i}>{err}</li>
                                     ))}
-                                    {parseErrors.length > 5 && <li>...and {parseErrors.length - 5} more</li>}
+                                    {parseErrors.length > 5 && <li>{t('parseMore', { count: parseErrors.length - 5 })}</li>}
                                 </ul>
                             </div>
                         )}
 
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">
-                                {previewUsers.length} users ready to import
+                                {t('previewCount', { count: previewUsers.length })}
                             </span>
                             <Badge variant="outline">{file?.name}</Badge>
                         </div>
@@ -238,10 +240,10 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Region</TableHead>
+                                        <TableHead>{tUsers('table.email')}</TableHead>
+                                        <TableHead>{tUsers('table.name')}</TableHead>
+                                        <TableHead>{tUsers('table.role')}</TableHead>
+                                        <TableHead>{tUsers('table.region')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -265,7 +267,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                 {step === 'importing' && (
                     <div className="flex flex-col items-center justify-center py-8">
                         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                        <p className="text-muted-foreground">Creating users in Zammad...</p>
+                        <p className="text-muted-foreground">{t('importingMessage')}</p>
                     </div>
                 )}
 
@@ -275,21 +277,21 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                         <div className="grid grid-cols-3 gap-4 text-center">
                             <div className="p-4 bg-muted rounded-lg">
                                 <p className="text-2xl font-bold">{summary.total}</p>
-                                <p className="text-sm text-muted-foreground">Total</p>
+                                <p className="text-sm text-muted-foreground">{t('summary.total')}</p>
                             </div>
                             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                 <p className="text-2xl font-bold text-green-600">{summary.success}</p>
-                                <p className="text-sm text-muted-foreground">Success</p>
+                                <p className="text-sm text-muted-foreground">{t('summary.success')}</p>
                             </div>
                             <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                                 <p className="text-2xl font-bold text-red-600">{summary.failed}</p>
-                                <p className="text-sm text-muted-foreground">Failed</p>
+                                <p className="text-sm text-muted-foreground">{t('summary.failed')}</p>
                             </div>
                         </div>
 
                         {importResults.filter(r => !r.success).length > 0 && (
                             <ScrollArea className="h-[200px] border rounded-md p-3">
-                                <p className="font-medium mb-2">Failed Imports:</p>
+                                <p className="font-medium mb-2">{t('failedImports')}</p>
                                 {importResults.filter(r => !r.success).map((result, i) => (
                                     <div key={i} className="flex items-center gap-2 text-sm text-red-600 mb-1">
                                         <X className="h-4 w-4" />
@@ -303,20 +305,20 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
 
                 <DialogFooter>
                     {step === 'upload' && (
-                        <Button variant="outline" onClick={handleClose}>Cancel</Button>
+                        <Button variant="outline" onClick={handleClose}>{tCommon('cancel')}</Button>
                     )}
                     {step === 'preview' && (
                         <>
-                            <Button variant="outline" onClick={() => setStep('upload')}>Back</Button>
+                            <Button variant="outline" onClick={() => setStep('upload')}>{tCommon('back')}</Button>
                             <Button onClick={handleImport} disabled={previewUsers.length === 0}>
-                                Import {previewUsers.length} Users
+                                {t('importAction', { count: previewUsers.length })}
                             </Button>
                         </>
                     )}
                     {step === 'complete' && (
                         <Button onClick={handleClose}>
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Done
+                            {t('done')}
                         </Button>
                     )}
                 </DialogFooter>

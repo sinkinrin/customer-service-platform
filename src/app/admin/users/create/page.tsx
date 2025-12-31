@@ -23,7 +23,8 @@ export default function CreateUserPage() {
   const router = useRouter()
   const t = useTranslations('admin.users')
   const tToast = useTranslations('toast.admin.users')
-  const tCommon = useTranslations('common')
+  const tRegions = useTranslations('common.regions')
+  const tLocaleNames = useTranslations('common.localeNames')
   const [loading, setLoading] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -178,7 +179,7 @@ export default function CreateUserPage() {
                 <SelectContent>
                   {REGIONS.map((region) => (
                     <SelectItem key={region.value} value={region.value}>
-                      {region.label}
+                      {tRegions(region.value)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -213,12 +214,12 @@ export default function CreateUserPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="zh-CN">{tCommon('languages.zh-CN')}</SelectItem>
-                  <SelectItem value="en">{tCommon('languages.en')}</SelectItem>
-                  <SelectItem value="fr">{tCommon('languages.fr')}</SelectItem>
-                  <SelectItem value="es">{tCommon('languages.es')}</SelectItem>
-                  <SelectItem value="ru">{tCommon('languages.ru')}</SelectItem>
-                  <SelectItem value="pt">{tCommon('languages.pt')}</SelectItem>
+                  <SelectItem value="zh-CN">{tLocaleNames('zh-CN')}</SelectItem>
+                  <SelectItem value="en">{tLocaleNames('en')}</SelectItem>
+                  <SelectItem value="fr">{tLocaleNames('fr')}</SelectItem>
+                  <SelectItem value="es">{tLocaleNames('es')}</SelectItem>
+                  <SelectItem value="ru">{tLocaleNames('ru')}</SelectItem>
+                  <SelectItem value="pt">{tLocaleNames('pt')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

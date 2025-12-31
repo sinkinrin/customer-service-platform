@@ -7,8 +7,11 @@
 import Link from 'next/link'
 import { Home, ArrowLeft, Search, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from 'next-intl'
 
 export default function NotFound() {
+  const t = useTranslations('notFound')
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4">
       <div className="text-center max-w-md mx-auto">
@@ -25,9 +28,9 @@ export default function NotFound() {
         </div>
 
         {/* Message */}
-        <h1 className="text-2xl font-bold mb-2">Page Not Found</h1>
+        <h1 className="text-2xl font-bold mb-2">{t('title')}</h1>
         <p className="text-muted-foreground mb-8">
-          Sorry, the page you are looking for doesn&apos;t exist or has been moved.
+          {t('description')}
         </p>
 
         {/* Actions */}
@@ -35,13 +38,13 @@ export default function NotFound() {
           <Button asChild variant="default" size="lg">
             <Link href="/">
               <Home className="mr-2 h-4 w-4" />
-              Go Home
+              {t('goHome')}
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href="javascript:history.back()">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Go Back
+              {t('goBack')}
             </Link>
           </Button>
         </div>
@@ -49,12 +52,12 @@ export default function NotFound() {
         {/* Help Link */}
         <div className="mt-8 pt-8 border-t">
           <p className="text-sm text-muted-foreground mb-3">
-            Need assistance?
+            {t('needAssistance')}
           </p>
           <Button asChild variant="ghost" size="sm">
             <Link href="/customer/conversations">
               <MessageSquare className="mr-2 h-4 w-4" />
-              Contact Support
+              {t('contactSupport')}
             </Link>
           </Button>
         </div>

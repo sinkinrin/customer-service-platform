@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Camera, Loader2, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string | null
@@ -31,6 +32,7 @@ export function AvatarUpload({
   size = 'lg',
   className,
 }: AvatarUploadProps) {
+  const t = useTranslations('staff.settings.personalInfo')
   const [uploading, setUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -43,13 +45,13 @@ export function AvatarUpload({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file')
+      toast.error(t('avatarInvalidType'))
       return
     }
 
     // Validate file size (2MB max)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image must be less than 2MB')
+      toast.error(t('avatarTooLarge'))
       return
     }
 
@@ -71,17 +73,17 @@ export function AvatarUpload({
       const data = await response.json()
 
       if (data.success && data.data?.avatarUrl) {
-        toast.success('Avatar updated successfully')
+        toast.success(t('avatarUpdated'))
         // Update preview to use server URL (persists after page refresh)
         setPreviewUrl(data.data.avatarUrl)
         onUploadSuccess?.(data.data.avatarUrl)
       } else {
-        toast.error(data.error?.message || 'Failed to upload avatar')
+        toast.error(data.error?.message || t('avatarUploadError'))
         setPreviewUrl(null)
       }
     } catch (error) {
       console.error('Avatar upload error:', error)
-      toast.error('Failed to upload avatar')
+      toast.error(t('avatarUploadError'))
       setPreviewUrl(null)
     } finally {
       setUploading(false)
@@ -97,13 +99,13 @@ export function AvatarUpload({
       const data = await response.json()
       if (data.success) {
         setPreviewUrl(null)
-        toast.success('Avatar removed')
+        toast.success(t('avatarRemoved'))
         onRemove?.()
       } else {
-        toast.error('Failed to remove avatar')
+        toast.error(t('avatarRemoveError'))
       }
     } catch (error) {
-      toast.error('Failed to remove avatar')
+      toast.error(t('avatarRemoveError'))
     }
   }
 
@@ -139,7 +141,7 @@ export function AvatarUpload({
 
       {/* Actions */}
       <div className="flex flex-col gap-2">
-        <Label className="text-sm font-medium">Profile Photo</Label>
+        <Label className="text-sm font-medium">{t('avatarLabel')}</Label>
         <div className="flex gap-2">
           <Button
             type="button"
@@ -151,12 +153,12 @@ export function AvatarUpload({
             {uploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Uploading...
+                {t('avatarUploading')}
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                Upload
+                {t('avatarUpload')}
               </>
             )}
           </Button>
@@ -169,12 +171,12 @@ export function AvatarUpload({
               disabled={uploading}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Remove
+              {t('avatarRemove')}
             </Button>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          JPG, PNG, GIF or WebP. Max 2MB.
+          {t('avatarHint')}
         </p>
       </div>
 

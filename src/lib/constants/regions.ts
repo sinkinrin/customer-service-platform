@@ -5,14 +5,14 @@
  */
 
 export const REGIONS = [
-  { value: 'asia-pacific', label: '亚太区 (Asia-Pacific)', labelEn: 'Asia-Pacific' },
-  { value: 'middle-east', label: '中东区 (Middle East)', labelEn: 'Middle East' },
-  { value: 'africa', label: '非洲区 (Africa)', labelEn: 'Africa' },
-  { value: 'north-america', label: '北美区 (North America)', labelEn: 'North America' },
-  { value: 'latin-america', label: '拉美区 (Latin America)', labelEn: 'Latin America' },
-  { value: 'europe-zone-1', label: '欧洲一区 (Europe Zone 1)', labelEn: 'Europe Zone 1' },
-  { value: 'europe-zone-2', label: '欧洲二区 (Europe Zone 2)', labelEn: 'Europe Zone 2' },
-  { value: 'cis', label: '独联体 (CIS)', labelEn: 'CIS' },
+  { value: 'asia-pacific' },
+  { value: 'middle-east' },
+  { value: 'africa' },
+  { value: 'north-america' },
+  { value: 'latin-america' },
+  { value: 'europe-zone-1' },
+  { value: 'europe-zone-2' },
+  { value: 'cis' },
 ] as const
 
 export type RegionValue = typeof REGIONS[number]['value']
@@ -75,12 +75,14 @@ export function getRegionByGroupId(groupId: number): RegionValue | undefined {
 }
 
 /**
- * Get region label by region value
+ * Get region label by region value from a provided label map
  */
-export function getRegionLabel(region: RegionValue, locale: 'zh' | 'en' = 'zh'): string {
-  const regionObj = REGIONS.find(r => r.value === region)
-  if (!regionObj) return region
-  return locale === 'en' ? regionObj.labelEn : regionObj.label
+export function getRegionLabel(
+  region: RegionValue,
+  labels: Record<string, string> | undefined
+): string {
+  if (!labels) return region
+  return labels[region] || region
 }
 
 /**

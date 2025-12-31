@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import DOMPurify from 'dompurify'
+import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Paperclip, Download } from 'lucide-react'
 import type { TicketArticle, TicketArticleAttachment } from '@/lib/hooks/use-ticket'
@@ -28,32 +29,34 @@ function formatFileSize(sizeStr: string): string {
 /**
  * 获取发送者类型的样式
  */
-export function getSenderStyle(sender: string): {
+export function getSenderStyle(sender: string, t?: (key: string) => string): {
   bgColor: string
   borderColor: string
   label: string
   labelColor: string
 } {
+  const getLabel = (key: string, fallback: string) => t ? t(key) : fallback
+
   switch (sender) {
     case 'Customer':
       return {
         bgColor: 'bg-blue-50 dark:bg-blue-950',
         borderColor: 'border-blue-200 dark:border-blue-800',
-        label: '客户',
+        label: getLabel('senderLabels.customer', 'Customer'),
         labelColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
       }
     case 'Agent':
       return {
         bgColor: 'bg-green-50 dark:bg-green-950',
         borderColor: 'border-green-200 dark:border-green-800',
-        label: '客服',
+        label: getLabel('senderLabels.agent', 'Support'),
         labelColor: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       }
     case 'System':
       return {
         bgColor: 'bg-gray-50 dark:bg-gray-900',
         borderColor: 'border-gray-200 dark:border-gray-700',
-        label: '系统',
+        label: getLabel('senderLabels.system', 'System'),
         labelColor: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
       }
     default:
@@ -88,6 +91,7 @@ function filterInlineAttachments(attachments: TicketArticleAttachment[]): Ticket
  * 3. 显示附件列表和下载链接
  */
 export function ArticleContent({ article, showAttachments = true, className, noBubbleStyle = false }: ArticleContentProps) {
+  const t = useTranslations('tickets.details')
   // 安全处理 HTML 内容
   const sanitizedBody = useMemo(() => {
     if (article.content_type === 'text/html' || article.content_type?.includes('html')) {
@@ -120,7 +124,7 @@ export function ArticleContent({ article, showAttachments = true, className, noB
     return filterInlineAttachments(article.attachments)
   }, [article.attachments])
 
-  const senderStyle = getSenderStyle(article.sender)
+  const senderStyle = getSenderStyle(article.sender, t)
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -132,7 +136,7 @@ export function ArticleContent({ article, showAttachments = true, className, noB
           </Badge>
           {article.internal && (
             <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              内部备注
+              {t('internalNote')}
             </Badge>
           )}
           <Badge variant="outline" className="text-xs">
@@ -208,7 +212,8 @@ interface ArticleCardProps {
 }
 
 export function ArticleCard({ article, showMeta = true }: ArticleCardProps) {
-  const senderStyle = getSenderStyle(article.sender)
+  const t = useTranslations('tickets.details')
+  const senderStyle = getSenderStyle(article.sender, t)
   const isCustomer = article.sender === 'Customer'
   const isSystem = article.sender === 'System'
   const isAgent = article.sender === 'Agent'
@@ -282,7 +287,7 @@ export function ArticleCard({ article, showMeta = true }: ArticleCardProps) {
         )}>
           {article.internal && (
             <Badge className="mb-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              内部备注
+              {t('internalNote')}
             </Badge>
           )}
           <ArticleContent 

@@ -34,7 +34,7 @@ import { Label } from '@/components/ui/label'
 import { Search, Edit, Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { REGIONS } from '@/lib/constants/regions'
+import { REGIONS, isValidRegion } from '@/lib/constants/regions'
 import { UserImportDialog } from '@/components/admin/user-import-dialog'
 import {
   AlertDialog,
@@ -66,6 +66,8 @@ interface User {
 export default function UsersPage() {
   const t = useTranslations('admin.users')
   const tToast = useTranslations('toast.admin.users')
+  const tCommon = useTranslations('common')
+  const tRegions = useTranslations('common.regions')
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -177,8 +179,10 @@ export default function UsersPage() {
 
   const getRegionLabel = (regionValue?: string) => {
     if (!regionValue) return '-'
-    const region = REGIONS.find(r => r.value === regionValue)
-    return region?.labelEn || regionValue
+    if (isValidRegion(regionValue)) {
+      return tRegions(regionValue)
+    }
+    return regionValue
   }
 
   const handleStatusToggle = (user: User) => {
@@ -188,7 +192,7 @@ export default function UsersPage() {
 
   const confirmStatusChange = async () => {
     if (!statusChangeUser || !statusChangeUser.zammad_id) {
-      toast.error('Cannot change status: missing Zammad ID')
+      toast.error(tToast('updateError'))
       setStatusDialogOpen(false)
       return
     }
@@ -203,11 +207,11 @@ export default function UsersPage() {
 
       if (!response.ok) throw new Error('Failed to change status')
 
-      toast.success(statusChangeUser.active ? 'User disabled' : 'User activated')
+      toast.success(tToast('updateSuccess'))
       setStatusDialogOpen(false)
       fetchUsers()
     } catch (error) {
-      toast.error('Failed to change user status')
+      toast.error(tToast('updateError'))
       console.error(error)
     } finally {
       setChangingStatus(false)
@@ -237,7 +241,7 @@ export default function UsersPage() {
               </Button>
             </Link>
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
-              Import Users
+              {t('actions.importUsers')}
             </Button>
           </div>
         </CardHeader>
@@ -274,19 +278,19 @@ export default function UsersPage() {
                 <SelectItem value="all">{t('filters.allRegions')}</SelectItem>
                 {REGIONS.map(region => (
                   <SelectItem key={region.value} value={region.value}>
-                    {region.labelEn}
+                    {tRegions(region.value)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="All Status" />
+                <SelectValue placeholder={t('filters.allStatuses')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="disabled">Disabled</SelectItem>
+                <SelectItem value="all">{t('filters.allStatuses')}</SelectItem>
+                <SelectItem value="active">{t('statusOptions.active')}</SelectItem>
+                <SelectItem value="disabled">{t('statusOptions.inactive')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -336,7 +340,7 @@ export default function UsersPage() {
                     <TableHead>{t('table.email')}</TableHead>
                     <TableHead>{t('table.role')}</TableHead>
                     <TableHead>{t('table.region')}</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t('table.status')}</TableHead>
                     <TableHead>{t('table.phone')}</TableHead>
                     <TableHead>{t('table.createdAt')}</TableHead>
                     <TableHead>{t('table.actions')}</TableHead>
@@ -349,7 +353,7 @@ export default function UsersPage() {
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)}>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          {t(`roles.${user.role}`)}
                         </Badge>
                       </TableCell>
                       <TableCell>{getRegionLabel(user.region)}</TableCell>
@@ -361,7 +365,7 @@ export default function UsersPage() {
                             disabled={!user.zammad_id}
                           />
                           <Badge variant={user.active !== false ? 'default' : 'secondary'}>
-                            {user.active !== false ? 'Active' : 'Disabled'}
+                            {user.active !== false ? t('statusOptions.active') : t('statusOptions.inactive')}
                           </Badge>
                         </div>
                       </TableCell>
@@ -428,7 +432,7 @@ export default function UsersPage() {
                   <Input
                     value={editingUser.firstname || ''}
                     onChange={(e) => setEditingUser({ ...editingUser, firstname: e.target.value })}
-                    placeholder="First name"
+                    placeholder={t('editDialog.firstNamePlaceholder')}
                   />
                 </div>
                 <div>
@@ -436,7 +440,7 @@ export default function UsersPage() {
                   <Input
                     value={editingUser.lastname || ''}
                     onChange={(e) => setEditingUser({ ...editingUser, lastname: e.target.value })}
-                    placeholder="Last name"
+                    placeholder={t('editDialog.lastNamePlaceholder')}
                   />
                 </div>
               </div>
@@ -466,19 +470,19 @@ export default function UsersPage() {
                   value={editingUser.region || ''}
                   onValueChange={(value) => setEditingUser({ ...editingUser, region: value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select region" />
-                  </SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('editDialog.regionPlaceholder')} />
+                    </SelectTrigger>
                   <SelectContent>
                     {REGIONS.map(region => (
                       <SelectItem key={region.value} value={region.value}>
-                        {region.labelEn}
+                        {tRegions(region.value)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Region determines which tickets staff can access
+                  {t('roles.staffRegionHint')}
                 </p>
               </div>
               <div>
@@ -507,18 +511,18 @@ export default function UsersPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {statusChangeUser?.active ? 'Disable User' : 'Activate User'}
+              {statusChangeUser?.active ? t('statusDialog.disableTitle') : t('statusDialog.activateTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {statusChangeUser?.active
-                ? `Are you sure you want to disable ${statusChangeUser?.email}? They will not be able to log in.`
-                : `Are you sure you want to activate ${statusChangeUser?.email}? They will be able to log in again.`}
+                ? t('statusDialog.disableDescription', { email: statusChangeUser?.email })
+                : t('statusDialog.activateDescription', { email: statusChangeUser?.email })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={changingStatus}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={changingStatus}>{tCommon('cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmStatusChange} disabled={changingStatus}>
-              {changingStatus ? 'Processing...' : 'Confirm'}
+              {changingStatus ? tCommon('loading') : tCommon('confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

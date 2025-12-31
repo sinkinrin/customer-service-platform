@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ExternalLink, Ticket, Clock, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
+import { useTranslations } from 'next-intl'
 
 interface TicketHistoryItem {
   id: number
@@ -55,6 +56,8 @@ export function TicketHistoryDialog({
   userName,
   userEmail,
 }: TicketHistoryDialogProps) {
+  const t = useTranslations('admin.users.ticketHistory')
+  const tCommon = useTranslations('common')
   const [tickets, setTickets] = useState<TicketHistoryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,11 +78,11 @@ export function TicketHistoryDialog({
         const data = await response.json()
         setTickets(data.data?.tickets || [])
       } else {
-        setError('Failed to load tickets')
+        setError(t('loadError'))
       }
     } catch (err) {
       console.error('Failed to load ticket history:', err)
-      setError('Failed to load tickets')
+      setError(t('loadError'))
     } finally {
       setLoading(false)
     }
@@ -91,10 +94,10 @@ export function TicketHistoryDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Ticket className="h-5 w-5" />
-            Ticket History
+            {t('title')}
           </DialogTitle>
           <DialogDescription>
-            Tickets for {userName} ({userEmail})
+            {t('description', { name: userName, email: userEmail })}
           </DialogDescription>
         </DialogHeader>
 
@@ -113,13 +116,13 @@ export function TicketHistoryDialog({
               <AlertCircle className="h-8 w-8 mb-2" />
               <p>{error}</p>
               <Button variant="outline" size="sm" className="mt-2" onClick={loadTickets}>
-                Retry
+                {t('retry')}
               </Button>
             </div>
           ) : tickets.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <Ticket className="h-8 w-8 mb-2" />
-              <p>No tickets found for this user</p>
+              <p>{t('noTickets')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -161,10 +164,10 @@ export function TicketHistoryDialog({
 
         <div className="flex justify-between items-center pt-4 border-t">
           <span className="text-sm text-muted-foreground">
-            {tickets.length} ticket{tickets.length !== 1 ? 's' : ''} found
+            {t('count', { count: tickets.length })}
           </span>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+            {tCommon('close')}
           </Button>
         </div>
       </DialogContent>

@@ -22,8 +22,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { REGIONS } from '@/lib/constants/regions'
+import { isValidRegion, type RegionValue } from '@/lib/constants/regions'
 import { TicketHistoryDialog } from '@/components/admin/ticket-history-dialog'
+import { useTranslations } from 'next-intl'
 
 interface UserDetails {
     id: number
@@ -52,6 +53,10 @@ export default function UserDetailsPage() {
     const params = useParams()
     const router = useRouter()
     const userId = params?.id as string
+    const t = useTranslations('admin.users')
+    const tCommon = useTranslations('common')
+    const tDashboard = useTranslations('admin.dashboard')
+    const tRegions = useTranslations('common.regions')
 
     const [user, setUser] = useState<UserDetails | null>(null)
     const [loading, setLoading] = useState(true)
@@ -70,10 +75,10 @@ export default function UserDetailsPage() {
                 if (data.success && data.data?.user) {
                     setUser(data.data.user)
                 } else {
-                    setError(data.error || 'User not found')
+                    setError(data.error || t('detail.notFoundDescription'))
                 }
             } catch (err) {
-                setError('Failed to load user')
+                setError(t('detail.loadError'))
                 console.error(err)
             } finally {
                 setLoading(false)
@@ -85,8 +90,10 @@ export default function UserDetailsPage() {
 
     const getRegionLabel = (regionValue?: string) => {
         if (!regionValue) return '-'
-        const region = REGIONS.find(r => r.value === regionValue)
-        return region?.labelEn || regionValue
+        if (isValidRegion(regionValue)) {
+            return tRegions(regionValue as RegionValue)
+        }
+        return regionValue
     }
 
     const getRoleBadgeVariant = (role: string) => {
@@ -115,11 +122,11 @@ export default function UserDetailsPage() {
                 <Card>
                     <CardContent className="py-12 text-center">
                         <XCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
-                        <h2 className="text-xl font-semibold mb-2">User Not Found</h2>
-                        <p className="text-muted-foreground mb-4">{error || 'The requested user could not be found.'}</p>
+                        <h2 className="text-xl font-semibold mb-2">{t('detail.notFoundTitle')}</h2>
+                        <p className="text-muted-foreground mb-4">{error || t('detail.notFoundDescription')}</p>
                         <Button onClick={() => router.push('/admin/users')}>
                             <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Users
+                            {t('createPage.backToUsers')}
                         </Button>
                     </CardContent>
                 </Card>
@@ -142,14 +149,14 @@ export default function UserDetailsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        {t(`roles.${user.role}`)}
                     </Badge>
                     <Badge variant={user.active ? 'default' : 'secondary'}>
-                        {user.active ? 'Active' : 'Disabled'}
+                        {user.active ? t('statusOptions.active') : t('statusOptions.inactive')}
                     </Badge>
                     <Button variant="outline" size="sm" onClick={() => router.push(`/admin/users/${userId}/edit`)}>
                         <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                        {tCommon('edit')}
                     </Button>
                 </div>
             </div>
@@ -160,7 +167,7 @@ export default function UserDetailsPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <User className="h-5 w-5" />
-                            Basic Information
+                            {t('detail.basicInfoTitle')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -168,29 +175,29 @@ export default function UserDetailsPage() {
                             <div className="flex items-center gap-3">
                                 <Mail className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Email</p>
+                                    <p className="text-sm text-muted-foreground">{t('table.email')}</p>
                                     <p className="font-medium">{user.email}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
                                 <Phone className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Phone</p>
+                                    <p className="text-sm text-muted-foreground">{t('table.phone')}</p>
                                     <p className="font-medium">{user.phone || '-'}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
                                 <Globe className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Region</p>
+                                    <p className="text-sm text-muted-foreground">{t('table.region')}</p>
                                     <p className="font-medium">{getRegionLabel(user.region)}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
                                 <Shield className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Role</p>
-                                    <p className="font-medium capitalize">{user.role}</p>
+                                    <p className="text-sm text-muted-foreground">{t('table.role')}</p>
+                                    <p className="font-medium">{t(`roles.${user.role}`)}</p>
                                 </div>
                             </div>
                         </div>
@@ -202,32 +209,32 @@ export default function UserDetailsPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <CheckCircle className="h-5 w-5" />
-                            Account Status
+                            {t('detail.accountStatusTitle')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid gap-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Status</span>
+                                <span className="text-muted-foreground">{t('table.status')}</span>
                                 <Badge variant={user.active ? 'default' : 'secondary'}>
-                                    {user.active ? 'Active' : 'Disabled'}
+                                    {user.active ? t('statusOptions.active') : t('statusOptions.inactive')}
                                 </Badge>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Verified</span>
+                                <span className="text-muted-foreground">{t('detail.verified')}</span>
                                 <Badge variant={user.verified ? 'default' : 'secondary'}>
-                                    {user.verified ? 'Yes' : 'No'}
+                                    {user.verified ? tCommon('yes') : tCommon('no')}
                                 </Badge>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Out of Office</span>
+                                <span className="text-muted-foreground">{t('detail.outOfOffice')}</span>
                                 <Badge variant={user.out_of_office ? 'destructive' : 'secondary'}>
-                                    {user.out_of_office ? 'On Vacation' : 'Available'}
+                                    {user.out_of_office ? t('detail.outOfOfficeOnVacation') : t('detail.outOfOfficeAvailable')}
                                 </Badge>
                             </div>
                             {user.out_of_office && user.out_of_office_end_at && (
                                 <div className="text-sm text-muted-foreground">
-                                    Returns: {new Date(user.out_of_office_end_at).toLocaleDateString()}
+                                    {t('detail.returns')} {new Date(user.out_of_office_end_at).toLocaleDateString()}
                                 </div>
                             )}
                         </div>
@@ -240,14 +247,14 @@ export default function UserDetailsPage() {
                         <CardTitle className="flex items-center justify-between">
                             <span className="flex items-center gap-2">
                                 <Ticket className="h-5 w-5" />
-                                Ticket Statistics
+                                {t('detail.ticketStatsTitle')}
                             </span>
                             <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => setTicketHistoryOpen(true)}
                             >
-                                View Tickets
+                                {t('detail.viewTickets')}
                             </Button>
                         </CardTitle>
                     </CardHeader>
@@ -255,11 +262,11 @@ export default function UserDetailsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="text-center p-4 bg-muted rounded-lg">
                                 <p className="text-3xl font-bold">{user.tickets_open}</p>
-                                <p className="text-sm text-muted-foreground">Open Tickets</p>
+                                <p className="text-sm text-muted-foreground">{tDashboard('stats.openTickets')}</p>
                             </div>
                             <div className="text-center p-4 bg-muted rounded-lg">
                                 <p className="text-3xl font-bold">{user.tickets_closed}</p>
-                                <p className="text-sm text-muted-foreground">Closed Tickets</p>
+                                <p className="text-sm text-muted-foreground">{tDashboard('stats.closedTickets')}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -270,7 +277,7 @@ export default function UserDetailsPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Calendar className="h-5 w-5" />
-                            Activity
+                            {t('detail.activityTitle')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -278,14 +285,14 @@ export default function UserDetailsPage() {
                             <div className="flex items-center gap-3">
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Created</p>
+                                    <p className="text-sm text-muted-foreground">{t('detail.created')}</p>
                                     <p className="font-medium">{new Date(user.created_at).toLocaleDateString()}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Last Updated</p>
+                                    <p className="text-sm text-muted-foreground">{t('detail.lastUpdated')}</p>
                                     <p className="font-medium">{new Date(user.updated_at).toLocaleDateString()}</p>
                                 </div>
                             </div>
@@ -293,7 +300,7 @@ export default function UserDetailsPage() {
                                 <div className="flex items-center gap-3">
                                     <Clock className="h-4 w-4 text-muted-foreground" />
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Last Login</p>
+                                        <p className="text-sm text-muted-foreground">{t('detail.lastLogin')}</p>
                                         <p className="font-medium">{new Date(user.last_login).toLocaleDateString()}</p>
                                     </div>
                                 </div>

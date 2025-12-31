@@ -50,7 +50,7 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
                 throw new Error(result.error || 'Unknown error')
             }
         } catch (err) {
-            setError('Failed to load chart data')
+            setError(t('ticketTrends.loadError'))
             console.error('[TicketTrendChart] Error:', err)
         } finally {
             setLoading(false)
@@ -67,17 +67,17 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
         <Card className={className}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div>
-                    <CardTitle className="text-base font-medium">Daily Ticket Trends</CardTitle>
-                    <CardDescription>Daily new and closed tickets</CardDescription>
+                    <CardTitle className="text-base font-medium">{t('ticketTrends.title')}</CardTitle>
+                    <CardDescription>{t('ticketTrends.description')}</CardDescription>
                 </div>
                 <Select value={range} onValueChange={setRange}>
                     <SelectTrigger className="w-[100px]">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="7d">7 Days</SelectItem>
-                        <SelectItem value="30d">30 Days</SelectItem>
-                        <SelectItem value="90d">90 Days</SelectItem>
+                        <SelectItem value="7d">{t('ticketTrends.range.7d')}</SelectItem>
+                        <SelectItem value="30d">{t('ticketTrends.range.30d')}</SelectItem>
+                        <SelectItem value="90d">{t('ticketTrends.range.90d')}</SelectItem>
                     </SelectContent>
                 </Select>
             </CardHeader>
@@ -124,7 +124,7 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
                             <Area
                                 type="monotone"
                                 dataKey="new"
-                                name="New Tickets"
+                                name={t('ticketTrends.series.new')}
                                 stroke="#3b82f6"
                                 fillOpacity={1}
                                 fill="url(#colorNew)"
@@ -132,7 +132,7 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
                             <Area
                                 type="monotone"
                                 dataKey="closed"
-                                name="Closed Tickets"
+                                name={t('ticketTrends.series.closed')}
                                 stroke="#22c55e"
                                 fillOpacity={1}
                                 fill="url(#colorClosed)"

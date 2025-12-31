@@ -7,6 +7,7 @@ import { useSWRConfig } from 'swr'
 import { useTicketUpdates, TicketUpdate } from '@/lib/hooks/use-ticket-updates'
 import { useUnreadStore } from '@/lib/stores/unread-store'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useTranslations } from 'next-intl'
 
 interface TicketUpdatesProviderProps {
   children: React.ReactNode
@@ -15,6 +16,7 @@ interface TicketUpdatesProviderProps {
 export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) {
   const router = useRouter()
   const { user } = useAuth()
+  const tToast = useTranslations('toast.tickets')
   const { incrementCount } = useUnreadStore()
   const { mutate } = useSWRConfig()
 
@@ -37,11 +39,11 @@ export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) 
 
         // Show toast notification
         toast.info(
-          `New reply on ticket #${update.ticketId}`,
+          tToast('newReply', { ticketId: update.ticketId }),
           {
-            description: update.data?.senderEmail || 'New message received',
+            description: update.data?.senderEmail || tToast('newMessage'),
             action: {
-              label: 'View',
+              label: tToast('view'),
               onClick: () => {
                 const basePath = user?.role === 'admin' 
                   ? '/admin/tickets' 
@@ -60,11 +62,11 @@ export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) 
       } else if (update.event === 'created') {
         // For new tickets, show toast notification
         toast.info(
-          `New ticket created #${update.ticketId}`,
+          tToast('newTicket', { ticketId: update.ticketId }),
           {
-            description: update.data?.title || 'New ticket',
+            description: update.data?.title || tToast('newTicketDescription'),
             action: {
-              label: 'View',
+              label: tToast('view'),
               onClick: () => {
                 const basePath = user?.role === 'admin' 
                   ? '/admin/tickets' 

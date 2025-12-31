@@ -194,8 +194,8 @@ export default function AdminTicketDetailPage() {
         <CardContent className="py-3">
           <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
             <Activity className="h-4 w-4" />
-            <span className="font-medium">AI Summary:</span>
-            <span className="text-muted-foreground italic">Coming soon - AI will summarize this conversation</span>
+            <span className="font-medium">{t('aiSummaryLabel')}</span>
+            <span className="text-muted-foreground italic">{t('aiSummaryPlaceholder')}</span>
           </div>
         </CardContent>
       </Card>
@@ -235,34 +235,34 @@ export default function AdminTicketDetailPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Ticket Information
+                  {t('infoTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Customer:</span>
+                  <span className="text-muted-foreground">{t('customerLabel')}</span>
                   <p className="font-medium">{ticket.customer}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Assigned To:</span>
+                  <span className="text-muted-foreground">{t('assignedToLabel')}</span>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="font-medium">
-                      {ticket.owner_name || (ticket.owner_id ? `Staff #${ticket.owner_id}` : 'Unassigned')}
+                      {ticket.owner_name || (ticket.owner_id ? t('staffLabel', { id: ticket.owner_id }) : t('unassigned'))}
                     </p>
                     <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setAssignDialogOpen(true)}>
                       <UserPlus className="h-3 w-3 mr-1" />
-                      {ticket.owner_id ? 'Reassign' : 'Assign'}
+                      {ticket.owner_id ? t('reassign') : t('assign')}
                     </Button>
                   </div>
                 </div>
                 <Separator />
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-muted-foreground text-xs">Created</span>
+                    <span className="text-muted-foreground text-xs">{t('createdLabel')}</span>
                     <p className="text-xs">{format(new Date(ticket.created_at), 'MM-dd HH:mm')}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground text-xs">Updated</span>
+                    <span className="text-muted-foreground text-xs">{t('updatedLabel')}</span>
                     <p className="text-xs">{format(new Date(ticket.updated_at), 'MM-dd HH:mm')}</p>
                   </div>
                 </div>

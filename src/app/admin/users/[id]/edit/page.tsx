@@ -17,6 +17,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import { REGIONS } from '@/lib/constants/regions'
 
 interface UserData {
@@ -35,6 +36,9 @@ export default function EditUserPage() {
     const params = useParams()
     const router = useRouter()
     const userId = params?.id as string
+    const t = useTranslations('admin.users')
+    const tToast = useTranslations('toast.admin.users')
+    const tRegions = useTranslations('common.regions')
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -66,11 +70,11 @@ export default function EditUserPage() {
                         active: u.active,
                     })
                 } else {
-                    toast.error('User not found')
+                    toast.error(tToast('loadError'))
                     router.push('/admin/users')
                 }
             } catch (error) {
-                toast.error('Failed to load user')
+                toast.error(tToast('loadError'))
                 router.push('/admin/users')
             } finally {
                 setLoading(false)
@@ -95,13 +99,13 @@ export default function EditUserPage() {
             const data = await response.json()
 
             if (data.success) {
-                toast.success('User updated successfully')
+                toast.success(tToast('updateSuccess'))
                 router.push(`/admin/users/${userId}`)
             } else {
-                toast.error(data.error || 'Failed to update user')
+                toast.error(data.error || tToast('updateError'))
             }
         } catch (error) {
-            toast.error('Failed to update user')
+            toast.error(tToast('updateError'))
         } finally {
             setSaving(false)
         }
@@ -126,7 +130,7 @@ export default function EditUserPage() {
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold">Edit User</h1>
+                    <h1 className="text-2xl font-bold">{t('editUser')}</h1>
                     <p className="text-muted-foreground">{user.email}</p>
                 </div>
             </div>
@@ -134,38 +138,38 @@ export default function EditUserPage() {
             <form onSubmit={handleSubmit}>
                 <Card>
                     <CardHeader>
-                        <CardTitle>User Information</CardTitle>
+                        <CardTitle>{t('createPage.cardTitle')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="firstname">First Name</Label>
+                                <Label htmlFor="firstname">{t('editDialog.firstName')}</Label>
                                 <Input
                                     id="firstname"
                                     value={formData.firstname}
                                     onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
-                                    placeholder="First name"
+                                    placeholder={t('editDialog.firstNamePlaceholder')}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="lastname">Last Name</Label>
+                                <Label htmlFor="lastname">{t('editDialog.lastName')}</Label>
                                 <Input
                                     id="lastname"
                                     value={formData.lastname}
                                     onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
-                                    placeholder="Last name"
+                                    placeholder={t('editDialog.lastNamePlaceholder')}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t('editDialog.email')}</Label>
                             <Input id="email" value={user.email} disabled className="bg-muted" />
-                            <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                            <p className="text-xs text-muted-foreground">{t('editDialog.emailHint')}</p>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="phone">Phone</Label>
+                            <Label htmlFor="phone">{t('editDialog.phone')}</Label>
                             <Input
                                 id="phone"
                                 value={formData.phone}
@@ -175,37 +179,37 @@ export default function EditUserPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="role">Role</Label>
-                            <Input id="role" value={user.role} disabled className="bg-muted capitalize" />
-                            <p className="text-xs text-muted-foreground">Role changes require additional permissions</p>
+                            <Label htmlFor="role">{t('editDialog.role')}</Label>
+                            <Input id="role" value={t(`roles.${user.role}`)} disabled className="bg-muted" />
+                            <p className="text-xs text-muted-foreground">{t('editDialog.roleHint')}</p>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="region">Region</Label>
+                            <Label htmlFor="region">{t('table.region')}</Label>
                             <Select
                                 value={formData.region}
                                 onValueChange={(value) => setFormData({ ...formData, region: value })}
                             >
                                 <SelectTrigger id="region">
-                                    <SelectValue placeholder="Select region" />
+                                    <SelectValue placeholder={t('editDialog.regionPlaceholder')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {REGIONS.map((region) => (
                                         <SelectItem key={region.value} value={region.value}>
-                                            {region.labelEn}
+                                            {tRegions(region.value)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                             <p className="text-xs text-muted-foreground">
-                                Region determines which tickets staff can access
+                                {t('roles.staffRegionHint')}
                             </p>
                         </div>
 
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <Label>Account Status</Label>
-                                <p className="text-sm text-muted-foreground">Enable or disable this account</p>
+                                <Label>{t('editDialog.accountStatus')}</Label>
+                                <p className="text-sm text-muted-foreground">{t('editDialog.accountStatusHint')}</p>
                             </div>
                             <Switch
                                 checked={formData.active}
@@ -217,10 +221,10 @@ export default function EditUserPage() {
                             <Button type="submit" disabled={saving}>
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 <Save className="mr-2 h-4 w-4" />
-                                Save Changes
+                                {t('editDialog.saveChanges')}
                             </Button>
                             <Button type="button" variant="outline" onClick={() => router.push(`/admin/users/${userId}`)}>
-                                Cancel
+                                {t('editDialog.cancel')}
                             </Button>
                         </div>
                     </CardContent>

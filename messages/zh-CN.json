@@ -30,6 +30,23 @@
       "ru": "Русский",
       "pt": "Português"
     },
+    "roles": {
+      "user": "用户",
+      "customer": "客户",
+      "staff": "员工",
+      "admin": "管理员"
+    },
+    "regions": {
+      "asia-pacific": "亚太区",
+      "middle-east": "中东区",
+      "africa": "非洲区",
+      "north-america": "北美区",
+      "latin-america": "拉美区",
+      "europe-zone-1": "欧洲一区",
+      "europe-zone-2": "欧洲二区",
+      "cis": "独联体",
+      "unassigned": "未分配"
+    },
     "actions": {
       "viewDetails": "查看详情",
       "viewAll": "查看全部",
@@ -176,7 +193,8 @@
       "title": "访问被拒绝",
       "description": "您无权访问此页面。",
       "yourRole": "您的角色：",
-      "goBack": "返回"
+      "goBack": "返回",
+      "dashboard": "仪表板"
     }
   },
   "dashboard": {
@@ -301,13 +319,28 @@
         "open": "进行中",
         "pendingReminder": "等待提醒",
         "pendingClose": "待关闭",
-        "closed": "已关闭"
+        "closed": "已关闭",
+        "merged": "已合并"
       },
       "priorities": {
         "low": "低",
         "normal": "普通",
         "high": "高"
-      }
+      },
+      "replyType": "回复类型",
+      "replyTypeNote": "备注（内部）",
+      "replyTypeEmail": "邮件（发送给客户）",
+      "emailWillBeSent": "此回复将通过邮件发送给客户。",
+      "sendEmail": "发送邮件",
+      "attachFilesHint": "最多5个文件，每个10MB",
+      "emailPlaceholder": "输入您的邮件回复...",
+      "senderLabels": {
+        "customer": "客户",
+        "agent": "客服",
+        "system": "系统"
+      },
+      "internalNote": "内部备注",
+      "attachFiles": "附加文件"
     },
     "articles": "文章",
     "addArticle": "添加文章",
@@ -316,6 +349,32 @@
     "empty": {
       "noTicketsFound": "未找到工单",
       "adjustFilters": "请调整搜索条件或筛选器"
+    },
+    "actions": {
+      "assign": "分配",
+      "reassign": "重新分配"
+    },
+    "rating": {
+      "title": "评价本次支持",
+      "description": "您对该工单的体验如何？",
+      "positive": "满意",
+      "negative": "不满意",
+      "positiveReason": "我们做得好的地方是什么？（可选）",
+      "negativeReason": "我们可以如何改进？（可选）",
+      "reasonPlaceholder": "分享您的反馈...",
+      "submit": "提交反馈",
+      "submitSuccess": "感谢您的反馈！",
+      "submitError": "提交反馈失败",
+      "thankYou": "感谢您的反馈！"
+    },
+    "reopen": {
+      "button": "重新开启工单",
+      "dialogTitle": "要重新开启该工单吗？",
+      "dialogDescription": "这将把工单状态从已关闭改为进行中。重新开启后，您可以继续对话。",
+      "confirm": "是的，重新开启",
+      "cancel": "取消",
+      "success": "工单已重新开启",
+      "error": "重新开启工单失败"
     }
   },
   "admin": {
@@ -372,6 +431,37 @@
         "satisfactionRate": "满意度",
         "resolvedTickets": "已解决工单",
         "activeUsers": "活跃用户"
+      },
+      "statsOverview": "统计概览",
+      "statsMode": {
+        "today": "今天",
+        "allTime": "全部时间"
+      },
+      "statsSubtitles": {
+        "createdToday": "今日新建",
+        "allTickets": "全部工单",
+        "newToday": "今日新增",
+        "currentlyOpen": "当前进行中",
+        "resolvedToday": "今日已解决",
+        "totalResolved": "累计已解决"
+      },
+      "ratings": {
+        "total": "评分总数",
+        "recentNegative": "近期负面反馈："
+      },
+      "ticketTrends": {
+        "title": "每日工单趋势",
+        "description": "每日新增和关闭的工单",
+        "range": {
+          "7d": "7 天",
+          "30d": "30 天",
+          "90d": "90 天"
+        },
+        "series": {
+          "new": "新建工单",
+          "closed": "已关闭工单"
+        },
+        "loadError": "加载图表数据失败"
       }
     },
     "users": {
@@ -387,12 +477,16 @@
       "role": "角色",
       "status": "状态",
       "createdAt": "创建时间",
-      "actions": "操作",
+      "actions": {
+        "importUsers": "导入用户"
+      },
       "editUser": "编辑用户",
       "deleteUser": "删除用户",
       "confirmDelete": "确定要删除此用户吗？",
       "filters": {
-        "allRoles": "所有角色"
+        "allRoles": "所有角色",
+        "allRegions": "所有地区",
+        "allStatuses": "所有状态"
       },
       "form": {
         "emailRequired": "邮箱地址 *",
@@ -434,7 +528,15 @@
         "role": "角色",
         "phone": "电话",
         "cancel": "取消",
-        "save": "保存"
+        "save": "保存",
+        "firstNamePlaceholder": "名",
+        "lastNamePlaceholder": "姓",
+        "regionPlaceholder": "选择地区",
+        "emailHint": "邮箱不可更改",
+        "roleHint": "角色更改需要额外权限",
+        "accountStatus": "账号状态",
+        "accountStatusHint": "启用或禁用该账号",
+        "saveChanges": "保存更改"
       },
       "createPage": {
         "title": "创建新用户",
@@ -461,6 +563,64 @@
       "statusOptions": {
         "active": "活跃",
         "inactive": "未激活"
+      },
+      "statusDialog": {
+        "disableTitle": "禁用用户",
+        "activateTitle": "启用用户",
+        "disableDescription": "确定要禁用 {email} 吗？他们将无法登录。",
+        "activateDescription": "确定要启用 {email} 吗？他们将可以再次登录。"
+      },
+      "detail": {
+        "notFoundTitle": "未找到用户",
+        "notFoundDescription": "未找到请求的用户。",
+        "loadError": "加载用户失败",
+        "basicInfoTitle": "基本信息",
+        "accountStatusTitle": "账号状态",
+        "verified": "已验证",
+        "outOfOffice": "不在岗",
+        "outOfOfficeOnVacation": "休假中",
+        "outOfOfficeAvailable": "可用",
+        "returns": "返回：",
+        "ticketStatsTitle": "工单统计",
+        "viewTickets": "查看工单",
+        "activityTitle": "活动",
+        "created": "创建时间",
+        "lastUpdated": "最后更新",
+        "lastLogin": "最后登录"
+      },
+      "importDialog": {
+        "title": "批量导入用户",
+        "description": {
+          "upload": "上传 CSV 文件以一次导入多个用户",
+          "preview": "检查将要导入的用户",
+          "importing": "正在导入用户...",
+          "complete": "导入完成"
+        },
+        "dropzone": {
+          "processing": "处理中...",
+          "ready": "点击选择 CSV 文件或拖拽到此处"
+        },
+        "downloadTemplate": "下载模板",
+        "parseWarnings": "解析警告（{count}）",
+        "parseMore": "...还有 {count} 项",
+        "previewCount": "已准备导入 {count} 位用户",
+        "importingMessage": "正在 Zammad 中创建用户...",
+        "summary": {
+          "total": "总计",
+          "success": "成功",
+          "failed": "失败"
+        },
+        "failedImports": "导入失败：",
+        "importAction": "导入 {count} 位用户",
+        "done": "完成"
+      },
+      "ticketHistory": {
+        "title": "工单历史",
+        "description": "{name}（{email}）的工单",
+        "loadError": "加载工单失败",
+        "retry": "重试",
+        "noTickets": "未找到该用户的工单",
+        "count": "找到 {count} 个工单"
       }
     },
     "faq": {
@@ -623,7 +783,11 @@
         "newUpdates": "新更新",
         "live": "实时",
         "connecting": "连接中...",
-        "offline": "离线"
+        "offline": "离线",
+        "refreshed": "工单已刷新",
+        "exporting": "正在导出工单...",
+        "exported": "工单导出成功",
+        "exportFailed": "导出工单失败"
       },
       "search": {
         "placeholder": "按工单号、标题或客户搜索...",
@@ -667,7 +831,16 @@
       "noArticles": "暂无文章",
       "internalBadge": "内部",
       "assign": "分配",
-      "reassign": "重新分配"
+      "reassign": "重新分配",
+      "aiSummaryLabel": "AI 摘要：",
+      "aiSummaryPlaceholder": "即将上线 - AI 将总结此对话",
+      "infoTitle": "工单信息",
+      "customerLabel": "客户：",
+      "assignedToLabel": "分配给：",
+      "staffLabel": "员工 #{id}",
+      "unassigned": "未分配",
+      "createdLabel": "创建时间",
+      "updatedLabel": "更新时间"
     },
     "ticketAssign": {
       "title": "分配工单",
@@ -883,6 +1056,20 @@
         "2": "中",
         "3": "高",
         "4": "紧急"
+      },
+      "status": {
+        "1": "新建",
+        "2": "进行中",
+        "3": "待处理",
+        "4": "已关闭",
+        "unknown": "未知"
+      },
+      "priority": {
+        "1": "低",
+        "2": "中等",
+        "3": "高",
+        "4": "紧急",
+        "unknown": "未知"
       }
     },
     "settings": {
@@ -1090,7 +1277,17 @@
         "phonePlaceholder": "+86 138 0000 0000",
         "languageLabel": "语言",
         "changeAvatar": "更换头像",
-        "avatarHint": "JPG、PNG 或 GIF 格式，最大 2MB"
+        "avatarHint": "JPG、PNG 或 GIF 格式，最大 2MB",
+        "avatarUpdated": "头像更新成功",
+        "avatarRemoved": "头像已移除",
+        "avatarUploadError": "头像上传失败",
+        "avatarRemoveError": "头像移除失败",
+        "avatarInvalidType": "请选择图片文件",
+        "avatarTooLarge": "图片大小不能超过 2MB",
+        "avatarLabel": "头像",
+        "avatarUploading": "上传中...",
+        "avatarUpload": "上传",
+        "avatarRemove": "移除"
       },
       "notifications": {
         "title": "通知设置",
@@ -1390,7 +1587,8 @@
         "updateError": "用户更新失败",
         "loadError": "用户列表加载失败",
         "deleteSuccess": "用户已删除",
-        "deleteError": "用户删除失败"
+        "deleteError": "用户删除失败",
+        "importSuccess": "成功导入 {count} 位用户"
       },
       "faq": {
         "createSuccess": "文章创建成功！",
@@ -1412,7 +1610,9 @@
         "ticketCreated": "工单已创建",
         "ticketUpdated": "工单已更新",
         "ticketDeleted": "工单已删除",
-        "ticketChanged": "工单已变更"
+        "ticketChanged": "工单已变更",
+        "autoAssignFailed": "自动分配失败",
+        "autoAssignSuccess": "自动分配完成：{success} 个已分配，{failed} 个失败"
       },
       "ticketDetail": {
         "updateSuccess": "工单更新成功",
@@ -1420,7 +1620,9 @@
         "replyAdded": "回复已添加",
         "emailSent": "邮件已发送给客户",
         "deleteSuccess": "工单删除成功",
-        "deleteError": "工单删除失败"
+        "deleteError": "工单删除失败",
+        "closeSuccess": "工单关闭成功",
+        "closeError": "关闭工单失败"
       }
     },
     "customer": {
@@ -1505,6 +1707,13 @@
         "sendError": "消息发送失败",
         "fileSizeError": "文件大小必须小于 10MB"
       }
+    },
+    "tickets": {
+      "newReply": "工单 #{ticketId} 有新回复",
+      "newMessage": "收到新消息",
+      "view": "查看",
+      "newTicket": "新工单已创建 #{ticketId}",
+      "newTicketDescription": "新工单"
     }
   },
   "complaints": {
@@ -1772,6 +1981,25 @@
   "layouts": {
     "navbar": {
       "notifications": "通知"
+    }
+  },
+  "notFound": {
+    "title": "页面未找到",
+    "description": "抱歉，您要找的页面不存在或已被移动。",
+    "goHome": "返回首页",
+    "goBack": "返回上一页",
+    "needAssistance": "需要帮助吗？",
+    "contactSupport": "联系支持"
+  },
+  "emails": {
+    "ticketAssign": {
+      "subject": "工单 #{number} 已重新分配",
+      "greeting": "您好 {name}，",
+      "bodyIntro": "特此通知，工单 #{number} - “{title}” 已重新分配给其他员工。",
+      "newAssigneeLabel": "新负责人：",
+      "noLongerHandle": "您无需再处理此工单。如有疑问，请联系您的管理员。",
+      "closing": "此致，",
+      "signature": "支持系统"
     }
   }
 }

@@ -30,6 +30,23 @@
       "ru": "Русский",
       "pt": "Português"
     },
+    "roles": {
+      "user": "User",
+      "customer": "Customer",
+      "staff": "Staff",
+      "admin": "Admin"
+    },
+    "regions": {
+      "asia-pacific": "Asia-Pacific",
+      "middle-east": "Middle East",
+      "africa": "Africa",
+      "north-america": "North America",
+      "latin-america": "Latin America",
+      "europe-zone-1": "Europe Zone 1",
+      "europe-zone-2": "Europe Zone 2",
+      "cis": "CIS",
+      "unassigned": "Unassigned"
+    },
     "actions": {
       "viewDetails": "View Details",
       "viewAll": "View All",
@@ -176,7 +193,8 @@
       "title": "Access Denied",
       "description": "You don't have permission to access this page.",
       "yourRole": "Your role:",
-      "goBack": "Go Back"
+      "goBack": "Go Back",
+      "dashboard": "Dashboard"
     }
   },
   "dashboard": {
@@ -301,13 +319,28 @@
         "open": "Open",
         "pendingReminder": "Pending Reminder",
         "pendingClose": "Pending Close",
-        "closed": "Closed"
+        "closed": "Closed",
+        "merged": "Merged"
       },
       "priorities": {
         "low": "Low",
         "normal": "Normal",
         "high": "High"
-      }
+      },
+      "replyType": "Reply Type",
+      "replyTypeNote": "Note (Internal)",
+      "replyTypeEmail": "Email (Send to Customer)",
+      "emailWillBeSent": "This reply will be sent to the customer via email.",
+      "sendEmail": "Send Email",
+      "attachFilesHint": "Max 5 files, 10MB each",
+      "emailPlaceholder": "Type your email reply...",
+      "senderLabels": {
+        "customer": "Customer",
+        "agent": "Support",
+        "system": "System"
+      },
+      "internalNote": "Internal Note",
+      "attachFiles": "Attach Files"
     },
     "articles": "Articles",
     "addArticle": "Add Article",
@@ -398,6 +431,37 @@
         "satisfactionRate": "Satisfaction Rate",
         "resolvedTickets": "Resolved Tickets",
         "activeUsers": "Active Users"
+      },
+      "statsOverview": "Statistics Overview",
+      "statsMode": {
+        "today": "Today",
+        "allTime": "All Time"
+      },
+      "statsSubtitles": {
+        "createdToday": "Created today",
+        "allTickets": "All tickets",
+        "newToday": "New today",
+        "currentlyOpen": "Currently open",
+        "resolvedToday": "Resolved today",
+        "totalResolved": "Total resolved"
+      },
+      "ratings": {
+        "total": "Total Ratings",
+        "recentNegative": "Recent Negative Feedback:"
+      },
+      "ticketTrends": {
+        "title": "Daily Ticket Trends",
+        "description": "Daily new and closed tickets",
+        "range": {
+          "7d": "7 Days",
+          "30d": "30 Days",
+          "90d": "90 Days"
+        },
+        "series": {
+          "new": "New Tickets",
+          "closed": "Closed Tickets"
+        },
+        "loadError": "Failed to load chart data"
       }
     },
     "users": {
@@ -413,13 +477,16 @@
       "role": "Role",
       "status": "Status",
       "createdAt": "Created At",
-      "actions": "Actions",
+      "actions": {
+        "importUsers": "Import Users"
+      },
       "editUser": "Edit User",
       "deleteUser": "Delete User",
       "confirmDelete": "Are you sure you want to delete this user?",
       "filters": {
         "allRoles": "All Roles",
-        "allRegions": "All Regions"
+        "allRegions": "All Regions",
+        "allStatuses": "All Status"
       },
       "form": {
         "emailRequired": "Email Address *",
@@ -461,7 +528,15 @@
         "role": "Role",
         "phone": "Phone",
         "cancel": "Cancel",
-        "save": "Save"
+        "save": "Save",
+        "firstNamePlaceholder": "First name",
+        "lastNamePlaceholder": "Last name",
+        "regionPlaceholder": "Select region",
+        "emailHint": "Email cannot be changed",
+        "roleHint": "Role changes require additional permissions",
+        "accountStatus": "Account Status",
+        "accountStatusHint": "Enable or disable this account",
+        "saveChanges": "Save Changes"
       },
       "createPage": {
         "title": "Create New User",
@@ -488,6 +563,64 @@
       "statusOptions": {
         "active": "Active",
         "inactive": "Inactive"
+      },
+      "statusDialog": {
+        "disableTitle": "Disable User",
+        "activateTitle": "Activate User",
+        "disableDescription": "Are you sure you want to disable {email}? They will not be able to log in.",
+        "activateDescription": "Are you sure you want to activate {email}? They will be able to log in again."
+      },
+      "detail": {
+        "notFoundTitle": "User Not Found",
+        "notFoundDescription": "The requested user could not be found.",
+        "loadError": "Failed to load user",
+        "basicInfoTitle": "Basic Information",
+        "accountStatusTitle": "Account Status",
+        "verified": "Verified",
+        "outOfOffice": "Out of Office",
+        "outOfOfficeOnVacation": "On Vacation",
+        "outOfOfficeAvailable": "Available",
+        "returns": "Returns:",
+        "ticketStatsTitle": "Ticket Statistics",
+        "viewTickets": "View Tickets",
+        "activityTitle": "Activity",
+        "created": "Created",
+        "lastUpdated": "Last Updated",
+        "lastLogin": "Last Login"
+      },
+      "importDialog": {
+        "title": "Bulk User Import",
+        "description": {
+          "upload": "Upload a CSV file to import multiple users at once",
+          "preview": "Review the users to be imported",
+          "importing": "Importing users...",
+          "complete": "Import complete"
+        },
+        "dropzone": {
+          "processing": "Processing...",
+          "ready": "Click to select a CSV file or drag and drop"
+        },
+        "downloadTemplate": "Download Template",
+        "parseWarnings": "Parse Warnings ({count})",
+        "parseMore": "...and {count} more",
+        "previewCount": "{count} users ready to import",
+        "importingMessage": "Creating users in Zammad...",
+        "summary": {
+          "total": "Total",
+          "success": "Success",
+          "failed": "Failed"
+        },
+        "failedImports": "Failed Imports:",
+        "importAction": "Import {count} Users",
+        "done": "Done"
+      },
+      "ticketHistory": {
+        "title": "Ticket History",
+        "description": "Tickets for {name} ({email})",
+        "loadError": "Failed to load tickets",
+        "retry": "Retry",
+        "noTickets": "No tickets found for this user",
+        "count": "Found {count} tickets"
       }
     },
     "faq": {
@@ -698,7 +831,16 @@
       "noArticles": "No articles yet",
       "internalBadge": "Internal",
       "assign": "Assign",
-      "reassign": "Reassign"
+      "reassign": "Reassign",
+      "aiSummaryLabel": "AI Summary:",
+      "aiSummaryPlaceholder": "Coming soon - AI will summarize this conversation",
+      "infoTitle": "Ticket Information",
+      "customerLabel": "Customer:",
+      "assignedToLabel": "Assigned To:",
+      "staffLabel": "Staff #{id}",
+      "unassigned": "Unassigned",
+      "createdLabel": "Created",
+      "updatedLabel": "Updated"
     },
     "ticketAssign": {
       "title": "Assign Ticket",
@@ -1136,7 +1278,16 @@
         "languageLabel": "Language",
         "changeAvatar": "Change Avatar",
         "avatarHint": "JPG, PNG or GIF. Max size 2MB",
-        "avatarUpdated": "Avatar updated successfully"
+        "avatarUpdated": "Avatar updated successfully",
+        "avatarInvalidType": "Please select an image file",
+        "avatarTooLarge": "Image size must be 2MB or less",
+        "avatarUploadError": "Failed to upload avatar",
+        "avatarRemoved": "Avatar removed",
+        "avatarRemoveError": "Failed to remove avatar",
+        "avatarLabel": "Profile Photo",
+        "avatarUploading": "Uploading...",
+        "avatarUpload": "Upload",
+        "avatarRemove": "Remove"
       },
       "notifications": {
         "title": "Notifications",
@@ -1436,7 +1587,8 @@
         "updateError": "Failed to update user",
         "loadError": "Failed to load users",
         "deleteSuccess": "User deleted",
-        "deleteError": "Failed to delete user"
+        "deleteError": "Failed to delete user",
+        "importSuccess": "Successfully imported {count} users"
       },
       "faq": {
         "createSuccess": "Article created successfully!",
@@ -1555,6 +1707,13 @@
         "sendError": "Failed to send message",
         "fileSizeError": "File size must be less than 10MB"
       }
+    },
+    "tickets": {
+      "newReply": "New reply on ticket #{ticketId}",
+      "newMessage": "New message received",
+      "view": "View",
+      "newTicket": "New ticket created #{ticketId}",
+      "newTicketDescription": "New ticket"
     }
   },
   "complaints": {
@@ -1822,6 +1981,25 @@
   "layouts": {
     "navbar": {
       "notifications": "Notifications"
+    }
+  },
+  "notFound": {
+    "title": "Page Not Found",
+    "description": "Sorry, the page you are looking for doesn't exist or has been moved.",
+    "goHome": "Go Home",
+    "goBack": "Go Back",
+    "needAssistance": "Need assistance?",
+    "contactSupport": "Contact Support"
+  },
+  "emails": {
+    "ticketAssign": {
+      "subject": "Ticket #{number} has been reassigned",
+      "greeting": "Hello {name},",
+      "bodyIntro": "This is to inform you that ticket #{number} - \"{title}\" has been reassigned to another staff member.",
+      "newAssigneeLabel": "New assignee:",
+      "noLongerHandle": "You no longer need to handle this ticket. If you have any questions, please contact your administrator.",
+      "closing": "Best regards,",
+      "signature": "Support System"
     }
   }
 }

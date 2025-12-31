@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { filterTicketsByRegion } from '@/lib/utils/region-auth'
-import { getRegionByGroupId, getRegionLabel } from '@/lib/constants/regions'
+import { getRegionByGroupId } from '@/lib/constants/regions'
+import { getRegionLabelForLocale } from '@/lib/i18n/region-labels'
 import { prisma } from '@/lib/prisma'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 
@@ -46,7 +47,7 @@ function getRegionName(groupId: number | undefined): string {
   if (!groupId) return 'Unknown'
   const region = getRegionByGroupId(groupId)
   if (!region) return 'Unknown'
-  return getRegionLabel(region, 'en')
+  return getRegionLabelForLocale(region, 'en')
 }
 
 // Map rating to display text

@@ -24,6 +24,7 @@ interface AISettings {
 
 export default function SettingsPage() {
   const t = useTranslations('settings.ai')
+  const tAdmin = useTranslations('admin.settings')
   const [aiSettings, setAISettings] = useState<AISettings>({
     enabled: false,
     model: 'GPT-4o-mini',
@@ -79,9 +80,9 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">System Settings</h1>
+        <h1 className="text-3xl font-bold">{tAdmin('pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage system settings and configurations
+          {tAdmin('pageDescription')}
         </p>
       </div>
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import {
     BarChart,
     Bar,
@@ -13,12 +14,10 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { REGIONS } from '@/lib/constants/regions'
+import { isValidRegion, type RegionValue } from '@/lib/constants/regions'
 
 interface RegionData {
     region: string
-    label: string
-    labelEn: string
     total: number
     open: number
     closed: number
@@ -43,12 +42,14 @@ const COLORS = [
 ]
 
 export function RegionDistributionChart({ data, loading, className }: RegionDistributionChartProps) {
+    const t = useTranslations('admin.dashboard')
+    const tRegions = useTranslations('common.regions')
     if (loading) {
         return (
             <Card className={className}>
                 <CardHeader>
-                    <CardTitle className="text-base font-medium">Regional Distribution</CardTitle>
-                    <CardDescription>Tickets by service region</CardDescription>
+                    <CardTitle className="text-base font-medium">{t('regionalDistribution.title')}</CardTitle>
+                    <CardDescription>{t('regionalDistribution.description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Skeleton className="h-[300px] w-full" />
@@ -61,26 +62,35 @@ export function RegionDistributionChart({ data, loading, className }: RegionDist
         return (
             <Card className={className}>
                 <CardHeader>
-                    <CardTitle className="text-base font-medium">Regional Distribution</CardTitle>
-                    <CardDescription>Tickets by service region</CardDescription>
+                    <CardTitle className="text-base font-medium">{t('regionalDistribution.title')}</CardTitle>
+                    <CardDescription>{t('regionalDistribution.description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                        No regional data available
+                        {t('regionalDistribution.noData')}
                     </div>
                 </CardContent>
             </Card>
         )
     }
 
-    // Sort by total descending
-    const sortedData = [...data].sort((a, b) => b.total - a.total)
+    // Sort by total descending and hydrate labels from i18n
+    const sortedData = [...data]
+        .sort((a, b) => b.total - a.total)
+        .map((item) => ({
+            ...item,
+            label: item.region === 'unassigned'
+                ? tRegions('unassigned')
+                : isValidRegion(item.region)
+                    ? tRegions(item.region as RegionValue)
+                    : item.region,
+        }))
 
     return (
         <Card className={className}>
             <CardHeader>
-                <CardTitle className="text-base font-medium">Regional Distribution</CardTitle>
-                <CardDescription>Tickets by service region</CardDescription>
+                <CardTitle className="text-base font-medium">{t('regionalDistribution.title')}</CardTitle>
+                <CardDescription>{t('regionalDistribution.description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -97,8 +107,8 @@ export function RegionDistributionChart({ data, loading, className }: RegionDist
                         />
                         <YAxis
                             type="category"
-                            dataKey="labelEn"
-                            width={100}
+                            dataKey="label"
+                            width={120}
                             tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                             tickLine={{ stroke: 'hsl(var(--muted))' }}
                         />
@@ -109,8 +119,8 @@ export function RegionDistributionChart({ data, loading, className }: RegionDist
                                 borderRadius: '0.5rem',
                             }}
                         />
-                        <Bar dataKey="open" name="Open" stackId="a" fill="#f59e0b" />
-                        <Bar dataKey="closed" name="Closed" stackId="a" fill="#22c55e" />
+                        <Bar dataKey="open" name={t('regionalDistribution.open')} stackId="a" fill="#f59e0b" />
+                        <Bar dataKey="closed" name={t('regionalDistribution.closed')} stackId="a" fill="#22c55e" />
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>

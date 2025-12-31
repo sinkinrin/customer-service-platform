@@ -35,6 +35,8 @@ interface NavbarProps {
 export function Navbar({ user, onLogout, showLanguageSelector = true }: NavbarProps) {
   const t = useTranslations('auth.layout')
   const tCommon = useTranslations('common')
+  const tNav = useTranslations('nav')
+  const tRoles = useTranslations('common.roles')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
 
@@ -68,7 +70,7 @@ export function Navbar({ user, onLogout, showLanguageSelector = true }: NavbarPr
                     : "text-muted-foreground"
                 )}
               >
-                {item.label}
+                {tNav(item.labelKey)}
               </Link>
             ))}
           </div>
@@ -94,7 +96,9 @@ export function Navbar({ user, onLogout, showLanguageSelector = true }: NavbarPr
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
+                      <p className="text-sm font-medium leading-none">
+                        {user.name || tRoles('user')}
+                      </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user.email}
                       </p>
@@ -155,7 +159,7 @@ export function Navbar({ user, onLogout, showLanguageSelector = true }: NavbarPr
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {item.label}
+                {tNav(item.labelKey)}
               </Link>
             ))}
           </div>

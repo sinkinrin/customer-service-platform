@@ -6,6 +6,7 @@
  */
 
 import { NextRequest } from 'next/server'
+import { getTranslations } from 'next-intl/server'
 import { requireRole } from '@/lib/utils/auth'
 import {
     successResponse,
@@ -15,9 +16,12 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { z } from 'zod'
+import { defaultLocale } from '@/i18n'
 
 /**
  * Map state_id to state string for frontend compatibility
+ * Zammad state_id mapping (from actual Zammad API /api/v1/ticket_states):
+ * 1 = new, 2 = open, 3 = pending reminder, 4 = closed, 5 = merged, 6 = pending close
  */
 function mapStateIdToString(stateId: number): string {
   switch (stateId) {
@@ -211,24 +215,26 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         if (previousOwner && previousOwner.id !== staff_id && previousOwner.email) {
             try {
                 console.log(`[API] Sending reassignment notification to previous owner: ${previousOwner.email}`)
+                const tEmail = await getTranslations({ locale: defaultLocale, namespace: 'emails.ticketAssign' })
+                const emailBody = `
+<p>${tEmail('greeting', { name: previousOwner.name })}</p>
+
+<p>${tEmail('bodyIntro', { number: updatedTicket.number, title: updatedTicket.title })}</p>
+
+<p><strong>${tEmail('newAssigneeLabel')}</strong> ${ownerName}</p>
+
+<p>${tEmail('noLongerHandle')}</p>
+
+<p>${tEmail('closing')}<br>
+${tEmail('signature')}</p>
+                `.trim()
                 
                 // Create an internal email article to notify the previous owner
                 // internal: true ensures this notification is not visible to customers
                 await zammadClient.createArticle({
                     ticket_id: ticketId,
-                    subject: `Ticket #${updatedTicket.number} has been reassigned`,
-                    body: `
-<p>Hello ${previousOwner.name},</p>
-
-<p>This is to inform you that ticket <strong>#${updatedTicket.number}</strong> - "${updatedTicket.title}" has been reassigned to another staff member.</p>
-
-<p><strong>New assignee:</strong> ${ownerName}</p>
-
-<p>You no longer need to handle this ticket. If you have any questions, please contact your administrator.</p>
-
-<p>Best regards,<br>
-Support System</p>
-                    `.trim(),
+                    subject: tEmail('subject', { number: updatedTicket.number }),
+                    body: emailBody,
                     content_type: 'text/html',
                     type: 'email',
                     internal: true,  // Hide from customer view, but still send email

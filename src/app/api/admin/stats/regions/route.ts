@@ -13,6 +13,7 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { REGIONS, getRegionByGroupId } from '@/lib/constants/regions'
+import { getRegionLabelForLocale } from '@/lib/i18n/region-labels'
 
 export async function GET(_request: NextRequest) {
   try {
@@ -27,8 +28,8 @@ export async function GET(_request: NextRequest) {
     // Initialize region statistics
     const regionStats = REGIONS.map((region) => ({
       region: region.value,
-      label: region.label,
-      labelEn: region.labelEn,
+      label: getRegionLabelForLocale(region.value, 'zh-CN'),
+      labelEn: getRegionLabelForLocale(region.value, 'en'),
       total: 0,
       open: 0,
       closed: 0,
@@ -38,8 +39,8 @@ export async function GET(_request: NextRequest) {
     // Add "Unassigned" category for tickets without group_id
     const unassignedStats = {
       region: 'unassigned',
-      label: '未分配 (Unassigned)',
-      labelEn: 'Unassigned',
+      label: getRegionLabelForLocale('unassigned', 'zh-CN'),
+      labelEn: getRegionLabelForLocale('unassigned', 'en'),
       total: 0,
       open: 0,
       closed: 0,

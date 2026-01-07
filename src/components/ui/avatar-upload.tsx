@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -36,6 +36,17 @@ export function AvatarUpload({
   const [uploading, setUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Track blob URLs to revoke them and prevent memory leaks
+  const blobUrlRef = useRef<string | null>(null)
+
+  // Cleanup blob URL on unmount or when preview changes
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current)
+      }
+    }
+  }, [])
 
   const displayUrl = previewUrl || currentAvatarUrl
 
@@ -55,8 +66,14 @@ export function AvatarUpload({
       return
     }
 
+    // Revoke previous blob URL to prevent memory leak
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current)
+    }
+    
     // Create preview
     const objectUrl = URL.createObjectURL(file)
+    blobUrlRef.current = objectUrl
     setPreviewUrl(objectUrl)
 
     // Upload file
@@ -104,7 +121,7 @@ export function AvatarUpload({
       } else {
         toast.error(t('avatarRemoveError'))
       }
-    } catch (error) {
+    } catch {
       toast.error(t('avatarRemoveError'))
     }
   }

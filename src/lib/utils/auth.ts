@@ -56,6 +56,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     language: session.user.language,
     region: session.user.region,
     zammad_id: session.user.zammad_id,
+    group_ids: session.user.group_ids,
     created_at: new Date().toISOString(),
   }
 }

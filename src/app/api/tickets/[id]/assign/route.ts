@@ -36,8 +36,6 @@ function mapStateIdToString(stateId: number): string {
     case 5:
       return 'merged'
     case 6:
-      return 'removed'
-    case 7:
       return 'pending close'
     default:
       return 'closed'

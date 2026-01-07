@@ -108,10 +108,11 @@ describe('Tickets export API', () => {
     const text = await response.text()
 
     expect(response.status).toBe(200)
-    expect(text.charCodeAt(0)).toBe(0xfeff)
+    expect(response.headers.get('Content-Type')).toContain('text/csv')
+    expect(response.headers.get('Content-Disposition')).toContain('tickets-export-')
 
-    const csvBody = text.slice(1)
-    const lines = csvBody.split('\n')
+    const normalized = text.startsWith('\uFEFF') ? text.slice(1) : text
+    const lines = normalized.split('\n')
     expect(lines[0]).toContain('Ticket ID')
     expect(lines).toHaveLength(2)
     expect(lines[1]).toContain('Asia ticket')

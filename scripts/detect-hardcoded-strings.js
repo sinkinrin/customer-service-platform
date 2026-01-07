@@ -49,9 +49,6 @@ const WHITELIST = [
   'Promise',
 ]
 
-// Component names to ignore
-const IGNORED_COMPONENTS = ['Head', 'Script', 'meta', 'title']
-
 // ANSI color codes
 const colors = {
   reset: '\x1b[0m',
@@ -218,8 +215,8 @@ function detectJsxAttributeStrings(content, filePath) {
   ]
 
   targets.forEach((target) => {
-    const literalPattern = new RegExp(`${target.name}\\s*=\\s*['\"\\`]([^'\"\\`]+)['\"\\`]`, 'g')
-    const jsxLiteralPattern = new RegExp(`${target.name}\\s*=\\s*{\\s*['\"\\`]([^'\"\\`]+)['\"\\`]\\s*}`, 'g')
+    const literalPattern = new RegExp(`${target.name}\\s*=\\s*['\"\\x60]([^'\"\\x60]+)['\"\\x60]`, 'g')
+    const jsxLiteralPattern = new RegExp(`${target.name}\\s*=\\s*{\\s*['\"\\x60]([^'\"\\x60]+)['\"\\x60]\\s*}`, 'g')
     const patterns = [literalPattern, jsxLiteralPattern]
 
     patterns.forEach((pattern) => {
@@ -260,7 +257,7 @@ function detectJsxAttributeStrings(content, filePath) {
 function detectObjectLiteralStrings(content, filePath) {
   const issues = []
   const keys = ['label', 'title', 'description', 'placeholder', 'helperText', 'tooltip', 'text']
-  const pattern = new RegExp(`\\b(${keys.join('|')})\\s*:\\s*['\"\\`]([^'\"\\`]+)['\"\\`]`, 'g')
+  const pattern = new RegExp(`\\b(${keys.join('|')})\\s*:\\s*['\"\\x60]([^'\"\\x60]+)['\"\\x60]`, 'g')
   let match
 
   while ((match = pattern.exec(content)) !== null) {

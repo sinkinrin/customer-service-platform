@@ -30,7 +30,6 @@ vi.mock('@/lib/mock-auth', () => ({
 }))
 
 import { auth } from '@/auth'
-import { zammadClient } from '@/lib/zammad/client'
 import { mockUsers } from '@/lib/mock-auth'
 
 // Test users

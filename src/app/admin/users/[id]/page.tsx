@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -20,8 +20,6 @@ import {
     XCircle,
     Edit,
 } from 'lucide-react'
-import { toast } from 'sonner'
-import Link from 'next/link'
 import { isValidRegion, type RegionValue } from '@/lib/constants/regions'
 import { TicketHistoryDialog } from '@/components/admin/ticket-history-dialog'
 import { useTranslations } from 'next-intl'

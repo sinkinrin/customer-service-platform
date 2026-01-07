@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/tickets/route'
-import { GET as GET_TICKET, PUT, DELETE } from '@/app/api/tickets/[id]/route'
+import { GET as GET_TICKET, DELETE } from '@/app/api/tickets/[id]/route'
 
 // Mock auth module
 vi.mock('@/auth', () => ({
@@ -57,14 +57,6 @@ const mockCustomer = {
   email: 'customer@test.com',
   role: 'customer' as const,
   full_name: 'Test Customer',
-  region: 'asia-pacific',
-}
-
-const mockStaff = {
-  id: 'staff_001',
-  email: 'staff@test.com',
-  role: 'staff' as const,
-  full_name: 'Test Staff',
   region: 'asia-pacific',
 }
 

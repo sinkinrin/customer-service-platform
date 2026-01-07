@@ -15,7 +15,7 @@ interface ConversationHeaderProps {
   mode?: 'ai'
 }
 
-export function ConversationHeader({ mode = 'ai' }: ConversationHeaderProps) {
+export function ConversationHeader({ mode: _mode = 'ai' }: ConversationHeaderProps) {
   const t = useTranslations('components.conversation.header')
   const displayName = t('aiAssistant')
 

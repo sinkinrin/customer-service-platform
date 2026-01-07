@@ -70,15 +70,12 @@ describe('Admin stats APIs', () => {
       const asiaGroupId = getGroupIdByRegion('asia-pacific')
       const europeGroupId = getGroupIdByRegion('europe-zone-1')
 
-      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
-        tickets_count: 4,
-        tickets: [
-          { id: 1, group_id: asiaGroupId, state_id: 1 },
-          { id: 2, group_id: asiaGroupId, state_id: 2 },
-          { id: 3, group_id: europeGroupId, state_id: 4 },
-          { id: 4, group_id: null, state_id: 2 },
-        ],
-      } as any)
+      vi.mocked(zammadClient.getAllTickets).mockResolvedValue([
+        { id: 1, group_id: asiaGroupId, state_id: 1 },
+        { id: 2, group_id: asiaGroupId, state_id: 2 },
+        { id: 3, group_id: europeGroupId, state_id: 4 },
+        { id: 4, group_id: null, state_id: 2 },
+      ] as any)
 
       const response = await GET_REGIONS(createRequest('http://localhost:3000/api/admin/stats/regions'))
       const payload = await response.json()

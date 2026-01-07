@@ -6,21 +6,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { PUT } from '@/app/api/tickets/[id]/reopen/route'
 
-const mockGetTicket = vi.fn()
-const mockUpdateTicket = vi.fn()
-const mockCreateArticle = vi.fn()
+const { mockGetTicket, mockUpdateTicket, mockCreateArticle } = vi.hoisted(() => ({
+  mockGetTicket: vi.fn(),
+  mockUpdateTicket: vi.fn(),
+  mockCreateArticle: vi.fn(),
+}))
 
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
-vi.mock('@/lib/zammad/client', () => ({
-  ZammadClient: vi.fn().mockImplementation(() => ({
-    getTicket: mockGetTicket,
-    updateTicket: mockUpdateTicket,
-    createArticle: mockCreateArticle,
-  })),
-}))
+vi.mock('@/lib/zammad/client', () => {
+  class ZammadClient {
+    getTicket = mockGetTicket
+    updateTicket = mockUpdateTicket
+    createArticle = mockCreateArticle
+  }
+
+  return { ZammadClient }
+})
 
 import { auth } from '@/auth'
 
@@ -37,7 +41,7 @@ describe('Ticket Reopen API', () => {
   })
 
   afterEach(() => {
-    vi.resetAllMocks()
+    vi.clearAllMocks()
   })
 
   it('returns 401 for unauthenticated users', async () => {

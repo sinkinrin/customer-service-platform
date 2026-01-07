@@ -4,9 +4,7 @@
  * 测试多语言功能
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import fs from 'fs'
-import path from 'path'
+import { describe, it, expect } from 'vitest'
 
 // 支持的语言列表
 const SUPPORTED_LOCALES = ['en', 'zh', 'es', 'fr', 'pt', 'ja'] as const
@@ -250,8 +248,6 @@ describe('国际化 (i18n) 测试', () => {
 
   describe('翻译键验证', () => {
     it('所有语言文件应存在', () => {
-      const messagesDir = 'messages'
-      
       // 模拟检查文件存在
       const checkFileExists = (locale: Locale) => {
         // 在实际测试中会检查文件系统
@@ -291,7 +287,7 @@ describe('国际化 (i18n) 测试', () => {
         'common.save': 'Save',
       }
       
-      Object.entries(translations).forEach(([key, value]) => {
+      Object.entries(translations).forEach(([_key, value]) => {
         expect(value.trim().length).toBeGreaterThan(0)
       })
     })

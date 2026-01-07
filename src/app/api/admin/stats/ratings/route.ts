@@ -23,7 +23,6 @@ export async function GET() {
 
     try {
       // Try to get rating statistics from database
-      // @ts-ignore - TicketRating model may not exist until prisma generate is run
       const ratings = await prisma.ticketRating?.findMany({
         select: {
           id: true,

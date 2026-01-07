@@ -15,6 +15,7 @@ vi.mock('@/lib/zammad/client', () => ({
     getAgents: vi.fn(),
     getAllTickets: vi.fn(),
     getUser: vi.fn(),
+    getUserByEmail: vi.fn(),
   },
 }))
 
@@ -53,6 +54,10 @@ describe('Staff Available API', () => {
     vi.mocked(requireRole).mockResolvedValue({} as any)
 
     vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 5,
+      group_ids: { [asiaGroupId.toString()]: ['full'] },
+    } as any)
+    vi.mocked(zammadClient.getUserByEmail).mockResolvedValue({
       id: 5,
       group_ids: { [asiaGroupId.toString()]: ['full'] },
     } as any)

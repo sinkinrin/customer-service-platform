@@ -2,7 +2,7 @@
  * Logger 工具测试
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { LogLevel } from '@/lib/utils/logger'
 
 describe('Logger', () => {

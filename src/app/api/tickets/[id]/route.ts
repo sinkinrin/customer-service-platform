@@ -43,14 +43,14 @@ function mapPriorityIdToString(priorityId: number): string {
 
 /**
  * Map state_id to state string for frontend compatibility
- * Zammad state_id mapping (from Zammad API documentation):
+ * Zammad state_id mapping (from actual Zammad API /api/v1/ticket_states):
  * 1 = new
  * 2 = open
  * 3 = pending reminder
  * 4 = closed
  * 5 = merged
- * 6 = removed
- * 7 = pending close
+ * 6 = pending close
+ * Note: 'removed' state does not exist in this Zammad instance
  */
 function mapStateIdToString(stateId: number): string {
   switch (stateId) {
@@ -65,8 +65,6 @@ function mapStateIdToString(stateId: number): string {
     case 5:
       return 'merged'
     case 6:
-      return 'removed'
-    case 7:
       return 'pending close'
     default:
       return 'closed' // Default to closed for unknown states
@@ -85,10 +83,12 @@ function mapStateStringToId(state: string): number {
       return 2
     case 'pending reminder':
       return 3
-    case 'pending close':
-      return 4
     case 'closed':
+      return 4
+    case 'merged':
       return 5
+    case 'pending close':
+      return 6
     default:
       return 2 // Default to open if unknown
   }
@@ -343,7 +343,15 @@ export async function PUT(
       }
     }
     if (updateData.priority) payload.priority = updateData.priority
-    if (updateData.owner_id) payload.owner_id = updateData.owner_id
+    
+    // Security: Only admin can modify owner_id (ticket assignment)
+    // Staff must use /api/tickets/[id]/assign endpoint which has proper admin-only restriction
+    if (updateData.owner_id) {
+      if (user.role !== 'admin') {
+        return errorResponse('FORBIDDEN', 'Only admin can assign tickets. Use /api/tickets/[id]/assign endpoint.', undefined, 403)
+      }
+      payload.owner_id = updateData.owner_id
+    }
 
     console.log('[DEBUG] PUT /api/tickets/[id] - Update payload:', JSON.stringify(payload, null, 2))
     console.log('[DEBUG] PUT /api/tickets/[id] - Original updateData:', JSON.stringify(updateData, null, 2))
@@ -378,10 +386,17 @@ export async function PUT(
       state_id: existingTicket.state_id,
     }
     
+    // Determine the appropriate permission action:
+    // - If customer is only closing the ticket (state -> closed), use 'close' action
+    // - Otherwise use 'edit' action
+    const isCloseOnly = user.role === 'customer' && 
+      updateData.state?.toLowerCase() === 'closed' &&
+      !updateData.title && !updateData.group && !updateData.priority && !updateData.owner_id
+    
     const permissionResult = checkTicketPermission({
       user: permissionUser,
       ticket: permissionTicket,
-      action: 'edit',
+      action: isCloseOnly ? 'close' : 'edit',
     })
     
     if (!permissionResult.allowed) {

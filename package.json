@@ -7,7 +7,7 @@
     "dev:turbo": "next dev -p 3010 -H 0.0.0.0 --turbo",
     "build": "next build",
     "start": "next start -p 3010 -H 0.0.0.0",
-    "lint": "next lint",
+    "lint": "eslint . --ignore-path .gitignore",
     "type-check": "tsc --noEmit",
     "db:seed": "tsx prisma/seed.ts",
     "i18n:validate": "node scripts/validate-i18n.js",

@@ -84,7 +84,7 @@
 3. **更新查询 API** (`src/app/api/tickets/updates/route.ts`)
    - `GET /api/tickets/updates?since=timestamp`
    - 返回指定时间后的更新列表
-   - 按用户权限过滤（Staff 只看自己区域）
+   - 按用户权限过滤（Staff 只看分配给自己的工单）
 
 ### 阶段3：前端智能轮询（P0）
 

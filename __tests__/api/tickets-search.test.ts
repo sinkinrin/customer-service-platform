@@ -44,7 +44,7 @@ describe('Ticket Search API', () => {
   })
 
   afterEach(() => {
-    vi.resetAllMocks()
+    vi.clearAllMocks()
   })
 
   it('rejects requests without query', async () => {
@@ -63,7 +63,7 @@ describe('Ticket Search API', () => {
       user: { role: 'admin' },
     } as any)
 
-    const request = createRequest('http://localhost:3000/api/tickets/search?query=test&limit=200')
+    const request = createRequest('http://localhost:3000/api/tickets/search?query=test&limit=201')
     const response = await GET(request)
 
     expect(response.status).toBe(400)
@@ -92,17 +92,20 @@ describe('Ticket Search API', () => {
 
     vi.mocked(auth).mockResolvedValue({
       user: {
+        id: 'staff_001',
         role: 'staff',
         email: 'staff@test.com',
         region: 'asia-pacific',
         full_name: 'Test Staff',
+        zammad_id: 501,
+        group_ids: [asiaGroupId],
       },
     } as any)
 
     vi.mocked(zammadClient.searchTickets).mockResolvedValue({
       tickets: [
-        { id: 1, group_id: asiaGroupId, customer_id: 100, priority_id: 2, state_id: 2 },
-        { id: 2, group_id: europeGroupId, customer_id: 200, priority_id: 2, state_id: 2 },
+        { id: 1, owner_id: 999, group_id: asiaGroupId, customer_id: 100, priority_id: 2, state_id: 2 },
+        { id: 2, owner_id: 999, group_id: europeGroupId, customer_id: 200, priority_id: 2, state_id: 2 },
       ],
       tickets_count: 2,
     } as any)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -64,6 +64,16 @@ export function TicketActions({
   const [hasChanges, setHasChanges] = useState(false)
   const [showPendingTime, setShowPendingTime] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-resize textarea based on content
+  const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNote(e.target.value)
+    if (noteTextareaRef.current) {
+      noteTextareaRef.current.style.height = 'auto'
+      noteTextareaRef.current.style.height = `${Math.min(noteTextareaRef.current.scrollHeight, 300)}px`
+    }
+  }
 
   // Convert File to base64
   const fileToBase64 = (file: File): Promise<string> => {
@@ -177,7 +187,7 @@ export function TicketActions({
               'mime-type': file.type || 'application/octet-stream',
             }))
           )
-        } catch (error) {
+        } catch {
           toast.error(tToastComponents('sendError'))
           return
         }
@@ -190,6 +200,10 @@ export function TicketActions({
       setIsInternal(false)
       setReplyType('note')
       setFiles([])
+      // Reset textarea height after clearing
+      if (noteTextareaRef.current) {
+        noteTextareaRef.current.style.height = 'auto'
+      }
     }
   }
 
@@ -322,10 +336,11 @@ export function TicketActions({
             <Label htmlFor="note">{t('noteContent')}</Label>
             <Textarea
               id="note"
+              ref={noteTextareaRef}
               placeholder={replyType === 'email' ? (t('emailPlaceholder') || 'Type your email reply...') : t('notePlaceholder')}
               value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={4}
+              onChange={handleNoteChange}
+              className="min-h-[100px] max-h-[300px] resize-none"
             />
           </div>
 

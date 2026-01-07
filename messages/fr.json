@@ -338,7 +338,9 @@
         "customer": "Client",
         "agent": "Support",
         "system": "Syst?me"
-      }
+      },
+      "internalNote": "Note interne",
+      "attachFiles": "Joindre des fichiers"
     },
     "articles": "Articles",
     "addArticle": "Ajouter un article",

@@ -16,7 +16,7 @@ vi.mock('fs/promises', () => ({
   },
 }))
 
-describe('Customer journey: AI to human handoff', () => {
+describe('Customer journey: AI conversation', () => {
   const customer = {
     id: 'cust_001',
     email: 'zhang.san@example.com',
@@ -29,18 +29,16 @@ describe('Customer journey: AI to human handoff', () => {
     vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([]))
   })
 
-  it('creates a new AI conversation in the customer region', async () => {
+  it('creates a new AI conversation for the customer', async () => {
     const { createAIConversation } = await import('@/lib/local-conversation-storage')
 
     const conversation = await createAIConversation(
       customer.id,
-      customer.email,
-      customer.region as any
+      customer.email
     )
 
     expect(conversation.mode).toBe('ai')
     expect(conversation.status).toBe('active')
-    expect(conversation.region).toBe('asia-pacific')
     expect(conversation.customer_id).toBe(customer.id)
   })
 
@@ -64,14 +62,13 @@ describe('Customer journey: AI to human handoff', () => {
     expect(messages[0].content).toBe('First message')
   })
 
-  it('switches conversation from AI to human when escalated', async () => {
+  it('closes a conversation by updating status', async () => {
     const conversations = [{
       id: 'conv_001',
       customer_id: customer.id,
       customer_email: customer.email,
       mode: 'ai',
       status: 'active',
-      region: 'asia-pacific',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       last_message_at: new Date().toISOString(),
@@ -82,15 +79,11 @@ describe('Customer journey: AI to human handoff', () => {
     const { updateConversation } = await import('@/lib/local-conversation-storage')
 
     const updated = await updateConversation('conv_001', {
-      mode: 'human',
-      status: 'waiting',
-      transferred_at: new Date().toISOString(),
-      transfer_reason: 'AI could not answer',
+      status: 'closed',
     })
 
-    expect(updated?.mode).toBe('human')
-    expect(updated?.status).toBe('waiting')
-    expect(updated?.transfer_reason).toBe('AI could not answer')
+    expect(updated?.mode).toBe('ai')
+    expect(updated?.status).toBe('closed')
   })
 
   it('preserves AI history when retrieving conversation messages', async () => {
@@ -110,45 +103,5 @@ describe('Customer journey: AI to human handoff', () => {
     expect(history[1].sender_role).toBe('ai')
   })
 
-  it('assigns staff and allows rating after closing', async () => {
-    const conversations = [{
-      id: 'conv_001',
-      customer_id: customer.id,
-      customer_email: customer.email,
-      mode: 'human',
-      status: 'waiting',
-      region: 'asia-pacific',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      last_message_at: new Date().toISOString(),
-    }]
-
-    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(conversations))
-
-    const { updateConversation } = await import('@/lib/local-conversation-storage')
-
-    const assigned = await updateConversation('conv_001', {
-      staff_id: 'staff_001',
-      staff_name: 'Support Agent',
-      assigned_at: new Date().toISOString(),
-      status: 'active',
-    })
-
-    expect(assigned?.staff_id).toBe('staff_001')
-    expect(assigned?.status).toBe('active')
-
-    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([{ ...assigned, status: 'active' }]))
-
-    const rated = await updateConversation('conv_001', {
-      status: 'closed',
-      rating: {
-        score: 5,
-        feedback: 'Resolved quickly',
-        rated_at: new Date().toISOString(),
-      },
-    })
-
-    expect(rated?.status).toBe('closed')
-    expect(rated?.rating?.score).toBe(5)
-  })
+  // Human handoff, assignment, and rating flows were removed from local storage.
 })

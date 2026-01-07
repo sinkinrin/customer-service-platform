@@ -4,7 +4,7 @@
  * 测试客户、客服、管理员之间的交互流程
  */
 
-import { test, expect, Page, BrowserContext } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
 
 // 登录辅助函数
 async function loginAs(page: Page, email: string, password: string = 'password123') {

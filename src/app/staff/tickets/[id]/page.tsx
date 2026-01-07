@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, MessageSquare } from 'lucide-react'
 import { TicketActions } from '@/components/ticket/ticket-actions'
@@ -30,7 +29,7 @@ function TicketStatusBadge({ state }: { state?: string }) {
   } else if (stateLower === 'pending reminder') {
     className += 'bg-amber-400 text-gray-900 hover:bg-amber-400'
   } else if (stateLower === 'pending close') {
-    className += 'bg-emerald-500 text-white hover:bg-emerald-500'
+    className += 'bg-orange-500 text-white hover:bg-orange-500'
   } else if (stateLower === 'closed') {
     className += 'bg-gray-400 text-white hover:bg-gray-400'
   } else {
@@ -214,7 +213,7 @@ export default function StaffTicketDetailPage() {
               ) : (
                 <div className="space-y-4">
                   {articles.map((article) => (
-                    <ArticleCard key={article.id} article={article} />
+                    <ArticleCard key={article.id} article={article} viewerRole="staff" />
                   ))}
                 </div>
               )}

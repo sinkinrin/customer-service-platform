@@ -38,14 +38,14 @@ function mapPriorityIdToString(priorityId: number): string {
 
 /**
  * Map state_id to state string for frontend compatibility
- * Zammad state_id mapping (from Zammad API documentation):
+ * Zammad state_id mapping (from actual Zammad API /api/v1/ticket_states):
  * 1 = new
  * 2 = open
  * 3 = pending reminder
  * 4 = closed
  * 5 = merged
- * 6 = removed
- * 7 = pending close
+ * 6 = pending close
+ * Note: 'removed' state does not exist in this Zammad instance
  */
 function mapStateIdToString(stateId: number): string {
   switch (stateId) {
@@ -60,8 +60,6 @@ function mapStateIdToString(stateId: number): string {
     case 5:
       return 'merged'
     case 6:
-      return 'removed'
-    case 7:
       return 'pending close'
     default:
       return 'closed' // Default to closed for unknown states
@@ -81,7 +79,7 @@ function transformTicket(ticket: RawZammadTicket, customerInfo?: { name?: string
   }
 }
 import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
-import { filterTicketsByRegion } from '@/lib/utils/region-auth'
+import { filterTicketsByPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 
 // Helper function to ensure user exists in Zammad
 async function ensureZammadUser(email: string, fullName: string, role: string, region?: string) {
@@ -154,9 +152,9 @@ export async function GET(request: NextRequest) {
       return errorResponse('INVALID_QUERY', 'Query parameter is required', undefined, 400)
     }
 
-    // Validate limit
-    if (limit < 1 || limit > 100) {
-      return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 100', undefined, 400)
+    // Validate limit (increased to 200 to support dashboard/list statistics)
+    if (limit < 1 || limit > 200) {
+      return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 200', undefined, 400)
     }
 
     // Check Zammad health before proceeding
@@ -207,19 +205,28 @@ export async function GET(request: NextRequest) {
       result = await zammadClient.searchTickets(query, limit, user.email)
       console.log('[DEBUG] Search API - Result:', JSON.stringify(result, null, 2))
     } else {
-      // Staff: Search ALL tickets without X-On-Behalf-Of, then filter by region
+      // Staff: Search ALL tickets without X-On-Behalf-Of, then filter by permission
       // Using X-On-Behalf-Of would only return tickets where staff is assigned/has explicit access
       // Staff needs to see all customer-created tickets in their region
-      console.log('[DEBUG] Search API - Fetching all tickets for staff, will filter by region')
-      result = await zammadClient.searchTickets(query, limit * 2) // Get more to account for region filtering
-      console.log('[DEBUG] Search API - Before region filter:', result.tickets?.length || 0, 'tickets')
+      console.log('[DEBUG] Search API - Fetching all tickets for staff, will filter by permission')
+      result = await zammadClient.searchTickets(query, limit * 2) // Get more to account for permission filtering
+      console.log('[DEBUG] Search API - Before permission filter:', result.tickets?.length || 0, 'tickets')
 
-      // Apply region filtering for staff
+      // Apply unified permission filtering for staff (same as /api/tickets list)
+      // This ensures consistent filtering between list and search APIs
       if (result.tickets) {
-        result.tickets = filterTicketsByRegion(result.tickets, user)
+        const permissionUser: PermissionUser = {
+          id: user.id,
+          email: user.email,
+          role: user.role as 'admin' | 'staff' | 'customer',
+          zammad_id: user.zammad_id,
+          group_ids: user.group_ids,
+          region: user.region,
+        }
+        result.tickets = filterTicketsByPermission(result.tickets as unknown as PermissionTicket[], permissionUser) as unknown as typeof result.tickets
         result.tickets_count = result.tickets.length
       }
-      console.log('[DEBUG] Search API - After region filter:', result.tickets?.length || 0, 'tickets')
+      console.log('[DEBUG] Search API - After permission filter:', result.tickets?.length || 0, 'tickets')
     }
 
     console.log('[DEBUG] Search API - Returning tickets count:', result.tickets?.length || 0)

@@ -39,7 +39,7 @@ describe('Tickets Articles API', () => {
   })
 
   afterEach(() => {
-    vi.resetAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('GET /api/tickets/[id]/articles', () => {

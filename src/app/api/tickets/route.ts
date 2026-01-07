@@ -43,14 +43,14 @@ function mapPriorityIdToString(priorityId: number): string {
 
 /**
  * Map state_id to state string for frontend compatibility
- * Zammad state_id mapping (from Zammad API documentation):
+ * Zammad state_id mapping (from actual Zammad API /api/v1/ticket_states):
  * 1 = new
  * 2 = open
  * 3 = pending reminder
  * 4 = closed
  * 5 = merged
- * 6 = removed
- * 7 = pending close
+ * 6 = pending close
+ * Note: 'removed' state does not exist in this Zammad instance
  */
 function mapStateIdToString(stateId: number): string {
   switch (stateId) {
@@ -65,8 +65,6 @@ function mapStateIdToString(stateId: number): string {
     case 5:
       return 'merged'
     case 6:
-      return 'removed'
-    case 7:
       return 'pending close'
     default:
       return 'closed' // Default to closed for unknown states

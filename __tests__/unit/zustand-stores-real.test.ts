@@ -153,6 +153,7 @@ describe('Conversation Store 真实测试', () => {
       id: 'conv_old',
       customer_id: 'cust_1',
       status: 'active' as const,
+      mode: 'ai' as const,
       message_count: 0,
       started_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
@@ -163,7 +164,8 @@ describe('Conversation Store 真实测试', () => {
     addConversation({
       id: 'conv_new',
       customer_id: 'cust_2',
-      status: 'waiting' as const,
+      status: 'active' as const,
+      mode: 'ai' as const,
       message_count: 0,
       started_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
@@ -183,6 +185,7 @@ describe('Conversation Store 真实测试', () => {
       id: 'conv_1',
       customer_id: 'cust_1',
       status: 'active' as const,
+      mode: 'ai' as const,
       message_count: 0,
       started_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
@@ -202,6 +205,7 @@ describe('Conversation Store 真实测试', () => {
       id: 'conv_1',
       customer_id: 'cust_1',
       status: 'active' as const,
+      mode: 'ai' as const,
       message_count: 0,
       started_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
@@ -245,16 +249,6 @@ describe('Conversation Store 真实测试', () => {
     addMessage(mockMessage) // 重复添加
     
     expect(useConversationStore.getState().messages).toHaveLength(1)
-  })
-
-  it('setTyping 应该设置打字状态', () => {
-    const { setTyping } = useConversationStore.getState()
-    
-    setTyping(true, 'Staff Member')
-    
-    const state = useConversationStore.getState()
-    expect(state.isTyping).toBe(true)
-    expect(state.typingUser).toBe('Staff Member')
   })
 
   it('加载状态函数应该正确工作', () => {

@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, MessageSquare, Trash2, UserPlus, Activity } from 'lucide-react'
-import { TicketDetail } from '@/components/ticket/ticket-detail'
 import { TicketActions } from '@/components/ticket/ticket-actions'
 import { ArticleCard } from '@/components/ticket/article-content'
 import { TicketAssignDialog } from '@/components/admin/ticket-assign-dialog'
@@ -220,7 +219,7 @@ export default function AdminTicketDetailPage() {
               ) : (
                 <div className="space-y-4">
                   {articles.map((article) => (
-                    <ArticleCard key={article.id} article={article} />
+                    <ArticleCard key={article.id} article={article} viewerRole="admin" />
                   ))}
                 </div>
               )}

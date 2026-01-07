@@ -99,7 +99,7 @@
 - [x] 1.5.1 创建导出API ✅
   - GET `/api/tickets/export` - 导出工单
   - 支持CSV格式
-  - Admin导出全部，Staff按区域过滤
+  - Admin导出全部，Staff仅导出自己负责工单
 
 - [x] 1.5.2 实现导出UI ✅
   - Admin工单列表已有Export按钮

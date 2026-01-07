@@ -99,7 +99,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
             } else {
                 toast.error(data.error || 'Failed to parse CSV')
             }
-        } catch (error) {
+        } catch {
             toast.error(tToast('createError'))
         } finally {
             setLoading(false)
@@ -136,7 +136,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                 toast.error(data.error || 'Import failed')
                 setStep('preview')
             }
-        } catch (error) {
+        } catch {
             toast.error(tToast('createError'))
             setStep('preview')
         } finally {

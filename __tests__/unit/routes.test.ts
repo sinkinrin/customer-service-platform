@@ -117,8 +117,8 @@ describe('isRouteMatch', () => {
       expect(isRouteMatch('', PUBLIC_ROUTES)).toBe(false)
     })
 
-    it('根路径应该不匹配公开路由', () => {
-      expect(isRouteMatch('/', PUBLIC_ROUTES)).toBe(false)
+    it('根路径应该匹配公开路由', () => {
+      expect(isRouteMatch('/', PUBLIC_ROUTES)).toBe(true)
     })
   })
 })

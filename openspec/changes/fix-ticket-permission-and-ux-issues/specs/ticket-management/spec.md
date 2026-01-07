@@ -37,7 +37,7 @@ Admin 用户 SHALL 能够删除工单。
 - **GIVEN** 用户角色为 Customer
 - **AND** 目标工单不是由该客户创建
 - **WHEN** 用户尝试关闭该工单
-- **THEN** 系统 SHALL 返回 403 Forbidden 错误
+- **THEN** 系统 SHALL 返回 404 Not Found 错误
 
 ### Requirement: Live 聊天附件发送
 

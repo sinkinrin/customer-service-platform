@@ -15,7 +15,7 @@ import {
 } from '@/lib/utils/api-response'
 import { mockUsers, mockPasswords } from '@/lib/mock-auth'
 import { zammadClient } from '@/lib/zammad/client'
-import { getGroupIdByRegion, isValidRegion, getRegionByGroupId, type RegionValue } from '@/lib/constants/regions'
+import { getGroupIdByRegion, isValidRegion, getRegionByGroupId } from '@/lib/constants/regions'
 import { z } from 'zod'
 
 // Validation schema for creating a new user

@@ -5,12 +5,11 @@ import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Send, Loader2, Clock, Tag, MessageSquare, Upload, X, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Send, Loader2, Clock, Tag, Upload, X, CheckCircle } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -342,7 +341,7 @@ export default function CustomerTicketDetailPage() {
           ) : (
             <div className="space-y-4">
               {articles.map((article) => (
-                <ArticleCard key={article.id} article={article} />
+                <ArticleCard key={article.id} article={article} viewerRole="customer" />
               ))}
             </div>
           )}

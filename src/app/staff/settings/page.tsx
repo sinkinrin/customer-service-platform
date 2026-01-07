@@ -49,7 +49,6 @@ export default function StaffSettingsPage() {
   const tSecurity = useTranslations('staff.settings.security')
   const tVacation = useTranslations('staff.vacation')
   const tToast = useTranslations('staff.settings.toast')
-  const tCommon = useTranslations('common.localeNames')
   const [saving, setSaving] = useState(false)
   const [vacationDialogOpen, setVacationDialogOpen] = useState(false)
   const [vacationStatus, setVacationStatus] = useState<{
@@ -149,7 +148,7 @@ export default function StaffSettingsPage() {
             <AvatarUpload
               currentAvatarUrl={user?.avatar_url}
               fallbackText={settings.full_name?.charAt(0) || 'S'}
-              onUploadSuccess={(url) => {
+              onUploadSuccess={(_url) => {
                 toast.success(tPersonal('avatarUpdated'))
               }}
             />

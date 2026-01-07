@@ -32,16 +32,7 @@ export function getDefaultRouteForRole(role: UserRole): string {
  * @returns Human-readable role name
  */
 export function getRoleDisplayName(role: UserRole): string {
-  switch (role) {
-    case 'customer':
-      return 'Customer'
-    case 'staff':
-      return 'Staff'
-    case 'admin':
-      return 'Administrator'
-    default:
-      return 'User'
-  }
+  return role
 }
 
 /**
@@ -66,28 +57,28 @@ export function isRoleAllowed(
  * @returns Array of navigation items
  */
 export function getNavigationItemsForRole(role: UserRole): Array<{
-  label: string
+  labelKey: string
   href: string
 }> {
   switch (role) {
     case 'customer':
       return [
-        { label: '仪表板', href: '/customer/dashboard' },
-        { label: '在线咨询', href: '/customer/conversations' },
-        { label: '知识库', href: '/customer/faq' },
+        { labelKey: 'dashboard', href: '/customer/dashboard' },
+        { labelKey: 'conversations', href: '/customer/conversations' },
+        { labelKey: 'faq', href: '/customer/faq' },
       ]
     case 'staff':
       return [
-        { label: 'Dashboard', href: '/staff/dashboard' },
-        { label: 'Tickets', href: '/staff/tickets' },
-        { label: 'Knowledge Base', href: '/staff/knowledge-base' },
+        { labelKey: 'dashboard', href: '/staff/dashboard' },
+        { labelKey: 'tickets', href: '/staff/tickets' },
+        { labelKey: 'knowledgeBase', href: '/staff/knowledge-base' },
       ]
     case 'admin':
       return [
-        { label: 'Dashboard', href: '/admin/dashboard' },
-        { label: 'Users', href: '/admin/users' },
-        { label: 'FAQ', href: '/admin/faq' },
-        { label: 'Settings', href: '/admin/settings' },
+        { labelKey: 'dashboard', href: '/admin/dashboard' },
+        { labelKey: 'users', href: '/admin/users' },
+        { labelKey: 'faq', href: '/admin/faq' },
+        { labelKey: 'settings', href: '/admin/settings' },
       ]
     default:
       return []

@@ -1,6 +1,4 @@
 'use client'
-
-import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
     BarChart,
@@ -10,7 +8,6 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Cell,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -28,18 +25,6 @@ interface RegionDistributionChartProps {
     loading?: boolean
     className?: string
 }
-
-// Color palette for regions
-const COLORS = [
-    '#3b82f6', // blue
-    '#22c55e', // green
-    '#f59e0b', // amber
-    '#ef4444', // red
-    '#8b5cf6', // violet
-    '#06b6d4', // cyan
-    '#ec4899', // pink
-    '#14b8a6', // teal
-]
 
 export function RegionDistributionChart({ data, loading, className }: RegionDistributionChartProps) {
     const t = useTranslations('admin.dashboard')

@@ -72,7 +72,9 @@ export function TicketAssignDialog({
     useEffect(() => {
         if (open && ticket) {
             fetchStaff()
-            setSelectedStaffId(ticket.owner_id || null)
+            // owner_id=1 is Zammad system user, treat as unassigned (null)
+            const ownerId = ticket.owner_id === 1 ? null : ticket.owner_id
+            setSelectedStaffId(ownerId || null)
         }
     }, [open, ticket])
 

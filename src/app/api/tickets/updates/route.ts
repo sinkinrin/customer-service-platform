@@ -20,7 +20,7 @@ const MAX_UPDATES = 100
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuth()
+    await requireAuth()
 
     // Get 'since' timestamp from query params
     const searchParams = request.nextUrl.searchParams

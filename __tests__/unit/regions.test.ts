@@ -19,14 +19,10 @@ describe('Regions Constants', () => {
       expect(REGIONS).toHaveLength(8)
     })
 
-    it('每个区域应该有 value, label, labelEn', () => {
+    it('每个区域应该有 value', () => {
       REGIONS.forEach(region => {
         expect(region).toHaveProperty('value')
-        expect(region).toHaveProperty('label')
-        expect(region).toHaveProperty('labelEn')
         expect(typeof region.value).toBe('string')
-        expect(typeof region.label).toBe('string')
-        expect(typeof region.labelEn).toBe('string')
       })
     })
 
@@ -128,19 +124,22 @@ describe('Regions Constants', () => {
   })
 
   describe('getRegionLabel', () => {
-    it('应该返回中文标签（默认）', () => {
-      const label = getRegionLabel('asia-pacific')
-      expect(label).toContain('亚太区')
-    })
-
-    it('应该返回英文标签', () => {
-      const label = getRegionLabel('asia-pacific', 'en')
+    it('应该从映射中返回标签', () => {
+      const labels = {
+        'asia-pacific': 'Asia-Pacific',
+      }
+      const label = getRegionLabel('asia-pacific', labels)
       expect(label).toBe('Asia-Pacific')
     })
 
-    it('无效区域应该返回原值', () => {
-      const label = getRegionLabel('invalid-region' as any)
-      expect(label).toBe('invalid-region')
+    it('未提供映射时应该返回原值', () => {
+      const label = getRegionLabel('asia-pacific', undefined)
+      expect(label).toBe('asia-pacific')
+    })
+
+    it('映射中缺失时应该返回原值', () => {
+      const label = getRegionLabel('asia-pacific', {})
+      expect(label).toBe('asia-pacific')
     })
   })
 
@@ -194,13 +193,13 @@ describe('Region Business Logic', () => {
   })
 
   describe('多语言区域显示', () => {
-    it('应该支持中英文切换', () => {
+    it('应由调用方提供语言映射', () => {
       const region = 'europe-zone-1'
-      const zhLabel = getRegionLabel(region, 'zh')
-      const enLabel = getRegionLabel(region, 'en')
-      
-      expect(zhLabel).toContain('欧洲一区')
-      expect(enLabel).toBe('Europe Zone 1')
+      const labels = {
+        'europe-zone-1': 'Europe Zone 1',
+      }
+
+      expect(getRegionLabel(region, labels)).toBe('Europe Zone 1')
     })
   })
 })

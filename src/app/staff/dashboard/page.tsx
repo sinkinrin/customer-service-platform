@@ -31,8 +31,8 @@ export default function StaffDashboardPage() {
   const loadDashboardData = async () => {
     setIsLoading(true)
     try {
-      // Reduced from 50 to 20 for optimal performance
-      const result = await searchTickets('state:*', 20)
+      // Use higher limit to ensure accurate stats (counts are calculated from fetched tickets)
+      const result = await searchTickets('state:*', 200)
       if (result) {
         const tickets = result.tickets
         // Single-pass count calculation (performance optimization)

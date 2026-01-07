@@ -59,8 +59,8 @@ export function hasGroupAccess(user: RegionAuthUser, groupId: number): boolean {
   }
 
   // Use getAccessibleGroupIds which already handles:
-  // - Staff: their region's group + Users group (ID=1) for legacy tickets
-  // - Customer: Users group (ID=1)
+  // - Staff: their region's group only (no Users group since 2025-12-23 update)
+  // - Customer: their region's group (defaults to Africa/group_id=1 if no region)
   const accessibleGroupIds = getAccessibleGroupIds(user)
   return accessibleGroupIds.includes(groupId)
 }
@@ -86,6 +86,7 @@ export function getAccessibleGroupIds(user: RegionAuthUser): number[] {
       return [groupId]
     }
     // Default to Africa (group_id=1) if no region set
+    // Note: This default is rarely used as customers should always have a region
     return [1]
   }
 

@@ -36,7 +36,7 @@ export function getSenderStyle(sender: string, t?: (key: string) => string): {
   labelColor: string
 } {
   const getLabel = (key: string, fallback: string) => t ? t(key) : fallback
-
+  
   switch (sender) {
     case 'Customer':
       return {
@@ -92,6 +92,7 @@ function filterInlineAttachments(attachments: TicketArticleAttachment[]): Ticket
  */
 export function ArticleContent({ article, showAttachments = true, className, noBubbleStyle = false }: ArticleContentProps) {
   const t = useTranslations('tickets.details')
+  
   // 安全处理 HTML 内容
   const sanitizedBody = useMemo(() => {
     if (article.content_type === 'text/html' || article.content_type?.includes('html')) {
@@ -152,7 +153,6 @@ export function ArticleContent({ article, showAttachments = true, className, noB
         !noBubbleStyle && senderStyle.borderColor
       )}>
         {sanitizedBody ? (
-          // HTML 内容
           <div
             className="prose prose-sm max-w-none dark:prose-invert
               prose-p:my-2 prose-p:leading-relaxed
@@ -164,7 +164,6 @@ export function ArticleContent({ article, showAttachments = true, className, noB
             dangerouslySetInnerHTML={{ __html: sanitizedBody }}
           />
         ) : (
-          // 纯文本内容
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
             {article.body}
           </p>
@@ -201,22 +200,28 @@ export function ArticleContent({ article, showAttachments = true, className, noB
 /**
  * Article 卡片组件 - 聊天气泡风格展示
  * 
- * 样式区分：
- * - Customer: 左对齐，浅灰/蓝色背景
- * - Agent: 右对齐，绿色背景
+ * 样式区分根据查看者角色：
+ * - Staff/Admin 视角：Customer 左对齐，Agent 右对齐
+ * - Customer 视角：自己的消息右对齐，Staff/Admin 左对齐
  * - System: 居中，黄色背景
  */
 interface ArticleCardProps {
   article: TicketArticle
   showMeta?: boolean
+  viewerRole?: 'customer' | 'staff' | 'admin'
 }
 
-export function ArticleCard({ article, showMeta = true }: ArticleCardProps) {
+export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: ArticleCardProps) {
   const t = useTranslations('tickets.details')
   const senderStyle = getSenderStyle(article.sender, t)
-  const isCustomer = article.sender === 'Customer'
+  const isCustomerSender = article.sender === 'Customer'
   const isSystem = article.sender === 'System'
-  const isAgent = article.sender === 'Agent'
+  const isAgentSender = article.sender === 'Agent'
+  
+  // Determine if this message should be on the right ("my message")
+  // - For customer viewer: customer messages are on the right
+  // - For staff/admin viewer: agent messages are on the right
+  const isMyMessage = viewerRole === 'customer' ? isCustomerSender : isAgentSender
   
   // System messages: centered, full width
   if (isSystem) {
@@ -242,21 +247,21 @@ export function ArticleCard({ article, showMeta = true }: ArticleCardProps) {
   return (
     <div className={cn(
       'flex',
-      isCustomer ? 'justify-start' : 'justify-end'
+      isMyMessage ? 'justify-end' : 'justify-start'
     )}>
       <div className={cn(
         'max-w-[80%] space-y-1',
-        isCustomer ? 'items-start' : 'items-end'
+        isMyMessage ? 'items-end' : 'items-start'
       )}>
         {/* Header: sender info and time */}
         {showMeta && (
           <div className={cn(
             'flex flex-col gap-0.5 text-xs mb-1',
-            isCustomer ? 'items-start' : 'items-end'
+            isMyMessage ? 'items-end' : 'items-start'
           )}>
             <div className={cn(
               'flex items-center gap-2',
-              isCustomer ? 'flex-row' : 'flex-row-reverse'
+              isMyMessage ? 'flex-row-reverse' : 'flex-row'
             )}>
               <Badge variant="outline" className={senderStyle.labelColor}>
                 {senderStyle.label}
@@ -280,9 +285,9 @@ export function ArticleCard({ article, showMeta = true }: ArticleCardProps) {
         {/* Message bubble */}
         <div className={cn(
           'rounded-2xl px-4 py-3 shadow-sm',
-          isCustomer 
-            ? 'bg-gray-100 dark:bg-gray-800 rounded-tl-sm' 
-            : 'bg-green-500 dark:bg-green-600 text-white rounded-tr-sm',
+          isMyMessage 
+            ? 'bg-primary text-primary-foreground rounded-tr-sm' 
+            : 'bg-gray-100 dark:bg-gray-800 rounded-tl-sm',
           article.internal && 'border-2 border-dashed border-yellow-400'
         )}>
           {article.internal && (
@@ -294,7 +299,7 @@ export function ArticleCard({ article, showMeta = true }: ArticleCardProps) {
             article={article} 
             showAttachments={true}
             noBubbleStyle={true}
-            className={isAgent && !article.internal ? '[&_.prose]:text-white [&_.prose_*]:text-white' : ''}
+            className={isMyMessage && !article.internal ? '[&_.prose]:text-primary-foreground [&_.prose_*]:text-primary-foreground' : ''}
           />
         </div>
       </div>

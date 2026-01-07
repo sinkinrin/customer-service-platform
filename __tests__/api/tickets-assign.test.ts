@@ -4,7 +4,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { PUT } from '@/app/api/tickets/[id]/assign/route'
 import { getGroupIdByRegion } from '@/lib/constants/regions'
 
 vi.mock('@/lib/utils/auth', () => ({
@@ -20,6 +19,17 @@ vi.mock('@/lib/zammad/client', () => ({
     createArticle: vi.fn(),
   },
 }))
+
+vi.mock('next-intl/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next-intl/server')>()
+  return {
+    ...actual,
+    getTranslations: vi.fn().mockResolvedValue((key: string) => key),
+  }
+})
+
+import { PUT } from '@/app/api/tickets/[id]/assign/route'
+import { getTranslations } from 'next-intl/server'
 
 import { requireRole } from '@/lib/utils/auth'
 import { zammadClient } from '@/lib/zammad/client'
@@ -39,6 +49,8 @@ describe('Ticket Assignment API', () => {
       email: 'admin@test.com',
       role: 'admin',
     } as any)
+
+    vi.mocked(getTranslations).mockResolvedValue((key: string) => key)
   })
 
   afterEach(() => {

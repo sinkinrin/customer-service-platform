@@ -73,7 +73,7 @@ export default function EditUserPage() {
                     toast.error(tToast('loadError'))
                     router.push('/admin/users')
                 }
-            } catch (error) {
+            } catch {
                 toast.error(tToast('loadError'))
                 router.push('/admin/users')
             } finally {
@@ -104,7 +104,7 @@ export default function EditUserPage() {
             } else {
                 toast.error(data.error || tToast('updateError'))
             }
-        } catch (error) {
+        } catch {
             toast.error(tToast('updateError'))
         } finally {
             setSaving(false)

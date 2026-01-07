@@ -16,9 +16,16 @@ vi.mock('@/lib/file-storage', () => ({
   deleteFile: vi.fn(),
 }))
 
+const readFile = vi.hoisted(() => vi.fn())
+
 vi.mock('fs', () => ({
   promises: {
-    readFile: vi.fn(),
+    readFile,
+  },
+  default: {
+    promises: {
+      readFile,
+    },
   },
 }))
 

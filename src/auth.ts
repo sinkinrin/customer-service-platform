@@ -18,7 +18,7 @@ import type { NextAuthConfig } from "next-auth"
 import { ensureEnvValidation, isMockAuthEnabled, env } from "@/lib/env"
 import { PUBLIC_ROUTES, STATIC_ROUTES, isRouteMatch } from "@/lib/constants/routes"
 import { zammadClient } from "@/lib/zammad/client"
-import { getRegionByGroupId } from "@/lib/constants/regions"
+import { getRegionByGroupId, getGroupIdByRegion, type RegionValue } from "@/lib/constants/regions"
 
 // Import mock auth for development/fallback mode
 import { mockUsers, mockPasswords, type MockUser } from "@/lib/mock-auth"
@@ -107,6 +107,16 @@ function getProductionUserFromEnv(): { user: MockUser; password: string } | null
       ? env.AUTH_DEFAULT_USER_ROLE
       : DEFAULT_PRODUCTION_ROLE
 
+  // Derive group_ids from region for staff users
+  const region = env.AUTH_DEFAULT_USER_REGION
+  let group_ids: number[] | undefined
+  if (role === 'staff' && region) {
+    const groupId = getGroupIdByRegion(region as RegionValue)
+    group_ids = [groupId]
+  } else if (role === 'admin') {
+    group_ids = [1, 2, 3, 4, 5, 6, 7, 8] // Admin has all groups
+  }
+
   const user: MockUser = {
     id: `env-user-${email.replace(/[^a-zA-Z0-9]/g, "-") || "default"}`,
     email,
@@ -115,8 +125,9 @@ function getProductionUserFromEnv(): { user: MockUser; password: string } | null
     avatar_url: undefined,
     phone: undefined,
     language: "en",
-    region: env.AUTH_DEFAULT_USER_REGION,
+    region,
     zammad_id: undefined,
+    group_ids,
     created_at: new Date().toISOString(),
   }
 
@@ -265,6 +276,7 @@ const authConfig: NextAuthConfig = {
           language: user.language,
           region: user.region,
           zammad_id: user.zammad_id,
+          group_ids: user.group_ids,
         }
       },
     }),

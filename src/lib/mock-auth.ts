@@ -58,6 +58,7 @@ export const mockUsers: Record<string, MockUser> = {
     phone: '+1234567891',
     language: 'en',
     region: 'asia-pacific',
+    group_ids: [2],  // Asia-Pacific group
     created_at: '2025-01-01T00:00:00.000Z',
   },
   'admin@test.com': {
@@ -69,6 +70,7 @@ export const mockUsers: Record<string, MockUser> = {
     phone: '+1234567892',
     language: 'en',
     region: undefined,  // Admin can access all regions
+    group_ids: [1, 2, 3, 4, 5, 6, 7, 8],  // Admin has all groups
     created_at: '2025-01-01T00:00:00.000Z',
   },
   // Real user account for testing

@@ -31,6 +31,8 @@ openspec/
 
 ## 当前变更提案
 
+- **`refactor-authorization-system-v3`** - 授权系统 V3 重构（P0 安全漏洞修复 + 统一权限架构）
+- `fix-ticket-permission-and-ux-issues` - 修复工单权限和用户体验问题
 - `add-self-hosted-faq-kb` - 添加自建 FAQ 知识库系统
 - `optimize-loading-speed` - 优化FAQ系统加载速度
 - `optimize-platform-performance` - 优化客户服务平台整体性能

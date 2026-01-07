@@ -57,7 +57,7 @@ function getRatingText(rating: string | null | undefined): string {
 }
 
 // GET /api/tickets/export - Export tickets to CSV
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user) {
@@ -125,7 +125,6 @@ export async function GET(request: NextRequest) {
     try {
       const ticketIds = tickets.map(t => t.id)
       // Note: This will fail if prisma generate hasn't been run yet
-      // @ts-ignore - TicketRating model may not exist until prisma generate is run
       const ratings = await prisma.ticketRating?.findMany({
         where: { ticketId: { in: ticketIds } },
         select: { ticketId: true, rating: true },

@@ -142,7 +142,6 @@ export async function GET(request: NextRequest) {
         }
 
         // Calculate trend data
-        const trendStartDate = subDays(new Date(), trendDays)
         const trendData: TrendData[] = []
 
         for (let i = trendDays - 1; i >= 0; i--) {

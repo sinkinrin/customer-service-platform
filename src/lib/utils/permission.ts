@@ -83,16 +83,21 @@ export function checkTicketPermission(ctx: PermissionContext): PermissionResult 
   if (user.role === 'staff') {
     const userGroupIds = user.group_ids || []
     
+    // Zammad uses owner_id=1 (system user) to represent unassigned tickets
+    const ZAMMAD_SYSTEM_USER_ID = 1
+    
     // Check if ticket is assigned to this staff
     const isAssignedToMe = ticket.owner_id === userZammadId
     
     // Check if ticket is in staff's region (group)
     const isInMyRegion = ticket.group_id != null && userGroupIds.includes(ticket.group_id)
     
-    // Check if ticket is unassigned (no owner and no group)
-    const isUnassigned = ticket.owner_id == null && ticket.group_id == null
+    // Check if ticket is unassigned (per spec: owner_id empty, 0, or 1)
+    // Spec explicitly states: "Staff 无法查看未分配工单（owner_id 为空、0、或 1）"
+    // This takes precedence over region access - unassigned tickets are admin-only
+    const isUnassigned = ticket.owner_id == null || ticket.owner_id === 0 || ticket.owner_id === ZAMMAD_SYSTEM_USER_ID
 
-    // Staff cannot see unassigned tickets
+    // Staff cannot see unassigned tickets (only Admin can)
     if (isUnassigned) {
       return { 
         allowed: false, 
@@ -159,8 +164,16 @@ export function filterTicketsByPermission(
   // Staff sees assigned and regional tickets
   if (user.role === 'staff') {
     const userGroupIds = user.group_ids || []
+    const ZAMMAD_SYSTEM_USER_ID = 1
     
     const filtered = tickets.filter(t => {
+      // Unassigned tickets are NOT visible to staff (per spec)
+      // Unassigned = owner_id is null, 0, or 1 (Zammad system user)
+      const isUnassigned = t.owner_id == null || t.owner_id === 0 || t.owner_id === ZAMMAD_SYSTEM_USER_ID
+      if (isUnassigned) {
+        return false
+      }
+      
       // Assigned to me
       if (t.owner_id === userZammadId) {
         return true
@@ -171,8 +184,6 @@ export function filterTicketsByPermission(
         return true
       }
       
-      // Unassigned tickets are NOT visible to staff
-      // (owner_id is null AND group_id is null)
       return false
     })
     

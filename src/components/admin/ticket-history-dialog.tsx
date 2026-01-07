@@ -38,6 +38,7 @@ interface TicketHistoryDialogProps {
 const getStateColor = (state: string) => {
   const stateLower = state?.toLowerCase() || ''
   if (stateLower.includes('open') || stateLower.includes('new')) return 'bg-blue-500'
+  if (stateLower.includes('pending close')) return 'bg-orange-500'
   if (stateLower.includes('pending')) return 'bg-yellow-500'
   if (stateLower.includes('closed')) return 'bg-gray-400'
   return 'bg-gray-400'

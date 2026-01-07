@@ -515,8 +515,8 @@ export default function UsersPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {statusChangeUser?.active
-                ? t('statusDialog.disableDescription', { email: statusChangeUser?.email })
-                : t('statusDialog.activateDescription', { email: statusChangeUser?.email })}
+                ? t('statusDialog.disableDescription', { email: statusChangeUser?.email ?? '' })
+                : t('statusDialog.activateDescription', { email: statusChangeUser?.email ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

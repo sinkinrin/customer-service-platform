@@ -27,13 +27,17 @@ const getStatusColor = (state: string | undefined) => {
   if (stateLower === 'pending reminder') {
     return 'bg-[#FBBF24] text-gray-900'
   }
-  // Pending Close (待关闭) - Light Cyan-Green
+  // Pending Close (待关闭) - Orange
   if (stateLower === 'pending close') {
-    return 'bg-[#10B981] text-white'
+    return 'bg-[#F97316] text-white'
   }
   // Closed (已关闭) - Neutral Gray
   if (stateLower === 'closed') {
     return 'bg-[#9CA3AF] text-white'
+  }
+  // Merged (已合并) - Purple
+  if (stateLower === 'merged') {
+    return 'bg-[#8B5CF6] text-white'
   }
   // Default fallback
   return 'bg-[#9CA3AF] text-white'
@@ -89,7 +93,8 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
             <p className="font-medium truncate">{ticket.group}</p>
           </div>
         )}
-        {ticket.owner_id && (
+        {/* owner_id=1 is Zammad system user, treat as unassigned */}
+        {ticket.owner_id && ticket.owner_id !== 1 && (
           <div>
             <span className="text-muted-foreground">{t('assignedTo')}:</span>
             <p className="font-medium truncate">{ticket.owner_name || `Staff #${ticket.owner_id}`}</p>

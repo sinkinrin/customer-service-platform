@@ -15,7 +15,7 @@
 
 ### 利益相关者
 - Admin：需要全局工单视图和管理权限
-- Staff：需要区域隔离，只看到自己负责的工单
+- Staff：严格责任制，只能访问分配给自己的工单
 - Customer：需要严格隔离，只看到自己的工单
 
 ## 目标 / 非目标
@@ -61,15 +61,15 @@ export function filterTicketsByPermission(tickets: Ticket[], user: AuthUser): Ti
 
 ### 决策 2：工单可见性规则矩阵
 
-| 用户角色 | 自己创建 | 分配给自己 | 自己区域 | 未分配 | 其他区域 |
+| 用户角色 | 自己创建 | 分配给自己 | 同区域（非自己负责） | 未分配 | 其他区域 |
 |----------|----------|------------|----------|--------|----------|
 | Customer | ✅ | - | - | - | ❌ |
-| Staff | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Staff | ❌ | ✅ | ❌ | ❌ | ❌ |
 | Admin | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 **关键规则**：
 1. **Customer**：只能看到 `customer_id === user.id` 的工单
-2. **Staff**：只能看到 `owner_id === user.id` 或 `group_id in user.group_ids` 的工单
+2. **Staff**：只能看到 `owner_id === user.id` 的工单
 3. **Admin**：可以看到所有工单
 4. **未分配工单**：`owner_id` 为空、0、或 1，视为未分配，仅 Admin 可见
 
@@ -142,13 +142,9 @@ export function filterTicketsByPermission(
   }
 
   if (user.role === 'staff') {
-    const userGroupIds = user.group_ids || []
     return tickets.filter(t => {
       // Assigned to me
       if (t.owner_id === user.zammad_id) return true
-      // In my region (has group_id and matches my groups)
-      if (t.group_id && userGroupIds.includes(t.group_id)) return true
-      // Unassigned tickets are NOT visible to staff
       return false
     })
   }
@@ -172,14 +168,14 @@ export function filterTicketsByPermission(
 ```typescript
 describe('filterTicketsByPermission', () => {
   it('customer only sees own tickets')
-  it('staff sees assigned and regional tickets')
+  it('staff only sees assigned tickets')
   it('staff cannot see unassigned tickets')
   it('admin sees all tickets')
 })
 ```
 
 ### 集成测试
-- 使用不同区域的测试账号验证工单可见性
+- 使用不同 Staff 账号验证仅 owner 可见
 - 验证未分配工单的行为
 
 ## 开放问题

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Input } from '@/components/ui/input'
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, Filter, RefreshCw } from 'lucide-react'
 import { TicketList } from '@/components/ticket/ticket-list'
-import { useTicketsSearch, invalidateTicketsCache } from '@/lib/hooks/use-tickets-swr'
+import { useTicketsSearch } from '@/lib/hooks/use-tickets-swr'
 import { toast } from 'sonner'
 
 export default function TicketsPage() {
@@ -41,8 +41,8 @@ export default function TicketsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>(getInitialTab())
 
   // Use SWR for caching - only fetches when submittedQuery changes
-  // Reduced from 50 to 20 for optimal initial load performance
-  const { tickets, isLoading, isValidating, revalidate } = useTicketsSearch(submittedQuery, 20)
+  // Use higher limit to ensure accurate tab counts (counts are calculated from fetched tickets)
+  const { tickets, isLoading, revalidate } = useTicketsSearch(submittedQuery, 200)
 
   const handleSearch = () => {
     const query = searchQuery.trim() || 'state:*'

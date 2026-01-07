@@ -15,6 +15,7 @@ vi.mock('@/lib/zammad/client', () => ({
     getOutOfOffice: vi.fn(),
     setOutOfOffice: vi.fn(),
     cancelOutOfOffice: vi.fn(),
+    getUserByEmail: vi.fn(),
   },
 }))
 
@@ -63,6 +64,7 @@ describe('Staff Vacation API', () => {
       email: 'staff@test.com',
       role: 'staff',
     } as any)
+    vi.mocked(zammadClient.getUserByEmail).mockResolvedValue(null as any)
 
     const request = createMockRequest('http://localhost:3000/api/staff/vacation')
     const response = await GET(request as any)
@@ -75,6 +77,7 @@ describe('Staff Vacation API', () => {
       id: 'staff_001',
       email: 'staff@test.com',
       role: 'staff',
+      zammad_id: 42,
     } as any)
 
     ;(mockUsers as any)['staff@test.com'] = {
@@ -105,6 +108,7 @@ describe('Staff Vacation API', () => {
       id: 'staff_001',
       email: 'staff@test.com',
       role: 'staff',
+      zammad_id: 42,
     } as any)
 
     ;(mockUsers as any)['staff@test.com'] = {
@@ -134,6 +138,7 @@ describe('Staff Vacation API', () => {
       id: 'staff_001',
       email: 'staff@test.com',
       role: 'staff',
+      zammad_id: 42,
     } as any)
 
     ;(mockUsers as any)['staff@test.com'] = {

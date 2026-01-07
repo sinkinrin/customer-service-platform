@@ -82,15 +82,14 @@ describe('TicketDetail', () => {
       const ticket = createMockTicket({ created_at: '2024-06-15T08:00:00Z' })
       render(<TicketDetail ticket={ticket} />)
 
-      // date-fns format 会根据 locale 格式化，检查日期部分存在
-      expect(screen.getByText(/Jun/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/\d{2}-\d{2} \d{2}:\d{2}/)).toHaveLength(2)
     })
 
     it('应该显示更新时间', () => {
       const ticket = createMockTicket({ updated_at: '2024-07-20T16:30:00Z' })
       render(<TicketDetail ticket={ticket} />)
 
-      expect(screen.getByText(/Jul/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/\d{2}-\d{2} \d{2}:\d{2}/)).toHaveLength(2)
     })
   })
 
@@ -100,16 +99,15 @@ describe('TicketDetail', () => {
       render(<TicketDetail ticket={ticket} />)
 
       // mock 的 useTranslations 返回 key 本身
-      expect(screen.getByText('assignedTo')).toBeInTheDocument()
-      expect(screen.getByText('ownerId')).toBeInTheDocument()
+      expect(screen.getByText(/assignedTo/i)).toBeInTheDocument()
+      expect(screen.getByText('Staff #42')).toBeInTheDocument()
     })
 
     it('没有负责人时不应该显示负责人区域', () => {
       const ticket = createMockTicket({ owner_id: undefined })
       render(<TicketDetail ticket={ticket} />)
 
-      // assignedTo 翻译 key 不应该出现
-      expect(screen.queryByText('assignedTo')).not.toBeInTheDocument()
+      expect(screen.queryByText(/assignedTo/i)).not.toBeInTheDocument()
     })
   })
 

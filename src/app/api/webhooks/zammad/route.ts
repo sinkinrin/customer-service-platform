@@ -16,6 +16,13 @@ import {
 import type { ZammadWebhookPayload } from '@/lib/zammad/types'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import {
+  notifyTicketAssigned,
+  notifyTicketReply,
+  notifyTicketStatusChange,
+  resolveLocalUserIdsForZammadUserId,
+} from '@/lib/notification'
+import { sseEmitter } from '@/lib/sse/emitter'
 
 // Event types for TicketUpdate
 type TicketUpdateEvent = 'article_created' | 'status_changed' | 'assigned' | 'created'
@@ -30,13 +37,21 @@ function verifyWebhookSignature(
   secret: string
 ): boolean {
   try {
-    const hmac = crypto.createHmac('sha256', secret)
+    // Zammad sends signature in format: sha1=<hex>
+    const match = signature.match(/^sha1=([a-f0-9]+)$/i)
+    if (!match) {
+      console.error('Invalid signature format, expected sha1=<hex>')
+      return false
+    }
+    const providedHash = match[1]
+
+    const hmac = crypto.createHmac('sha1', secret)
     hmac.update(payload)
-    const calculatedSignature = hmac.digest('hex')
-    
+    const calculatedHash = hmac.digest('hex')
+
     return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(calculatedSignature)
+      Buffer.from(providedHash),
+      Buffer.from(calculatedHash)
     )
   } catch {
     return false
@@ -46,6 +61,26 @@ function verifyWebhookSignature(
 // ============================================================================
 // POST /api/webhooks/zammad
 // ============================================================================
+
+function mapStateIdToStatus(stateId: number | null | undefined): string | undefined {
+  if (stateId == null) return undefined
+  switch (stateId) {
+    case 1:
+      return 'new'
+    case 2:
+      return 'open'
+    case 3:
+      return 'pending reminder'
+    case 4:
+      return 'closed'
+    case 5:
+      return 'merged'
+    case 6:
+      return 'pending close'
+    default:
+      return `state:${stateId}`
+  }
+}
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
@@ -58,7 +93,8 @@ export async function POST(request: NextRequest) {
     webhookPayload = JSON.parse(rawBody)
 
     // Verify webhook signature (optional - can be disabled for testing)
-    const signature = request.headers.get('X-Zammad-Signature')
+    // Zammad uses X-Hub-Signature header with sha1=<hex> format
+    const signature = request.headers.get('X-Hub-Signature')
     const webhookSecret = process.env.ZAMMAD_WEBHOOK_SECRET
 
     if (webhookSecret && signature) {
@@ -117,18 +153,33 @@ export async function POST(request: NextRequest) {
           }
         }
       } else {
-        // No article - likely a status/field change
-        updateEvent = 'status_changed'
-        updateData = {
-          stateId: webhookPayload.ticket?.state_id,
-          ownerId: webhookPayload.ticket?.owner_id,
+        // No article - likely a status/field change or assignment
+        const updatedAt = new Date(webhookPayload.ticket.updated_at || Date.now()).getTime()
+        const lastOwnerUpdateAt = webhookPayload.ticket.last_owner_update_at
+          ? new Date(webhookPayload.ticket.last_owner_update_at).getTime()
+          : null
+
+        const ownerChangedRecently =
+          lastOwnerUpdateAt != null && Math.abs(updatedAt - lastOwnerUpdateAt) < 5000
+
+        if (ownerChangedRecently && webhookPayload.ticket.owner_id && webhookPayload.ticket.owner_id !== 1) {
+          updateEvent = 'assigned'
+          updateData = {
+            ownerId: webhookPayload.ticket.owner_id,
+          }
+        } else {
+          updateEvent = 'status_changed'
+          updateData = {
+            stateId: webhookPayload.ticket?.state_id,
+            ownerId: webhookPayload.ticket?.owner_id,
+          }
         }
       }
 
       // Store the update in database
       if (updateEvent) {
         try {
-          await prisma.ticketUpdate.create({
+          const ticketUpdate = await prisma.ticketUpdate.create({
             data: {
               ticketId,
               event: updateEvent,
@@ -136,10 +187,82 @@ export async function POST(request: NextRequest) {
             },
           })
           console.log('TicketUpdate created:', { ticketId, event: updateEvent })
+
+          // Broadcast via SSE to connected clients
+          try {
+            sseEmitter.broadcast({
+              id: ticketUpdate.id,
+              ticketId,
+              event: updateEvent,
+              data: updateData,
+              createdAt: ticketUpdate.createdAt.toISOString(),
+            })
+          } catch (sseError) {
+            console.error('[Webhook] SSE broadcast failed:', sseError)
+          }
         } catch (dbError) {
           console.error('Failed to create TicketUpdate:', dbError)
           // Don't fail the webhook - log and continue
         }
+      }
+
+      // Best-effort: create persistent in-app notifications
+      try {
+        if (updateEvent === 'article_created') {
+          const senderEmail =
+            (webhookPayload.article?.from && String(webhookPayload.article.from)) ||
+            (webhookPayload.article?.created_by_id != null ? String(webhookPayload.article.created_by_id) : undefined)
+
+          const senderIsCustomer = webhookPayload.article?.sender === 'Customer'
+
+          if (senderIsCustomer && webhookPayload.ticket.owner_id && webhookPayload.ticket.owner_id !== 1) {
+            const recipients = await resolveLocalUserIdsForZammadUserId(webhookPayload.ticket.owner_id)
+            for (const recipientUserId of recipients) {
+              await notifyTicketReply({
+                recipientUserId,
+                ticketId,
+                ticketNumber: webhookPayload.ticket.number,
+                senderEmail,
+              })
+            }
+          } else if (typeof webhookPayload.ticket.customer_id === 'number') {
+            const recipients = await resolveLocalUserIdsForZammadUserId(webhookPayload.ticket.customer_id)
+            for (const recipientUserId of recipients) {
+              await notifyTicketReply({
+                recipientUserId,
+                ticketId,
+                ticketNumber: webhookPayload.ticket.number,
+                senderEmail,
+              })
+            }
+          }
+        } else if (updateEvent === 'assigned') {
+          if (webhookPayload.ticket.owner_id && webhookPayload.ticket.owner_id !== 1) {
+            const recipients = await resolveLocalUserIdsForZammadUserId(webhookPayload.ticket.owner_id)
+            for (const recipientUserId of recipients) {
+              await notifyTicketAssigned({
+                recipientUserId,
+                ticketId,
+                ticketNumber: webhookPayload.ticket.number,
+                ticketTitle: webhookPayload.ticket.title,
+              })
+            }
+          }
+        } else if (updateEvent === 'status_changed') {
+          if (typeof webhookPayload.ticket.customer_id === 'number') {
+            const recipients = await resolveLocalUserIdsForZammadUserId(webhookPayload.ticket.customer_id)
+            for (const recipientUserId of recipients) {
+              await notifyTicketStatusChange({
+                recipientUserId,
+                ticketId,
+                ticketNumber: webhookPayload.ticket.number,
+                newStatus: mapStateIdToStatus(webhookPayload.ticket.state_id),
+              })
+            }
+          }
+        }
+      } catch (notifyError) {
+        console.error('[Webhook] Failed to create in-app notifications:', notifyError)
       }
     }
 

@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils"
 import { LanguageSelector } from "@/components/language-selector"
 import { UnreadBadge } from "@/components/ui/unread-badge"
 import { Logo } from "@/components/ui/logo"
+import { NotificationCenter } from "@/components/notification/notification-center"
 
 interface CustomerLayoutProps {
   children: ReactNode
@@ -85,17 +86,20 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
 
-  // Fetch unread count
+  // Fetch unread count for conversations (optional feature)
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
         const response = await fetch('/api/conversations/unread-count')
-        const data = await response.json()
-        if (data.success) {
-          setUnreadCount(data.data.unreadCount || 0)
+        // Only parse if request succeeded - endpoint may not exist
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setUnreadCount(data.data.unreadCount || 0)
+          }
         }
-      } catch (error) {
-        console.error('Failed to fetch unread count:', error)
+      } catch {
+        // Silently ignore - conversations feature may not be enabled
       }
     }
 
@@ -220,6 +224,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
             {/* Right Side */}
             <div className="flex items-center space-x-4">
+              <NotificationCenter />
               <LanguageSelector />
               {user && (
                 <DropdownMenu>

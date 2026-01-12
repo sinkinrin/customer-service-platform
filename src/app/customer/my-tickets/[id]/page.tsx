@@ -27,6 +27,7 @@ import { TicketRating } from '@/components/ticket/ticket-rating'
 import { TicketReopenButton } from '@/components/ticket/ticket-reopen-button'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useUnreadStore } from '@/lib/stores/unread-store'
+import { useNotifications } from '@/lib/hooks/use-notifications'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 
@@ -47,6 +48,7 @@ export default function CustomerTicketDetailPage() {
 
   const { fetchTicketById, fetchArticles, isLoading } = useTicket()
   const { markAsRead } = useUnreadStore()
+  const { markTicketNotificationsAsRead } = useNotifications()
 
   // Convert File to base64
   const fileToBase64 = (file: File): Promise<string> => {
@@ -92,6 +94,34 @@ export default function CustomerTicketDetailPage() {
     const numericId = parseInt(ticketId, 10)
     if (!isNaN(numericId)) {
       markAsRead(numericId)
+      markTicketNotificationsAsRead(numericId).catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketId])
+
+  // Listen for real-time ticket updates via SSE
+  useEffect(() => {
+    const numericId = parseInt(ticketId, 10)
+    if (isNaN(numericId)) return
+
+    const handleTicketUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        ticketId: number
+        event: string
+        data: Record<string, unknown>
+      }>
+
+      // Only refresh if this update is for the current ticket
+      if (customEvent.detail.ticketId === numericId) {
+        console.log('[TicketDetail] Received update for this ticket, refreshing...')
+        loadTicket()
+        loadArticles()
+      }
+    }
+
+    window.addEventListener('ticket-update', handleTicketUpdate)
+    return () => {
+      window.removeEventListener('ticket-update', handleTicketUpdate)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])

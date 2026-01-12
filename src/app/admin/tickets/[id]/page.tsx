@@ -14,6 +14,7 @@ import { TicketAssignDialog } from '@/components/admin/ticket-assign-dialog'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useUnreadStore } from '@/lib/stores/unread-store'
+import { useNotifications } from '@/lib/hooks/use-notifications'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import {
@@ -41,6 +42,7 @@ export default function AdminTicketDetailPage() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const { fetchTicketById, updateTicket, addArticle, fetchArticles, isLoading } = useTicket()
   const { markAsRead } = useUnreadStore()
+  const { markTicketNotificationsAsRead } = useNotifications()
 
   useEffect(() => {
     loadTicket()
@@ -49,6 +51,34 @@ export default function AdminTicketDetailPage() {
     const numericId = parseInt(ticketId, 10)
     if (!isNaN(numericId)) {
       markAsRead(numericId)
+      markTicketNotificationsAsRead(numericId).catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketId])
+
+  // Listen for real-time ticket updates via SSE
+  useEffect(() => {
+    const numericId = parseInt(ticketId, 10)
+    if (isNaN(numericId)) return
+
+    const handleTicketUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        ticketId: number
+        event: string
+        data: Record<string, unknown>
+      }>
+
+      // Only refresh if this update is for the current ticket
+      if (customEvent.detail.ticketId === numericId) {
+        console.log('[TicketDetail] Received update for this ticket, refreshing...')
+        loadTicket()
+        loadArticles()
+      }
+    }
+
+    window.addEventListener('ticket-update', handleTicketUpdate)
+    return () => {
+      window.removeEventListener('ticket-update', handleTicketUpdate)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])

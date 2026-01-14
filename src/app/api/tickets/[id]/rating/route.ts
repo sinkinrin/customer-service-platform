@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { ZammadClient } from '@/lib/zammad/client'
+import { notifyTicketRated, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 import { z } from 'zod'
+
+const zammadClient = new ZammadClient()
 
 // Schema for rating submission
 const ratingSchema = z.object({
@@ -120,6 +124,24 @@ export async function POST(
           reason,
         },
       })
+    }
+
+    // Best-effort: notify current ticket owner
+    try {
+      const ticket = await zammadClient.getTicket(ticketId)
+      if (ticket.owner_id && ticket.owner_id !== 1) {
+        const recipients = await resolveLocalUserIdsForZammadUserId(ticket.owner_id)
+        for (const recipientUserId of recipients) {
+          await notifyTicketRated({
+            recipientUserId,
+            ticketId,
+            ticketNumber: ticket.number,
+            rating,
+          })
+        }
+      }
+    } catch (notifyError) {
+      console.error('[Rating] Failed to create in-app notification:', notifyError)
     }
 
     return NextResponse.json({

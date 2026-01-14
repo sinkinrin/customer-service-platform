@@ -17,6 +17,7 @@ import { Save, X, Clock, Upload } from 'lucide-react'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface TicketActionsProps {
   ticket: ZammadTicket
@@ -26,9 +27,10 @@ interface TicketActionsProps {
     owner_id?: number
     pending_time?: string
   }) => Promise<void>
-  onAddNote: (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>, replyType?: 'note' | 'email') => Promise<void>
+  onAddNote: (note: string, internal: boolean, attachments?: Array<{ filename: string; data: string; 'mime-type': string }>, replyType?: 'note' | 'email') => Promise<void>
   isLoading?: boolean
   customerEmail?: string  // Customer email for sending email replies
+  compact?: boolean
 }
 
 const STATE_KEYS = [
@@ -50,6 +52,7 @@ export function TicketActions({
   onUpdate,
   onAddNote,
   isLoading,
+  compact = false,
 }: TicketActionsProps) {
   const t = useTranslations('tickets.details')
   const tCommon = useTranslations('common')
@@ -60,7 +63,7 @@ export function TicketActions({
   const [pendingTime, setPendingTime] = useState('')
   const [note, setNote] = useState('')
   const [isInternal, setIsInternal] = useState(false)
-  const [replyType, setReplyType] = useState<'note' | 'email'>('note')  // 'note' = internal, 'email' = send to customer
+  const [replyMode, setReplyMode] = useState<'web' | 'email' | 'note'>('web')
   const [hasChanges, setHasChanges] = useState(false)
   const [showPendingTime, setShowPendingTime] = useState(false)
   const [files, setFiles] = useState<File[]>([])
@@ -70,8 +73,9 @@ export function TicketActions({
   const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNote(e.target.value)
     if (noteTextareaRef.current) {
+      const maxHeight = compact ? 300 : 700
       noteTextareaRef.current.style.height = 'auto'
-      noteTextareaRef.current.style.height = `${Math.min(noteTextareaRef.current.scrollHeight, 300)}px`
+      noteTextareaRef.current.style.height = `${Math.min(noteTextareaRef.current.scrollHeight, maxHeight)}px`
     }
   }
 
@@ -193,12 +197,14 @@ export function TicketActions({
         }
       }
 
-      // For email type, internal is always false
-      const finalInternal = replyType === 'email' ? false : isInternal
-      await onAddNote(note, finalInternal, attachments.length > 0 ? attachments : undefined, replyType)
+      // internal is true only for 'note' mode
+      // email type is handled by passing 'email' as the last argument
+      const isNoteInternal = replyMode === 'note'
+      const typeForApi = replyMode === 'email' ? 'email' : 'note'
+
+      await onAddNote(note, isNoteInternal, attachments.length > 0 ? attachments : undefined, typeForApi)
       setNote('')
-      setIsInternal(false)
-      setReplyType('note')
+      setReplyMode('web')
       setFiles([])
       // Reset textarea height after clearing
       if (noteTextareaRef.current) {
@@ -208,34 +214,52 @@ export function TicketActions({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Status and Priority */}
+    <div className={cn('space-y-3', compact && 'space-y-2')}>
+      {/* Status and Priority - Dense Row */}
       <Card>
-        <CardHeader>
-          <CardTitle>{t('ticketStatus')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="state">{t('state')}</Label>
-            <Select value={state} onValueChange={handleStateChange}>
-              <SelectTrigger id="state">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATE_KEYS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {t(`states.${s.labelKey}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent className="p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="state" className="text-xs font-semibold text-muted-foreground">{t('state')}</Label>
+              <Select value={state} onValueChange={handleStateChange}>
+                <SelectTrigger id="state" className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATE_KEYS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {t(`states.${s.labelKey}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="priority" className="text-xs font-semibold text-muted-foreground">{t('priority')}</Label>
+              <Select value={priority} onValueChange={handlePriorityChange}>
+                <SelectTrigger id="priority" className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_KEYS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {t(`priorities.${p.labelKey}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Pending Time Picker - Only show for pending states */}
+          {/* Pending Time Picker */}
           {showPendingTime && (
-            <div className="space-y-2">
-              <Label htmlFor="pending-time" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
+            <div className="space-y-1.5 mt-3 pt-3 border-t">
+              <Label
+                htmlFor="pending-time"
+                className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"
+              >
+                <Clock className="h-3 w-3" />
                 {t('pendingUntil')}
               </Label>
               <Input
@@ -244,47 +268,31 @@ export function TicketActions({
                 value={pendingTime}
                 onChange={(e) => handlePendingTimeChange(e.target.value)}
                 min={new Date().toISOString().slice(0, 16)}
-                className="w-full"
+                className="h-8 text-sm"
                 required
               />
-              <p className="text-sm text-muted-foreground">
-                {t('pendingReminder')}
-              </p>
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="priority">{t('priority')}</Label>
-            <Select value={priority} onValueChange={handlePriorityChange}>
-              <SelectTrigger id="priority">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITY_KEYS.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {t(`priorities.${p.labelKey}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {hasChanges && (
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-3 mt-1">
               <Button
                 onClick={handleSave}
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 h-8"
+                size="sm"
               >
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-3.5 w-3.5 mr-2" />
                 {t('saveChanges')}
               </Button>
               <Button
                 variant="outline"
                 onClick={handleCancel}
                 disabled={isLoading}
+                size="sm"
+                className="h-8"
               >
-                <X className="h-4 w-4 mr-2" />
+                <X className="h-3.5 w-3.5 mr-2" />
                 {tCommon('cancel')}
               </Button>
             </div>
@@ -292,140 +300,136 @@ export function TicketActions({
         </CardContent>
       </Card>
 
-      {/* Add Note / Send Email */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('addNote')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Reply Type Selection */}
+      {/* Add Reply - Dense */}
+      <Card className="flex flex-col min-h-0 flex-1">
+        <CardContent className="p-3 space-y-3 flex flex-col min-h-0 flex-1">
+          {/* Reply Mode Selection */}
           <div className="space-y-2">
-            <Label>{t('replyType') || 'Reply Type'}</Label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="replyType"
-                  value="note"
-                  checked={replyType === 'note'}
-                  onChange={() => setReplyType('note')}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm">{t('replyTypeNote') || 'Note (Internal)'}</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="replyType"
-                  value="email"
-                  checked={replyType === 'email'}
-                  onChange={() => setReplyType('email')}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm">{t('replyTypeEmail') || 'Email (Send to Customer)'}</span>
-              </label>
+            <div className="flex bg-muted/50 p-1 rounded-lg gap-1">
+              <button
+                type="button"
+                onClick={() => setReplyMode('web')}
+                className={cn(
+                  "flex-1 text-xs py-1.5 px-2 rounded-md transition-all text-center font-medium",
+                  replyMode === 'web'
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t('replyTypeWeb')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReplyMode('email')}
+                className={cn(
+                  "flex-1 text-xs py-1.5 px-2 rounded-md transition-all text-center font-medium",
+                  replyMode === 'email'
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t('replyTypeEmail')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReplyMode('note')}
+                className={cn(
+                  "flex-1 text-xs py-1.5 px-2 rounded-md transition-all text-center font-medium",
+                  replyMode === 'note'
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t('replyTypeNote')}
+              </button>
             </div>
-            {replyType === 'email' && (
-              <p className="text-sm text-muted-foreground">
-                {t('emailWillBeSent') || 'This reply will be sent to the customer via email.'}
+            {replyMode === 'email' && (
+              <p className="text-xs text-muted-foreground px-1">
+                {t('emailWillBeSent')}
               </p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="note">{t('noteContent')}</Label>
+          <div className="flex-1 min-h-0 relative">
             <Textarea
               id="note"
               ref={noteTextareaRef}
-              placeholder={replyType === 'email' ? (t('emailPlaceholder') || 'Type your email reply...') : t('notePlaceholder')}
+              placeholder={replyMode === 'email' ? (t('emailPlaceholder') || 'Type your email reply...') : t('notePlaceholder')}
               value={note}
               onChange={handleNoteChange}
-              className="min-h-[100px] max-h-[300px] resize-none"
+              className={cn(
+                'resize-none h-full min-h-[150px] p-3 text-sm',
+                // Dynamic height constraints
+                'max-h-[600px]'
+              )}
             />
           </div>
 
-          {/* File Upload Section */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Input
-                id="note-files"
-                type="file"
-                onChange={handleFileChange}
-                multiple
-                className="hidden"
-                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-              />
+          {/* Footer Actions: File & Submit */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="note-files"
+                  type="file"
+                  onChange={handleFileChange}
+                  multiple
+                  className="hidden"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => document.getElementById('note-files')?.click()}
+                  disabled={files.length >= 5}
+                >
+                  <Upload className="mr-2 h-3.5 w-3.5" />
+                  <span className="text-xs">{t('attachFiles')}</span>
+                </Button>
+              </div>
+
               <Button
-                type="button"
-                variant="outline"
+                onClick={handleAddNote}
+                disabled={!note.trim() || isLoading}
+                variant="default"
                 size="sm"
-                onClick={() => document.getElementById('note-files')?.click()}
-                disabled={files.length >= 5}
+                className="px-6 h-8"
               >
-                <Upload className="mr-2 h-4 w-4" />
-                {t('attachFiles')}
+                {tCommon('submit')}
               </Button>
-              <span className="text-xs text-muted-foreground">
-                {t('attachFilesHint')}
-              </span>
             </div>
 
-            {/* File List */}
+            {/* File List - Inline Compact */}
             {files.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-1 bg-muted/30 rounded-md p-2">
+                <p className="text-xs font-semibold text-muted-foreground mb-1.5">{t('attachFiles')}: {files.length}</p>
                 {files.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-2 bg-muted rounded-md"
+                    className="flex items-center justify-between py-1 px-2 bg-background/50 rounded border border-transparent hover:border-border transition-colors group"
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Upload className="h-4 w-4 flex-shrink-0" />
-                      <span className="text-sm truncate">{file.name}</span>
-                      <span className="text-xs text-muted-foreground flex-shrink-0">
-                        ({(file.size / 1024).toFixed(1)} KB)
+                      <Upload className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                      <span className="text-xs truncate max-w-[180px]">{file.name}</span>
+                      <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                        ({(file.size / 1024).toFixed(0)}KB)
                       </span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => handleRemoveFile(index)}
-                      className="h-6 w-6 p-0"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-destructive transition-all"
                     >
-                      <X className="h-4 w-4" />
-                    </Button>
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {/* Internal checkbox only for note type */}
-          {replyType === 'note' && (
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="internal"
-                checked={isInternal}
-                onChange={(e) => setIsInternal(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <Label htmlFor="internal" className="cursor-pointer">
-                {t('internalNoteCheckbox')}
-              </Label>
-            </div>
-          )}
-
-          <Button
-            onClick={handleAddNote}
-            disabled={!note.trim() || isLoading}
-            className="w-full"
-            variant={replyType === 'email' ? 'default' : 'outline'}
-          >
-            {replyType === 'email' ? (t('sendEmail') || 'Send Email') : t('addNote')}  
-          </Button>
         </CardContent>
       </Card>
     </div>
   )
 }
-

@@ -17,6 +17,11 @@ import {
 import { zammadClient } from '@/lib/zammad/client'
 import { z } from 'zod'
 import { defaultLocale } from '@/i18n'
+import {
+    notifyTicketAssigned,
+    notifyTicketUnassigned,
+    resolveLocalUserIdsForZammadUserId,
+} from '@/lib/notification'
 
 /**
  * Map state_id to state string for frontend compatibility
@@ -204,6 +209,32 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         const updatedTicket = await zammadClient.updateTicket(ticketId, updateData)
 
+        try {
+            const newOwnerRecipients = await resolveLocalUserIdsForZammadUserId(staff_id)
+            for (const recipientUserId of newOwnerRecipients) {
+                await notifyTicketAssigned({
+                    recipientUserId,
+                    ticketId,
+                    ticketNumber: updatedTicket.number,
+                    ticketTitle: updatedTicket.title,
+                })
+            }
+
+            if (previousOwner && previousOwner.id !== staff_id) {
+                const prevOwnerRecipients = await resolveLocalUserIdsForZammadUserId(previousOwner.id)
+                for (const recipientUserId of prevOwnerRecipients) {
+                    await notifyTicketUnassigned({
+                        recipientUserId,
+                        ticketId,
+                        ticketNumber: updatedTicket.number,
+                        ticketTitle: updatedTicket.title,
+                    })
+                }
+            }
+        } catch (notifyError) {
+            console.error('[Ticket Assign] Failed to create in-app notifications:', notifyError)
+        }
+
         // Get the staff member's display name
         const ownerName = [staffMember.firstname, staffMember.lastname]
             .filter(Boolean)
@@ -298,9 +329,13 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
             return validationErrorResponse('Invalid ticket ID')
         }
 
-        // Verify ticket exists
+        // Verify ticket exists and capture previous owner (if any)
+        let previousOwnerId: number | null = null
         try {
-            await zammadClient.getTicket(ticketId)
+            const ticket = await zammadClient.getTicket(ticketId)
+            if (ticket.owner_id && ticket.owner_id > 1) {
+                previousOwnerId = ticket.owner_id
+            }
         } catch {
             return notFoundResponse('Ticket not found')
         }
@@ -310,6 +345,22 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
         const updatedTicket = await zammadClient.updateTicket(ticketId, {
             owner_id: 1, // Zammad system user / unassigned
         })
+
+        try {
+            if (previousOwnerId) {
+                const recipients = await resolveLocalUserIdsForZammadUserId(previousOwnerId)
+                for (const recipientUserId of recipients) {
+                    await notifyTicketUnassigned({
+                        recipientUserId,
+                        ticketId,
+                        ticketNumber: updatedTicket.number,
+                        ticketTitle: updatedTicket.title,
+                    })
+                }
+            }
+        } catch (notifyError) {
+            console.error('[Ticket Assign] Failed to create unassigned notification:', notifyError)
+        }
 
         return successResponse({
             message: 'Ticket unassigned successfully',

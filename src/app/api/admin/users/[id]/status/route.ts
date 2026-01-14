@@ -17,6 +17,7 @@ import {
 import { zammadClient } from '@/lib/zammad/client'
 import { mockUsers } from '@/lib/mock-auth'
 import { z } from 'zod'
+import { notifyAccountStatusChanged, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 
 const UpdateStatusSchema = z.object({
     active: z.boolean(),
@@ -63,6 +64,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         if (mockUser) {
             // Update mock user's active status if we track it
             ; (mockUser as any).active = active
+        }
+
+        try {
+            const recipients = await resolveLocalUserIdsForZammadUserId(updatedUser.id)
+            for (const recipientUserId of recipients) {
+                await notifyAccountStatusChanged({
+                    recipientUserId,
+                    targetUserId: updatedUser.id,
+                    targetEmail: updatedUser.email,
+                    active: updatedUser.active,
+                })
+            }
+        } catch (notifyError) {
+            console.error('[User Status API] Failed to create in-app notification:', notifyError)
         }
 
         return successResponse({

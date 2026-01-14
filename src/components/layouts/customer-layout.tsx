@@ -195,10 +195,15 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
   // Check if current page is a conversation detail page
   const isConversationDetailPage = pathname.match(/\/conversations\/[^/]+$/)
 
+  // Ticket detail page should behave like a full-height conversation view
+  // Matches /customer/my-tickets/123 (with optional query params handling if needed)
+  const isTicketDetailPage = /^\/customer\/my-tickets\/\d+$/.test(pathname)
+  const isFullHeightPage = Boolean(isConversationDetailPage || isTicketDetailPage)
+
   return (
     <div className={cn(
-      "flex flex-col",
-      isConversationDetailPage ? "h-screen overflow-hidden" : "min-h-screen"
+      "flex flex-col bg-background",
+      isFullHeightPage ? "h-[100dvh] overflow-hidden" : "min-h-screen"
     )}>
       {/* Top Navbar */}
       <nav className="border-b bg-background sticky top-0 z-50 flex-shrink-0">
@@ -264,7 +269,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
       <div className={cn(
         "flex flex-1",
-        isConversationDetailPage && "min-h-0 overflow-hidden"
+        isFullHeightPage && "min-h-0 overflow-hidden"
       )}>
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-background fixed left-0 top-16 bottom-0">
@@ -341,21 +346,21 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
         {/* Main Content */}
         <main className={cn(
           "flex-1 lg:ml-64 flex flex-col",
-          isConversationDetailPage ? "min-h-0 overflow-hidden" : "min-h-0"
+          isFullHeightPage ? "min-h-0 overflow-hidden" : "min-h-0"
         )}>
           <PageTransition key={pathname} className="flex-1 flex flex-col min-h-0">
-            {/* Use different container styles for conversation pages vs other pages */}
-            {isConversationDetailPage ? (
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">{children}</div>
+            {/* Use different container styles for full-height pages vs other pages */}
+            {isFullHeightPage ? (
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden w-full">{children}</div>
             ) : (
-              <div className="container mx-auto px-4 py-6 flex-1 flex flex-col min-h-0">{children}</div>
+              <div className="container mx-auto px-4 py-6 flex-1 flex flex-col min-h-0 w-full">{children}</div>
             )}
           </PageTransition>
         </main>
       </div>
 
-      {/* Footer - Hidden on conversation detail pages */}
-      {!isConversationDetailPage && (
+      {/* Footer - Hidden on full-height pages */}
+      {!isFullHeightPage && (
         <footer className="border-t py-6 mt-auto">
           <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} {tCommon('appName')}. All rights reserved.</p>

@@ -17,6 +17,7 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
+import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 
 // Excluded system accounts that shouldn't receive ticket assignments
 const EXCLUDED_EMAILS = ['support@howentech.com', 'howensupport@howentech.com']
@@ -187,6 +188,41 @@ export async function POST(request: NextRequest) {
 
         const successCount = results.filter(r => r.assignedTo !== null).length
         const failCount = results.filter(r => r.assignedTo === null).length
+
+        if (failCount > 0) {
+            try {
+                const adminAgents = allAgents.filter(agent =>
+                    agent.role_ids?.includes(1) || agent.roles?.includes('Admin')
+                )
+
+                const sampleFailures = results
+                    .filter(r => r.assignedTo === null)
+                    .slice(0, 5)
+                    .map(r => ({
+                        ticketId: r.ticketId,
+                        ticketNumber: r.ticketNumber,
+                        error: r.error,
+                    }))
+
+                for (const adminAgent of adminAgents) {
+                    const recipients = await resolveLocalUserIdsForZammadUserId(adminAgent.id)
+                    for (const recipientUserId of recipients) {
+                        await notifySystemAlert({
+                            recipientUserId,
+                            title: 'Auto-assignment failed',
+                            body: `Auto-assignment completed with ${failCount} failures.`,
+                            data: {
+                                failed: failCount,
+                                processed: unassignedTickets.length,
+                                sampleFailures,
+                            },
+                        })
+                    }
+                }
+            } catch (notifyError) {
+                console.error('[Auto-Assign] Failed to create system alert notifications:', notifyError)
+            }
+        }
 
         return successResponse({
             message: `Auto-assignment completed: ${successCount} assigned, ${failCount} failed`,

@@ -31,7 +31,8 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/ui/logo"
-import { useUnreadStore } from "@/lib/stores/unread-store"
+import { NotificationCenter } from "@/components/notification/notification-center"
+import { useNotifications } from "@/lib/hooks/use-notifications"
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -56,9 +57,8 @@ export function AdminLayout({
   const router = useRouter()
   const t = useTranslations('nav')
   const tCommon = useTranslations('common')
-  const { getTotalUnread } = useUnreadStore()
 
-  const unreadCount = getTotalUnread()
+  const { unreadCount } = useNotifications({ enabled: !!user })
   const displayUnread = unreadCount > 99 ? '99+' : unreadCount
 
   const navigation = [
@@ -257,6 +257,7 @@ export function AdminLayout({
 
           {/* Right Side */}
           <div className="flex items-center space-x-4">
+            <NotificationCenter />
             <LanguageSelector />
             {user && (
               <DropdownMenu>

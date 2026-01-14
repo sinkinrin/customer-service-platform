@@ -1,0 +1,9 @@
+policies:
+  - id: user-own-notifications
+    description: Users can only access their own notifications
+    resource: notification
+    action: [view, edit, delete]
+    effect: allow
+    priority: 20
+    conditions:
+      - type: is_owner

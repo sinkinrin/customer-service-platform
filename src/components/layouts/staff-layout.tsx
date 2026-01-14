@@ -30,7 +30,8 @@ import { cn } from "@/lib/utils"
 import { isValidRegion, type RegionValue } from "@/lib/constants/regions"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/ui/logo"
-import { useUnreadStore } from "@/lib/stores/unread-store"
+import { NotificationCenter } from "@/components/notification/notification-center"
+import { useNotifications } from "@/lib/hooks/use-notifications"
 
 interface StaffLayoutProps {
   children: ReactNode
@@ -58,7 +59,10 @@ export function StaffLayout({
   const tRoles = useTranslations('common.roles')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
-  const { getTotalUnread } = useUnreadStore()
+  const { unreadCount } = useNotifications({ enabled: !!user })
+
+  // Matches /staff/tickets/123
+  const isTicketDetailPage = /^\/staff\/tickets\/\d+$/.test(pathname)
 
   const navigation = [
     {
@@ -82,14 +86,13 @@ export function StaffLayout({
   const getBadgeCount = (badgeKey?: string): number | string => {
     if (badgeKey === "ticketCount") return ticketCount
     if (badgeKey === "unreadCount") {
-      const unread = getTotalUnread()
-      return unread > 99 ? '99+' : unread
+      return unreadCount > 99 ? '99+' : unreadCount
     }
     return 0
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className={cn('flex bg-background', isTicketDetailPage ? 'h-[100dvh] overflow-hidden' : 'min-h-screen')}>
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -223,6 +226,7 @@ export function StaffLayout({
 
           {/* Right Side */}
           <div className="flex items-center space-x-4">
+            <NotificationCenter />
             <LanguageSelector />
             {user && (
               <DropdownMenu>
@@ -262,8 +266,11 @@ export function StaffLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 flex flex-col overflow-auto p-6">
-          <PageTransition key={pathname}>
+        <main className={cn('flex-1 flex flex-col min-h-0 p-6', isTicketDetailPage ? 'overflow-hidden' : 'overflow-auto')}>
+          <PageTransition
+            key={pathname}
+            className={cn(isTicketDetailPage && 'flex-1 flex flex-col min-h-0 overflow-hidden')}
+          >
             {children}
           </PageTransition>
         </main>

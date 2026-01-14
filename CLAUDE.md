@@ -105,6 +105,11 @@ Regional test users also available (asia-pacific@test.com, middle-east@test.com,
 - Language selector: `src/components/language-selector.tsx`
 - Validation: `npm run i18n:check`
 
+### In-app Notifications
+- Persistent notifications stored in Prisma `Notification` model (`notifications` table)
+- API routes: `src/app/api/notifications/*`
+- UI: `src/components/notification/notification-center.tsx` + `src/components/providers/notification-provider.tsx`
+
 ## Project Structure (Key Directories)
 
 ```

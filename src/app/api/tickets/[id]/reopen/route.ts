@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { ZammadClient } from '@/lib/zammad/client'
+import { notifyTicketReopened, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 
 const zammadClient = new ZammadClient()
 
@@ -71,6 +72,25 @@ export async function PUT(
       type: 'note',
       internal: true,
     })
+
+    // Best-effort: notify the other side
+    try {
+      const notifyZammadUserId =
+        session.user.role === 'customer' ? updatedTicket.owner_id : ticket.customer_id
+
+      if (notifyZammadUserId && notifyZammadUserId !== 1) {
+        const recipients = await resolveLocalUserIdsForZammadUserId(notifyZammadUserId)
+        for (const recipientUserId of recipients) {
+          await notifyTicketReopened({
+            recipientUserId,
+            ticketId,
+            ticketNumber: ticket.number,
+          })
+        }
+      }
+    } catch (notifyError) {
+      console.error('[Reopen Ticket] Failed to create in-app notification:', notifyError)
+    }
 
     return NextResponse.json({
       success: true,

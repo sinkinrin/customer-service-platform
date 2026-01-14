@@ -308,9 +308,9 @@
       "pendingReminder": "选择此工单自动更新的时间",
       "pendingUntil": "等待截止时间 *",
       "selectPendingTime": "请为此状态选择等待时间。",
-      "addNote": "添加备注",
-      "noteContent": "备注内容",
-      "notePlaceholder": "添加备注或回复此工单...",
+      "addNote": "添加回复",
+      "noteContent": "内容",
+      "notePlaceholder": "输入回复或备注内容...",
       "internalNoteCheckbox": "内部备注（客户不可见）",
       "promise": "承诺",
       "ticketNumber": "工单 #{number}",
@@ -328,8 +328,9 @@
         "high": "高"
       },
       "replyType": "回复类型",
-      "replyTypeNote": "备注（内部）",
-      "replyTypeEmail": "邮件（发送给客户）",
+      "replyTypeWeb": "网页回复",
+      "replyTypeEmail": "邮件回复",
+      "replyTypeNote": "内部备注",
       "emailWillBeSent": "此回复将通过邮件发送给客户。",
       "sendEmail": "发送邮件",
       "attachFilesHint": "最多5个文件，每个10MB",
@@ -1982,6 +1983,13 @@
     "navbar": {
       "notifications": "通知"
     }
+  },
+  "notificationCenter": {
+    "title": "通知",
+    "markAllRead": "全部已读",
+    "empty": "暂无通知",
+    "loading": "加载中...",
+    "view": "查看"
   },
   "notFound": {
     "title": "页面未找到",

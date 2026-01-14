@@ -327,9 +327,10 @@
         "normal": "Normal",
         "high": "High"
       },
-      "replyType": "Reply Type",
-      "replyTypeNote": "Note (Internal)",
-      "replyTypeEmail": "Email (Send to Customer)",
+      "replyType": "Reply Mode",
+      "replyTypeWeb": "Web Reply",
+      "replyTypeEmail": "Email Reply",
+      "replyTypeNote": "Internal Note",
       "emailWillBeSent": "This reply will be sent to the customer via email.",
       "sendEmail": "Send Email",
       "attachFilesHint": "Max 5 files, 10MB each",
@@ -1982,6 +1983,13 @@
     "navbar": {
       "notifications": "Notifications"
     }
+  },
+  "notificationCenter": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "You're all caught up.",
+    "loading": "Loading...",
+    "view": "View"
   },
   "notFound": {
     "title": "Page Not Found",

@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge'
 function TicketStatusBadge({ state }: { state?: string }) {
   if (!state) return null
   const stateLower = state.toLowerCase()
-  
+
   let className = 'text-xs '
   if (stateLower === 'new') {
     className += 'bg-green-500 text-white hover:bg-green-500'
@@ -36,7 +36,7 @@ function TicketStatusBadge({ state }: { state?: string }) {
   } else {
     className += 'bg-gray-400 text-white hover:bg-gray-400'
   }
-  
+
   return <Badge className={className}>{state}</Badge>
 }
 
@@ -44,7 +44,7 @@ function TicketStatusBadge({ state }: { state?: string }) {
 function TicketPriorityBadge({ priority }: { priority?: string }) {
   if (!priority) return null
   const priorityLower = priority.toLowerCase()
-  
+
   let className = 'text-xs '
   if (priorityLower === '1 low') {
     className += 'bg-indigo-200 text-gray-800 hover:bg-indigo-200'
@@ -55,7 +55,7 @@ function TicketPriorityBadge({ priority }: { priority?: string }) {
   } else {
     className += 'bg-indigo-500 text-white hover:bg-indigo-500'
   }
-  
+
   return <Badge className={className}>{priority}</Badge>
 }
 
@@ -80,7 +80,7 @@ export default function StaffTicketDetailPage() {
     const numericId = parseInt(ticketId, 10)
     if (!isNaN(numericId)) {
       markAsRead(numericId)
-      markTicketNotificationsAsRead(numericId).catch(() => {})
+      markTicketNotificationsAsRead(numericId).catch(() => { })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
@@ -136,7 +136,7 @@ export default function StaffTicketDetailPage() {
     }
   }
 
-  const handleAddNote = async (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>, replyType?: 'note' | 'email') => {
+  const handleAddNote = async (note: string, internal: boolean, attachments?: Array<{ filename: string; data: string; 'mime-type': string }>, replyType?: 'note' | 'email') => {
     // Generate a temporary message ID
     const tempMessageId = `temp-${Date.now()}`
 
@@ -180,7 +180,7 @@ export default function StaffTicketDetailPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden gap-4">
       {/* Compact Header with Back Button and Ticket Info */}
       <div className="flex items-center gap-3">
         <Button
@@ -201,10 +201,10 @@ export default function StaffTicketDetailPage() {
         </div>
       </div>
 
-      {/* Main Content - Optimized Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Left Column - Conversation (Primary Focus) */}
-        <div className="lg:col-span-3 space-y-4">
+      {/* Main Content - Fixed actions + scrollable conversation */}
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 overflow-hidden">
+        {/* Left Column - Conversation */}
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto pr-2 gap-4 pb-6">
           {/* Compact Ticket Meta Info */}
           <Card className="p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -227,7 +227,7 @@ export default function StaffTicketDetailPage() {
             </div>
           </Card>
 
-          {/* Articles - Main Content Area */}
+          {/* Articles - Scrollable */}
           <Card>
             <CardHeader className="py-3 px-4">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -251,16 +251,14 @@ export default function StaffTicketDetailPage() {
           </Card>
         </div>
 
-        {/* Right Column - Actions (Narrower) */}
-        <div className="lg:col-span-1">
-          <div className="lg:sticky lg:top-20">
-            <TicketActions
-              ticket={ticket}
-              onUpdate={handleUpdate}
-              onAddNote={handleAddNote}
-              isLoading={isLoading}
-            />
-          </div>
+        {/* Right Column - Actions (Fixed) */}
+        <div className="flex-shrink-0 lg:w-[450px]">
+          <TicketActions
+            ticket={ticket}
+            onUpdate={handleUpdate}
+            onAddNote={handleAddNote}
+            isLoading={isLoading}
+          />
         </div>
       </div>
     </div>

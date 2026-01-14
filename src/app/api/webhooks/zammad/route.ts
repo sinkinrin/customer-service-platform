@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook signature (optional - can be disabled for testing)
     // Zammad uses X-Hub-Signature header with sha1=<hex> format
-    const signature = request.headers.get('X-Hub-Signature')
+    const signature = request.headers.get('X-Hub-Signature') ?? request.headers.get('X-Zammad-Signature')
     const webhookSecret = process.env.ZAMMAD_WEBHOOK_SECRET
 
     if (webhookSecret && signature) {

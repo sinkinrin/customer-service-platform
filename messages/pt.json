@@ -331,8 +331,9 @@
       "emailPlaceholder": "Digite sua resposta por email...",
       "emailWillBeSent": "Esta resposta ser? enviada ao cliente por email.",
       "replyType": "Tipo de resposta",
-      "replyTypeEmail": "Email (enviar ao cliente)",
-      "replyTypeNote": "Nota (interna)",
+      "replyTypeWeb": "Resposta Web",
+      "replyTypeEmail": "Resposta Email",
+      "replyTypeNote": "Nota Interna",
       "sendEmail": "Enviar email",
       "senderLabels": {
         "customer": "Cliente",
@@ -1982,6 +1983,13 @@
     "navbar": {
       "notifications": "Notificações"
     }
+  },
+  "notificationCenter": {
+    "title": "Notificações",
+    "markAllRead": "Marcar todas como lidas",
+    "empty": "Nenhuma notificação",
+    "loading": "Carregando...",
+    "view": "Ver"
   },
   "notFound": {
     "title": "P?gina n?o encontrada",

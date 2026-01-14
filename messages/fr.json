@@ -330,9 +330,10 @@
       "attachFilesHint": "Max 5 fichiers, 10 Mo chacun",
       "emailPlaceholder": "Tapez votre r?ponse par email...",
       "emailWillBeSent": "Cette r?ponse sera envoy?e au client par email.",
-      "replyType": "Type de r?ponse",
-      "replyTypeEmail": "Email (envoyer au client)",
-      "replyTypeNote": "Note (interne)",
+      "replyType": "Type de réponse",
+      "replyTypeWeb": "Réponse Web",
+      "replyTypeEmail": "Réponse Email",
+      "replyTypeNote": "Note Interne",
       "sendEmail": "Envoyer l'email",
       "senderLabels": {
         "customer": "Client",
@@ -1982,6 +1983,13 @@
     "navbar": {
       "notifications": "Notifications"
     }
+  },
+  "notificationCenter": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "empty": "Aucune notification",
+    "loading": "Chargement...",
+    "view": "Voir"
   },
   "notFound": {
     "title": "Page introuvable",

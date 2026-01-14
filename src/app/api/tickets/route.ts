@@ -20,6 +20,7 @@ import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
+import { notifyTicketCreated } from '@/lib/notification'
 
 // ============================================================================
 // Helper Functions
@@ -472,6 +473,17 @@ export async function POST(request: NextRequest) {
     )
 
     console.log('[DEBUG] POST /api/tickets - Created ticket:', ticket.id)
+
+    try {
+      await notifyTicketCreated({
+        recipientUserId: user.id,
+        ticketId: ticket.id,
+        ticketNumber: ticket.number,
+        ticketTitle: ticket.title,
+      })
+    } catch (notifyError) {
+      console.error('[Tickets API] Failed to create in-app notification for ticket creation:', notifyError)
+    }
 
     // OpenSpec: New tickets remain UNASSIGNED by default
     // Auto-assignment is now only triggered via /api/tickets/auto-assign endpoint

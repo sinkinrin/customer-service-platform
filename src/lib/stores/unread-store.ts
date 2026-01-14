@@ -3,6 +3,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+/**
+ * @deprecated Use in-app notifications (`/api/notifications`) and `useNotifications` instead.
+ */
 interface UnreadStore {
   // State
   unreadTickets: number[]

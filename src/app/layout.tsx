@@ -12,6 +12,7 @@ import { NextIntlClientProvider } from "next-intl"
 import { getLocale, getMessages } from "next-intl/server"
 import { SessionProvider } from "@/components/providers/session-provider"
 import { TicketUpdatesProvider } from "@/components/providers/ticket-updates-provider"
+import { NotificationProvider } from "@/components/providers/notification-provider"
 import { ensureEnvValidation } from "@/lib/env"
 import { auth } from "@/auth"
 
@@ -49,7 +50,9 @@ export default async function RootLayout({
         <SessionProvider session={session}>
           <NextIntlClientProvider messages={messages}>
             <TicketUpdatesProvider>
-              {children}
+              <NotificationProvider>
+                {children}
+              </NotificationProvider>
             </TicketUpdatesProvider>
           </NextIntlClientProvider>
         </SessionProvider>

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/utils/auth'
 import { successResponse, errorResponse, unauthorizedResponse, forbiddenResponse, serverErrorResponse } from '@/lib/utils/api-response'
 import { mockUpdateUserRole, mockGetUserById } from '@/lib/mock-auth'
+import { notifyAccountRoleChanged } from '@/lib/notification'
 
 // Helper for bad request
 const badRequestResponse = (message: string) => errorResponse('BAD_REQUEST', message, undefined, 400)
@@ -39,6 +40,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const updated = await mockUpdateUserRole(targetUserId, nextRole)
     if (!updated) {
       return serverErrorResponse('Failed to update role', 'User update failed')
+    }
+
+    try {
+      await notifyAccountRoleChanged({
+        recipientUserId: updated.id,
+        targetUserId: updated.zammad_id,
+        targetEmail: updated.email,
+        previousRole: targetUser.role,
+        nextRole: updated.role,
+      })
+    } catch (notifyError) {
+      console.error('[Admin Role] Failed to create in-app notification:', notifyError)
     }
 
     return successResponse({

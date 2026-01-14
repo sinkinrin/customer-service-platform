@@ -97,6 +97,15 @@ FaqRating        # 用户评分
 | `/api/tickets/[id]/articles` | GET/POST | 回复列表/添加 |
 | `/api/tickets/search` | GET | 搜索 |
 
+### 通知
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/notifications` | GET | 列表 (limit/offset/unread) |
+| `/api/notifications/unread-count` | GET | 未读数量 |
+| `/api/notifications/[id]/read` | PUT | 标记单条已读 |
+| `/api/notifications/read-all` | PUT | 全部已读 |
+| `/api/notifications/[id]` | DELETE | 删除 |
+
 ### 对话
 | 端点 | 方法 | 说明 |
 |------|------|------|

@@ -14,6 +14,7 @@
     "clear": "Effacer",
     "submit": "Soumettre",
     "saving": "Enregistrement...",
+    "uploading": "Téléversement...",
     "cancelling": "Annulation...",
     "back": "Retour",
     "next": "Suivant",
@@ -136,6 +137,15 @@
       "feedbackComplaints": "Commentaires et réclamations",
       "submitFeedback": "Soumettre un commentaire",
       "submitComplaint": "Soumettre une réclamation"
+    },
+    "breadcrumb": {
+      "home": "Accueil",
+      "tickets": "Tickets",
+      "myTickets": "Mes tickets",
+      "ticketDetail": "Ticket #{number}",
+      "createTicket": "Créer un ticket",
+      "users": "Utilisateurs",
+      "userDetail": "Détails de l'utilisateur"
     }
   },
   "auth": {
@@ -322,6 +332,14 @@
         "closed": "Fermé",
         "merged": "Fusionn?"
       },
+      "stateDescriptions": {
+        "new": "Le ticket n'a pas encore été traité",
+        "open": "Le ticket est en cours de traitement",
+        "pendingReminder": "En attente de réponse du client. Le ticket sera automatiquement rouvert à l'heure spécifiée.",
+        "pendingClose": "Le ticket sera automatiquement fermé à l'heure spécifiée si aucune réponse n'est reçue.",
+        "closed": "Le ticket est résolu et fermé",
+        "merged": "Le ticket a été fusionné avec un autre ticket"
+      },
       "priorities": {
         "low": "Basse",
         "normal": "Normale",
@@ -360,6 +378,8 @@
       "description": "Comment s'est pass?e votre exp?rience avec ce ticket ?",
       "positive": "Satisfait",
       "negative": "Insatisfait",
+      "satisfied": "Client satisfait",
+      "unsatisfied": "Client insatisfait",
       "positiveReason": "Qu'avons-nous bien fait ? (optionnel)",
       "negativeReason": "Comment pouvons-nous nous am?liorer ? (optionnel)",
       "reasonPlaceholder": "Partagez votre avis...",
@@ -971,7 +991,7 @@
         "modelPlaceholder": "Veuillez sélectionner un modèle de produit",
         "categoryOther": "Autre",
         "modelNotApplicable": "Non applicable",
-        "versionLabel": "Version",
+        "versionLabel": "Version (Optionnel)",
         "versionPlaceholder": "ex., V1.2.3",
         "snImeiLabel": "SN/IMEI (Optionnel)",
         "snImeiPlaceholder": "Numéro de série ou IMEI de l'appareil",
@@ -991,17 +1011,20 @@
         "testEnvironmentPlaceholder": "Veuillez fournir :\n- Version du firmware et MCU\n- Informations sur la combinaison d'appareils",
         "quantityAndProbabilityLabel": "Quantité et probabilité *",
         "quantityAndProbabilityPlaceholder": "Total des appareils et affectés, ex., 3 sur 10 appareils ont ce problème",
-        "reproductionStepsLabel": "Étapes de reproduction *",
+        "reproductionStepsLabel": "Étapes de reproduction (Optionnel)",
         "reproductionStepsPlaceholder": "Décrivez les étapes pour reproduire :\n1. Première étape...\n2. Deuxième étape...\n3. Troisième étape...",
-        "expectedResultLabel": "Résultat attendu *",
+        "expectedResultLabel": "Résultat attendu (Optionnel)",
         "expectedResultPlaceholder": "Le comportement ou résultat correct que vous attendiez",
-        "actualResultLabel": "Résultat actuel *",
+        "actualResultLabel": "Résultat actuel (Optionnel)",
         "actualResultPlaceholder": "Le comportement ou résultat d'erreur qui s'est produit",
         "descriptionLabel": "Description du problème *",
         "descriptionPlaceholder": "Décrivez le problème en détail, notamment :\n1. Quand et à quelle fréquence il se produit\n2. Messages d'erreur ou comportement\n3. Étapes de dépannage que vous avez essayées\n4. Impact sur votre activité",
         "attachmentsLabel": "Fichiers journaux (optionnel)",
         "selectFiles": "Sélectionner des fichiers",
         "uploadInfo": "Supporte images, PDF, documents. Max 5 fichiers, 512 Mo chacun.",
+        "uploadingFiles": "Téléchargement en cours...",
+        "uploadSuccess": "Téléchargé avec succès",
+        "uploadFailed": "Échec du téléchargement",
         "actions": {
           "cancel": "Annuler",
           "submitting": "Soumission...",
@@ -1133,7 +1156,8 @@
         "passwordMismatch": "Le nouveau mot de passe et la confirmation ne correspondent pas",
         "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
         "passwordUpdated": "Mot de passe mis à jour",
-        "passwordUpdateFailed": "Échec de la mise à jour du mot de passe, veuillez réessayer"
+        "passwordUpdateFailed": "Échec de la mise à jour du mot de passe, veuillez réessayer",
+        "incorrectPassword": "Le mot de passe actuel est incorrect"
       }
     },
     "feedback": {
@@ -1835,7 +1859,9 @@
           "switchingToHuman": "Basculement...",
           "switchToAI": "Passer à l'IA",
           "switchingToAI": "Basculement...",
-          "transferToHuman": "Transférer à un humain"
+          "transferToHuman": "Transférer à un humain",
+          "newConversation": "Nouvelle conversation",
+          "creatingNew": "Création..."
         },
         "aiDescription": "Assistant intelligent ? votre service",
         "online": "En ligne",
@@ -1988,6 +2014,7 @@
     "title": "Notifications",
     "markAllRead": "Tout marquer comme lu",
     "empty": "Aucune notification",
+    "emptyDescription": "Les nouvelles notifications apparaîtront ici.",
     "loading": "Chargement...",
     "view": "Voir"
   },

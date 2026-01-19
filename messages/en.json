@@ -14,6 +14,7 @@
     "clear": "Clear",
     "submit": "Submit",
     "saving": "Saving...",
+    "uploading": "Uploading...",
     "cancelling": "Cancelling...",
     "back": "Back",
     "next": "Next",
@@ -136,6 +137,15 @@
       "feedbackComplaints": "Feedback & Complaints",
       "submitFeedback": "Submit Feedback",
       "submitComplaint": "Submit Complaint"
+    },
+    "breadcrumb": {
+      "home": "Home",
+      "tickets": "Tickets",
+      "myTickets": "My Tickets",
+      "ticketDetail": "Ticket #{number}",
+      "createTicket": "Create Ticket",
+      "users": "Users",
+      "userDetail": "User Details"
     }
   },
   "auth": {
@@ -322,6 +332,14 @@
         "closed": "Closed",
         "merged": "Merged"
       },
+      "stateDescriptions": {
+        "new": "Ticket has not been addressed yet",
+        "open": "Ticket is being actively worked on",
+        "pendingReminder": "Waiting for customer response. Ticket will automatically re-open at the specified time.",
+        "pendingClose": "Ticket will automatically close at the specified time if no response is received.",
+        "closed": "Ticket is resolved and closed",
+        "merged": "Ticket has been merged with another ticket"
+      },
       "priorities": {
         "low": "Low",
         "normal": "Normal",
@@ -360,6 +378,8 @@
       "description": "How was your experience with this ticket?",
       "positive": "Satisfied",
       "negative": "Not Satisfied",
+      "satisfied": "Customer Satisfied",
+      "unsatisfied": "Customer Not Satisfied",
       "positiveReason": "What did we do well? (optional)",
       "negativeReason": "How can we improve? (optional)",
       "reasonPlaceholder": "Share your feedback...",
@@ -971,7 +991,7 @@
         "modelPlaceholder": "Please select a product model",
         "categoryOther": "Other",
         "modelNotApplicable": "Not Applicable",
-        "versionLabel": "Version",
+        "versionLabel": "Version (Optional)",
         "versionPlaceholder": "e.g., V1.2.3",
         "snImeiLabel": "SN/IMEI (Optional)",
         "snImeiPlaceholder": "Device serial number or IMEI",
@@ -991,17 +1011,20 @@
         "testEnvironmentPlaceholder": "Please provide:\n- Firmware version and MCU version\n- Device combination info",
         "quantityAndProbabilityLabel": "Quantity and probability *",
         "quantityAndProbabilityPlaceholder": "Total devices and affected devices, e.g., 3 out of 10 devices have this issue",
-        "reproductionStepsLabel": "Reproduction steps *",
+        "reproductionStepsLabel": "Reproduction steps (Optional)",
         "reproductionStepsPlaceholder": "Please describe the steps to reproduce:\n1. First step...\n2. Second step...\n3. Third step...",
-        "expectedResultLabel": "Expected result *",
+        "expectedResultLabel": "Expected result (Optional)",
         "expectedResultPlaceholder": "The correct behavior or result you expected",
-        "actualResultLabel": "Actual result *",
+        "actualResultLabel": "Actual result (Optional)",
         "actualResultPlaceholder": "The actual error behavior or result that occurred",
         "descriptionLabel": "Issue description *",
         "descriptionPlaceholder": "Describe the problem in detail, including:\n1. When and how often it occurs\n2. Error messages or behavior\n3. Troubleshooting steps you have tried\n4. Impact on your business",
         "attachmentsLabel": "Log attachments (Optional)",
         "selectFiles": "Select files",
         "uploadInfo": "Supports images, PDFs, documents. Max 5 files, 512MB each.",
+        "uploadingFiles": "Uploading files...",
+        "uploadSuccess": "Uploaded successfully",
+        "uploadFailed": "Upload failed",
         "actions": {
           "cancel": "Cancel",
           "submitting": "Submitting...",
@@ -1133,7 +1156,8 @@
         "passwordMismatch": "New password and confirm password do not match",
         "passwordTooShort": "Password must be at least 8 characters",
         "passwordUpdated": "Password updated",
-        "passwordUpdateFailed": "Password update failed, please try again"
+        "passwordUpdateFailed": "Password update failed, please try again",
+        "incorrectPassword": "Current password is incorrect"
       }
     },
     "feedback": {
@@ -1842,7 +1866,9 @@
           "switchingToHuman": "Switching...",
           "switchToAI": "Switch to AI",
           "switchingToAI": "Switching...",
-          "transferToHuman": "Transfer to Human"
+          "transferToHuman": "Transfer to Human",
+          "newConversation": "New Conversation",
+          "creatingNew": "Creating..."
         }
       },
       "messageInput": {
@@ -1988,6 +2014,7 @@
     "title": "Notifications",
     "markAllRead": "Mark all read",
     "empty": "You're all caught up.",
+    "emptyDescription": "New notifications will appear here.",
     "loading": "Loading...",
     "view": "View"
   },

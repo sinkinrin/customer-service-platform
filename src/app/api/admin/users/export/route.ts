@@ -11,12 +11,13 @@ import { requireRole } from '@/lib/utils/auth'
 import { unauthorizedResponse, serverErrorResponse } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { getRegionByGroupId } from '@/lib/constants/regions'
+import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
-    if (roleIds.includes(1)) return 'admin'  // Admin role
-    if (roleIds.includes(2)) return 'staff'  // Agent role
-    return 'customer'  // Customer role (3)
+    if (roleIds.includes(ZAMMAD_ROLES.ADMIN)) return 'admin'
+    if (roleIds.includes(ZAMMAD_ROLES.AGENT)) return 'staff'
+    return 'customer'
 }
 
 // Get primary region from group_ids

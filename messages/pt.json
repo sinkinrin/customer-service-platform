@@ -14,6 +14,7 @@
     "clear": "Limpar",
     "submit": "Enviar",
     "saving": "Salvando...",
+    "uploading": "Enviando...",
     "cancelling": "Cancelando...",
     "back": "Voltar",
     "next": "Próximo",
@@ -136,6 +137,15 @@
       "feedbackComplaints": "Feedback e reclamações",
       "submitFeedback": "Enviar feedback",
       "submitComplaint": "Enviar reclamação"
+    },
+    "breadcrumb": {
+      "home": "Início",
+      "tickets": "Tickets",
+      "myTickets": "Meus tickets",
+      "ticketDetail": "Ticket #{number}",
+      "createTicket": "Criar ticket",
+      "users": "Usuários",
+      "userDetail": "Detalhes do usuário"
     }
   },
   "auth": {
@@ -322,6 +332,14 @@
         "closed": "Fechado",
         "merged": "Mesclado"
       },
+      "stateDescriptions": {
+        "new": "O ticket ainda não foi tratado",
+        "open": "O ticket está sendo trabalhado ativamente",
+        "pendingReminder": "Aguardando resposta do cliente. O ticket será reaberto automaticamente no horário especificado.",
+        "pendingClose": "O ticket será fechado automaticamente no horário especificado se nenhuma resposta for recebida.",
+        "closed": "O ticket está resolvido e fechado",
+        "merged": "O ticket foi mesclado com outro ticket"
+      },
       "priorities": {
         "low": "Baixa",
         "normal": "Normal",
@@ -360,6 +378,8 @@
       "description": "Como foi sua experi?ncia com este ticket?",
       "positive": "Satisfeito",
       "negative": "Insatisfeito",
+      "satisfied": "Cliente satisfeito",
+      "unsatisfied": "Cliente insatisfeito",
       "positiveReason": "O que fizemos bem? (opcional)",
       "negativeReason": "Como podemos melhorar? (opcional)",
       "reasonPlaceholder": "Compartilhe seu feedback...",
@@ -971,7 +991,7 @@
         "modelPlaceholder": "Selecione um modelo de produto",
         "categoryOther": "Outro",
         "modelNotApplicable": "Não aplicável",
-        "versionLabel": "Versão",
+        "versionLabel": "Versão (Opcional)",
         "versionPlaceholder": "ex., V1.2.3",
         "snImeiLabel": "SN/IMEI (Opcional)",
         "snImeiPlaceholder": "Número de série ou IMEI do dispositivo",
@@ -991,17 +1011,20 @@
         "testEnvironmentPlaceholder": "Por favor forneça:\n- Versão do firmware e MCU\n- Informações de combinação de dispositivos",
         "quantityAndProbabilityLabel": "Quantidade e probabilidade *",
         "quantityAndProbabilityPlaceholder": "Total de dispositivos e afetados, ex., 3 de 10 dispositivos têm este problema",
-        "reproductionStepsLabel": "Passos de reprodução *",
+        "reproductionStepsLabel": "Passos de reprodução (Opcional)",
         "reproductionStepsPlaceholder": "Descreva os passos para reproduzir:\n1. Primeiro passo...\n2. Segundo passo...\n3. Terceiro passo...",
-        "expectedResultLabel": "Resultado esperado *",
+        "expectedResultLabel": "Resultado esperado (Opcional)",
         "expectedResultPlaceholder": "O comportamento ou resultado correto que você esperava",
-        "actualResultLabel": "Resultado atual *",
+        "actualResultLabel": "Resultado atual (Opcional)",
         "actualResultPlaceholder": "O comportamento ou resultado de erro que ocorreu",
         "descriptionLabel": "Descrição do problema *",
         "descriptionPlaceholder": "Descreva o problema em detalhes, incluindo:\n1. Quando e com que frequência ocorre\n2. Mensagens de erro ou comportamento\n3. Etapas de solução que você tentou\n4. Impacto nos seus negócios",
         "attachmentsLabel": "Arquivos de log (opcional)",
         "selectFiles": "Selecionar arquivos",
         "uploadInfo": "Suporta imagens, PDFs, documentos. Máx. 5 arquivos, 512MB cada.",
+        "uploadingFiles": "Enviando arquivos...",
+        "uploadSuccess": "Enviado com sucesso",
+        "uploadFailed": "Falha no envio",
         "actions": {
           "cancel": "Cancelar",
           "submitting": "Enviando...",
@@ -1133,7 +1156,8 @@
         "passwordMismatch": "Nova senha e confirmação não coincidem",
         "passwordTooShort": "A senha deve ter pelo menos 8 caracteres",
         "passwordUpdated": "Senha atualizada",
-        "passwordUpdateFailed": "Falha ao atualizar senha, tente novamente"
+        "passwordUpdateFailed": "Falha ao atualizar senha, tente novamente",
+        "incorrectPassword": "A senha atual está incorreta"
       }
     },
     "feedback": {
@@ -1835,7 +1859,9 @@
           "switchingToHuman": "Mudando...",
           "switchToAI": "Mudar para IA",
           "switchingToAI": "Mudando...",
-          "transferToHuman": "Transferir para humano"
+          "transferToHuman": "Transferir para humano",
+          "newConversation": "Nova conversa",
+          "creatingNew": "Criando..."
         },
         "aiDescription": "Assistente inteligente ao seu servi?o",
         "online": "Online",
@@ -1988,6 +2014,7 @@
     "title": "Notificações",
     "markAllRead": "Marcar todas como lidas",
     "empty": "Nenhuma notificação",
+    "emptyDescription": "Novas notificações aparecerão aqui.",
     "loading": "Carregando...",
     "view": "Ver"
   },

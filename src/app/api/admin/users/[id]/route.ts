@@ -17,12 +17,13 @@ import {
 import { zammadClient } from '@/lib/zammad/client'
 import { mockUsers } from '@/lib/mock-auth'
 import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, REGIONS, type RegionValue } from '@/lib/constants/regions'
+import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
-  if (roleIds.includes(1)) return 'admin'
-  if (roleIds.includes(2)) return 'staff'
+  if (roleIds.includes(ZAMMAD_ROLES.ADMIN)) return 'admin'
+  if (roleIds.includes(ZAMMAD_ROLES.AGENT)) return 'staff'
   return 'customer'
 }
 

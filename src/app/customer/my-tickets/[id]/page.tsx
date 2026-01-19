@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, Send, Loader2, Clock, Tag, Upload, X, CheckCircle, Paperclip } from 'lucide-react'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { ATTACHMENT_LIMITS, FILE_ACCEPT, formatFileSize } from '@/lib/constants/attachments'
+import { useFileUpload } from '@/lib/hooks/use-file-upload'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +24,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import { ArticleCard } from '@/components/ticket/article-content'
 import { TicketRating } from '@/components/ticket/ticket-rating'
@@ -37,54 +46,40 @@ export default function CustomerTicketDetailPage() {
   const ticketId = params.id as string
   const t = useTranslations('customer.myTickets')
   const tDetail = useTranslations('customer.myTickets.detail')
+  const tCommon = useTranslations('common')
   const tToast = useTranslations('toast.customer.tickets')
+  const tBreadcrumb = useTranslations('nav.breadcrumb')
 
   const [ticket, setTicket] = useState<ZammadTicket | null>(null)
   const [articles, setArticles] = useState<TicketArticle[]>([])
   const [replyText, setReplyText] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [files, setFiles] = useState<File[]>([])
   const [closing, setClosing] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Use shared file upload hook
+  const {
+    uploadedFiles,
+    isUploading,
+    addFiles,
+    removeFile: handleRemoveFile,
+    clearFiles,
+    getAttachmentIds,
+    getFormId,
+  } = useFileUpload({
+    onError: (msg) => toast.error(msg),
+  })
 
   const { fetchTicketById, fetchArticles, isLoading } = useTicket()
   const { markAsRead } = useUnreadStore()
   const { markTicketNotificationsAsRead } = useNotifications()
 
-  // Convert File to base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => {
-        // Remove data:*/*;base64, prefix
-        const base64String = (reader.result as string).split(',')[1]
-        resolve(base64String)
-      }
-      reader.onerror = (error) => reject(error)
-    })
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || [])
-
-    // Validate file count
-    if (files.length + selectedFiles.length > 5) {
-      toast.error(t('fileUpload.maxFiles'))
-      return
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      await addFiles(e.target.files)
     }
-
-    // Validate file sizes (10MB per file)
-    const invalidFiles = selectedFiles.filter(file => file.size > 10 * 1024 * 1024)
-    if (invalidFiles.length > 0) {
-      toast.error(t('fileUpload.fileTooLarge'))
-      return
-    }
-
-    setFiles([...files, ...selectedFiles])
-  }
-
-  const handleRemoveFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index))
+    // Reset input
+    e.target.value = ''
   }
 
   useEffect(() => {
@@ -98,6 +93,13 @@ export default function CustomerTicketDetailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
+
+  // Auto-scroll to bottom when new articles arrive
+  useEffect(() => {
+    if (messagesEndRef.current && articles.length > 0) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [articles.length])
 
   // Listen for real-time ticket updates via SSE
   useEffect(() => {
@@ -175,19 +177,11 @@ export default function CustomerTicketDetailPage() {
 
     setSubmitting(true)
     try {
-      // Convert files to base64 attachments
-      let attachments: { filename: string; data: string; 'mime-type': string }[] = []
-      if (files.length > 0) {
-        attachments = await Promise.all(
-          files.map(async (file) => ({
-            filename: file.name,
-            data: await fileToBase64(file),
-            'mime-type': file.type || 'application/octet-stream',
-          }))
-        )
-      }
+      // Get attachment IDs and form_id from successfully uploaded files
+      const attachmentIds = getAttachmentIds()
+      const formId = getFormId()
 
-      // Call API with attachments
+      // Call API with attachment_ids and form_id (Zammad native API)
       const response = await fetch(`/api/tickets/${ticketId}/articles`, {
         method: 'POST',
         headers: {
@@ -198,7 +192,8 @@ export default function CustomerTicketDetailPage() {
           body: replyText,
           type: 'web',
           internal: false,
-          attachments: attachments.length > 0 ? attachments : undefined,
+          ...(attachmentIds.length > 0 && { attachment_ids: attachmentIds }),
+          ...(formId && { form_id: formId }),
         }),
       })
 
@@ -209,7 +204,7 @@ export default function CustomerTicketDetailPage() {
 
       toast.success(tToast('replySent'))
       setReplyText('')
-      setFiles([])
+      clearFiles()
       await loadArticles()
     } catch (error: any) {
       console.error('Failed to send reply:', error)
@@ -261,6 +256,15 @@ export default function CustomerTicketDetailPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden max-w-[1800px] mx-auto w-full">
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden w-full px-4 py-3">
+        {/* Breadcrumb Navigation */}
+        <Breadcrumb
+          items={[
+            { label: tBreadcrumb('myTickets'), href: '/customer/my-tickets' },
+            { label: `#${ticket.number}` },
+          ]}
+          className="mb-2"
+        />
+
         {/* Top Navigation Row - Standalone */}
         <div className="flex-shrink-0 mb-2">
           <Button
@@ -301,6 +305,9 @@ export default function CustomerTicketDetailPage() {
                   <ArticleCard key={article.id} article={article} viewerRole="customer" />
                 ))
               )}
+
+              {/* Auto-scroll anchor */}
+              <div ref={messagesEndRef} />
 
               {/* Closed Ticket State within Message List */}
               {ticket.state === 'closed' && (
@@ -349,7 +356,7 @@ export default function CustomerTicketDetailPage() {
                           onChange={handleFileChange}
                           multiple
                           className="hidden"
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          accept={FILE_ACCEPT}
                         />
                         <Button
                           type="button"
@@ -357,32 +364,43 @@ export default function CustomerTicketDetailPage() {
                           size="icon"
                           className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted"
                           onClick={() => document.getElementById('reply-files-mobile')?.click()}
-                          disabled={files.length >= 5}
+                          disabled={uploadedFiles.length >= ATTACHMENT_LIMITS.MAX_COUNT}
                         >
                           <Upload className="h-4 w-4" />
                         </Button>
                         <span className="text-[10px] text-muted-foreground hidden sm:inline-block">
-                          {files.length > 0 ? `${files.length}/5` : ''}
+                          {uploadedFiles.length > 0 ? `${uploadedFiles.length}/${ATTACHMENT_LIMITS.MAX_COUNT}` : ''}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-3">
                         <Button
                           onClick={handleReply}
-                          disabled={submitting || !replyText.trim()}
+                          disabled={submitting || isUploading || !replyText.trim()}
                           size="sm"
                           className="h-7 px-3 text-xs"
                         >
-                          {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                          {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                         </Button>
                       </div>
                     </div>
                   </div>
-                  {files.length > 0 && (
+                  {uploadedFiles.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2 px-1">
-                      {files.map((file, index) => (
-                        <div key={index} className="flex items-center gap-1 px-2 py-0.5 bg-muted rounded text-[10px] max-w-[150px] border">
-                          <span className="truncate">{file.name}</span>
+                      {uploadedFiles.map((uploadedFile, index) => (
+                        <div key={index} className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] max-w-[150px] border ${
+                          uploadedFile.error ? 'bg-red-50 border-red-200' :
+                          uploadedFile.uploading ? 'bg-yellow-50 border-yellow-200' :
+                          'bg-green-50 border-green-200'
+                        }`}>
+                          {uploadedFile.uploading ? (
+                            <Loader2 className="h-2 w-2 animate-spin text-yellow-600" />
+                          ) : uploadedFile.error ? (
+                            <X className="h-2 w-2 text-red-600" />
+                          ) : (
+                            <CheckCircle className="h-2 w-2 text-green-600" />
+                          )}
+                          <span className="truncate">{uploadedFile.file.name}</span>
                           <Button variant="ghost" size="icon" onClick={() => handleRemoveFile(index)} className="h-3 w-3 -mr-1 hover:text-destructive">
                             <X className="h-2 w-2" />
                           </Button>
@@ -402,9 +420,18 @@ export default function CustomerTicketDetailPage() {
               <CardHeader className="pb-2 pt-4 px-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg font-bold text-foreground leading-tight">
-                      {ticket.title}
-                    </CardTitle>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CardTitle className="text-lg font-bold text-foreground leading-tight line-clamp-2 break-words cursor-default">
+                            {ticket.title}
+                          </CardTitle>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[350px]">
+                          <p className="break-words">{ticket.title}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <p className="text-xs text-muted-foreground font-mono">#{ticket.number}</p>
                   </div>
                 </div>
@@ -500,7 +527,7 @@ export default function CustomerTicketDetailPage() {
                         onChange={handleFileChange}
                         multiple
                         className="hidden"
-                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                        accept={FILE_ACCEPT}
                       />
                       <Button
                         type="button"
@@ -508,7 +535,7 @@ export default function CustomerTicketDetailPage() {
                         size="sm"
                         className="h-7 gap-1 text-xs px-2"
                         onClick={() => document.getElementById('reply-files-desktop')?.click()}
-                        disabled={files.length >= 5}
+                        disabled={uploadedFiles.length >= ATTACHMENT_LIMITS.MAX_COUNT}
                       >
                         <Upload className="h-3 w-3" />
                         {tDetail('attachFiles')}
@@ -519,7 +546,7 @@ export default function CustomerTicketDetailPage() {
                       <span className="text-[10px] text-muted-foreground">{replyText.length}/2000</span>
                       <Button
                         onClick={handleReply}
-                        disabled={submitting || !replyText.trim()}
+                        disabled={submitting || isUploading || !replyText.trim()}
                         size="sm"
                         className="h-7 px-3 text-xs"
                       >
@@ -527,6 +554,11 @@ export default function CustomerTicketDetailPage() {
                           <>
                             <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                             {tDetail('sending')}
+                          </>
+                        ) : isUploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            {tCommon('uploading')}
                           </>
                         ) : (
                           <>
@@ -538,13 +570,24 @@ export default function CustomerTicketDetailPage() {
                     </div>
                   </div>
 
-                  {files.length > 0 && (
+                  {uploadedFiles.length > 0 && (
                     <div className="flex flex-col gap-1 mt-2 p-2 bg-muted/50 rounded-md">
-                      {files.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between text-xs">
+                      {uploadedFiles.map((uploadedFile, index) => (
+                        <div key={index} className={`flex items-center justify-between text-xs p-1 rounded ${
+                          uploadedFile.error ? 'bg-red-50' :
+                          uploadedFile.uploading ? 'bg-yellow-50' :
+                          'bg-green-50'
+                        }`}>
                           <div className="flex items-center gap-2 truncate">
-                            <Paperclip className="h-3 w-3" />
-                            <span className="truncate max-w-[150px]">{file.name}</span>
+                            {uploadedFile.uploading ? (
+                              <Loader2 className="h-3 w-3 animate-spin text-yellow-600" />
+                            ) : uploadedFile.error ? (
+                              <X className="h-3 w-3 text-red-600" />
+                            ) : (
+                              <CheckCircle className="h-3 w-3 text-green-600" />
+                            )}
+                            <span className="truncate max-w-[150px]">{uploadedFile.file.name}</span>
+                            <span className="text-muted-foreground">({formatFileSize(uploadedFile.file.size)})</span>
                           </div>
                           <Button variant="ghost" size="icon" onClick={() => handleRemoveFile(index)} className="h-4 w-4 hover:bg-background rounded-full">
                             <X className="h-3 w-3" />

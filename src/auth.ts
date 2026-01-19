@@ -19,6 +19,7 @@ import { ensureEnvValidation, isMockAuthEnabled, env } from "@/lib/env"
 import { PUBLIC_ROUTES, STATIC_ROUTES, isRouteMatch } from "@/lib/constants/routes"
 import { zammadClient } from "@/lib/zammad/client"
 import { getRegionByGroupId, getGroupIdByRegion, type RegionValue } from "@/lib/constants/regions"
+import { ZAMMAD_ROLES } from "@/lib/constants/zammad"
 
 // Import mock auth for development/fallback mode
 import { mockUsers, mockPasswords, type MockUser } from "@/lib/mock-auth"
@@ -60,9 +61,8 @@ const DEFAULT_PRODUCTION_ROLE: MockUser["role"] = "staff"
  * Map Zammad role_ids to our role names
  */
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
-  // Zammad role IDs: 1 = Admin, 2 = Agent, 3 = Customer
-  if (roleIds.includes(1)) return 'admin'
-  if (roleIds.includes(2)) return 'staff'
+  if (roleIds.includes(ZAMMAD_ROLES.ADMIN)) return 'admin'
+  if (roleIds.includes(ZAMMAD_ROLES.AGENT)) return 'staff'
   return 'customer'
 }
 

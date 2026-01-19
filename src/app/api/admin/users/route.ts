@@ -1,8 +1,64 @@
 /**
  * Admin Users API
  *
- * GET /api/admin/users - Get all users with pagination and filtering (from Zammad)
- * POST /api/admin/users - Create a new user (admin only)
+ * @swagger
+ * /api/admin/users:
+ *   get:
+ *     description: Get all users with pagination and filtering (Admin/Staff only)
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name or email
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [customer, staff, admin]
+ *         description: Filter by role
+ *       - in: query
+ *         name: region
+ *         schema:
+ *           type: string
+ *         description: Filter by region
+ *       - in: query
+ *         name: source
+ *         schema:
+ *           type: string
+ *           enum: [zammad, mock]
+ *           default: zammad
+ *         description: Data source
+ *     responses:
+ *       200:
+ *         description: A list of users
+ *   post:
+ *     description: Create a new user (Admin only)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - full_name
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               full_name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [customer, staff, admin]
+ *               region:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created successfully
  */
 
 import { NextRequest } from 'next/server'
@@ -16,6 +72,7 @@ import {
 import { mockUsers, mockPasswords } from '@/lib/mock-auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { getGroupIdByRegion, isValidRegion, getRegionByGroupId } from '@/lib/constants/regions'
+import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 
 // Validation schema for creating a new user
@@ -35,8 +92,8 @@ const CreateUserSchema = z.object({
 
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
-  if (roleIds.includes(1)) return 'admin'
-  if (roleIds.includes(2)) return 'staff'
+  if (roleIds.includes(ZAMMAD_ROLES.ADMIN)) return 'admin'
+  if (roleIds.includes(ZAMMAD_ROLES.AGENT)) return 'staff'
   return 'customer'
 }
 
@@ -75,8 +132,8 @@ export async function GET(request: NextRequest) {
     const roleFilter = searchParams.get('role') || ''
     // Staff can only see users from their own region (enforced server-side)
     // Admin can see all regions or filter by specific region
-    const regionFilter = currentUser.role === 'staff' && currentUser.region 
-      ? currentUser.region 
+    const regionFilter = currentUser.role === 'staff' && currentUser.region
+      ? currentUser.region
       : (searchParams.get('region') || '')
     const source = searchParams.get('source') || 'zammad' // 'zammad' or 'mock'
 

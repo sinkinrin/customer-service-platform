@@ -13,11 +13,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Save, X, Clock, Upload } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Save, X, Clock, Upload, Loader2, CheckCircle } from 'lucide-react'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { ATTACHMENT_LIMITS, FILE_ACCEPT, formatFileSize } from '@/lib/constants/attachments'
+import { useFileUpload } from '@/lib/hooks/use-file-upload'
 
 interface TicketActionsProps {
   ticket: ZammadTicket
@@ -27,7 +35,7 @@ interface TicketActionsProps {
     owner_id?: number
     pending_time?: string
   }) => Promise<void>
-  onAddNote: (note: string, internal: boolean, attachments?: Array<{ filename: string; data: string; 'mime-type': string }>, replyType?: 'note' | 'email') => Promise<void>
+  onAddNote: (note: string, internal: boolean, attachmentIds?: number[], replyType?: 'note' | 'email', formId?: string) => Promise<void>
   isLoading?: boolean
   customerEmail?: string  // Customer email for sending email replies
   compact?: boolean
@@ -66,8 +74,20 @@ export function TicketActions({
   const [replyMode, setReplyMode] = useState<'web' | 'email' | 'note'>('web')
   const [hasChanges, setHasChanges] = useState(false)
   const [showPendingTime, setShowPendingTime] = useState(false)
-  const [files, setFiles] = useState<File[]>([])
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Use shared file upload hook
+  const {
+    uploadedFiles,
+    isUploading,
+    addFiles,
+    removeFile: handleRemoveFile,
+    clearFiles,
+    getAttachmentIds,
+    getFormId,
+  } = useFileUpload({
+    onError: (msg) => toast.error(msg),
+  })
 
   // Auto-resize textarea based on content
   const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -79,38 +99,12 @@ export function TicketActions({
     }
   }
 
-  // Convert File to base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => {
-        const base64String = (reader.result as string).split(',')[1]
-        resolve(base64String)
-      }
-      reader.onerror = (error) => reject(error)
-    })
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || [])
-
-    if (files.length + selectedFiles.length > 5) {
-      toast.error(tToast('maxFilesExceeded'))
-      return
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      await addFiles(e.target.files)
     }
-
-    const invalidFiles = selectedFiles.filter(file => file.size > 10 * 1024 * 1024)
-    if (invalidFiles.length > 0) {
-      toast.error(tToastComponents('fileSizeError'))
-      return
-    }
-
-    setFiles([...files, ...selectedFiles])
-  }
-
-  const handleRemoveFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index))
+    // Reset input
+    e.target.value = ''
   }
 
   // Check if current state requires pending time
@@ -180,32 +174,25 @@ export function TicketActions({
 
   const handleAddNote = async () => {
     if (note.trim()) {
-      // Convert files to base64 attachments
-      let attachments: { filename: string; data: string; 'mime-type': string }[] = []
-      if (files.length > 0) {
-        try {
-          attachments = await Promise.all(
-            files.map(async (file) => ({
-              filename: file.name,
-              data: await fileToBase64(file),
-              'mime-type': file.type || 'application/octet-stream',
-            }))
-          )
-        } catch {
-          toast.error(tToastComponents('sendError'))
-          return
-        }
-      }
+      // Get attachment IDs and form_id from successfully uploaded files
+      const attachmentIds = getAttachmentIds()
+      const formId = getFormId()
 
       // internal is true only for 'note' mode
       // email type is handled by passing 'email' as the last argument
       const isNoteInternal = replyMode === 'note'
       const typeForApi = replyMode === 'email' ? 'email' : 'note'
 
-      await onAddNote(note, isNoteInternal, attachments.length > 0 ? attachments : undefined, typeForApi)
+      await onAddNote(
+        note,
+        isNoteInternal,
+        attachmentIds.length > 0 ? attachmentIds : undefined,
+        typeForApi,
+        formId || undefined
+      )
       setNote('')
       setReplyMode('web')
-      setFiles([])
+      clearFiles()
       // Reset textarea height after clearing
       if (noteTextareaRef.current) {
         noteTextareaRef.current.style.height = 'auto'
@@ -226,11 +213,20 @@ export function TicketActions({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATE_KEYS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {t(`states.${s.labelKey}`)}
-                    </SelectItem>
-                  ))}
+                  <TooltipProvider delayDuration={300}>
+                    {STATE_KEYS.map((s) => (
+                      <Tooltip key={s.value}>
+                        <TooltipTrigger asChild>
+                          <SelectItem value={s.value}>
+                            {t(`states.${s.labelKey}`)}
+                          </SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[250px]">
+                          <p className="text-xs">{t(`stateDescriptions.${s.labelKey}`)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
                 </SelectContent>
               </Select>
             </div>
@@ -375,7 +371,7 @@ export function TicketActions({
                   onChange={handleFileChange}
                   multiple
                   className="hidden"
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  accept={FILE_ACCEPT}
                 />
                 <Button
                   type="button"
@@ -383,7 +379,7 @@ export function TicketActions({
                   size="sm"
                   className="h-8 px-2 text-muted-foreground hover:text-foreground"
                   onClick={() => document.getElementById('note-files')?.click()}
-                  disabled={files.length >= 5}
+                  disabled={uploadedFiles.length >= ATTACHMENT_LIMITS.MAX_COUNT}
                 >
                   <Upload className="mr-2 h-3.5 w-3.5" />
                   <span className="text-xs">{t('attachFiles')}</span>
@@ -392,29 +388,46 @@ export function TicketActions({
 
               <Button
                 onClick={handleAddNote}
-                disabled={!note.trim() || isLoading}
+                disabled={!note.trim() || isLoading || isUploading}
                 variant="default"
                 size="sm"
                 className="px-6 h-8"
               >
-                {tCommon('submit')}
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    {tCommon('uploading')}
+                  </>
+                ) : (
+                  tCommon('submit')
+                )}
               </Button>
             </div>
 
-            {/* File List - Inline Compact */}
-            {files.length > 0 && (
+            {/* File List - Inline Compact with Status */}
+            {uploadedFiles.length > 0 && (
               <div className="space-y-1 bg-muted/30 rounded-md p-2">
-                <p className="text-xs font-semibold text-muted-foreground mb-1.5">{t('attachFiles')}: {files.length}</p>
-                {files.map((file, index) => (
+                <p className="text-xs font-semibold text-muted-foreground mb-1.5">{t('attachFiles')}: {uploadedFiles.length}</p>
+                {uploadedFiles.map((uploadedFile, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between py-1 px-2 bg-background/50 rounded border border-transparent hover:border-border transition-colors group"
+                    className={`flex items-center justify-between py-1 px-2 rounded border transition-colors group ${
+                      uploadedFile.error ? 'bg-red-50 border-red-200' :
+                      uploadedFile.uploading ? 'bg-yellow-50 border-yellow-200' :
+                      'bg-green-50 border-green-200'
+                    }`}
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Upload className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-                      <span className="text-xs truncate max-w-[180px]">{file.name}</span>
+                      {uploadedFile.uploading ? (
+                        <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin text-yellow-600" />
+                      ) : uploadedFile.error ? (
+                        <X className="h-3 w-3 flex-shrink-0 text-red-600" />
+                      ) : (
+                        <CheckCircle className="h-3 w-3 flex-shrink-0 text-green-600" />
+                      )}
+                      <span className="text-xs truncate max-w-[180px]">{uploadedFile.file.name}</span>
                       <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                        ({(file.size / 1024).toFixed(0)}KB)
+                        ({formatFileSize(uploadedFile.file.size)})
                       </span>
                     </div>
                     <button

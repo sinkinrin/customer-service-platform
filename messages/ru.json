@@ -14,6 +14,7 @@
     "clear": "Очистить",
     "submit": "Отправить",
     "saving": "Сохранение...",
+    "uploading": "Загрузка...",
     "cancelling": "Отмена...",
     "back": "Назад",
     "next": "Далее",
@@ -136,6 +137,15 @@
       "feedbackComplaints": "Отзывы и жалобы",
       "submitFeedback": "Отправить отзыв",
       "submitComplaint": "Подать жалобу"
+    },
+    "breadcrumb": {
+      "home": "Главная",
+      "tickets": "Заявки",
+      "myTickets": "Мои заявки",
+      "ticketDetail": "Заявка #{number}",
+      "createTicket": "Создать заявку",
+      "users": "Пользователи",
+      "userDetail": "Данные пользователя"
     }
   },
   "auth": {
@@ -321,6 +331,14 @@
         "pendingClose": "Ожидание закрытия",
         "closed": "Закрыта",
         "merged": "??????????"
+      },
+      "stateDescriptions": {
+        "new": "Заявка ещё не рассмотрена",
+        "open": "Заявка находится в работе",
+        "pendingReminder": "Ожидание ответа клиента. Заявка автоматически откроется в указанное время.",
+        "pendingClose": "Заявка автоматически закроется в указанное время, если ответ не будет получен.",
+        "closed": "Заявка решена и закрыта",
+        "merged": "Заявка была объединена с другой заявкой"
       },
       "priorities": {
         "low": "Низкий",
@@ -971,7 +989,7 @@
         "modelPlaceholder": "Выберите модель продукта",
         "categoryOther": "Другое",
         "modelNotApplicable": "Не применимо",
-        "versionLabel": "Версия",
+        "versionLabel": "Версия (Необязательно)",
         "versionPlaceholder": "напр., V1.2.3",
         "snImeiLabel": "SN/IMEI (Необязательно)",
         "snImeiPlaceholder": "Серийный номер или IMEI устройства",
@@ -991,17 +1009,20 @@
         "testEnvironmentPlaceholder": "Пожалуйста, укажите:\n- Версию прошивки и MCU\n- Информацию о комбинации устройств",
         "quantityAndProbabilityLabel": "Количество и вероятность *",
         "quantityAndProbabilityPlaceholder": "Всего устройств и затронутых, напр., 3 из 10 устройств имеют эту проблему",
-        "reproductionStepsLabel": "Шаги воспроизведения *",
+        "reproductionStepsLabel": "Шаги воспроизведения (Необязательно)",
         "reproductionStepsPlaceholder": "Опишите шаги для воспроизведения:\n1. Первый шаг...\n2. Второй шаг...\n3. Третий шаг...",
-        "expectedResultLabel": "Ожидаемый результат *",
+        "expectedResultLabel": "Ожидаемый результат (Необязательно)",
         "expectedResultPlaceholder": "Правильное поведение или результат, который вы ожидали",
-        "actualResultLabel": "Фактический результат *",
+        "actualResultLabel": "Фактический результат (Необязательно)",
         "actualResultPlaceholder": "Ошибочное поведение или результат, который произошёл",
         "descriptionLabel": "Описание проблемы *",
         "descriptionPlaceholder": "Опишите проблему подробно, включая:\n1. Когда и как часто она возникает\n2. Сообщения об ошибках или поведение\n3. Шаги, которые вы уже предприняли\n4. Влияние на ваш бизнес",
         "attachmentsLabel": "Файлы логов (необязательно)",
         "selectFiles": "Выбрать файлы",
         "uploadInfo": "Поддерживаются изображения, PDF, документы. Максимум 5 файлов по 512 МБ каждый.",
+        "uploadingFiles": "Загрузка файлов...",
+        "uploadSuccess": "Успешно загружено",
+        "uploadFailed": "Ошибка загрузки",
         "actions": {
           "cancel": "Отмена",
           "submitting": "Отправка...",
@@ -1133,7 +1154,8 @@
         "passwordMismatch": "Новый пароль и подтверждение не совпадают",
         "passwordTooShort": "Пароль должен содержать минимум 8 символов",
         "passwordUpdated": "Пароль обновлён",
-        "passwordUpdateFailed": "Не удалось обновить пароль, попробуйте снова"
+        "passwordUpdateFailed": "Не удалось обновить пароль, попробуйте снова",
+        "incorrectPassword": "Текущий пароль неверен"
       }
     },
     "feedback": {
@@ -1835,7 +1857,9 @@
           "switchingToHuman": "Переключение...",
           "switchToAI": "К ИИ",
           "switchingToAI": "Переключение...",
-          "transferToHuman": "Перевести на оператора"
+          "transferToHuman": "Перевести на оператора",
+          "newConversation": "Новый диалог",
+          "creatingNew": "Создание..."
         },
         "aiDescription": "????? ???????? ? ????? ???????",
         "online": "? ????",
@@ -1988,6 +2012,7 @@
     "title": "Уведомления",
     "markAllRead": "Отметить все прочитанными",
     "empty": "Нет уведомлений",
+    "emptyDescription": "Новые уведомления появятся здесь.",
     "loading": "Загрузка...",
     "view": "Открыть"
   },

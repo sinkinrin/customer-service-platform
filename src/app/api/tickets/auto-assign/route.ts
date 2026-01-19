@@ -17,6 +17,7 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
+import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 
 // Excluded system accounts that shouldn't receive ticket assignments
@@ -99,6 +100,11 @@ export async function POST(request: NextRequest) {
             const availableAgents = allAgents.filter(agent => {
                 // Exclude system/dispatcher accounts
                 if (EXCLUDED_EMAILS.some(email => agent.email?.toLowerCase() === email.toLowerCase())) {
+                    return false
+                }
+
+                // Exclude Admin accounts from auto-assignment
+                if (agent.role_ids?.includes(ZAMMAD_ROLES.ADMIN)) {
                     return false
                 }
 

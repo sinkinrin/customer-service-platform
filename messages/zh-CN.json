@@ -14,6 +14,7 @@
     "clear": "清除",
     "submit": "提交",
     "saving": "保存中...",
+    "uploading": "上传中...",
     "cancelling": "取消中...",
     "back": "返回",
     "next": "下一步",
@@ -136,6 +137,15 @@
       "feedbackComplaints": "反馈与投诉",
       "submitFeedback": "提交反馈",
       "submitComplaint": "提交投诉"
+    },
+    "breadcrumb": {
+      "home": "首页",
+      "tickets": "工单",
+      "myTickets": "我的工单",
+      "ticketDetail": "工单 #{number}",
+      "createTicket": "创建工单",
+      "users": "用户",
+      "userDetail": "用户详情"
     }
   },
   "auth": {
@@ -322,6 +332,14 @@
         "closed": "已关闭",
         "merged": "已合并"
       },
+      "stateDescriptions": {
+        "new": "工单尚未处理",
+        "open": "工单正在处理中",
+        "pendingReminder": "等待客户回复。工单将在指定时间自动重新打开。",
+        "pendingClose": "如未收到回复，工单将在指定时间自动关闭。",
+        "closed": "工单已解决并关闭",
+        "merged": "工单已与其他工单合并"
+      },
       "priorities": {
         "low": "低",
         "normal": "普通",
@@ -360,6 +378,8 @@
       "description": "您对该工单的体验如何？",
       "positive": "满意",
       "negative": "不满意",
+      "satisfied": "客户满意",
+      "unsatisfied": "客户不满意",
       "positiveReason": "我们做得好的地方是什么？（可选）",
       "negativeReason": "我们可以如何改进？（可选）",
       "reasonPlaceholder": "分享您的反馈...",
@@ -957,7 +977,7 @@
         "modelPlaceholder": "请选择产品型号",
         "categoryOther": "其他",
         "modelNotApplicable": "不适用",
-        "versionLabel": "版本号",
+        "versionLabel": "版本号（选填）",
         "versionPlaceholder": "例如：V1.2.3",
         "snImeiLabel": "SN/IMEI（选填）",
         "snImeiPlaceholder": "设备序列号或IMEI",
@@ -977,17 +997,20 @@
         "testEnvironmentPlaceholder": "请提供：\n- 测试版本号与MCU版本号\n- 设备组合信息",
         "quantityAndProbabilityLabel": "出现数量与概率 *",
         "quantityAndProbabilityPlaceholder": "设备总数与出现问题设备数量，例如：10台设备中有3台出现此问题",
-        "reproductionStepsLabel": "复现步骤 *",
+        "reproductionStepsLabel": "复现步骤（选填）",
         "reproductionStepsPlaceholder": "请详细描述操作复现步骤：\n1. 第一步...\n2. 第二步...\n3. 第三步...",
-        "expectedResultLabel": "预期结果 *",
+        "expectedResultLabel": "预期结果（选填）",
         "expectedResultPlaceholder": "您期望的正确行为或结果",
-        "actualResultLabel": "实际结果 *",
+        "actualResultLabel": "实际结果（选填）",
         "actualResultPlaceholder": "实际发生的错误行为或结果",
         "descriptionLabel": "问题描述 *",
         "descriptionPlaceholder": "详细描述问题，包括：\n1. 问题发生的时间和频率\n2. 错误消息或异常行为\n3. 您已尝试的排查步骤\n4. 对业务的影响",
         "attachmentsLabel": "附件日志（可选）",
         "selectFiles": "选择文件",
         "uploadInfo": "支持图片、PDF、文档。最多5个文件，每个最大512MB。",
+        "uploadingFiles": "正在上传文件...",
+        "uploadSuccess": "上传成功",
+        "uploadFailed": "上传失败",
         "actions": {
           "cancel": "取消",
           "submitting": "提交中...",
@@ -1133,7 +1156,8 @@
         "passwordMismatch": "新密码与确认密码不匹配",
         "passwordTooShort": "密码长度至少为8个字符",
         "passwordUpdated": "密码已更新",
-        "passwordUpdateFailed": "密码更新失败，请重试"
+        "passwordUpdateFailed": "密码更新失败，请重试",
+        "incorrectPassword": "当前密码不正确"
       }
     },
     "feedback": {
@@ -1842,7 +1866,9 @@
           "switchingToHuman": "切换中...",
           "switchToAI": "切换到AI",
           "switchingToAI": "切换中...",
-          "transferToHuman": "转人工"
+          "transferToHuman": "转人工",
+          "newConversation": "新对话",
+          "creatingNew": "创建中..."
         }
       },
       "messageInput": {
@@ -1988,6 +2014,7 @@
     "title": "通知",
     "markAllRead": "全部已读",
     "empty": "暂无通知",
+    "emptyDescription": "新通知将显示在这里。",
     "loading": "加载中...",
     "view": "查看"
   },

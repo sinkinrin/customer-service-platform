@@ -53,7 +53,7 @@ describe('autoAssignSingleTicket', () => {
     })
     expect(zammadClient.updateTicket).toHaveBeenCalledWith(1, {
       owner_id: 100,
-      state_id: 2,
+      state: 'open',
     })
   })
 

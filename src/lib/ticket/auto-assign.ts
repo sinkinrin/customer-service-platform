@@ -22,14 +22,111 @@ export interface SingleAssignResult {
   error?: string
 }
 
-// Placeholder for implementation
+/**
+ * Auto-assign a single ticket to the available agent with lowest load in the ticket's region
+ */
 export async function autoAssignSingleTicket(
   ticketId: number,
   ticketNumber: string,
   ticketTitle: string,
   groupId: number
 ): Promise<SingleAssignResult> {
-  return { success: false, error: 'Not implemented' }
+  try {
+    // 1. Get all active agents
+    const allAgents = await zammadClient.getAgents(true)
+
+    // 2. Get all tickets for load calculation
+    const allTickets = await zammadClient.getAllTickets()
+
+    // 3. Calculate current ticket count per agent
+    // Only count active tickets (state_id: 1=new, 2=open, 3=pending, 7=pending close)
+    const ticketCountByAgent: Record<number, number> = {}
+    for (const ticket of allTickets) {
+      if (ticket.owner_id && ticket.owner_id !== 1 && [1, 2, 3, 7].includes(ticket.state_id)) {
+        ticketCountByAgent[ticket.owner_id] = (ticketCountByAgent[ticket.owner_id] || 0) + 1
+      }
+    }
+
+    const now = new Date()
+
+    // 4. Filter available agents
+    const availableAgents = allAgents.filter(agent => {
+      // Exclude system accounts
+      if (EXCLUDED_EMAILS.some(email => agent.email?.toLowerCase() === email.toLowerCase())) {
+        return false
+      }
+
+      // Exclude Admin role (role_id 1)
+      if (agent.role_ids?.includes(1)) {
+        return false
+      }
+
+      // Check if agent has access to this group
+      const agentGroupIds = agent.group_ids || {}
+      const hasGroupAccess = Object.keys(agentGroupIds).includes(String(groupId))
+      if (!hasGroupAccess) {
+        return false
+      }
+
+      // Check if on vacation
+      if (agent.out_of_office) {
+        const startDate = agent.out_of_office_start_at ? new Date(agent.out_of_office_start_at) : null
+        const endDate = agent.out_of_office_end_at ? new Date(agent.out_of_office_end_at) : null
+
+        if (startDate && endDate) {
+          if (now >= startDate && now <= endDate) return false
+        } else if (startDate && !endDate) {
+          if (now >= startDate) return false
+        } else if (!startDate && endDate) {
+          if (now <= endDate) return false
+        }
+      }
+
+      return true
+    })
+
+    // 5. No available agents
+    if (availableAgents.length === 0) {
+      const region = GROUP_REGION_MAPPING[groupId] || 'unknown'
+      return {
+        success: false,
+        error: `No available agents for region: ${region}`,
+      }
+    }
+
+    // 6. Sort by load (ascending), pick the one with lowest load
+    availableAgents.sort((a, b) => {
+      const loadA = ticketCountByAgent[a.id] || 0
+      const loadB = ticketCountByAgent[b.id] || 0
+      return loadA - loadB
+    })
+
+    const selectedAgent = availableAgents[0]
+
+    // 7. Assign ticket and update state to open
+    await zammadClient.updateTicket(ticketId, {
+      owner_id: selectedAgent.id,
+      state_id: 2, // new -> open
+    })
+
+    const agentName = selectedAgent.firstname && selectedAgent.lastname
+      ? `${selectedAgent.firstname} ${selectedAgent.lastname}`.trim()
+      : selectedAgent.login || selectedAgent.email
+
+    return {
+      success: true,
+      assignedTo: {
+        id: selectedAgent.id,
+        name: agentName,
+        email: selectedAgent.email,
+      },
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Auto-assignment failed',
+    }
+  }
 }
 
 export async function handleAssignmentNotification(

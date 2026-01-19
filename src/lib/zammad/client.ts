@@ -1,9 +1,10 @@
 /**
  * Zammad API Client
- * 
+ *
  * Wrapper for Zammad REST API with error handling and retry mechanism
  */
 
+import { ATTACHMENT_LIMITS } from '@/lib/constants/attachments'
 import type {
   ZammadTicket,
   CreateTicketRequest,
@@ -348,9 +349,10 @@ export class ZammadClient {
       headers['X-On-Behalf-Of'] = onBehalfOf
     }
 
+    // Use longer timeout for attachment downloads (120 seconds)
     const response = await fetch(url, {
       headers,
-      signal: AbortSignal.timeout(this.timeout),
+      signal: AbortSignal.timeout(ATTACHMENT_LIMITS.DOWNLOAD_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -358,6 +360,67 @@ export class ZammadClient {
     }
 
     return await response.blob()
+  }
+
+  /**
+   * Upload attachment to Zammad using upload_caches endpoint
+   * All roles should use X-On-Behalf-Of for unified permission control
+   *
+   * Zammad uses POST /api/v1/upload_caches/{form_id} for file uploads.
+   * Files are cached under a form_id, which can later be referenced when
+   * creating tickets or articles.
+   *
+   * @param file - File buffer or Blob to upload
+   * @param filename - Original filename
+   * @param mimeType - MIME type of the file
+   * @param onBehalfOf - User email (required for proper ownership)
+   * @param formId - Unique form ID to group uploads (will be generated if not provided)
+   * @returns Upload result with store info for later reference
+   */
+  async uploadAttachment(
+    file: Buffer | Blob,
+    filename: string,
+    mimeType: string,
+    onBehalfOf: string,
+    formId?: string
+  ): Promise<{ id: number; store_id?: number; filename?: string; form_id: string }> {
+    if (!this.baseUrl || !this.apiToken) {
+      throw new Error(
+        'Zammad is not configured. Please set ZAMMAD_URL and ZAMMAD_API_TOKEN environment variables.'
+      )
+    }
+
+    // Generate form_id if not provided (use timestamp + random for uniqueness)
+    const effectiveFormId = formId || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+    const url = `${this.baseUrl}/api/v1/upload_caches/${effectiveFormId}`
+
+    const formData = new FormData()
+    // Convert Buffer to Uint8Array for Blob compatibility (Node.js Buffer isn't directly assignable to BlobPart)
+    const blob = file instanceof Blob ? file : new Blob([new Uint8Array(file)], { type: mimeType })
+    // Zammad expects the file field to be named 'File' (capital F)
+    formData.append('File', blob, filename)
+
+    const headers: Record<string, string> = {
+      'Authorization': `Token token=${this.apiToken}`,
+      'X-On-Behalf-Of': onBehalfOf,
+    }
+
+    // Use configurable timeout for uploads (default: 120 seconds)
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal: AbortSignal.timeout(ATTACHMENT_LIMITS.UPLOAD_TIMEOUT),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText)
+      throw new Error(`Attachment upload failed: ${errorText}`)
+    }
+
+    const result = await response.json()
+    // Include form_id in the response for later reference
+    return { ...result, form_id: effectiveFormId }
   }
 
   // ============================================================================

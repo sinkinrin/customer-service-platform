@@ -39,13 +39,13 @@ describe('Ticket Auto-Assign API', () => {
 
   it('rejects invalid cron secret', async () => {
     process.env.CRON_SECRET = 'secret'
-    vi.mocked(requireRole).mockResolvedValue({} as any)
 
     const request = createRequestWithSecret('wrong')
     const response = await POST(request)
 
+    // Invalid cron secret should return 403 immediately without checking session
     expect(response.status).toBe(403)
-    expect(requireRole).toHaveBeenCalled()
+    expect(requireRole).not.toHaveBeenCalled()
   })
 
   it('skips role check when cron secret is valid', async () => {

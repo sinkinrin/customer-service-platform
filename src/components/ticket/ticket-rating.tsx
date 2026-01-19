@@ -153,3 +153,42 @@ export function TicketRating({ ticketId, isVisible = true }: TicketRatingProps) 
     </Card>
   )
 }
+
+// Compact rating indicator for ticket lists and headers
+interface RatingIndicatorProps {
+  rating?: 'positive' | 'negative' | null
+  size?: 'sm' | 'md'
+  showLabel?: boolean
+}
+
+export function RatingIndicator({ rating, size = 'sm', showLabel = false }: RatingIndicatorProps) {
+  const t = useTranslations('tickets.rating')
+
+  if (!rating) return null
+
+  const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'
+
+  if (rating === 'positive') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
+        role="status"
+        aria-label={t('satisfied')}
+      >
+        <ThumbsUp className={iconSize} aria-hidden="true" />
+        {showLabel && <span className="text-xs">{t('positive')}</span>}
+      </span>
+    )
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-red-600 dark:text-red-400"
+      role="status"
+      aria-label={t('unsatisfied')}
+    >
+      <ThumbsDown className={iconSize} aria-hidden="true" />
+      {showLabel && <span className="text-xs">{t('negative')}</span>}
+    </span>
+  )
+}

@@ -44,17 +44,16 @@ export async function POST(request: NextRequest) {
         const cronSecret = request.headers.get('x-cron-secret')
         const expectedSecret = process.env.CRON_SECRET
 
-        // If cron secret is provided and matches, skip session auth
-        const isValidCronRequest = expectedSecret && cronSecret === expectedSecret
-
-        if (!isValidCronRequest) {
-            // For non-cron requests, require admin role
+        // If a cron secret is provided, validate it before anything else
+        // This ensures wrong secrets get 403 even without a valid session
+        if (cronSecret) {
+            if (!expectedSecret || cronSecret !== expectedSecret) {
+                return errorResponse('FORBIDDEN', 'Invalid cron secret', undefined, 403)
+            }
+            // Valid cron secret - proceed without session auth
+        } else {
+            // No cron secret provided - require admin role via session
             await requireRole(['admin'])
-        }
-
-        // If CRON_SECRET is set but wrong secret provided, reject
-        if (cronSecret && expectedSecret && cronSecret !== expectedSecret) {
-            return errorResponse('FORBIDDEN', 'Invalid cron secret', undefined, 403)
         }
 
         // Get all tickets

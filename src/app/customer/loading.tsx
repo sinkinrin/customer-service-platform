@@ -1,10 +1,50 @@
-import { PageLoader } from "@/components/ui/page-loader"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { useTranslations } from "next-intl"
 
 export default function CustomerLoading() {
+  const t = useTranslations('common.aria')
   return (
-    <PageLoader
-      message="Loading customer pages..."
-      hint="Preparing your shortcuts and data"
-    />
+    <div className="container mx-auto px-4 py-6 space-y-6" role="status" aria-label={t('loading')}>
+      {/* Page header skeleton */}
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+
+      {/* Content skeleton */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <Skeleton className="h-5 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-2/3" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* List skeleton */}
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-4 p-3 border rounded-lg">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+              <Skeleton className="h-6 w-16" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
   )
 }

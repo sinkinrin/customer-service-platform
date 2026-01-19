@@ -10,6 +10,7 @@ export const ATTACHMENT_LIMITS = {
   MAX_SIZE: 10 * 1024 * 1024, // 10MB per file
   MAX_COUNT: 5, // Maximum files per upload
   UPLOAD_TIMEOUT: 120000, // 120 seconds for upload timeout
+  DOWNLOAD_TIMEOUT: 120000, // 120 seconds for download timeout
 }
 
 // Allowed MIME types for server-side validation

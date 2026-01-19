@@ -7,6 +7,11 @@
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
 import type { ZammadUser } from '@/lib/zammad/types'
+import {
+  notifyTicketAssigned,
+  notifySystemAlert,
+  resolveLocalUserIdsForZammadUserId,
+} from '@/lib/notification'
 
 // Excluded system accounts that shouldn't receive ticket assignments
 export const EXCLUDED_EMAILS = ['support@howentech.com', 'howensupport@howentech.com']
@@ -106,7 +111,7 @@ export async function autoAssignSingleTicket(
     // 7. Assign ticket and update state to open
     await zammadClient.updateTicket(ticketId, {
       owner_id: selectedAgent.id,
-      state_id: 2, // new -> open
+      state: 'open', // new -> open
     })
 
     const agentName = selectedAgent.firstname && selectedAgent.lastname
@@ -129,6 +134,11 @@ export async function autoAssignSingleTicket(
   }
 }
 
+/**
+ * Handle notifications after auto-assignment attempt
+ * - Success: notify the assigned Staff
+ * - Failure: notify all Admins
+ */
 export async function handleAssignmentNotification(
   result: SingleAssignResult,
   ticketId: number,
@@ -136,5 +146,46 @@ export async function handleAssignmentNotification(
   ticketTitle: string,
   region: string
 ): Promise<void> {
-  // Placeholder
+  try {
+    if (result.success && result.assignedTo) {
+      // Assignment succeeded -> notify Staff
+      const staffLocalIds = await resolveLocalUserIdsForZammadUserId(result.assignedTo.id)
+      for (const recipientUserId of staffLocalIds) {
+        await notifyTicketAssigned({
+          recipientUserId,
+          ticketId,
+          ticketNumber,
+          ticketTitle,
+        })
+      }
+      console.log(`[Auto-Assign] Notified staff ${result.assignedTo.email} for ticket #${ticketNumber}`)
+    } else {
+      // Assignment failed -> notify all Admins
+      // Get admin users from Zammad (users with role_id 1)
+      const allUsers = await zammadClient.searchUsers('*')
+      const adminUsers = allUsers.filter(user => user.role_ids?.includes(1) && user.active)
+
+      let notifiedCount = 0
+      for (const admin of adminUsers) {
+        const adminLocalIds = await resolveLocalUserIdsForZammadUserId(admin.id)
+        for (const recipientUserId of adminLocalIds) {
+          await notifySystemAlert({
+            recipientUserId,
+            title: 'Auto-assignment failed',
+            body: `Ticket #${ticketNumber} could not be assigned: ${result.error}`,
+            data: {
+              ticketId,
+              ticketNumber,
+              ticketTitle,
+              region,
+            },
+          })
+          notifiedCount++
+        }
+      }
+      console.log(`[Auto-Assign] Notified ${notifiedCount} admins about failed assignment for ticket #${ticketNumber}`)
+    }
+  } catch (error) {
+    console.error('[Auto-Assign] Failed to send notification:', error)
+  }
 }

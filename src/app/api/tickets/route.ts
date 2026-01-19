@@ -1,12 +1,95 @@
 /**
  * Tickets API
- * 
- * GET  /api/tickets - Get all tickets
- * POST /api/tickets - Create a new ticket
+ *
+ * @swagger
+ * /api/tickets:
+ *   get:
+ *     description: Returns a list of tickets
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [open, closed, new, pending]
+ *         description: Filter tickets by status
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: integer
+ *           enum: [1, 2, 3]
+ *         description: Filter tickets by priority (1=low, 2=normal, 3=high)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of tickets to return
+ *     responses:
+ *       200:
+ *         description: A list of tickets
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tickets:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           title:
+ *                             type: string
+ *                           state:
+ *                             type: string
+ *                           priority:
+ *                             type: string
+ *   post:
+ *     description: Create a new ticket
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - article
+ *             properties:
+ *               title:
+ *                 type: string
+ *               group:
+ *                 type: string
+ *               priority_id:
+ *                 type: integer
+ *                 enum: [1, 2, 3]
+ *               article:
+ *                 type: object
+ *                 required:
+ *                   - subject
+ *                   - body
+ *                 properties:
+ *                   subject:
+ *                     type: string
+ *                   body:
+ *                     type: string
+ *                   type:
+ *                     type: string
+ *                     default: note
+ *     responses:
+ *       201:
+ *         description: Ticket created successfully
  */
 
 import { NextRequest } from 'next/server'
 import { zammadClient } from '@/lib/zammad/client'
+import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
@@ -21,6 +104,7 @@ import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 import { notifyTicketCreated } from '@/lib/notification'
+import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
 
 // ============================================================================
 // Helper Functions
@@ -158,11 +242,16 @@ const createTicketSchema = z.object({
     body: z.string().min(1),
     type: z.enum(['note', 'email', 'phone', 'web']).default('note'),
     internal: z.boolean().default(false),
+    // Legacy: base64 embedded attachments
     attachments: z.array(z.object({
       filename: z.string(),
       data: z.string(), // base64 encoded
       'mime-type': z.string(),
     })).optional(),
+    // New: Reference pre-uploaded attachments by ID (recommended)
+    attachment_ids: z.array(z.number()).optional(),
+    // New: Reference cached form uploads from upload_caches API
+    form_id: z.string().optional(),
   }),
 })
 
@@ -224,7 +313,7 @@ export async function GET(request: NextRequest) {
     // - Admin sees all tickets
     console.log('[DEBUG] GET /api/tickets - Before permission filter:', tickets.length, 'tickets')
     console.log('[DEBUG] GET /api/tickets - User role:', user.role, 'Region:', user.region, 'Zammad ID:', user.zammad_id)
-    
+
     // Build permission user object
     const permissionUser: PermissionUser = {
       id: user.id,
@@ -234,7 +323,7 @@ export async function GET(request: NextRequest) {
       group_ids: user.group_ids,
       region: user.region,
     }
-    
+
     let filteredTickets = filterTicketsByPermission(tickets as unknown as PermissionTicket[], permissionUser)
     console.log('[DEBUG] GET /api/tickets - After permission filter:', filteredTickets.length, 'tickets')
 
@@ -355,13 +444,35 @@ export async function GET(request: NextRequest) {
 
     // Filter by customer email if provided (post-transform filter)
     if (customerEmail) {
-      transformedTickets = transformedTickets.filter((ticket: any) => 
+      transformedTickets = transformedTickets.filter((ticket: any) =>
         ticket.customer_email?.toLowerCase() === customerEmail.toLowerCase()
       )
     }
 
+    // Fetch ratings for all tickets from Prisma
+    const ticketIds = transformedTickets.map((t: any) => t.id)
+    const ratingMap = new Map<number, 'positive' | 'negative'>()
+    try {
+      const ratings = await prisma.ticketRating.findMany({
+        where: { ticketId: { in: ticketIds } },
+        select: { ticketId: true, rating: true },
+      })
+      for (const r of ratings) {
+        ratingMap.set(r.ticketId, r.rating as 'positive' | 'negative')
+      }
+    } catch (error) {
+      console.warn('[Tickets API] Could not load ratings:', error)
+      // Continue without ratings
+    }
+
+    // Add rating to transformed tickets
+    const ticketsWithRating = transformedTickets.map((ticket: any) => ({
+      ...ticket,
+      rating: ratingMap.get(ticket.id) || null,
+    }))
+
     return successResponse({
-      tickets: transformedTickets,
+      tickets: ticketsWithRating,
       total: customerEmail ? transformedTickets.length : filteredTickets.length,
     })
   } catch (error) {
@@ -465,8 +576,10 @@ export async function POST(request: NextRequest) {
           sender: isCustomer ? 'Customer' : 'Agent',
           // Set origin_by_id for customers to properly attribute the article
           ...(isCustomer && { origin_by_id: zammadUser.id }),
-          // Pass attachments if provided (base64 encoded for Zammad)
+          // Support both legacy base64 attachments and new attachment_ids/form_id
           ...(ticketData.article.attachments && { attachments: ticketData.article.attachments }),
+          ...(ticketData.article.attachment_ids && { attachment_ids: ticketData.article.attachment_ids }),
+          ...(ticketData.article.form_id && { form_id: ticketData.article.form_id }),
         },
       },
       user.email  // Pass user email for X-On-Behalf-Of to show correct sender name
@@ -485,10 +598,28 @@ export async function POST(request: NextRequest) {
       console.error('[Tickets API] Failed to create in-app notification for ticket creation:', notifyError)
     }
 
-    // OpenSpec: New tickets remain UNASSIGNED by default
-    // Auto-assignment is now only triggered via /api/tickets/auto-assign endpoint
-    // This ensures unassigned tickets are only visible to Admin (per permission rules)
-    console.log('[DEBUG] POST /api/tickets - Ticket created without assignment (unassigned)')
+    // Auto-assign to available Staff in the ticket's region
+    const assignResult = await autoAssignSingleTicket(
+      ticket.id,
+      ticket.number,
+      ticket.title,
+      groupId
+    )
+
+    if (assignResult.success) {
+      console.log(`[Auto-Assign] Ticket #${ticket.number} assigned to ${assignResult.assignedTo?.name}`)
+    } else {
+      console.warn(`[Auto-Assign] Failed for #${ticket.number}: ${assignResult.error}`)
+    }
+
+    // Send notifications asynchronously (don't block response)
+    handleAssignmentNotification(
+      assignResult,
+      ticket.id,
+      ticket.number,
+      ticket.title,
+      region
+    ).catch(err => console.error('[Auto-Assign] Notification error:', err))
 
     return successResponse(
       {

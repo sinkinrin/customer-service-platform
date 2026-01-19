@@ -47,9 +47,16 @@ vi.mock('@/lib/zammad/health-check', () => ({
   isZammadUnavailableError: vi.fn().mockReturnValue(false),
 }))
 
+// Mock auto-assign module
+vi.mock('@/lib/ticket/auto-assign', () => ({
+  autoAssignSingleTicket: vi.fn(),
+  handleAssignmentNotification: vi.fn(),
+}))
+
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { checkZammadHealth } from '@/lib/zammad/health-check'
+import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
 
 // Test users
 const mockCustomer = {
@@ -230,6 +237,11 @@ describe('Tickets API 集成测试', () => {
 
       vi.mocked(zammadClient.searchUsers).mockResolvedValue([{ id: 100 }] as any)
       vi.mocked(zammadClient.createTicket).mockResolvedValue(mockTicket as any)
+      vi.mocked(autoAssignSingleTicket).mockResolvedValue({
+        success: true,
+        assignedTo: { id: 100, name: 'Test Agent', email: 'agent@test.com' },
+      })
+      vi.mocked(handleAssignmentNotification).mockResolvedValue(undefined)
 
       const request = createMockRequest('http://localhost:3000/api/tickets', {
         method: 'POST',
@@ -244,6 +256,105 @@ describe('Tickets API 集成测试', () => {
       const data = await response.json()
       expect(data.success).toBe(true)
       expect(data.data.ticket.id).toBe(1)
+    })
+
+    describe('auto-assignment on creation', () => {
+      it('calls autoAssignSingleTicket after ticket creation', async () => {
+        vi.mocked(auth).mockResolvedValue({
+          user: mockCustomer,
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        } as any)
+
+        vi.mocked(zammadClient.searchUsers).mockResolvedValue([{ id: 100 }] as any)
+        vi.mocked(zammadClient.createTicket).mockResolvedValue(mockTicket as any)
+        vi.mocked(autoAssignSingleTicket).mockResolvedValue({
+          success: true,
+          assignedTo: { id: 100, name: 'Test Agent', email: 'agent@test.com' },
+        })
+        vi.mocked(handleAssignmentNotification).mockResolvedValue(undefined)
+
+        const request = createMockRequest('http://localhost:3000/api/tickets', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: 'Test Ticket',
+            article: { subject: 'Test Subject', body: 'Test body content' },
+          }),
+        })
+        const response = await POST(request)
+
+        expect(response.status).toBe(201)
+        expect(autoAssignSingleTicket).toHaveBeenCalledWith(
+          expect.any(Number),
+          expect.any(String),
+          expect.any(String),
+          expect.any(Number)
+        )
+      })
+
+      it('creates ticket successfully even when auto-assign fails', async () => {
+        vi.mocked(auth).mockResolvedValue({
+          user: mockCustomer,
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        } as any)
+
+        vi.mocked(zammadClient.searchUsers).mockResolvedValue([{ id: 100 }] as any)
+        vi.mocked(zammadClient.createTicket).mockResolvedValue(mockTicket as any)
+        vi.mocked(autoAssignSingleTicket).mockResolvedValue({
+          success: false,
+          error: 'No available agents',
+        })
+        vi.mocked(handleAssignmentNotification).mockResolvedValue(undefined)
+
+        const request = createMockRequest('http://localhost:3000/api/tickets', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: 'Test Ticket',
+            article: { subject: 'Test Subject', body: 'Test body content' },
+          }),
+        })
+        const response = await POST(request)
+
+        // Ticket creation should still succeed
+        expect(response.status).toBe(201)
+        const data = await response.json()
+        expect(data.success).toBe(true)
+        expect(data.data.ticket.id).toBe(1)
+      })
+
+      it('calls handleAssignmentNotification after auto-assign attempt', async () => {
+        vi.mocked(auth).mockResolvedValue({
+          user: mockCustomer,
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        } as any)
+
+        vi.mocked(zammadClient.searchUsers).mockResolvedValue([{ id: 100 }] as any)
+        vi.mocked(zammadClient.createTicket).mockResolvedValue(mockTicket as any)
+        vi.mocked(autoAssignSingleTicket).mockResolvedValue({
+          success: true,
+          assignedTo: { id: 100, name: 'Test Agent', email: 'agent@test.com' },
+        })
+        vi.mocked(handleAssignmentNotification).mockResolvedValue(undefined)
+
+        const request = createMockRequest('http://localhost:3000/api/tickets', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: 'Test Ticket',
+            article: { subject: 'Test Subject', body: 'Test body content' },
+          }),
+        })
+        await POST(request)
+
+        // Wait a tick for the async notification call
+        await new Promise(resolve => setTimeout(resolve, 10))
+
+        expect(handleAssignmentNotification).toHaveBeenCalledWith(
+          expect.objectContaining({ success: true }),
+          expect.any(Number),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String)
+        )
+      })
     })
   })
 

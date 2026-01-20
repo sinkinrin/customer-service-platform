@@ -1,16 +1,20 @@
+'use client'
+
 /**
  * Custom 404 Not Found Page
- * 
+ *
  * Provides a user-friendly 404 error page with navigation options
  */
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Home, ArrowLeft, Search, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTranslations } from 'next-intl'
 
 export default function NotFound() {
   const t = useTranslations('notFound')
+  const router = useRouter()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4">
@@ -41,11 +45,9 @@ export default function NotFound() {
               {t('goHome')}
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="javascript:history.back()">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t('goBack')}
-            </Link>
+          <Button variant="outline" size="lg" onClick={() => router.back()}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {t('goBack')}
           </Button>
         </div>
 

@@ -1,8 +1,60 @@
 /**
  * Ticket Articles API
- * 
- * GET  /api/tickets/[id]/articles - Get all articles for a ticket
- * POST /api/tickets/[id]/articles - Add a new article (reply)
+ *
+ * @swagger
+ * /api/tickets/{id}/articles:
+ *   get:
+ *     description: Get the conversation history (articles) for a ticket
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Ticket ID
+ *     responses:
+ *       200:
+ *         description: List of articles (messages) associated with the ticket
+ *   post:
+ *     description: Add a new article (reply) to a ticket
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Ticket ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - body
+ *             properties:
+ *               subject:
+ *                 type: string
+ *               body:
+ *                 type: string
+ *               content_type:
+ *                 type: string
+ *                 default: text/html
+ *               type:
+ *                 type: string
+ *                 enum: [note, email, phone, web]
+ *                 default: note
+ *               internal:
+ *                 type: boolean
+ *                 default: false
+ *               attachment_ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: IDs of uploaded files to attach
+ *     responses:
+ *       201:
+ *         description: Article created successfully
  */
 
 import { NextRequest } from 'next/server'
@@ -32,11 +84,16 @@ const createArticleSchema = z.object({
   sender: z.string().optional(),
   to: z.string().email().optional(),  // Recipient email for type='email'
   cc: z.string().optional(),  // CC recipients for type='email'
+  // Legacy: base64 embedded attachments
   attachments: z.array(z.object({
     filename: z.string(),
     data: z.string(), // base64 encoded
     'mime-type': z.string(),
   })).optional(),
+  // New: Reference pre-uploaded attachments by ID (recommended)
+  attachment_ids: z.array(z.number()).optional(),
+  // New: Reference cached form uploads from upload_caches API
+  form_id: z.string().optional(),
 })
 
 // ============================================================================
@@ -259,7 +316,10 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
           to: recipientEmail,
           ...(articleData.cc && { cc: articleData.cc }),
         }),
+        // Support both legacy base64 attachments and new attachment_ids/form_id
         ...(articleData.attachments && { attachments: articleData.attachments }),
+        ...(articleData.attachment_ids && { attachment_ids: articleData.attachment_ids }),
+        ...(articleData.form_id && { form_id: articleData.form_id }),
       },
       user.email  // Pass user email for all roles to show correct sender name
     )

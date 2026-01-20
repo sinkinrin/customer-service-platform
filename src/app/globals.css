@@ -73,11 +73,16 @@
   }
 
   /*
-   * Ensure standard Radix behavior doesn't cause jumpiness
-   * IF modal=true is ever used.
+   * Fix scroll jitter from Radix/react-remove-scroll-bar scroll locking.
+   * Keep scroll lock behavior, only remove compensation margin/padding.
    */
-  body[data-scroll-locked] {
+  html body[data-scroll-locked] {
     margin-right: 0 !important;
+    padding-right: var(--removed-body-scroll-bar-size, 0px) !important;
+  }
+
+  .with-scroll-bars-hidden {
+    overflow: visible !important;
     padding-right: 0 !important;
   }
 
@@ -191,6 +196,18 @@
 
   .shadow-hover-effect:hover {
     box-shadow: var(--shadow-hover);
+  }
+
+  /* Interactive element utility - subtle lift on hover */
+  .interactive-element {
+    transition:
+      transform var(--transition-fast) var(--ease-default),
+      box-shadow var(--transition-normal) var(--ease-default),
+      background-color var(--transition-fast) var(--ease-default);
+  }
+
+  .interactive-element:hover {
+    transform: translateY(-1px);
   }
 
   /* Global reduced motion support */

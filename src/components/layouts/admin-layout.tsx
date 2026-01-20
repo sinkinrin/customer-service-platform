@@ -174,7 +174,7 @@ export function AdminLayout({
                 href={item.href}
                 prefetch
                 className={cn(
-                  "flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -187,7 +187,7 @@ export function AdminLayout({
                   <Icon className="h-5 w-5" />
                   <span>{item.name}</span>
                 </div>
-                {item.badge && (typeof item.badge === 'string' || item.badge > 0) && (
+                {(typeof item.badge === 'string' || (typeof item.badge === 'number' && item.badge > 0)) && (
                   <Badge variant={isActive ? "secondary" : "default"} className="ml-auto">
                     {item.badge}
                   </Badge>

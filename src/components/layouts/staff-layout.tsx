@@ -136,7 +136,7 @@ export function StaffLayout({
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors relative",
+                  "flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 relative",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"

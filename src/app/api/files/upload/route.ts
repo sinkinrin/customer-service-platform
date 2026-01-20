@@ -1,7 +1,43 @@
 /**
  * File Upload API
  *
- * POST /api/files/upload - Upload a file to local storage
+ * @swagger
+ * /api/files/upload:
+ *   post:
+ *     description: Upload a file to local storage
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *               - reference_type
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The file to upload (Max 10MB)
+ *               reference_type:
+ *                 type: string
+ *                 enum: [message, user_profile, ticket]
+ *                 description: Type of entity this file belongs to
+ *               reference_id:
+ *                 type: string
+ *                 description: ID of the referenced entity (optional)
+ *     responses:
+ *       201:
+ *         description: File uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 url:
+ *                   type: string
  */
 
 import { NextRequest } from 'next/server'
@@ -59,15 +95,15 @@ export async function POST(request: NextRequest) {
 
     // P2 Fix: Validate file size on server
     if (file.size > MAX_FILE_SIZE) {
-      return validationErrorResponse({ 
-        file: `File size exceeds limit. Maximum allowed: ${MAX_FILE_SIZE / 1024 / 1024}MB` 
+      return validationErrorResponse({
+        file: `File size exceeds limit. Maximum allowed: ${MAX_FILE_SIZE / 1024 / 1024}MB`
       })
     }
 
     // P2 Fix: Validate MIME type on server
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return validationErrorResponse({ 
-        file: `File type not allowed. Allowed types: images, PDF, Word, Excel, text files` 
+      return validationErrorResponse({
+        file: `File type not allowed. Allowed types: images, PDF, Word, Excel, text files`
       })
     }
 

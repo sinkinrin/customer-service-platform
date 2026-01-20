@@ -1,15 +1,32 @@
 /**
  * NextAuth.js API Route Handler
  *
- * Handles all authentication requests:
- * - GET /api/auth/signin - Sign in page
- * - POST /api/auth/signin - Sign in action
- * - GET /api/auth/signout - Sign out page
- * - POST /api/auth/signout - Sign out action
- * - GET /api/auth/session - Get session
- * - GET /api/auth/csrf - Get CSRF token
- * - GET /api/auth/providers - Get available providers
- * - GET /api/auth/callback/:provider - OAuth callback
+ * @swagger
+ * /api/auth/{action}:
+ *   post:
+ *     description: Handle authentication actions (signin, signout)
+ *     parameters:
+ *       - in: path
+ *         name: action
+ *         schema:
+ *           type: string
+ *           enum: [signin, signout, session, csrf, providers, callback]
+ *         description: Auth action to perform
+ *     responses:
+ *       200:
+ *         description: Auth action completed
+ *   get:
+ *     description: Get authentication information
+ *     parameters:
+ *       - in: path
+ *         name: action
+ *         schema:
+ *           type: string
+ *           enum: [signin, signout, session, csrf, providers, callback]
+ *         description: Auth action to perform
+ *     responses:
+ *       200:
+ *         description: Auth information returned
  */
 
 import { handlers } from "@/auth"

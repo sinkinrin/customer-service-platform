@@ -36,19 +36,16 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     }
 
     // Get article to find attachment filename
-    const article = user.role === 'customer'
-      ? await zammadClient.getArticle(artId, user.email)
-      : await zammadClient.getArticle(artId)
-    
+    // All roles use X-On-Behalf-Of for unified permission control via Zammad
+    const article = await zammadClient.getArticle(artId, user.email)
+
     // Find the attachment metadata to get the filename
     const attachmentMeta = article.attachments?.find((att: { id: number }) => att.id === attId)
     const filename = attachmentMeta?.filename || `attachment-${attId}`
 
     // Download attachment from Zammad
-    // Use X-On-Behalf-Of for customers to ensure proper access control
-    const blob = user.role === 'customer'
-      ? await zammadClient.downloadAttachment(ticketId, artId, attId, user.email)
-      : await zammadClient.downloadAttachment(ticketId, artId, attId)
+    // All roles use X-On-Behalf-Of - Zammad validates user has access to this ticket
+    const blob = await zammadClient.downloadAttachment(ticketId, artId, attId, user.email)
 
     // Get content type from blob or default to octet-stream
     const contentType = blob.type || 'application/octet-stream'

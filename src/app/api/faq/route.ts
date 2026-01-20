@@ -1,7 +1,36 @@
 /**
  * FAQ API
  *
- * GET /api/faq - Search FAQ items from database
+ * @swagger
+ * /api/faq:
+ *   get:
+ *     description: Search FAQ items from database
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Search keywords
+ *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: integer
+ *         description: Filter by category ID
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           default: zh-CN
+ *         description: Language code
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items to return
+ *     responses:
+ *       200:
+ *         description: List of FAQ articles
  *
  * Performance optimizations:
  * - Simple in-memory cache (no Redis needed for low concurrency)

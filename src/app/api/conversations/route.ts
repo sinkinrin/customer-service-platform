@@ -1,10 +1,45 @@
 /**
  * Conversations API
  *
- * GET /api/conversations - List conversations for current user
- * POST /api/conversations - Create a new AI conversation (local storage)
- *
- * Implementation: Uses local storage for AI conversations only
+ * @swagger
+ * /api/conversations:
+ *   get:
+ *     description: Returns a list of conversations for the current user
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter conversations by status
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of conversations to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Pagination offset
+ *     responses:
+ *       200:
+ *         description: A list of conversations
+ *   post:
+ *     description: Create a new AI conversation (local storage)
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               initial_message:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Conversation created successfully
  */
 
 import { NextRequest } from 'next/server'

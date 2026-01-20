@@ -1,8 +1,34 @@
 /**
  * File Management API
  *
- * GET /api/files/[id] - Get file metadata
- * DELETE /api/files/[id] - Delete a file
+ * @swagger
+ * /api/files/{id}:
+ *   get:
+ *     description: Get file metadata and download URL
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: File ID
+ *     responses:
+ *       200:
+ *         description: File metadata
+ *       404:
+ *         description: File not found
+ *   delete:
+ *     description: Delete a file
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: File ID
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
  */
 
 import { NextRequest } from 'next/server'

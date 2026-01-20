@@ -183,7 +183,7 @@ export default function ConversationDetailPage() {
       {/* Header */}
       <div className="flex-shrink-0 border-b bg-background/80 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4">
-          <ConversationHeader mode="ai" />
+          <ConversationHeader mode="ai" currentConversationId={conversationId} />
         </div>
       </div>
 

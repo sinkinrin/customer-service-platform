@@ -21,7 +21,10 @@ export default function CustomerSettingsPage() {
   const tSecurity = useTranslations('customer.settings.security')
   const tToast = useTranslations('customer.settings.toast')
   const tCommon = useTranslations('common.localeNames')
-  const [loading, setLoading] = useState(false)
+  const [loadingProfile, setLoadingProfile] = useState(false)
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const [loadingPassword, setLoadingPassword] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
 
   // Personal Information
   const [personalInfo, setPersonalInfo] = useState({
@@ -47,8 +50,48 @@ export default function CustomerSettingsPage() {
     confirmPassword: '',
   })
 
+  // Load profile and preferences on mount
   useEffect(() => {
-    if (user) {
+    const loadData = async () => {
+      try {
+        // Fetch profile and preferences in parallel
+        const [profileRes, prefsRes] = await Promise.all([
+          fetch('/api/user/profile'),
+          fetch('/api/user/preferences'),
+        ])
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json()
+          if (profileData.success && profileData.data?.profile) {
+            const profile = profileData.data.profile
+            setPersonalInfo({
+              fullName: profile.full_name || '',
+              email: profile.email || '',
+              phone: profile.phone || '',
+              language: profile.language || 'zh-CN',
+            })
+          }
+        }
+
+        if (prefsRes.ok) {
+          const prefsData = await prefsRes.json()
+          if (prefsData.success && prefsData.data?.preferences) {
+            setNotifications(prefsData.data.preferences)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error)
+      } finally {
+        setInitialLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
+
+  // Also update from user session when it changes
+  useEffect(() => {
+    if (user && initialLoading) {
       setPersonalInfo({
         fullName: user.full_name || '',
         email: user.email || '',
@@ -56,31 +99,53 @@ export default function CustomerSettingsPage() {
         language: user.language || 'zh-CN',
       })
     }
-  }, [user])
+  }, [user, initialLoading])
 
   const handleSavePersonalInfo = async () => {
-    setLoading(true)
+    setLoadingProfile(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success(tToast('personalInfoUpdated'))
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: personalInfo.fullName,
+          phone: personalInfo.phone,
+          language: personalInfo.language,
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        toast.success(tToast('personalInfoUpdated'))
+      } else {
+        toast.error(data.error?.message || tToast('updateFailed'))
+      }
     } catch {
       toast.error(tToast('updateFailed'))
     } finally {
-      setLoading(false)
+      setLoadingProfile(false)
     }
   }
 
   const handleSaveNotifications = async () => {
-    setLoading(true)
+    setLoadingNotifications(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success(tToast('notificationsUpdated'))
+      const response = await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notifications),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        toast.success(tToast('notificationsUpdated'))
+      } else {
+        toast.error(data.error?.message || tToast('updateFailed'))
+      }
     } catch {
       toast.error(tToast('updateFailed'))
     } finally {
-      setLoading(false)
+      setLoadingNotifications(false)
     }
   }
 
@@ -95,20 +160,38 @@ export default function CustomerSettingsPage() {
       return
     }
 
-    setLoading(true)
+    setLoadingPassword(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success(tToast('passwordUpdated'))
-      setSecurity({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
+      const response = await fetch('/api/user/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: security.currentPassword,
+          newPassword: security.newPassword,
+          confirmPassword: security.confirmPassword,
+        }),
       })
+
+      const data = await response.json()
+      if (data.success) {
+        toast.success(tToast('passwordUpdated'))
+        setSecurity({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        })
+      } else {
+        // Handle validation errors
+        if (data.error?.details?.[0]?.path?.includes('currentPassword')) {
+          toast.error(tToast('incorrectPassword') || 'Current password is incorrect')
+        } else {
+          toast.error(data.error?.message || tToast('passwordUpdateFailed'))
+        }
+      }
     } catch {
       toast.error(tToast('passwordUpdateFailed'))
     } finally {
-      setLoading(false)
+      setLoadingPassword(false)
     }
   }
 
@@ -183,8 +266,8 @@ export default function CustomerSettingsPage() {
               </div>
             </div>
 
-            <Button onClick={handleSavePersonalInfo} disabled={loading}>
-              {loading ? tPersonal('saving') : tPersonal('saveChanges')}
+            <Button onClick={handleSavePersonalInfo} disabled={loadingProfile}>
+              {loadingProfile ? tPersonal('saving') : tPersonal('saveChanges')}
             </Button>
           </CardContent>
         </Card>
@@ -277,8 +360,8 @@ export default function CustomerSettingsPage() {
               />
             </div>
 
-            <Button onClick={handleSaveNotifications} disabled={loading}>
-              {loading ? tNotifications('saving') : tNotifications('saveChanges')}
+            <Button onClick={handleSaveNotifications} disabled={loadingNotifications}>
+              {loadingNotifications ? tNotifications('saving') : tNotifications('saveChanges')}
             </Button>
           </CardContent>
         </Card>
@@ -326,8 +409,8 @@ export default function CustomerSettingsPage() {
               />
             </div>
 
-            <Button onClick={handleChangePassword} disabled={loading}>
-              {loading ? tSecurity('updating') : tSecurity('updatePassword')}
+            <Button onClick={handleChangePassword} disabled={loadingPassword}>
+              {loadingPassword ? tSecurity('updating') : tSecurity('updatePassword')}
             </Button>
           </CardContent>
         </Card>

@@ -1,17 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Send, FileText, Upload, X } from 'lucide-react'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Loader2, Send, FileText, Upload, X, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { PRODUCT_CATEGORIES } from '@/lib/constants/products'
+import { ATTACHMENT_LIMITS, FILE_ACCEPT, formatFileSize } from '@/lib/constants/attachments'
+import { useFileUpload } from '@/lib/hooks/use-file-upload'
 
 export default function CreateTicketPage() {
   const router = useRouter()
@@ -20,145 +39,137 @@ export default function CreateTicketPage() {
   const tCreate = useTranslations('customer.myTickets.create')
   const tTemplate = useTranslations('customer.myTickets.create.template')
   const tToast = useTranslations('toast.customer.tickets')
-  const [loading, setLoading] = useState(false)
 
-  const [formData, setFormData] = useState({
-    category: '',
-    model: '',
-    version: '',
-    snImei: '', // Optional
-    platform: '',
-    priority: '2', // Medium
-    title: '',
-    issueDescription: '', // 问题描述与现象
-    testEnvironment: '', // 测试环境（测试版本号与MCU版本号、设备组合）
-    quantityAndProbability: '', // 出现数量与概率（设备总数与出现问题设备）
-    reproductionSteps: '', // 复现步骤
-    expectedResult: '', // 预期结果
-    actualResult: '', // 实际结果
+  // Define schema with translations
+  const formSchema = z.object({
+    category: z.string().min(1, { message: tCreate('validation.required') }),
+    model: z.string().min(1, { message: tCreate('validation.required') }),
+    version: z.string().optional(),
+    snImei: z.string().optional(),
+    platform: z.string().min(1, { message: tCreate('validation.required') }),
+    priority: z.string(),
+    title: z.string().min(1, { message: tCreate('validation.required') }).max(200),
+    issueDescription: z.string().min(1, { message: tCreate('validation.required') }).max(1000),
+    testEnvironment: z.string().min(1, { message: tCreate('validation.required') }).max(500),
+    quantityAndProbability: z.string().min(1, { message: tCreate('validation.required') }).max(300),
+    reproductionSteps: z.string().max(1000), // Optional
+    expectedResult: z.string().max(500),     // Optional
+    actualResult: z.string().max(500),       // Optional
   })
 
-  const [files, setFiles] = useState<File[]>([])
+  type FormValues = z.infer<typeof formSchema>
 
-  const selectedCategory = PRODUCT_CATEGORIES.find(c => c.name === formData.category)
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      category: '',
+      model: '',
+      version: '',
+      snImei: '',
+      platform: '',
+      priority: '2', // Medium
+      title: '',
+      issueDescription: '',
+      testEnvironment: '',
+      quantityAndProbability: '',
+      reproductionSteps: '',
+      expectedResult: '',
+      actualResult: '',
+    },
+  })
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || [])
+  // Watch category to filter models
+  const selectedCategoryName = form.watch('category')
+  const selectedCategory = PRODUCT_CATEGORIES.find(c => c.name === selectedCategoryName)
 
-    // Validate file count
-    if (files.length + selectedFiles.length > 5) {
-      toast.error(tToast('maxFilesExceeded'))
-      return
-    }
-
-    // Validate file size (512MB each)
-    const maxSize = 512 * 1024 * 1024
-    const invalidFiles = selectedFiles.filter(f => f.size > maxSize)
-    if (invalidFiles.length > 0) {
-      toast.error(tToast('fileSizeExceeded'))
-      return
-    }
-
-    setFiles([...files, ...selectedFiles])
-  }
-
-  const removeFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index))
-  }
-
-  // Convert File to base64 for Zammad API
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => {
-        // Remove data URL prefix (e.g., "data:image/png;base64,")
-        const base64 = (reader.result as string).split(',')[1]
-        resolve(base64)
+  // Reset model when category changes
+  useEffect(() => {
+    const currentModel = form.getValues('model')
+    if (selectedCategoryName && currentModel) {
+      // Check if current model belongs to new category.
+      const validModels = selectedCategory?.models || []
+      if (!validModels.includes(currentModel)) {
+        form.setValue('model', '')
       }
-      reader.onerror = reject
-    })
+    }
+  }, [selectedCategoryName, selectedCategory, form])
+
+  // Use shared file upload hook
+  const {
+    uploadedFiles,
+    isUploading,
+    addFiles,
+    removeFile,
+    getAttachmentIds,
+    getFormId,
+  } = useFileUpload({
+    onError: (msg) => toast.error(msg),
+  })
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      await addFiles(e.target.files)
+    }
+    // Reset input
+    e.target.value = ''
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const onSubmit = async (values: FormValues) => {
     if (!user?.email) {
       toast.error(tToast('loginRequired'))
       return
     }
 
-    if (!formData.category || !formData.model) {
-      toast.error(tToast('selectProduct'))
-      return
-    }
-
-    setLoading(true)
-
     try {
       // Build structured ticket body from template fields
       const ticketBody = `【${tTemplate('productInfo')}】
-${tTemplate('model')}: ${formData.category} - ${formData.model}
-${tTemplate('version')}: ${formData.version || 'N/A'}
-${tTemplate('snImei')}: ${formData.snImei || 'N/A'}
-${tTemplate('platform')}: ${formData.platform}
+${tTemplate('model')}: ${values.category} - ${values.model}
+${tTemplate('version')}: ${values.version || 'N/A'}
+${tTemplate('snImei')}: ${values.snImei || 'N/A'}
+${tTemplate('platform')}: ${values.platform}
 
 【${tTemplate('issueDescription')}】
-${formData.issueDescription}
+${values.issueDescription}
 
 【${tTemplate('testEnvironment')}】
-${formData.testEnvironment}
+${values.testEnvironment}
 
 【${tTemplate('quantityAndProbability')}】
-${formData.quantityAndProbability}
+${values.quantityAndProbability}
 
 【${tTemplate('reproductionSteps')}】
-${formData.reproductionSteps}
+${values.reproductionSteps || 'N/A'}
 
 【${tTemplate('expectedResult')}】
-${formData.expectedResult}
+${values.expectedResult || 'N/A'}
 
 【${tTemplate('actualResult')}】
-${formData.actualResult}`
+${values.actualResult || 'N/A'}`
+
+      // Get attachment IDs and form_id from successfully uploaded files
+      const attachmentIds = getAttachmentIds()
+      const formId = getFormId()
 
       // Create ticket data (matching API schema)
       const ticketData = {
-        title: formData.title,
+        title: values.title,
         group: 'Support',
-        priority_id: parseInt(formData.priority),
+        priority_id: parseInt(values.priority),
         article: {
-          subject: formData.title,
+          subject: values.title,
           body: ticketBody,
           type: 'web' as const,
           internal: false,
-        },
-      }
-
-      // Convert files to base64 attachments for Zammad API
-      let attachments: { filename: string; data: string; 'mime-type': string }[] = []
-      if (files.length > 0) {
-        attachments = await Promise.all(
-          files.map(async (file) => ({
-            filename: file.name,
-            data: await fileToBase64(file),
-            'mime-type': file.type || 'application/octet-stream',
-          }))
-        )
-      }
-
-      // Add attachments to ticket data if any
-      const ticketDataWithAttachments = {
-        ...ticketData,
-        article: {
-          ...ticketData.article,
-          ...(attachments.length > 0 && { attachments }),
+          // Use attachment_ids and form_id for pre-uploaded files (Zammad native API)
+          ...(attachmentIds.length > 0 && { attachment_ids: attachmentIds }),
+          ...(formId && { form_id: formId }),
         },
       }
 
       const response = await fetch('/api/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ticketDataWithAttachments),
+        body: JSON.stringify(ticketData),
       })
 
       if (!response.ok) {
@@ -174,8 +185,6 @@ ${formData.actualResult}`
     } catch (error: any) {
       console.error('Failed to create ticket:', error)
       toast.error(error.message || tToast('createError'))
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -198,291 +207,392 @@ ${formData.actualResult}`
         <p className="text-sm text-muted-foreground">{t('createPageDescription')}</p>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">{tCreate('formTitle')}</CardTitle>
-            <CardDescription className="text-sm">
-              {tCreate('formDescription')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Product Category & Model & Priority */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="category" className="text-sm">{tCreate('categoryLabel')}</Label>
-                <select
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value, model: '' })}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  required
-                >
-                  <option value="">{tCreate('categoryPlaceholder')}</option>
-                  {PRODUCT_CATEGORIES.map(cat => (
-                    <option key={cat.name} value={cat.name}>
-                      {cat.name === 'Other' ? tCreate('categoryOther') : cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">{tCreate('formTitle')}</CardTitle>
+          <CardDescription className="text-sm">
+            {tCreate('formDescription')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-              <div className="space-y-1">
-                <Label htmlFor="model" className="text-sm">{tCreate('modelLabel')}</Label>
-                <select
-                  id="model"
-                  value={formData.model}
-                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  required
-                  disabled={!formData.category}
-                >
-                  <option value="">{tCreate('modelPlaceholder')}</option>
-                  {selectedCategory?.models.map(model => (
-                    <option key={model} value={model}>
-                      {model === 'N/A' ? tCreate('modelNotApplicable') : model}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Product Info Section */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('categoryLabel')}</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={tCreate('categoryPlaceholder')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {PRODUCT_CATEGORIES.map(cat => (
+                            <SelectItem key={cat.name} value={cat.name}>
+                              {cat.name === 'Other' ? tCreate('categoryOther') : cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <div className="space-y-1">
-                <Label htmlFor="priority" className="text-sm">{tCreate('priorityLabel')}</Label>
-                <select
-                  id="priority"
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  required
-                >
-                  <option value="1">{getPriorityLabel('1')}</option>
-                  <option value="2">{getPriorityLabel('2')}</option>
-                  <option value="3">{getPriorityLabel('3')}</option>
-                </select>
-              </div>
-            </div>
+                <FormField
+                  control={form.control}
+                  name="model"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('modelLabel')}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                        disabled={!selectedCategoryName}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={tCreate('modelPlaceholder')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {selectedCategory?.models.map(model => (
+                            <SelectItem key={model} value={model}>
+                              {model === 'N/A' ? tCreate('modelNotApplicable') : model}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Version, SN/IMEI, Platform */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="version" className="text-sm">{tCreate('versionLabel')}</Label>
-                <Input
-                  id="version"
-                  value={formData.version}
-                  onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                  placeholder={tCreate('versionPlaceholder')}
-                  maxLength={50}
-                  className="h-9"
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('priorityLabel')}</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="1">{getPriorityLabel('1')}</SelectItem>
+                          <SelectItem value="2">{getPriorityLabel('2')}</SelectItem>
+                          <SelectItem value="3">{getPriorityLabel('3')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="snImei" className="text-sm">{tCreate('snImeiLabel')}</Label>
-                <Input
-                  id="snImei"
-                  value={formData.snImei}
-                  onChange={(e) => setFormData({ ...formData, snImei: e.target.value })}
-                  placeholder={tCreate('snImeiPlaceholder')}
-                  maxLength={50}
-                  className="h-9"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="platform" className="text-sm">{tCreate('platformLabel')}</Label>
-                <Input
-                  id="platform"
-                  value={formData.platform}
-                  onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                  placeholder={tCreate('platformPlaceholder')}
-                  required
-                  maxLength={100}
-                  className="h-9"
-                />
-              </div>
-            </div>
 
-            {/* Title */}
-            <div className="space-y-1">
-              <Label htmlFor="title" className="text-sm">{tCreate('titleLabel')}</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder={tCreate('titlePlaceholder')}
-                required
-                maxLength={200}
-                className="h-9"
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="version"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('versionLabel')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={tCreate('versionPlaceholder')}
+                          className="placeholder:text-muted-foreground/40"
+                          maxLength={50}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="snImei"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('snImeiLabel')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={tCreate('snImeiPlaceholder')}
+                          className="placeholder:text-muted-foreground/40"
+                          maxLength={50}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="platform"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('platformLabel')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={tCreate('platformPlaceholder')}
+                          className="placeholder:text-muted-foreground/40"
+                          maxLength={100}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{tCreate('titleLabel')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={tCreate('titlePlaceholder')}
+                        className="placeholder:text-muted-foreground/40"
+                        maxLength={200}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            {/* Issue Description & Test Environment */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="issueDescription" className="text-sm">{tCreate('issueDescriptionLabel')}</Label>
-                <Textarea
-                  id="issueDescription"
-                  value={formData.issueDescription}
-                  onChange={(e) => setFormData({ ...formData, issueDescription: e.target.value })}
-                  placeholder={tCreate('issueDescriptionPlaceholder')}
-                  rows={3}
-                  required
-                  maxLength={1000}
-                  className="text-sm"
+              {/* Full Width Text Areas */}
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="issueDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('issueDescriptionLabel')}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={tCreate('issueDescriptionPlaceholder')}
+                          className="min-h-[100px] placeholder:text-muted-foreground/40"
+                          maxLength={1000}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="testEnvironment" className="text-sm">{tCreate('testEnvironmentLabel')}</Label>
-                <Textarea
-                  id="testEnvironment"
-                  value={formData.testEnvironment}
-                  onChange={(e) => setFormData({ ...formData, testEnvironment: e.target.value })}
-                  placeholder={tCreate('testEnvironmentPlaceholder')}
-                  rows={3}
-                  required
-                  maxLength={500}
-                  className="text-sm"
-                />
-              </div>
-            </div>
 
-            {/* Quantity/Probability & Reproduction Steps */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="quantityAndProbability" className="text-sm">{tCreate('quantityAndProbabilityLabel')}</Label>
-                <Textarea
-                  id="quantityAndProbability"
-                  value={formData.quantityAndProbability}
-                  onChange={(e) => setFormData({ ...formData, quantityAndProbability: e.target.value })}
-                  placeholder={tCreate('quantityAndProbabilityPlaceholder')}
-                  rows={2}
-                  required
-                  maxLength={300}
-                  className="text-sm"
+                <FormField
+                  control={form.control}
+                  name="testEnvironment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('testEnvironmentLabel')}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={tCreate('testEnvironmentPlaceholder')}
+                          className="min-h-[80px] placeholder:text-muted-foreground/40"
+                          maxLength={500}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="reproductionSteps" className="text-sm">{tCreate('reproductionStepsLabel')}</Label>
-                <Textarea
-                  id="reproductionSteps"
-                  value={formData.reproductionSteps}
-                  onChange={(e) => setFormData({ ...formData, reproductionSteps: e.target.value })}
-                  placeholder={tCreate('reproductionStepsPlaceholder')}
-                  rows={2}
-                  required
-                  maxLength={1000}
-                  className="text-sm"
-                />
-              </div>
-            </div>
 
-            {/* Expected vs Actual Results */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="expectedResult" className="text-sm">{tCreate('expectedResultLabel')}</Label>
-                <Textarea
-                  id="expectedResult"
-                  value={formData.expectedResult}
-                  onChange={(e) => setFormData({ ...formData, expectedResult: e.target.value })}
-                  placeholder={tCreate('expectedResultPlaceholder')}
-                  rows={2}
-                  required
-                  maxLength={500}
-                  className="text-sm"
+                <FormField
+                  control={form.control}
+                  name="quantityAndProbability"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('quantityAndProbabilityLabel')}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={tCreate('quantityAndProbabilityPlaceholder')}
+                          className="min-h-[60px] placeholder:text-muted-foreground/40"
+                          maxLength={300}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="actualResult" className="text-sm">{tCreate('actualResultLabel')}</Label>
-                <Textarea
-                  id="actualResult"
-                  value={formData.actualResult}
-                  onChange={(e) => setFormData({ ...formData, actualResult: e.target.value })}
-                  placeholder={tCreate('actualResultPlaceholder')}
-                  rows={2}
-                  required
-                  maxLength={500}
-                  className="text-sm"
-                />
-              </div>
-            </div>
 
-            {/* File Upload */}
-            <div className="space-y-1">
-              <Label htmlFor="files" className="text-sm">{tCreate('attachmentsLabel')}</Label>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Input
-                  id="files"
-                  type="file"
-                  onChange={handleFileChange}
-                  multiple
-                  className="hidden"
+                <FormField
+                  control={form.control}
+                  name="reproductionSteps"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tCreate('reproductionStepsLabel')}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={tCreate('reproductionStepsPlaceholder')}
+                          className="min-h-[100px] placeholder:text-muted-foreground/40"
+                          maxLength={1000}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="expectedResult"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tCreate('expectedResultLabel')}</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder={tCreate('expectedResultPlaceholder')}
+                            className="min-h-[80px] placeholder:text-muted-foreground/40"
+                            maxLength={500}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="actualResult"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tCreate('actualResultLabel')}</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder={tCreate('actualResultPlaceholder')}
+                            className="min-h-[80px] placeholder:text-muted-foreground/40"
+                            maxLength={500}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* File Upload Section - Kept similar but styled nicely */}
+              <div className="space-y-2">
+                <FormLabel>{tCreate('attachmentsLabel')}</FormLabel>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Input
+                    type="file"
+                    onChange={handleFileChange}
+                    multiple
+                    accept={FILE_ACCEPT}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                    disabled={uploadedFiles.length >= ATTACHMENT_LIMITS.MAX_COUNT}
+                  >
+                    <Upload className="mr-1 h-3 w-3" />
+                    {tCreate('selectFiles')}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {tCreate('fileSizeLimit')}
+                  </span>
+                </div>
+
+                {uploadedFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {uploadedFiles.map((uploadedFile, index) => (
+                      <div key={index} className={`flex items-center gap-1 px-2 py-1 border rounded text-xs ${uploadedFile.error ? 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800' :
+                          uploadedFile.uploading ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800' :
+                            'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800'
+                        }`}>
+                        {uploadedFile.uploading ? (
+                          <Loader2 className="h-3 w-3 animate-spin text-yellow-600" />
+                        ) : uploadedFile.error ? (
+                          <X className="h-3 w-3 text-red-600" />
+                        ) : (
+                          <CheckCircle className="h-3 w-3 text-green-600" />
+                        )}
+                        <span className="truncate max-w-[150px]">{uploadedFile.file.name}</span>
+                        <span className="text-muted-foreground">
+                          ({formatFileSize(uploadedFile.file.size)})
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0"
+                          onClick={() => removeFile(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => document.getElementById('files')?.click()}
-                  disabled={files.length >= 5}
+                  onClick={() => router.back()}
+                  disabled={form.formState.isSubmitting}
                 >
-                  <Upload className="mr-1 h-3 w-3" />
-                  {tCreate('selectFiles')}
+                  {tCreate('actions.cancel')}
                 </Button>
-                <span className="text-xs text-muted-foreground">
-                  {tCreate('fileSizeLimit')}
-                </span>
+                <Button type="submit" size="sm" disabled={form.formState.isSubmitting || isUploading}>
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      {tCreate('actions.submitting')}
+                    </>
+                  ) : isUploading ? (
+                    <>
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      {tCreate('uploadingFiles')}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-1 h-3 w-3" />
+                      {tCreate('actions.submit')}
+                    </>
+                  )}
+                </Button>
               </div>
 
-              {files.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center gap-1 px-2 py-1 border rounded text-xs bg-muted">
-                      <span className="truncate max-w-[150px]">{file.name}</span>
-                      <span className="text-muted-foreground">
-                        ({(file.size / 1024 / 1024).toFixed(1)}MB)
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-4 w-4 p-0"
-                        onClick={() => removeFile(index)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
 
-            {/* Submit Button */}
-            <div className="flex justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => router.back()}
-                disabled={loading}
-              >
-                {tCreate('actions.cancel')}
-              </Button>
-              <Button type="submit" size="sm" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                    {tCreate('actions.submitting')}
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-1 h-3 w-3" />
-                    {tCreate('actions.submit')}
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </form>
-
-      {/* Tips - more compact */}
+      {/* Tips */}
       <Card className="mt-4 border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">
         <CardContent className="py-3 px-4">
           <p className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-1">{tCreate('tips.title')}</p>
@@ -497,4 +607,3 @@ ${formData.actualResult}`
     </div>
   )
 }
-

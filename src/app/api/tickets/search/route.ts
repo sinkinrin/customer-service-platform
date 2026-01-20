@@ -13,6 +13,7 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
+import { mapStateIdToString } from '@/lib/constants/zammad-states'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 import { getVerifiedZammadUser, setVerifiedZammadUser } from '@/lib/cache/zammad-user-cache'
 
@@ -36,35 +37,7 @@ function mapPriorityIdToString(priorityId: number): string {
   }
 }
 
-/**
- * Map state_id to state string for frontend compatibility
- * Zammad state_id mapping (from actual Zammad API /api/v1/ticket_states):
- * 1 = new
- * 2 = open
- * 3 = pending reminder
- * 4 = closed
- * 5 = merged
- * 6 = pending close
- * Note: 'removed' state does not exist in this Zammad instance
- */
-function mapStateIdToString(stateId: number): string {
-  switch (stateId) {
-    case 1:
-      return 'new'
-    case 2:
-      return 'open'
-    case 3:
-      return 'pending reminder'
-    case 4:
-      return 'closed'
-    case 5:
-      return 'merged'
-    case 6:
-      return 'pending close'
-    default:
-      return 'closed' // Default to closed for unknown states
-  }
-}
+// mapStateIdToString is now imported from @/lib/constants/zammad-states
 
 /**
  * Transform Zammad ticket to include priority, state, and customer information

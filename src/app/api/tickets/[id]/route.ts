@@ -1,9 +1,70 @@
 /**
  * Single Ticket API
  *
- * GET    /api/tickets/[id] - Get ticket by conversation ID
- * PUT    /api/tickets/[id] - Update ticket
- * DELETE /api/tickets/[id] - Delete ticket (admin only)
+ * @swagger
+ * /api/tickets/{id}:
+ *   get:
+ *     description: Get detailed information about a specific ticket
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Ticket ID
+ *     responses:
+ *       200:
+ *         description: Detailed ticket information including current status
+ *       404:
+ *         description: Ticket not found
+ *   put:
+ *     description: Update ticket properties (status, priority, etc.) or add a reply
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Ticket ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               group:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               priority:
+ *                 type: string
+ *               article:
+ *                 type: object
+ *                 properties:
+ *                   subject:
+ *                     type: string
+ *                   body:
+ *                     type: string
+ *                   internal:
+ *                     type: boolean
+ *     responses:
+ *       200:
+ *         description: Ticket updated successfully
+ *   delete:
+ *     description: Delete a ticket (Admin only)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Ticket ID
+ *     responses:
+ *       200:
+ *         description: Ticket deleted successfully
  */
 
 import { NextRequest } from 'next/server'
@@ -19,6 +80,7 @@ import {
 import { checkTicketPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 import { z } from 'zod'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
+import { mapStateIdToString } from '@/lib/constants/zammad-states'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 
 // ============================================================================
@@ -41,35 +103,7 @@ function mapPriorityIdToString(priorityId: number): string {
   }
 }
 
-/**
- * Map state_id to state string for frontend compatibility
- * Zammad state_id mapping (from actual Zammad API /api/v1/ticket_states):
- * 1 = new
- * 2 = open
- * 3 = pending reminder
- * 4 = closed
- * 5 = merged
- * 6 = pending close
- * Note: 'removed' state does not exist in this Zammad instance
- */
-function mapStateIdToString(stateId: number): string {
-  switch (stateId) {
-    case 1:
-      return 'new'
-    case 2:
-      return 'open'
-    case 3:
-      return 'pending reminder'
-    case 4:
-      return 'closed'
-    case 5:
-      return 'merged'
-    case 6:
-      return 'pending close'
-    default:
-      return 'closed' // Default to closed for unknown states
-  }
-}
+// mapStateIdToString is now imported from @/lib/constants/zammad-states
 
 /**
  * Map state string to state_id for Zammad API
@@ -194,7 +228,7 @@ export async function GET(
       group_ids: user.group_ids,
       region: user.region,
     }
-    
+
     const permissionTicket: PermissionTicket = {
       id: rawTicket.id,
       customer_id: rawTicket.customer_id,
@@ -202,13 +236,13 @@ export async function GET(
       group_id: rawTicket.group_id,
       state_id: rawTicket.state_id,
     }
-    
+
     const permissionResult = checkTicketPermission({
       user: permissionUser,
       ticket: permissionTicket,
       action: 'view',
     })
-    
+
     if (!permissionResult.allowed) {
       console.warn('[Ticket API] Access denied:', permissionResult.reason)
       // Return 404 for customers to not leak ticket existence, 403 for staff
@@ -343,7 +377,7 @@ export async function PUT(
       }
     }
     if (updateData.priority) payload.priority = updateData.priority
-    
+
     // Security: Only admin can modify owner_id (ticket assignment)
     // Staff must use /api/tickets/[id]/assign endpoint which has proper admin-only restriction
     if (updateData.owner_id) {
@@ -377,7 +411,7 @@ export async function PUT(
       group_ids: user.group_ids,
       region: user.region,
     }
-    
+
     const permissionTicket: PermissionTicket = {
       id: existingTicket.id,
       customer_id: existingTicket.customer_id,
@@ -385,20 +419,20 @@ export async function PUT(
       group_id: existingTicket.group_id,
       state_id: existingTicket.state_id,
     }
-    
+
     // Determine the appropriate permission action:
     // - If customer is only closing the ticket (state -> closed), use 'close' action
     // - Otherwise use 'edit' action
-    const isCloseOnly = user.role === 'customer' && 
+    const isCloseOnly = user.role === 'customer' &&
       updateData.state?.toLowerCase() === 'closed' &&
       !updateData.title && !updateData.group && !updateData.priority && !updateData.owner_id
-    
+
     const permissionResult = checkTicketPermission({
       user: permissionUser,
       ticket: permissionTicket,
       action: isCloseOnly ? 'close' : 'edit',
     })
-    
+
     if (!permissionResult.allowed) {
       console.warn('[Ticket API] Update access denied:', permissionResult.reason)
       if (user.role === 'customer') {

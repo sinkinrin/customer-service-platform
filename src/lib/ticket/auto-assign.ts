@@ -6,7 +6,7 @@
 
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
-import type { ZammadUser } from '@/lib/zammad/types'
+import { getActiveStateIds } from '@/lib/constants/zammad-states'
 import {
   notifyTicketAssigned,
   notifySystemAlert,
@@ -44,10 +44,11 @@ export async function autoAssignSingleTicket(
     const allTickets = await zammadClient.getAllTickets()
 
     // 3. Calculate current ticket count per agent
-    // Only count active tickets (state_id: 1=new, 2=open, 3=pending, 7=pending close)
+    // Only count active tickets (defined in zammad-states.ts)
+    const activeStateIds = getActiveStateIds()
     const ticketCountByAgent: Record<number, number> = {}
     for (const ticket of allTickets) {
-      if (ticket.owner_id && ticket.owner_id !== 1 && [1, 2, 3, 7].includes(ticket.state_id)) {
+      if (ticket.owner_id && ticket.owner_id !== 1 && activeStateIds.includes(ticket.state_id)) {
         ticketCountByAgent[ticket.owner_id] = (ticketCountByAgent[ticket.owner_id] || 0) + 1
       }
     }

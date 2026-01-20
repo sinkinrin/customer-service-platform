@@ -22,30 +22,11 @@ import {
     notifyTicketUnassigned,
     resolveLocalUserIdsForZammadUserId,
 } from '@/lib/notification'
+import { mapStateIdToString } from '@/lib/constants/zammad-states'
 
-/**
- * Map state_id to state string for frontend compatibility
- * Zammad state_id mapping (from actual Zammad API /api/v1/ticket_states):
- * 1 = new, 2 = open, 3 = pending reminder, 4 = closed, 5 = merged, 6 = pending close
- */
-function mapStateIdToString(stateId: number): string {
-  switch (stateId) {
-    case 1:
-      return 'new'
-    case 2:
-      return 'open'
-    case 3:
-      return 'pending reminder'
-    case 4:
-      return 'closed'
-    case 5:
-      return 'merged'
-    case 6:
-      return 'pending close'
-    default:
-      return 'closed'
-  }
-}
+
+// mapStateIdToString is now imported from @/lib/constants/zammad-states
+
 
 // Schema for assignment
 const AssignTicketSchema = z.object({
@@ -87,7 +68,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         let previousOwner: { id: number; email: string; name: string } | null = null
         try {
             ticket = await zammadClient.getTicket(ticketId)
-            
+
             // Check if ticket has an existing owner (owner_id > 1 means assigned, 1 is system/unassigned)
             if (ticket.owner_id && ticket.owner_id > 1) {
                 try {
@@ -257,7 +238,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 <p>${tEmail('closing')}<br>
 ${tEmail('signature')}</p>
                 `.trim()
-                
+
                 // Create an internal email article to notify the previous owner
                 // internal: true ensures this notification is not visible to customers
                 await zammadClient.createArticle({
@@ -270,7 +251,7 @@ ${tEmail('signature')}</p>
                     sender: 'Agent',
                     to: previousOwner.email,
                 })
-                
+
                 console.log(`[API] Reassignment notification sent to ${previousOwner.email}`)
             } catch (emailError) {
                 // Log error but don't fail the assignment

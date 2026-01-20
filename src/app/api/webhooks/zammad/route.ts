@@ -62,25 +62,13 @@ function verifyWebhookSignature(
 // POST /api/webhooks/zammad
 // ============================================================================
 
+import { mapStateIdToString } from '@/lib/constants/zammad-states'
+
 function mapStateIdToStatus(stateId: number | null | undefined): string | undefined {
   if (stateId == null) return undefined
-  switch (stateId) {
-    case 1:
-      return 'new'
-    case 2:
-      return 'open'
-    case 3:
-      return 'pending reminder'
-    case 4:
-      return 'closed'
-    case 5:
-      return 'merged'
-    case 6:
-      return 'pending close'
-    default:
-      return `state:${stateId}`
-  }
+  return mapStateIdToString(stateId)
 }
+
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
@@ -134,7 +122,7 @@ export async function POST(request: NextRequest) {
         // Has article data - either new ticket with first article or new article added
         const ticketCreatedAt = new Date(webhookPayload.ticket.created_at || Date.now()).getTime()
         const articleCreatedAt = new Date(webhookPayload.article.created_at || Date.now()).getTime()
-        
+
         // If ticket and article created within 5 seconds, it's a new ticket
         if (Math.abs(ticketCreatedAt - articleCreatedAt) < 5000) {
           updateEvent = 'created'
@@ -188,15 +176,31 @@ export async function POST(request: NextRequest) {
           })
           console.log('TicketUpdate created:', { ticketId, event: updateEvent })
 
-          // Broadcast via SSE to connected clients
+          // Broadcast via SSE to connected clients (targeted to relevant users only)
           try {
+            // Compute target user IDs: owner (assigned staff) + customer
+            // Admin users are automatically included by the emitter
+            const targetUserIds: string[] = []
+
+            // Add ticket owner (assigned staff)
+            if (webhookPayload.ticket.owner_id && webhookPayload.ticket.owner_id !== 1) {
+              const ownerLocalIds = await resolveLocalUserIdsForZammadUserId(webhookPayload.ticket.owner_id)
+              targetUserIds.push(...ownerLocalIds)
+            }
+
+            // Add ticket customer
+            if (typeof webhookPayload.ticket.customer_id === 'number') {
+              const customerLocalIds = await resolveLocalUserIdsForZammadUserId(webhookPayload.ticket.customer_id)
+              targetUserIds.push(...customerLocalIds)
+            }
+
             sseEmitter.broadcast({
               id: ticketUpdate.id,
               ticketId,
               event: updateEvent,
               data: updateData,
               createdAt: ticketUpdate.createdAt.toISOString(),
-            })
+            }, targetUserIds.length > 0 ? targetUserIds : undefined)
           } catch (sseError) {
             console.error('[Webhook] SSE broadcast failed:', sseError)
           }

@@ -51,21 +51,78 @@ const emailTriggers: TriggerConfig[] = [
       'notification.email': {
         recipient: 'ticket_customer',
         subject: 'Your ticket ##{ticket.number} has been received - #{ticket.title}',
-        body: `Dear #{ticket.customer.firstname},
+        body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #2563eb; padding: 24px 32px; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 600;">Ticket Received</h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px;">
+              <p style="margin: 0 0 16px 0;">Dear #{ticket.customer.firstname},</p>
+              <p style="margin: 0 0 24px 0;">Thank you for contacting our support team. Your request has been received and assigned ticket number <strong>##{ticket.number}</strong>.</p>
 
-Thank you for contacting our support team. Your request has been received and assigned ticket number ##{ticket.number}.
+              <!-- Ticket Details Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 16px;">
+                    <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e40af;">Ticket Details</p>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b; width: 100px;">Title:</td>
+                        <td style="padding: 4px 0;">#{ticket.title}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b;">Status:</td>
+                        <td style="padding: 4px 0;">#{ticket.state.name}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b;">Priority:</td>
+                        <td style="padding: 4px 0;">#{ticket.priority.name}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
-**Ticket Details:**
-- Title: #{ticket.title}
-- Status: #{ticket.state.name}
-- Priority: #{ticket.priority.name}
+              <p style="margin: 0 0 24px 0;">We will review your request and respond as soon as possible.</p>
 
-We will review your request and respond as soon as possible.
+              <!-- CTA Button -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="background-color: #2563eb; border-radius: 6px;">
+                    <a href="#{config.http_type}://#{config.fqdn}" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-weight: 600;">Track Your Ticket</a>
+                  </td>
+                </tr>
+              </table>
 
-You can track your ticket status at: #{config.http_type}://#{config.fqdn}
-
-Best regards,
-Howen Technology Support Team`,
+              <p style="margin: 0; color: #64748b;">Best regards,<br><strong>Howen Technology Support Team</strong></p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 16px 32px; border-top: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center;">This is an automated message. Please do not reply directly to this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
       },
     },
   },
@@ -92,20 +149,82 @@ Howen Technology Support Team`,
       'notification.email': {
         recipient: 'ticket_customer',
         subject: 'Ticket ##{ticket.number} status updated - #{ticket.title}',
-        body: `Dear #{ticket.customer.firstname},
+        body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #059669; padding: 24px 32px; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 600;">Status Updated</h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px;">
+              <p style="margin: 0 0 16px 0;">Dear #{ticket.customer.firstname},</p>
+              <p style="margin: 0 0 24px 0;">Your ticket <strong>##{ticket.number}</strong> status has been updated.</p>
 
-Your ticket ##{ticket.number} status has been updated.
+              <!-- Status Badge -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 16px; text-align: center;">
+                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #047857; text-transform: uppercase; letter-spacing: 0.5px;">Current Status</p>
+                    <p style="margin: 0; font-size: 18px; font-weight: 600; color: #047857;">#{ticket.state.name}</p>
+                  </td>
+                </tr>
+              </table>
 
-**Current Status:** #{ticket.state.name}
+              <!-- Ticket Details Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 16px;">
+                    <p style="margin: 0 0 8px 0; font-weight: 600; color: #334155;">Ticket Details</p>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b; width: 100px;">Title:</td>
+                        <td style="padding: 4px 0;">#{ticket.title}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b;">Priority:</td>
+                        <td style="padding: 4px 0;">#{ticket.priority.name}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
-**Ticket Details:**
-- Title: #{ticket.title}
-- Priority: #{ticket.priority.name}
+              <!-- CTA Button -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="background-color: #059669; border-radius: 6px;">
+                    <a href="#{config.http_type}://#{config.fqdn}" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-weight: 600;">View Ticket</a>
+                  </td>
+                </tr>
+              </table>
 
-You can view your ticket at: #{config.http_type}://#{config.fqdn}
-
-Best regards,
-Howen Technology Support Team`,
+              <p style="margin: 0; color: #64748b;">Best regards,<br><strong>Howen Technology Support Team</strong></p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 16px 32px; border-top: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center;">This is an automated message. Please do not reply directly to this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
       },
     },
   },
@@ -136,18 +255,63 @@ Howen Technology Support Team`,
       'notification.email': {
         recipient: 'ticket_customer',
         subject: 'New reply on ticket ##{ticket.number} - #{ticket.title}',
-        body: `Dear #{ticket.customer.firstname},
+        body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #333333; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #7c3aed; padding: 24px 32px; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 600;">New Reply</h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px;">
+              <p style="margin: 0 0 16px 0;">Dear #{ticket.customer.firstname},</p>
+              <p style="margin: 0 0 24px 0;">You have received a new reply on your ticket <strong>##{ticket.number}</strong>.</p>
 
-You have received a new reply on your ticket ##{ticket.number}.
+              <!-- Reply Content Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #faf5ff; border-left: 4px solid #7c3aed; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <div style="color: #374151; white-space: pre-wrap;">#{article.body}</div>
+                  </td>
+                </tr>
+              </table>
 
----
-#{article.body}
----
+              <!-- CTA Button -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="background-color: #7c3aed; border-radius: 6px;">
+                    <a href="#{config.http_type}://#{config.fqdn}" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-weight: 600;">View Full Conversation</a>
+                  </td>
+                </tr>
+              </table>
 
-You can reply to this email or view the full conversation at: #{config.http_type}://#{config.fqdn}
-
-Best regards,
-Howen Technology Support Team`,
+              <p style="margin: 0 0 8px 0; color: #64748b; font-size: 13px;">You can reply to this email or click the button above to view the full conversation.</p>
+              <p style="margin: 0; color: #64748b;">Best regards,<br><strong>Howen Technology Support Team</strong></p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 16px 32px; border-top: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center;">This is an automated message from Howen Technology Support.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
         include_attachments: 'true',
       },
     },

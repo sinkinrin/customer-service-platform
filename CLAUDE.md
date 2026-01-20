@@ -162,4 +162,44 @@ messages/               # i18n translation files
 
 ---
 
-**Note**: Use `codebase-retrieval` when searching for code patterns or architecture information about this project.
+Effective Use of Augment (Codebase Retrieval)
+To maximize the efficiency of the AI agent, apply the following rules regarding the use of the codebase-retrieval tool.
+
+1. When to Use (Trigger Conditions)
+✅ MANDATORY Triggers
+Project Onboarding: At the very start of a session or when introduced to a new codebase.
+Query: "Overview of project structure and main tech stack."
+New Feature Planning: Before writing the implementation_plan.md.
+Query: "How is [Related Feature] currently implemented? list relevant files."
+Conceptual Debugging: When an error is logical/architectural (not just a syntax error).
+Query: "Explain the data flow for [X] and where it might fail."
+"Where Is..." Questions: When looking for logic without knowing the exact function name.
+Query: "Where is the code that handles [Business Logic]?"
+⛔ When NOT to Use
+Refactoring/Renaming: Do NOT use it to find all occurrences of a variable. It is not an exhaustive search engine.
+Action: Use grep_search instead.
+Simple File Retrieval: If you already know the path (e.g., 
+src/app/page.tsx
+), logic is not needed.
+Action: Use view_file directly.
+2. How to Use (Best Practices)
+Ask "How" and "Why", not just "What":
+Bad: "Show me auth.ts"
+Good: "How is authentication state persisted and where is the config?"
+Scope Your Queries:
+Bad: "Show me the code."
+Good: "Show me the Zod schema and form submission logic for the Login component."
+Chain of Thought:
+Use the tool to get a high-level list of files -> Then use view_file or grep to inspect details.
+3. Frequency & Workflow Integration
+Planning Phase (Frequency: HIGH)
+Call codebase-retrieval at least once per major task item to verify assumptions.
+Goal: Build a mental model before touching code.
+Execution Phase (Frequency: LOW)
+Only use if you hit a "wall" or discover a new dependency that wasn't in the plan.
+Goal: Unblock obstacles.
+Verification Phase (Frequency: MEDIUM)
+Use it to potential side effects.
+Query: "What other components depend on [Modified Component]?" (Follow up with grep to verify).
+Summary Rule for Agent
+"Use codebase-retrieval as your Compass/GPS to find the right area and understand the terrain. Use grep and view_file as your Microscope to do the actual work."

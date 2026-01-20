@@ -31,6 +31,7 @@ openspec/
 
 ## 当前变更提案
 
+- **`fix-january-2026-feedback`** - 修复2026年1月用户反馈问题（14个问题，P0-P3优先级）
 - **`refactor-authorization-system-v3`** - 授权系统 V3 重构（P0 安全漏洞修复 + 统一权限架构）
 - `fix-ticket-permission-and-ux-issues` - 修复工单权限和用户体验问题
 - `add-self-hosted-faq-kb` - 添加自建 FAQ 知识库系统

@@ -70,6 +70,10 @@ export interface CreateTicketRequest {
       data: string // base64 encoded
       'mime-type': string
     }[]
+    // Reference pre-uploaded attachments by ID
+    attachment_ids?: number[]
+    // Reference cached form uploads from upload_caches API
+    form_id?: string
   }
   mentions?: number[]
 }
@@ -134,12 +138,26 @@ export interface CreateArticleRequest {
   to?: string  // Required for type='email', recipient email address
   cc?: string  // Optional CC recipients
   time_unit?: string
+  // Method 1: Base64 embedded attachments (legacy, higher bandwidth)
   attachments?: {
     filename: string
     data: string // base64 encoded
     'mime-type': string
   }[]
+  // Method 2: Reference pre-uploaded attachments by ID (recommended)
+  // Use zammadClient.uploadAttachment() first, then pass the IDs here
+  attachment_ids?: number[]
+  // Method 3: Reference cached form uploads (Zammad's upload_caches)
+  // Use the same form_id that was passed to uploadAttachment()
+  form_id?: string
   origin_by_id?: number
+}
+
+// Response from Zammad attachment upload API
+export interface ZammadUploadResponse {
+  id: number
+  store_id?: number
+  filename?: string
 }
 
 export interface ZammadAttachment {

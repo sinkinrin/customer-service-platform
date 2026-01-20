@@ -15,6 +15,7 @@ export interface ZammadTicket {
   owner_name?: string // Display name of assigned staff
   created_at: string
   updated_at: string
+  rating?: 'positive' | 'negative' | null // Customer satisfaction rating
 }
 
 export interface TicketFilters {

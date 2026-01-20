@@ -208,6 +208,8 @@ export function useTicket() {
       body: string
       internal?: boolean
       attachments?: Array<{filename: string; data: string; 'mime-type': string}>
+      attachment_ids?: number[]  // Pre-uploaded attachments via /api/attachments/upload
+      form_id?: string  // Form ID from upload_caches for grouped attachments
       type?: 'note' | 'email' | 'phone' | 'web'  // 'email' will send email to customer
     }
   ): Promise<TicketArticle | null> => {

@@ -1,14 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { ArrowLeft, MessageSquare } from 'lucide-react'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { TicketActions } from '@/components/ticket/ticket-actions'
 import { ArticleCard } from '@/components/ticket/article-content'
+import { RatingIndicator } from '@/components/ticket/ticket-rating'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useUnreadStore } from '@/lib/stores/unread-store'
@@ -63,12 +71,15 @@ export default function StaffTicketDetailPage() {
   const t = useTranslations('staff.tickets.detail')
   const tDetails = useTranslations('tickets.details')
   const tToast = useTranslations('toast.staff.tickets')
+  const tBreadcrumb = useTranslations('nav.breadcrumb')
   const params = useParams()
   const router = useRouter()
   const ticketId = params.id as string
 
   const [ticket, setTicket] = useState<ZammadTicket | null>(null)
   const [articles, setArticles] = useState<TicketArticle[]>([])
+  const [rating, setRating] = useState<'positive' | 'negative' | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const { fetchTicketById, updateTicket, addArticle, fetchArticles, isLoading } = useTicket()
   const { markAsRead } = useUnreadStore()
   const { markTicketNotificationsAsRead } = useNotifications()
@@ -76,6 +87,7 @@ export default function StaffTicketDetailPage() {
   useEffect(() => {
     loadTicket()
     loadArticles()
+    loadRating()
     // Mark ticket as read when viewing details
     const numericId = parseInt(ticketId, 10)
     if (!isNaN(numericId)) {
@@ -84,6 +96,13 @@ export default function StaffTicketDetailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
+
+  // Auto-scroll to bottom when new articles arrive
+  useEffect(() => {
+    if (messagesEndRef.current && articles.length > 0) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [articles.length])
 
   // Listen for real-time ticket updates via SSE
   useEffect(() => {
@@ -124,6 +143,20 @@ export default function StaffTicketDetailPage() {
     setArticles(data)
   }
 
+  const loadRating = async () => {
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/rating`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success && data.data) {
+          setRating(data.data.rating as 'positive' | 'negative')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load rating:', error)
+    }
+  }
+
   const handleUpdate = async (updates: {
     state?: string
     priority?: string
@@ -136,7 +169,7 @@ export default function StaffTicketDetailPage() {
     }
   }
 
-  const handleAddNote = async (note: string, internal: boolean, attachments?: Array<{ filename: string; data: string; 'mime-type': string }>, replyType?: 'note' | 'email') => {
+  const handleAddNote = async (note: string, internal: boolean, attachmentIds?: number[], replyType?: 'note' | 'email', formId?: string) => {
     // Generate a temporary message ID
     const tempMessageId = `temp-${Date.now()}`
 
@@ -144,7 +177,8 @@ export default function StaffTicketDetailPage() {
       subject: ticket?.title || 'Note',
       body: note,
       internal,
-      attachments,
+      attachment_ids: attachmentIds,
+      form_id: formId,
       type: replyType || 'note',  // Use replyType to determine if email should be sent
     })
 
@@ -181,6 +215,14 @@ export default function StaffTicketDetailPage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden gap-4">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb
+        items={[
+          { label: tBreadcrumb('tickets'), href: '/staff/tickets' },
+          { label: `#${ticket.number}` },
+        ]}
+      />
+
       {/* Compact Header with Back Button and Ticket Info */}
       <div className="flex items-center gap-3">
         <Button
@@ -196,8 +238,18 @@ export default function StaffTicketDetailPage() {
             <h1 className="text-xl font-bold">{t('ticketNumber', { number: ticket.number })}</h1>
             <TicketStatusBadge state={ticket.state} />
             <TicketPriorityBadge priority={ticket.priority} />
+            {rating && <RatingIndicator rating={rating} showLabel />}
           </div>
-          <p className="text-sm text-muted-foreground truncate">{ticket.title}</p>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-sm text-muted-foreground truncate max-w-full cursor-default">{ticket.title}</p>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[400px]">
+                <p className="break-words">{ticket.title}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -245,6 +297,8 @@ export default function StaffTicketDetailPage() {
                   {articles.map((article) => (
                     <ArticleCard key={article.id} article={article} viewerRole="staff" />
                   ))}
+                  {/* Auto-scroll anchor */}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </CardContent>

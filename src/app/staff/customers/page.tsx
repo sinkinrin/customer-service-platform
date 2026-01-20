@@ -63,9 +63,9 @@ export default function StaffCustomersPage() {
       if (!response.ok) throw new Error('Failed to fetch customers')
 
       const data = await response.json()
-      // Filter only customers
+      // Filter only active customers (exclude inactive/disabled users)
       const customerList = (data.data?.users || []).filter(
-        (user: Customer) => user.role === 'customer'
+        (user: Customer & { active?: boolean }) => user.role === 'customer' && user.active !== false
       )
       setCustomers(customerList)
     } catch (error) {

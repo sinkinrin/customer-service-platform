@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -8,9 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, MessageSquare, Trash2, UserPlus, Activity } from 'lucide-react'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { TicketActions } from '@/components/ticket/ticket-actions'
 import { ArticleCard } from '@/components/ticket/article-content'
 import { TicketAssignDialog } from '@/components/admin/ticket-assign-dialog'
+import { RatingIndicator } from '@/components/ticket/ticket-rating'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useUnreadStore } from '@/lib/stores/unread-store'
@@ -28,18 +30,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export default function AdminTicketDetailPage() {
   const t = useTranslations('admin.ticketDetail')
   const tToast = useTranslations('toast.admin.ticketDetail')
+  const tBreadcrumb = useTranslations('nav.breadcrumb')
   const params = useParams()
   const router = useRouter()
   const ticketId = params.id as string
 
   const [ticket, setTicket] = useState<ZammadTicket | null>(null)
   const [articles, setArticles] = useState<TicketArticle[]>([])
+  const [rating, setRating] = useState<'positive' | 'negative' | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const { fetchTicketById, updateTicket, addArticle, fetchArticles, isLoading } = useTicket()
   const { markAsRead } = useUnreadStore()
   const { markTicketNotificationsAsRead } = useNotifications()
@@ -47,6 +58,7 @@ export default function AdminTicketDetailPage() {
   useEffect(() => {
     loadTicket()
     loadArticles()
+    loadRating()
     // Mark ticket as read when viewing details
     const numericId = parseInt(ticketId, 10)
     if (!isNaN(numericId)) {
@@ -83,6 +95,13 @@ export default function AdminTicketDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
 
+  // Auto-scroll to bottom when new articles arrive
+  useEffect(() => {
+    if (messagesEndRef.current && articles.length > 0) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [articles.length])
+
   const loadTicket = async () => {
     const data = await fetchTicketById(ticketId)
     if (data) {
@@ -93,6 +112,20 @@ export default function AdminTicketDetailPage() {
   const loadArticles = async () => {
     const data = await fetchArticles(ticketId)
     setArticles(data)
+  }
+
+  const loadRating = async () => {
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/rating`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success && data.data) {
+          setRating(data.data.rating as 'positive' | 'negative')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load rating:', error)
+    }
   }
 
   const handleUpdate = async (updates: {
@@ -107,7 +140,7 @@ export default function AdminTicketDetailPage() {
     }
   }
 
-  const handleAddNote = async (note: string, internal: boolean, attachments?: Array<{filename: string; data: string; 'mime-type': string}>, replyType?: 'note' | 'email') => {
+  const handleAddNote = async (note: string, internal: boolean, attachmentIds?: number[], replyType?: 'note' | 'email', formId?: string) => {
     // Generate a temporary message ID
     const tempMessageId = `temp-${Date.now()}`
 
@@ -115,7 +148,8 @@ export default function AdminTicketDetailPage() {
       subject: ticket?.title || 'Note',
       body: note,
       internal,
-      attachments,
+      attachment_ids: attachmentIds,
+      form_id: formId,
       type: replyType || 'note',  // Use replyType to determine if email should be sent
     })
 
@@ -173,6 +207,14 @@ export default function AdminTicketDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb
+        items={[
+          { label: tBreadcrumb('tickets'), href: '/admin/tickets' },
+          { label: `#${ticket.number}` },
+        ]}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -185,8 +227,20 @@ export default function AdminTicketDetailPage() {
             {t('back')}
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{t('ticketNumber', { number: ticket.number })}</h1>
-            <p className="text-base text-foreground mt-1">{ticket.title}</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{t('ticketNumber', { number: ticket.number })}</h1>
+              {rating && <RatingIndicator rating={rating} size="md" showLabel />}
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-base text-foreground mt-1 truncate max-w-[600px] cursor-default">{ticket.title}</p>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[500px]">
+                  <p className="break-words">{ticket.title}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <p className="text-sm text-muted-foreground">
               {t('created', { date: format(new Date(ticket.created_at), 'PPp') })}
             </p>
@@ -251,6 +305,8 @@ export default function AdminTicketDetailPage() {
                   {articles.map((article) => (
                     <ArticleCard key={article.id} article={article} viewerRole="admin" />
                   ))}
+                  {/* Auto-scroll anchor */}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </CardContent>

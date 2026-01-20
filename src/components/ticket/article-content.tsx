@@ -4,6 +4,12 @@ import { useMemo } from 'react'
 import DOMPurify from 'dompurify'
 import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Paperclip, Download } from 'lucide-react'
 import type { TicketArticle, TicketArticleAttachment } from '@/lib/hooks/use-ticket'
 import { cn } from '@/lib/utils'
@@ -172,26 +178,35 @@ export function ArticleContent({ article, showAttachments = true, className, noB
 
       {/* 附件列表 */}
       {showAttachments && displayAttachments.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {displayAttachments.map((att) => (
-            <a
-              key={att.id}
-              href={`/api/tickets/${article.ticket_id}/articles/${article.id}/attachments/${att.id}`}
-              download={att.filename}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm 
-                bg-gray-100 dark:bg-gray-800 rounded-md 
-                hover:bg-gray-200 dark:hover:bg-gray-700 
-                transition-colors group"
-            >
-              <Paperclip className="h-3.5 w-3.5 text-gray-500" />
-              <span className="max-w-[200px] truncate">{att.filename}</span>
-              <span className="text-xs text-gray-500">
-                ({formatFileSize(att.size)})
-              </span>
-              <Download className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
-            </a>
-          ))}
-        </div>
+        <TooltipProvider>
+          <div className="flex flex-wrap gap-2">
+            {displayAttachments.map((att) => (
+              <Tooltip key={att.id}>
+                <TooltipTrigger asChild>
+                  <a
+                    href={`/api/tickets/${article.ticket_id}/articles/${article.id}/attachments/${att.id}`}
+                    download={att.filename}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm
+                      bg-gray-100 dark:bg-gray-800 rounded-md
+                      hover:bg-gray-200 dark:hover:bg-gray-700
+                      transition-colors group"
+                  >
+                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="max-w-[200px] truncate text-foreground">{att.filename}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({formatFileSize(att.size)})
+                    </span>
+                    <Download className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[300px]">
+                  <p className="break-all">{att.filename}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(att.size)}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </TooltipProvider>
       )}
     </div>
   )

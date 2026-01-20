@@ -1,11 +1,12 @@
 "use client"
 
-import { Bell } from 'lucide-react'
+import { Bell, BellOff } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useNotifications } from '@/lib/hooks/use-notifications'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,7 +52,12 @@ export function NotificationCenter() {
           {isLoading ? (
             <div className="p-4 text-sm text-muted-foreground">{t('loading')}</div>
           ) : notifications.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">{t('empty')}</div>
+            <EmptyState
+              icon={BellOff}
+              title={t('empty')}
+              description={t('emptyDescription')}
+              className="py-16"
+            />
           ) : (
             <NotificationList
               notifications={notifications}
@@ -64,4 +70,3 @@ export function NotificationCenter() {
     </DropdownMenu>
   )
 }
-

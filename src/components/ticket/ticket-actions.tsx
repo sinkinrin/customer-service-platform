@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -64,13 +64,10 @@ export function TicketActions({
 }: TicketActionsProps) {
   const t = useTranslations('tickets.details')
   const tCommon = useTranslations('common')
-  const tToast = useTranslations('toast.customer.tickets')
-  const tToastComponents = useTranslations('toast.components.messageInput')
   const [state, setState] = useState(ticket.state)
   const [priority, setPriority] = useState(ticket.priority)
   const [pendingTime, setPendingTime] = useState('')
   const [note, setNote] = useState('')
-  const [isInternal, setIsInternal] = useState(false)
   const [replyMode, setReplyMode] = useState<'web' | 'email' | 'note'>('web')
   const [hasChanges, setHasChanges] = useState(false)
   const [showPendingTime, setShowPendingTime] = useState(false)

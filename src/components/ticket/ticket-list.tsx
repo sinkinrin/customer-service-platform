@@ -18,6 +18,8 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
 import { useUnreadStore } from '@/lib/stores/unread-store'
 import { cn } from '@/lib/utils'
+import { RatingIndicator } from '@/components/ticket/ticket-rating'
+import { EmptyState } from '@/components/ui/empty-state'
 
 interface TicketListProps {
   tickets: ZammadTicket[]
@@ -127,14 +129,15 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 min-h-[1000px]">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-          <Card key={i} className="min-h-[132px]">
+      <div className="space-y-4" role="status" aria-label={t('empty.noTicketsFound')}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Card key={i}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <Skeleton className="h-6 w-3/4 mb-2" />
-                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-1/2 mb-2" />
+                  <Skeleton className="h-5 w-24" />
                 </div>
                 <div className="flex flex-col items-end gap-2 ml-4">
                   <Skeleton className="h-6 w-20" />
@@ -156,20 +159,16 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
 
   if (tickets.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">{t('empty.noTicketsFound')}</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {t('empty.adjustFilters')}
-          </p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={AlertCircle}
+        title={t('empty.noTicketsFound')}
+        description={t('empty.adjustFilters')}
+      />
     )
   }
 
   return (
-    <div className="space-y-4 min-h-[1000px]">
+    <div className="space-y-4">
       {tickets.map((ticket) => {
         const isUnread = unreadTickets.includes(ticket.id)
         const unreadCount = unreadCounts[ticket.id] || 0
@@ -177,8 +176,8 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
         return (
         <Card
           key={ticket.id}
+          interactive
           className={cn(
-            "cursor-pointer hover:shadow-md transition-shadow",
             isUnread && "border-l-4 border-l-blue-500 bg-blue-50/50"
           )}
           onClick={() => router.push(getTicketDetailPath(ticket.id))}
@@ -221,10 +220,24 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2 ml-4">
-                <Badge className={getStatusColor(ticket.state)}>
-                  <span className="mr-1">{getStatusIcon(ticket.state)}</span>
-                  {ticket.state}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusColor(ticket.state)}>
+                    <span className="mr-1">{getStatusIcon(ticket.state)}</span>
+                    {ticket.state}
+                  </Badge>
+                  {ticket.rating && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span><RatingIndicator rating={ticket.rating} /></span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{ticket.rating === 'positive' ? t('rating.satisfied') : t('rating.unsatisfied')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
                 <Badge className={getPriorityColor(ticket.priority)}>
                   {ticket.priority}
                 </Badge>

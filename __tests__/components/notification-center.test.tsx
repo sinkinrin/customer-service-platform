@@ -9,7 +9,8 @@ vi.mock('next-intl', () => ({
     const dict: Record<string, string> = {
       title: 'Notifications',
       markAllRead: 'Mark all read',
-      empty: 'Empty',
+      empty: 'No notifications',
+      emptyDescription: 'New notifications will appear here.',
       loading: 'Loading...',
       view: 'View',
     }
@@ -53,5 +54,82 @@ describe('NotificationCenter', () => {
 
     expect(screen.getByText('Notifications')).toBeInTheDocument()
     expect(screen.getByText('Mark all read')).toBeInTheDocument()
+  })
+
+  it('shows empty state when no notifications', () => {
+    mockUseNotifications.mockReturnValue({
+      notifications: [],
+      unreadCount: 0,
+      isLoading: false,
+      markAsRead: vi.fn(),
+      markAllAsRead: vi.fn(),
+      deleteNotification: vi.fn(),
+    })
+
+    render(<NotificationCenter />)
+
+    const trigger = screen.getByRole('button')
+    fireEvent.pointerDown(trigger)
+    fireEvent.click(trigger)
+
+    // Should show EmptyState with title and description
+    expect(screen.getByText('No notifications')).toBeInTheDocument()
+    expect(screen.getByText('New notifications will appear here.')).toBeInTheDocument()
+    // EmptyState should have data-testid
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument()
+  })
+
+  it('disables mark all read button when no unread notifications', () => {
+    mockUseNotifications.mockReturnValue({
+      notifications: [],
+      unreadCount: 0,
+      isLoading: false,
+      markAsRead: vi.fn(),
+      markAllAsRead: vi.fn(),
+      deleteNotification: vi.fn(),
+    })
+
+    render(<NotificationCenter />)
+
+    const trigger = screen.getByRole('button')
+    fireEvent.pointerDown(trigger)
+    fireEvent.click(trigger)
+
+    const markAllReadButton = screen.getByText('Mark all read').closest('button')
+    expect(markAllReadButton).toBeDisabled()
+  })
+
+  it('shows loading state', () => {
+    mockUseNotifications.mockReturnValue({
+      notifications: [],
+      unreadCount: 0,
+      isLoading: true,
+      markAsRead: vi.fn(),
+      markAllAsRead: vi.fn(),
+      deleteNotification: vi.fn(),
+    })
+
+    render(<NotificationCenter />)
+
+    const trigger = screen.getByRole('button')
+    fireEvent.pointerDown(trigger)
+    fireEvent.click(trigger)
+
+    expect(screen.getByText('Loading...')).toBeInTheDocument()
+  })
+
+  it('shows 99+ for large unread counts', () => {
+    mockUseNotifications.mockReturnValue({
+      notifications: [],
+      unreadCount: 150,
+      isLoading: false,
+      markAsRead: vi.fn(),
+      markAllAsRead: vi.fn(),
+      deleteNotification: vi.fn(),
+    })
+
+    render(<NotificationCenter />)
+
+    expect(screen.getByText('99+')).toBeInTheDocument()
   })
 })

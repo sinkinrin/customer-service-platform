@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { autoAssignSingleTicket, EXCLUDED_EMAILS } from '@/lib/ticket/auto-assign'
+import { autoAssignSingleTicket } from '@/lib/ticket/auto-assign'
 import { getGroupIdByRegion } from '@/lib/constants/regions'
 
 vi.mock('@/lib/zammad/client', () => ({

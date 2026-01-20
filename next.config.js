@@ -1,4 +1,5 @@
 const createNextIntlPlugin = require('next-intl/plugin')
+const path = require('path')
 
 const withNextIntl = createNextIntlPlugin('./src/i18n.ts')
 
@@ -35,6 +36,15 @@ const nextConfig = {
   // 3. 需要更深度的架构重构才能启用
   // 未来启用时取消下面的注释：
   // cacheComponents: true,
+
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'react-remove-scroll-bar': path.resolve(__dirname, 'src/lib/shims/react-remove-scroll-bar.tsx'),
+    }
+
+    return config
+  },
 }
 
 module.exports = withNextIntl(nextConfig)

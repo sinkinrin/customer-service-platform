@@ -211,36 +211,26 @@ export async function GET(request: NextRequest) {
     // In-memory cache for this request to avoid duplicate fetches
     const customerMap = new Map<number, { name?: string; email?: string }>()
 
-    // Fetch customer information with concurrency limit to avoid overwhelming Zammad
-    const CONCURRENCY_LIMIT = 5  // Process 5 customers at a time
-    const chunks: number[][] = []
-    for (let i = 0; i < customerIds.length; i += CONCURRENCY_LIMIT) {
-      chunks.push(customerIds.slice(i, i + CONCURRENCY_LIMIT))
-    }
+    // Optimization: Fetch customers in parallel using efficient batch method
+    // Increased concurrency to 50 for faster loading
+    const CONCURRENCY_LIMIT = 50
 
     try {
-      for (const chunk of chunks) {
-        await Promise.all(
-          chunk.map(async (customerId) => {
-            try {
-              const customer = await zammadClient.getUser(customerId)
-              const name = customer.firstname && customer.lastname
-                ? `${customer.firstname} ${customer.lastname}`.trim()
-                : customer.firstname || customer.lastname || undefined
-              customerMap.set(customerId, {
-                name,
-                email: customer.email,
-              })
-            } catch (error) {
-              console.error(`[DEBUG] Failed to fetch customer ${customerId}:`, error)
-              // Keep entry empty if fetch fails
-            }
-          })
-        )
+      const customers = await zammadClient.getUsersByIds(customerIds, CONCURRENCY_LIMIT)
+
+      // Populate customer map
+      for (const customer of customers) {
+        const name = customer.firstname && customer.lastname
+          ? `${customer.firstname} ${customer.lastname}`.trim()
+          : customer.firstname || customer.lastname || undefined
+        customerMap.set(customer.id, {
+          name,
+          email: customer.email,
+        })
       }
     } catch (error) {
-      console.error('[DEBUG] Error fetching customer information:', error)
-      // Continue even if batch fetch fails
+      console.error('[Search API] Error in parallel customer fetching:', error)
+      // Continue even if fetch fails
     }
 
     // Transform tickets to include priority, state, and customer information

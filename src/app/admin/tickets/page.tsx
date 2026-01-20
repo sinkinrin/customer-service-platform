@@ -53,7 +53,7 @@ export default function AdminTicketsPage() {
 
   // Use SWR for caching - search when query exists, otherwise fetch all
   const searchResult = useTicketsSearch(submittedQuery, 100, !!submittedQuery)
-  const listResult = useTicketsList(1000, undefined, !submittedQuery)
+  const listResult = useTicketsList(200, undefined, !submittedQuery)
 
   // Use search results if query exists, otherwise use list results
   const tickets = submittedQuery ? searchResult.tickets : listResult.tickets
@@ -182,11 +182,11 @@ export default function AdminTicketsPage() {
       if (!response.ok) {
         throw new Error('Export failed')
       }
-      
+
       // Get the filename from Content-Disposition header or use default
       const contentDisposition = response.headers.get('Content-Disposition')
       const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || 'tickets-export.csv'
-      
+
       // Create blob and download
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -197,7 +197,7 @@ export default function AdminTicketsPage() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      
+
       toast.success(t('status.exported'))
     } catch (error) {
       console.error('Export error:', error)

@@ -627,6 +627,47 @@ export class ZammadClient {
     }
   }
 
+  /**
+   * Get multiple users by ID with concurrency control
+   * @param ids - Array of user IDs to fetch
+   * @param concurrency - Max concurrent requests (default: 20)
+   * @returns Array of users (failed fetches will be omitted)
+   */
+  async getUsersByIds(ids: number[], concurrency: number = 20): Promise<ZammadUser[]> {
+    const uniqueIds = [...new Set(ids)]
+    const results: ZammadUser[] = []
+
+    // Split IDs into chunks based on concurrency
+    const chunks: number[][] = []
+    for (let i = 0; i < uniqueIds.length; i += concurrency) {
+      chunks.push(uniqueIds.slice(i, i + concurrency))
+    }
+
+    // Process chunks
+    for (const chunk of chunks) {
+      try {
+        const chunkResults = await Promise.all(
+          chunk.map(async (id) => {
+            try {
+              return await this.getUser(id)
+            } catch (error) {
+              console.error(`[Zammad] Failed to fetch user ${id}:`, error)
+              return null
+            }
+          })
+        )
+
+        // Filter out nulls (failed fetches)
+        const validUsers = chunkResults.filter((u): u is ZammadUser => u !== null)
+        results.push(...validUsers)
+      } catch (error) {
+        console.error('[Zammad] Error processing user chunk:', error)
+      }
+    }
+
+    return results
+  }
+
   // ============================================================================
   // Out-of-Office (Vacation) Management
   // ============================================================================

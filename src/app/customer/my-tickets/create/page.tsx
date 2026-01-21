@@ -498,7 +498,7 @@ ${values.actualResult || 'N/A'}`
 
               {/* File Upload Section - Kept similar but styled nicely */}
               <div className="space-y-2">
-                <FormLabel>{tCreate('attachmentsLabel')}</FormLabel>
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{tCreate('attachmentsLabel')}</label>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Input
                     type="file"

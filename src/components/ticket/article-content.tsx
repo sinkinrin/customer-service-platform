@@ -251,9 +251,12 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
               {new Date(article.created_at).toLocaleString('zh-CN')}
             </time>
           </div>
-          <p className="text-sm text-center text-yellow-800 dark:text-yellow-200">
-            {article.body}
-          </p>
+          <ArticleContent
+            article={article}
+            showAttachments={false}
+            noBubbleStyle={true}
+            className="text-sm text-center text-yellow-800 dark:text-yellow-200 [&_.prose]:text-yellow-800 [&_.prose]:dark:text-yellow-200"
+          />
         </div>
       </div>
     )

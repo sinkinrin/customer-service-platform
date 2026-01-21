@@ -73,18 +73,6 @@ export const mockUsers: Record<string, MockUser> = {
     group_ids: [1, 2, 3, 4, 5, 6, 7, 8],  // Admin has all groups
     created_at: '2025-01-01T00:00:00.000Z',
   },
-  // Real user account for testing
-  'jasper.deng@howentech.com': {
-    id: 'real-customer-id',
-    email: 'jasper.deng@howentech.com',
-    role: 'customer',
-    full_name: 'Jasper Deng',
-    avatar_url: undefined,
-    phone: undefined,
-    language: 'zh-CN',
-    region: 'asia-pacific',
-    created_at: '2025-01-01T00:00:00.000Z',
-  },
   // Playwright test user
   'playwright-test-user@example.com': {
     id: 'playwright-test-user-id',
@@ -95,20 +83,6 @@ export const mockUsers: Record<string, MockUser> = {
     phone: undefined,
     language: 'zh-CN',
     region: 'asia-pacific',
-    created_at: '2025-01-01T00:00:00.000Z',
-  },
-
-  // ============ Real Staff Users from Zammad ============
-  'cody.li@howentech.com': {
-    id: 'staff-cody-li',
-    email: 'cody.li@howentech.com',
-    role: 'staff',
-    full_name: 'Cody Lee',
-    avatar_url: undefined,
-    phone: undefined,
-    language: 'en',
-    region: 'asia-pacific',
-    zammad_id: 5,  // Matches Zammad user ID
     created_at: '2025-01-01T00:00:00.000Z',
   },
 
@@ -545,7 +519,6 @@ export const mockPasswords: Record<string, string> = {
   'customer@test.com': 'password123',
   'staff@test.com': 'password123',
   'admin@test.com': 'password123',
-  'jasper.deng@howentech.com': '12345678',
   'playwright-test-user@example.com': 'testpass123',
   // Asia-Pacific
   'staff-ap-1@test.com': 'password123',

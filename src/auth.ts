@@ -18,7 +18,7 @@ import type { NextAuthConfig } from "next-auth"
 import { ensureEnvValidation, isMockAuthEnabled, env } from "@/lib/env"
 import { PUBLIC_ROUTES, STATIC_ROUTES, isRouteMatch } from "@/lib/constants/routes"
 import { zammadClient } from "@/lib/zammad/client"
-import { getRegionByGroupId, getGroupIdByRegion, type RegionValue } from "@/lib/constants/regions"
+import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, type RegionValue } from "@/lib/constants/regions"
 import { ZAMMAD_ROLES } from "@/lib/constants/zammad"
 
 // Import mock auth for development/fallback mode
@@ -67,7 +67,7 @@ function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
 }
 
 /**
- * Get region from Zammad group_ids
+ * Get region from Zammad group_ids (for Staff/Admin)
  */
 function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | undefined {
   if (!groupIds) return undefined
@@ -76,6 +76,19 @@ function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | un
       const region = getRegionByGroupId(parseInt(groupId))
       if (region) return region
     }
+  }
+  return undefined
+}
+
+/**
+ * Get region from Zammad note field (for Customer)
+ * Customer region is stored in note field as "Region: xxx"
+ */
+function getRegionFromNote(note?: string): string | undefined {
+  if (!note) return undefined
+  const match = note.match(/Region:\s*(\S+)/)
+  if (match && isValidRegion(match[1])) {
+    return match[1]
   }
   return undefined
 }
@@ -158,7 +171,13 @@ async function authenticateWithZammad(
 
     // Convert Zammad user to our user format
     const role = getRoleFromZammad(zammadUser.role_ids || [])
-    const region = getRegionFromGroupIds(zammadUser.group_ids)
+
+    // Get region: Staff/Admin from group_ids, Customer from note field
+    const region = role === 'customer'
+      ? getRegionFromNote(zammadUser.note)
+      : getRegionFromGroupIds(zammadUser.group_ids)
+
+    console.log('[Auth] User role:', role, 'region:', region, 'note:', zammadUser.note?.substring(0, 50))
 
     const groupIds = extractGroupIds(zammadUser.group_ids)
 

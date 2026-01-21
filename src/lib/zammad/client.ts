@@ -603,6 +603,18 @@ export class ZammadClient {
         return null
       }
 
+      // /users/me doesn't return all fields (e.g., note) due to Zammad permissions
+      // Fetch complete user data using API token to get all fields
+      try {
+        const fullUserData = await this.getUser(userData.id)
+        if (fullUserData) {
+          console.log('[Zammad Auth] Fetched complete user data with note field')
+          return fullUserData
+        }
+      } catch (fetchError) {
+        console.warn('[Zammad Auth] Failed to fetch complete user data, using partial data:', fetchError)
+      }
+
       return userData as ZammadUser
     } catch (error) {
       console.error('[Zammad Auth] Error during authentication:', error)

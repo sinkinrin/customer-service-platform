@@ -965,6 +965,9 @@
       "ticketInfo": "工单信息",
       "charactersCount": "{count}/{max} 字符",
       "create": {
+        "validation": {
+          "required": "此字段为必填项"
+        },
         "formTitle": "工单详情",
         "formDescription": "详细描述问题，以便我们更快地解决。",
         "characterCount": "{count} / {max}",

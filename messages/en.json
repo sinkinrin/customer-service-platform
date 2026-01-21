@@ -979,6 +979,9 @@
       "ticketInfo": "Ticket Information",
       "charactersCount": "{count}/{max} characters",
       "create": {
+        "validation": {
+          "required": "This field is required"
+        },
         "formTitle": "Ticket details",
         "formDescription": "Describe the issue in detail so we can resolve it faster.",
         "characterCount": "{count} / {max}",

@@ -345,7 +345,7 @@
         "normal": "Normal",
         "high": "Alta"
       },
-      "attachFilesHint": "M?ximo 5 archivos, 10 MB cada uno",
+      "attachFilesHint": "Máximo 5 archivos, 10 MB cada uno",
       "emailPlaceholder": "Escribe tu respuesta por email...",
       "emailWillBeSent": "Esta respuesta se enviar? al cliente por email.",
       "replyType": "Tipo de respuesta",
@@ -375,13 +375,13 @@
     },
     "rating": {
       "title": "Calificar este soporte",
-      "description": "?C?mo fue tu experiencia con este ticket?",
+      "description": "¿Cómo fue tu experiencia con este ticket?",
       "positive": "Satisfecho",
       "negative": "Insatisfecho",
       "satisfied": "Cliente satisfecho",
       "unsatisfied": "Cliente insatisfecho",
       "positiveReason": "?Qu? hicimos bien? (opcional)",
-      "negativeReason": "?C?mo podemos mejorar? (opcional)",
+      "negativeReason": "¿Cómo podemos mejorar? (opcional)",
       "reasonPlaceholder": "Comparte tus comentarios...",
       "submit": "Enviar comentarios",
       "submitSuccess": "?Gracias por tus comentarios!",
@@ -391,7 +391,7 @@
     "reopen": {
       "button": "Reabrir ticket",
       "dialogTitle": "?Reabrir este ticket?",
-      "dialogDescription": "Esto cambiar? el estado del ticket de Cerrado a Abierto. Puedes continuar la conversaci?n despu?s de reabrirlo.",
+      "dialogDescription": "Esto cambiará el estado del ticket de Cerrado a Abierto. Puedes continuar la conversación después de reabrirlo.",
       "confirm": "S?, reabrir",
       "cancel": "Cancelar",
       "success": "Ticket reabierto con ?xito",
@@ -453,7 +453,7 @@
         "resolvedTickets": "Tickets resueltos",
         "activeUsers": "Usuarios activos"
       },
-      "statsOverview": "Resumen de estad?sticas",
+      "statsOverview": "Resumen de estadísticas",
       "statsMode": {
         "today": "Hoy",
         "allTime": "Todo el tiempo"
@@ -472,17 +472,17 @@
       },
       "ticketTrends": {
         "title": "Tendencias diarias de tickets",
-        "description": "Tickets nuevos y cerrados por d?a",
+        "description": "Tickets nuevos y cerrados por día",
         "range": {
-          "7d": "7 d?as",
-          "30d": "30 d?as",
-          "90d": "90 d?as"
+          "7d": "7 días",
+          "30d": "30 días",
+          "90d": "90 días"
         },
         "series": {
           "new": "Tickets nuevos",
           "closed": "Tickets cerrados"
         },
-        "loadError": "Error al cargar los datos del gr?fico"
+        "loadError": "Error al cargar los datos del gráfico"
       }
     },
     "users": {
@@ -552,7 +552,7 @@
         "lastName": "Apellido",
         "firstNamePlaceholder": "Nombre",
         "lastNamePlaceholder": "Apellido",
-        "regionPlaceholder": "Seleccionar regi?n",
+        "regionPlaceholder": "Seleccionar región",
         "emailHint": "El correo no se puede cambiar",
         "roleHint": "Los cambios de rol requieren permisos adicionales",
         "accountStatus": "Estado de la cuenta",
@@ -588,42 +588,42 @@
       "statusDialog": {
         "disableTitle": "Desactivar usuario",
         "activateTitle": "Activar usuario",
-        "disableDescription": "?Seguro que deseas desactivar a {email}? No podr? iniciar sesi?n.",
-        "activateDescription": "?Seguro que deseas activar a {email}? Podr? iniciar sesi?n de nuevo."
+        "disableDescription": "¿Seguro que deseas desactivar a {email}? No podrá iniciar sesión.",
+        "activateDescription": "¿Seguro que deseas activar a {email}? Podrá iniciar sesión de nuevo."
       },
       "detail": {
         "notFoundTitle": "Usuario no encontrado",
         "notFoundDescription": "El usuario solicitado no pudo ser encontrado.",
         "loadError": "Error al cargar el usuario",
-        "basicInfoTitle": "Informaci?n b?sica",
+        "basicInfoTitle": "Información básica",
         "accountStatusTitle": "Estado de la cuenta",
         "verified": "Verificado",
         "outOfOffice": "Fuera de la oficina",
         "outOfOfficeOnVacation": "De vacaciones",
         "outOfOfficeAvailable": "Disponible",
         "returns": "Regresa:",
-        "ticketStatsTitle": "Estad?sticas de tickets",
+        "ticketStatsTitle": "Estadísticas de tickets",
         "viewTickets": "Ver tickets",
         "activityTitle": "Actividad",
         "created": "Creado",
-        "lastUpdated": "?ltima actualizaci?n",
+        "lastUpdated": "Última actualización",
         "lastLogin": "?ltimo acceso"
       },
       "importDialog": {
-        "title": "Importaci?n masiva de usuarios",
+        "title": "Importación masiva de usuarios",
         "description": {
           "upload": "Sube un archivo CSV para importar varios usuarios",
           "preview": "Revisa los usuarios a importar",
           "importing": "Importando usuarios...",
-          "complete": "Importaci?n completa"
+          "complete": "Importación completa"
         },
         "dropzone": {
           "processing": "Procesando...",
           "ready": "Haz clic para seleccionar un archivo CSV o arrastra y suelta"
         },
         "downloadTemplate": "Descargar plantilla",
-        "parseWarnings": "Advertencias de an?lisis ({count})",
-        "parseMore": "...y {count} m?s",
+        "parseWarnings": "Advertencias de análisis ({count})",
+        "parseMore": "...y {count} más",
         "previewCount": "{count} usuarios listos para importar",
         "importingMessage": "Creando usuarios en Zammad...",
         "summary": {
@@ -825,7 +825,7 @@
       },
       "actions": {
         "export": "Exportar",
-        "autoAssign": "Asignaci?n autom?tica",
+        "autoAssign": "Asignación automática",
         "refresh": "Actualizar"
       },
       "tabs": {
@@ -854,8 +854,8 @@
       "assign": "Asignar",
       "reassign": "Reasignar",
       "aiSummaryLabel": "Resumen de IA:",
-      "aiSummaryPlaceholder": "Pr?ximamente: la IA resumir? esta conversaci?n",
-      "infoTitle": "Informaci?n del ticket",
+      "aiSummaryPlaceholder": "Próximamente: la IA resumirá esta conversación",
+      "infoTitle": "Información del ticket",
       "customerLabel": "Cliente:",
       "assignedToLabel": "Asignado a:",
       "staffLabel": "Agente #{id}",
@@ -979,6 +979,9 @@
       "ticketInfo": "Información del ticket",
       "charactersCount": "{count}/{max} caracteres",
       "create": {
+        "validation": {
+          "required": "Este campo es obligatorio"
+        },
         "formTitle": "Detalles del ticket",
         "formDescription": "Describe el problema en detalle para que podamos resolverlo más rápido.",
         "characterCount": "{count} / {max}",
@@ -1038,15 +1041,15 @@
           "tip4": "- Puedes rastrear el estado del ticket y responder al equipo de soporte en \"Mis tickets\"."
         },
         "template": {
-          "productInfo": "Informaci?n del producto",
+          "productInfo": "Información del producto",
           "model": "Modelo",
-          "version": "Versi?n",
+          "version": "Versión",
           "snImei": "SN/IMEI",
           "platform": "Plataforma",
-          "issueDescription": "Descripci?n del problema",
+          "issueDescription": "Descripción del problema",
           "testEnvironment": "Entorno de pruebas",
           "quantityAndProbability": "Cantidad y probabilidad",
-          "reproductionSteps": "Pasos de reproducci?n",
+          "reproductionSteps": "Pasos de reproducción",
           "expectedResult": "Resultado esperado",
           "actualResult": "Resultado actual"
         }
@@ -1075,12 +1078,12 @@
         "attachFiles": "Adjuntar archivos",
         "closeDialog": {
           "title": "Cerrar ticket",
-          "description": "?Seguro que deseas cerrar este ticket? Podr?s reabrirlo m?s tarde si es necesario.",
+          "description": "¿Seguro que deseas cerrar este ticket? Podrás reabrirlo más tarde si es necesario.",
           "cancel": "Cancelar",
           "confirm": "Cerrar ticket"
         },
         "closeTicket": "Cerrar ticket",
-        "maxFiles": "M?ximo {max} archivos",
+        "maxFiles": "Máximo {max} archivos",
         "unassigned": "Sin asignar"
       },
       "statusLabels": {
@@ -1207,7 +1210,7 @@
         "sseError": "Actualizaciones en tiempo real no disponibles: {error}",
         "closedMessage": "La conversación está cerrada. Por favor inicia un nuevo chat para continuar.",
         "aiDisclaimer": "La IA puede cometer errores. Verifica con cuidado o contacta a nuestro equipo de soporte.",
-        "humanModeHint": "Ahora est?s chateando con un agente humano."
+        "humanModeHint": "Ahora estás chateando con un agente humano."
       },
       "placeholders": {
         "aiMode": "Pregunta al asistente de IA...",
@@ -1305,7 +1308,7 @@
         "avatarHint": "JPG, PNG o GIF. Tamaño máximo 2MB",
         "avatarUpdated": "Avatar actualizado con ?xito",
         "avatarInvalidType": "Selecciona un archivo de imagen",
-        "avatarTooLarge": "El tama?o de la imagen debe ser de 2 MB o menos",
+        "avatarTooLarge": "El tamaño de la imagen debe ser de 2 MB o menos",
         "avatarUploadError": "Error al subir el avatar",
         "avatarRemoved": "Avatar eliminado",
         "avatarRemoveError": "Error al eliminar el avatar",
@@ -1379,7 +1382,7 @@
         "searchPlaceholder": "Buscar por nombre del cliente, correo o ID de conversación...",
         "statusPlaceholder": "Estado",
         "allStatuses": "Todos los estados",
-        "regionPlaceholder": "Regi?n",
+        "regionPlaceholder": "Región",
         "allRegions": "Todas las regiones"
       },
       "list": {
@@ -1417,9 +1420,9 @@
         "createdTime": "Hora de creación",
         "viewButton": "Ver conversación",
         "messages": "mensajes",
-        "region": "Regi?n",
-        "customerRegion": "Regi?n del cliente",
-        "staffRegion": "Regi?n del agente"
+        "region": "Región",
+        "customerRegion": "Región del cliente",
+        "staffRegion": "Región del agente"
       },
       "notification": {
         "newTransfer": "Nueva conversación transferida",
@@ -1483,12 +1486,12 @@
           "addNote": "Agregar nota interna"
         },
         "claim": {
-          "alreadyClaimed": "Esta conversaci?n ya fue reclamada",
-          "button": "Reclamar conversaci?n",
+          "alreadyClaimed": "Esta conversación ya fue reclamada",
+          "button": "Reclamar conversación",
           "claiming": "Reclamando...",
-          "error": "Error al reclamar la conversaci?n",
-          "success": "Conversaci?n reclamada con ?xito",
-          "waitingHint": "Esta conversaci?n est? esperando a que un agente la reclame"
+          "error": "Error al reclamar la conversación",
+          "success": "Conversación reclamada con éxito",
+          "waitingHint": "Esta conversación está esperando a que un agente la reclame"
         }
       }
     },
@@ -1636,8 +1639,8 @@
         "ticketUpdated": "Ticket actualizado",
         "ticketDeleted": "Ticket eliminado",
         "ticketChanged": "Ticket modificado",
-        "autoAssignFailed": "Error en la asignaci?n autom?tica",
-        "autoAssignSuccess": "Asignaci?n autom?tica completada: {success} exitosos, {failed} fallidos"
+        "autoAssignFailed": "Error en la asignación automática",
+        "autoAssignSuccess": "Asignación automática completada: {success} exitosos, {failed} fallidos"
       },
       "ticketDetail": {
         "updateSuccess": "Ticket actualizado correctamente",
@@ -1864,10 +1867,10 @@
           "creatingNew": "Creando..."
         },
         "aiDescription": "Asistente inteligente a tu servicio",
-        "online": "En l?nea",
+        "online": "En línea",
         "status": {
           "waiting": "En espera de agente",
-          "active": "En conversaci?n",
+          "active": "En conversación",
           "closed": "Cerrada"
         }
       },
@@ -1906,8 +1909,8 @@
       },
       "ratingDialog": {
         "title": "Califica tu experiencia",
-        "description": "?C?mo fue tu conversaci?n con nosotros? Tus comentarios nos ayudan a mejorar.",
-        "pleaseSelectRating": "Selecciona una calificaci?n",
+        "description": "¿Cómo fue tu conversación con nosotros? Tus comentarios nos ayudan a mejorar.",
+        "pleaseSelectRating": "Selecciona una calificación",
         "starLabel": "{score} estrellas",
         "scoreLabels": {
           "1": "Muy insatisfecho",
@@ -1917,12 +1920,12 @@
           "5": "Muy satisfecho"
         },
         "feedbackLabel": "Comentarios adicionales (opcional)",
-        "feedbackPlaceholder": "Cu?ntanos m?s sobre tu experiencia...",
+        "feedbackPlaceholder": "Cuéntanos más sobre tu experiencia...",
         "skip": "Omitir",
-        "submit": "Enviar calificaci?n",
+        "submit": "Enviar calificación",
         "submitting": "Enviando...",
         "submitSuccess": "?Gracias por tus comentarios!",
-        "submitError": "Error al enviar la calificaci?n"
+        "submitError": "Error al enviar la calificación"
       }
     }
   },
@@ -2019,8 +2022,8 @@
     "view": "Ver"
   },
   "notFound": {
-    "title": "P?gina no encontrada",
-    "description": "Lo sentimos, la p?gina que buscas no existe o ha sido movida.",
+    "title": "Página no encontrada",
+    "description": "Lo sentimos, la página que buscas no existe o ha sido movida.",
     "goHome": "Ir al inicio",
     "goBack": "Volver",
     "needAssistance": "?Necesitas ayuda?",

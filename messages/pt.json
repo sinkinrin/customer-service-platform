@@ -345,7 +345,7 @@
         "normal": "Normal",
         "high": "Alta"
       },
-      "attachFilesHint": "M?ximo de 5 arquivos, 10 MB cada",
+      "attachFilesHint": "Máximo de 5 arquivos, 10 MB cada",
       "emailPlaceholder": "Digite sua resposta por email...",
       "emailWillBeSent": "Esta resposta ser? enviada ao cliente por email.",
       "replyType": "Tipo de resposta",
@@ -375,7 +375,7 @@
     },
     "rating": {
       "title": "Avaliar este suporte",
-      "description": "Como foi sua experi?ncia com este ticket?",
+      "description": "Como foi sua experiência com este ticket?",
       "positive": "Satisfeito",
       "negative": "Insatisfeito",
       "satisfied": "Cliente satisfeito",
@@ -391,7 +391,7 @@
     "reopen": {
       "button": "Reabrir ticket",
       "dialogTitle": "Reabrir este ticket?",
-      "dialogDescription": "Isso mudar? o status do ticket de Fechado para Aberto. Voc? pode continuar a conversa ap?s reabrir.",
+      "dialogDescription": "Isso mudará o status do ticket de Fechado para Aberto. Você pode continuar a conversa após reabrir.",
       "confirm": "Sim, reabrir",
       "cancel": "Cancelar",
       "success": "Ticket reaberto com sucesso",
@@ -453,10 +453,10 @@
         "resolvedTickets": "Tickets resolvidos",
         "activeUsers": "Usuários ativos"
       },
-      "statsOverview": "Vis?o geral das estat?sticas",
+      "statsOverview": "Visão geral das estatísticas",
       "statsMode": {
         "today": "Hoje",
-        "allTime": "Todo o per?odo"
+        "allTime": "Todo o período"
       },
       "statsSubtitles": {
         "createdToday": "Criados hoje",
@@ -467,11 +467,11 @@
         "totalResolved": "Total resolvidos"
       },
       "ratings": {
-        "total": "Total de avalia??es",
+        "total": "Total de avaliações",
         "recentNegative": "Feedback negativo recente:"
       },
       "ticketTrends": {
-        "title": "Tend?ncias di?rias de tickets",
+        "title": "Tendências diárias de tickets",
         "description": "Tickets novos e fechados por dia",
         "range": {
           "7d": "7 dias",
@@ -482,7 +482,7 @@
           "new": "Tickets novos",
           "closed": "Tickets fechados"
         },
-        "loadError": "Falha ao carregar os dados do gr?fico"
+        "loadError": "Falha ao carregar os dados do gráfico"
       }
     },
     "users": {
@@ -499,14 +499,14 @@
       "status": "Status",
       "createdAt": "Criado em",
       "actions": {
-        "importUsers": "Importar usu?rios"
+        "importUsers": "Importar usuários"
       },
       "editUser": "Editar usuário",
       "deleteUser": "Excluir usuário",
       "confirmDelete": "Tem certeza de que deseja excluir este usuário?",
       "filters": {
         "allRoles": "Todas as funções",
-        "allRegions": "Todas as regi?es",
+        "allRegions": "Todas as regiões",
         "allStatuses": "Todos os status"
       },
       "form": {
@@ -552,12 +552,12 @@
         "lastName": "Sobrenome",
         "firstNamePlaceholder": "Nome",
         "lastNamePlaceholder": "Sobrenome",
-        "regionPlaceholder": "Selecionar regi?o",
-        "emailHint": "O email n?o pode ser alterado",
-        "roleHint": "Altera??es de fun??o exigem permiss?es adicionais",
+        "regionPlaceholder": "Selecionar região",
+        "emailHint": "O email não pode ser alterado",
+        "roleHint": "Alterações de função exigem permissões adicionais",
         "accountStatus": "Status da conta",
         "accountStatusHint": "Ativar ou desativar esta conta",
-        "saveChanges": "Salvar altera??es"
+        "saveChanges": "Salvar alterações"
       },
       "createPage": {
         "title": "Criar novo usuário",
@@ -586,36 +586,36 @@
         "inactive": "Inativo"
       },
       "statusDialog": {
-        "disableTitle": "Desativar usu?rio",
-        "activateTitle": "Ativar usu?rio",
-        "disableDescription": "Tem certeza de que deseja desativar {email}? O usu?rio n?o poder? fazer login.",
-        "activateDescription": "Tem certeza de que deseja ativar {email}? O usu?rio poder? fazer login novamente."
+        "disableTitle": "Desativar usuário",
+        "activateTitle": "Ativar usuário",
+        "disableDescription": "Tem certeza de que deseja desativar {email}? O usuário não poderá fazer login.",
+        "activateDescription": "Tem certeza de que deseja ativar {email}? O usuário poderá fazer login novamente."
       },
       "detail": {
-        "notFoundTitle": "Usu?rio n?o encontrado",
-        "notFoundDescription": "O usu?rio solicitado n?o foi encontrado.",
-        "loadError": "Falha ao carregar usu?rio",
-        "basicInfoTitle": "Informa??es b?sicas",
+        "notFoundTitle": "Usuário não encontrado",
+        "notFoundDescription": "O usuário solicitado não foi encontrado.",
+        "loadError": "Falha ao carregar usuário",
+        "basicInfoTitle": "Informações básicas",
         "accountStatusTitle": "Status da conta",
         "verified": "Verificado",
-        "outOfOffice": "Fora do escrit?rio",
-        "outOfOfficeOnVacation": "Em f?rias",
-        "outOfOfficeAvailable": "Dispon?vel",
+        "outOfOffice": "Fora do escritório",
+        "outOfOfficeOnVacation": "Em férias",
+        "outOfOfficeAvailable": "Disponível",
         "returns": "Retorna:",
-        "ticketStatsTitle": "Estat?sticas de tickets",
+        "ticketStatsTitle": "Estatísticas de tickets",
         "viewTickets": "Ver tickets",
         "activityTitle": "Atividade",
         "created": "Criado",
-        "lastUpdated": "?ltima atualiza??o",
+        "lastUpdated": "Última atualização",
         "lastLogin": "?ltimo login"
       },
       "importDialog": {
-        "title": "Importa??o em massa de usu?rios",
+        "title": "Importação em massa de usuários",
         "description": {
-          "upload": "Envie um arquivo CSV para importar v?rios usu?rios",
-          "preview": "Revise os usu?rios a serem importados",
-          "importing": "Importando usu?rios...",
-          "complete": "Importa??o conclu?da"
+          "upload": "Envie um arquivo CSV para importar vários usuários",
+          "preview": "Revise os usuários a serem importados",
+          "importing": "Importando usuários...",
+          "complete": "Importação concluída"
         },
         "dropzone": {
           "processing": "Processando...",
@@ -624,23 +624,23 @@
         "downloadTemplate": "Baixar modelo",
         "parseWarnings": "Avisos de parsing ({count})",
         "parseMore": "...e mais {count}",
-        "previewCount": "{count} usu?rios prontos para importar",
-        "importingMessage": "Criando usu?rios no Zammad...",
+        "previewCount": "{count} usuários prontos para importar",
+        "importingMessage": "Criando usuários no Zammad...",
         "summary": {
           "total": "Total",
           "success": "Sucesso",
           "failed": "Falhas"
         },
-        "failedImports": "Importa??es com falha:",
-        "importAction": "Importar {count} usu?rios",
-        "done": "Conclu?do"
+        "failedImports": "Importações com falha:",
+        "importAction": "Importar {count} usuários",
+        "done": "Concluído"
       },
       "ticketHistory": {
-        "title": "Hist?rico de tickets",
+        "title": "Histórico de tickets",
         "description": "Tickets de {name} ({email})",
         "loadError": "Falha ao carregar tickets",
         "retry": "Tentar novamente",
-        "noTickets": "Nenhum ticket encontrado para este usu?rio",
+        "noTickets": "Nenhum ticket encontrado para este usuário",
         "count": "Encontrados {count} tickets"
       }
     },
@@ -825,7 +825,7 @@
       },
       "actions": {
         "export": "Exportar",
-        "autoAssign": "Atribui??o autom?tica",
+        "autoAssign": "Atribuição automática",
         "refresh": "Atualizar"
       },
       "tabs": {
@@ -855,11 +855,11 @@
       "reassign": "Reatribuir",
       "aiSummaryLabel": "Resumo da IA:",
       "aiSummaryPlaceholder": "Em breve - a IA resumir? esta conversa",
-      "infoTitle": "Informa??es do ticket",
+      "infoTitle": "Informações do ticket",
       "customerLabel": "Cliente:",
-      "assignedToLabel": "Atribu?do a:",
+      "assignedToLabel": "Atribuído a:",
       "staffLabel": "Agente #{id}",
-      "unassigned": "N?o atribu?do",
+      "unassigned": "Não atribuído",
       "createdLabel": "Criado",
       "updatedLabel": "Atualizado"
     },
@@ -961,7 +961,7 @@
       },
       "priority": {
         "1": "Baixa",
-        "2": "M?dia",
+        "2": "Média",
         "3": "Alta",
         "4": "Urgente",
         "unknown": "Desconhecida"
@@ -979,6 +979,9 @@
       "ticketInfo": "Informações do ticket",
       "charactersCount": "{count}/{max} caracteres",
       "create": {
+        "validation": {
+          "required": "Este campo é obrigatório"
+        },
         "formTitle": "Detalhes do ticket",
         "formDescription": "Descreva o problema em detalhes para que possamos resolvê-lo mais rápido.",
         "characterCount": "{count} / {max}",
@@ -1038,15 +1041,15 @@
           "tip4": "- Você pode acompanhar o status do ticket e responder à equipe em \"Meus Tickets\"."
         },
         "template": {
-          "productInfo": "Informa??es do produto",
+          "productInfo": "Informações do produto",
           "model": "Modelo",
-          "version": "Vers?o",
+          "version": "Versão",
           "snImei": "SN/IMEI",
           "platform": "Plataforma",
-          "issueDescription": "Descri??o do problema",
+          "issueDescription": "Descrição do problema",
           "testEnvironment": "Ambiente de teste",
           "quantityAndProbability": "Quantidade e probabilidade",
-          "reproductionSteps": "Passos de reprodu??o",
+          "reproductionSteps": "Passos de reprodução",
           "expectedResult": "Resultado esperado",
           "actualResult": "Resultado atual"
         }
@@ -1071,17 +1074,17 @@
         "sending": "Enviando...",
         "sendReply": "Enviar resposta",
         "closedMessage": "Este ticket está fechado. Por favor, crie um novo ticket para continuar a discussão.",
-        "assignedTo": "Atribu?do a",
+        "assignedTo": "Atribuído a",
         "attachFiles": "Anexar arquivos",
         "closeDialog": {
           "title": "Fechar ticket",
-          "description": "Tem certeza de que deseja fechar este ticket? Voc? poder? reabri-lo mais tarde, se necess?rio.",
+          "description": "Tem certeza de que deseja fechar este ticket? Você poderá reabri-lo mais tarde, se necessário.",
           "cancel": "Cancelar",
           "confirm": "Fechar ticket"
         },
         "closeTicket": "Fechar ticket",
-        "maxFiles": "M?ximo de {max} arquivos",
-        "unassigned": "N?o atribu?do"
+        "maxFiles": "Máximo de {max} arquivos",
+        "unassigned": "Não atribuído"
       },
       "statusLabels": {
         "new": "Novo",
@@ -1379,8 +1382,8 @@
         "searchPlaceholder": "Pesquisar por nome do cliente, e-mail ou ID da conversa...",
         "statusPlaceholder": "Status",
         "allStatuses": "Todos os status",
-        "regionPlaceholder": "Regi?o",
-        "allRegions": "Todas as regi?es"
+        "regionPlaceholder": "Região",
+        "allRegions": "Todas as regiões"
       },
       "list": {
         "title": "Lista de conversas",
@@ -1417,9 +1420,9 @@
         "createdTime": "Hora de criação",
         "viewButton": "Ver conversa",
         "messages": "mensagens",
-        "region": "Regi?o",
-        "customerRegion": "Regi?o do cliente",
-        "staffRegion": "Regi?o do agente"
+        "region": "Região",
+        "customerRegion": "Região do cliente",
+        "staffRegion": "Região do agente"
       },
       "notification": {
         "newTransfer": "Nova conversa transferida",
@@ -1613,7 +1616,7 @@
         "loadError": "Falha ao carregar usuários",
         "deleteSuccess": "Usuário excluído",
         "deleteError": "Falha ao excluir usuário",
-        "importSuccess": "Importa??o bem-sucedida de {count} usu?rios"
+        "importSuccess": "Importação bem-sucedida de {count} usuários"
       },
       "faq": {
         "createSuccess": "Artigo criado com sucesso!",
@@ -1636,8 +1639,8 @@
         "ticketUpdated": "Ticket atualizado",
         "ticketDeleted": "Ticket excluído",
         "ticketChanged": "Ticket alterado",
-        "autoAssignFailed": "Falha na atribui??o autom?tica",
-        "autoAssignSuccess": "Atribui??o autom?tica conclu?da: {success} com sucesso, {failed} falharam"
+        "autoAssignFailed": "Falha na atribuição automática",
+        "autoAssignSuccess": "Atribuição automática concluída: {success} com sucesso, {failed} falharam"
       },
       "ticketDetail": {
         "updateSuccess": "Ticket atualizado com sucesso",
@@ -1863,7 +1866,7 @@
           "newConversation": "Nova conversa",
           "creatingNew": "Criando..."
         },
-        "aiDescription": "Assistente inteligente ao seu servi?o",
+        "aiDescription": "Assistente inteligente ao seu serviço",
         "online": "Online",
         "status": {
           "waiting": "Aguardando agente",
@@ -1905,9 +1908,9 @@
         "expand": "Expandir"
       },
       "ratingDialog": {
-        "title": "Avalie sua experi?ncia",
+        "title": "Avalie sua experiência",
         "description": "Como foi sua conversa conosco? Seu feedback nos ajuda a melhorar.",
-        "pleaseSelectRating": "Selecione uma avalia??o",
+        "pleaseSelectRating": "Selecione uma avaliação",
         "starLabel": "{score} estrelas",
         "scoreLabels": {
           "1": "Muito insatisfeito",
@@ -1917,12 +1920,12 @@
           "5": "Muito satisfeito"
         },
         "feedbackLabel": "Feedback adicional (opcional)",
-        "feedbackPlaceholder": "Conte-nos mais sobre sua experi?ncia...",
+        "feedbackPlaceholder": "Conte-nos mais sobre sua experiência...",
         "skip": "Pular",
-        "submit": "Enviar avalia??o",
+        "submit": "Enviar avaliação",
         "submitting": "Enviando...",
         "submitSuccess": "Obrigado pelo seu feedback!",
-        "submitError": "Falha ao enviar avalia??o"
+        "submitError": "Falha ao enviar avaliação"
       }
     }
   },
@@ -2019,20 +2022,20 @@
     "view": "Ver"
   },
   "notFound": {
-    "title": "P?gina n?o encontrada",
-    "description": "Desculpe, a p?gina que voc? procura n?o existe ou foi movida.",
-    "goHome": "Ir para o in?cio",
+    "title": "Página não encontrada",
+    "description": "Desculpe, a página que você procura não existe ou foi movida.",
+    "goHome": "Ir para o início",
     "goBack": "Voltar",
     "needAssistance": "Precisa de ajuda?",
     "contactSupport": "Contatar suporte"
   },
   "emails": {
     "ticketAssign": {
-      "subject": "O ticket #{number} foi reatribu?do",
+      "subject": "O ticket #{number} foi reatribuído",
       "greeting": "Ol? {name},",
-      "bodyIntro": "Informamos que o ticket #{number} - \"{title}\" foi reatribu?do a outro membro da equipe.",
-      "newAssigneeLabel": "Novo respons?vel:",
-      "noLongerHandle": "Voc? n?o precisa mais cuidar deste ticket. Se tiver d?vidas, entre em contato com seu administrador.",
+      "bodyIntro": "Informamos que o ticket #{number} - \"{title}\" foi reatribuído a outro membro da equipe.",
+      "newAssigneeLabel": "Novo responsável:",
+      "noLongerHandle": "Você não precisa mais cuidar deste ticket. Se tiver dúvidas, entre em contato com seu administrador.",
       "closing": "Atenciosamente,",
       "signature": "Sistema de suporte"
     }

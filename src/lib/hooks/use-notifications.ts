@@ -67,7 +67,16 @@ export function useNotifications(options?: {
   const unreadCount = data?.unreadCount ?? 0
 
   const markAsRead = async (id: string) => {
-    await mutatingRequest<{ updated: boolean }>(`/api/notifications/${id}/read`, { method: 'PUT' })
+    try {
+      await mutatingRequest<{ updated: boolean }>(`/api/notifications/${id}/read`, { method: 'PUT' })
+    } catch (error) {
+      // Ignore 404 errors - notification may already be deleted
+      if (error instanceof Error && error.message.includes('404')) {
+        // Notification already deleted or marked as read, just refresh the list
+      } else {
+        throw error
+      }
+    }
     await mutate()
   }
 
@@ -77,7 +86,16 @@ export function useNotifications(options?: {
   }
 
   const deleteNotification = async (id: string) => {
-    await mutatingRequest<{ deleted: boolean }>(`/api/notifications/${id}`, { method: 'DELETE' })
+    try {
+      await mutatingRequest<{ deleted: boolean }>(`/api/notifications/${id}`, { method: 'DELETE' })
+    } catch (error) {
+      // Ignore 404 errors - notification may already be deleted
+      if (error instanceof Error && error.message.includes('404')) {
+        // Notification already deleted, just refresh the list
+      } else {
+        throw error
+      }
+    }
     await mutate()
   }
 

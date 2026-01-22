@@ -20,6 +20,7 @@ import { PUBLIC_ROUTES, STATIC_ROUTES, isRouteMatch } from "@/lib/constants/rout
 import { zammadClient } from "@/lib/zammad/client"
 import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, type RegionValue } from "@/lib/constants/regions"
 import { ZAMMAD_ROLES } from "@/lib/constants/zammad"
+import { logger } from "@/lib/utils/logger"
 
 // Import mock auth for development/fallback mode
 import { mockUsers, mockPasswords, type MockUser } from "@/lib/mock-auth"
@@ -158,16 +159,16 @@ async function authenticateWithZammad(
   password: string
 ): Promise<MockUser | null> {
   try {
-    console.log('[Auth] Attempting Zammad authentication for:', email)
+    logger.info('Auth', 'Attempting Zammad authentication', { data: { email } })
 
     const zammadUser = await zammadClient.authenticateUser(email, password)
 
     if (!zammadUser) {
-      console.log('[Auth] Zammad authentication failed for:', email)
+      logger.info('Auth', 'Zammad authentication failed', { data: { email } })
       return null
     }
 
-    console.log('[Auth] Zammad authentication successful for:', email, 'User ID:', zammadUser.id)
+    logger.info('Auth', 'Zammad authentication successful', { data: { email, userId: zammadUser.id } })
 
     // Convert Zammad user to our user format
     const role = getRoleFromZammad(zammadUser.role_ids || [])
@@ -177,7 +178,7 @@ async function authenticateWithZammad(
       ? getRegionFromNote(zammadUser.note)
       : getRegionFromGroupIds(zammadUser.group_ids)
 
-    console.log('[Auth] User role:', role, 'region:', region, 'note:', zammadUser.note?.substring(0, 50))
+    logger.info('Auth', 'User role and region determined', { data: { role, region, notePreview: zammadUser.note?.substring(0, 50) } })
 
     const groupIds = extractGroupIds(zammadUser.group_ids)
 
@@ -197,7 +198,7 @@ async function authenticateWithZammad(
 
     return user
   } catch (error) {
-    console.error('[Auth] Zammad authentication error:', error)
+    logger.error('Auth', 'Zammad authentication error', { data: { error: error instanceof Error ? error.message : error } })
     return null
   }
 }
@@ -218,10 +219,10 @@ async function validateCredentials(
   if (process.env.ZAMMAD_URL && process.env.ZAMMAD_API_TOKEN) {
     const zammadUser = await authenticateWithZammad(normalizedEmail, password)
     if (zammadUser) {
-      console.log('[Auth] User authenticated via Zammad')
+      logger.info('Auth', 'User authenticated via Zammad')
       return zammadUser
     }
-    console.log('[Auth] Zammad auth failed, trying fallback methods...')
+    logger.info('Auth', 'Zammad auth failed, trying fallback methods')
   }
 
   // Strategy 2: Try mock users (if mock auth is enabled)
@@ -230,13 +231,13 @@ async function validateCredentials(
     if (user) {
       const expectedPassword = mockPasswords[normalizedEmail]
       if (password === expectedPassword) {
-        console.log('[Auth] User authenticated via mock auth')
+        logger.info('Auth', 'User authenticated via mock auth')
         return user
       }
     }
     // In mock auth mode, if user not found in mock, still return null
     // (don't fall through to production credentials)
-    console.log('[Auth] Mock auth: user not found or password mismatch')
+    logger.info('Auth', 'Mock auth: user not found or password mismatch')
     return null
   }
 
@@ -244,7 +245,7 @@ async function validateCredentials(
   const productionCredentials = getProductionUserFromEnv()
 
   if (!productionCredentials) {
-    console.log('[Auth] No authentication method available')
+    logger.info('Auth', 'No authentication method available')
     throw new Error("AUTH_CONFIG_MISSING")
   }
 
@@ -258,7 +259,7 @@ async function validateCredentials(
     return null
   }
 
-  console.log('[Auth] User authenticated via env credentials')
+  logger.info('Auth', 'User authenticated via env credentials')
   return productionUser
 }
 

@@ -1,6 +1,6 @@
 /**
  * Ticket Search API
- * 
+ *
  * GET /api/tickets/search - Search tickets
  */
 
@@ -12,6 +12,7 @@ import {
   errorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { getApiLogger, createApiLogger } from '@/lib/utils/api-logger'
 import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { mapStateIdToString } from '@/lib/constants/zammad-states'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
@@ -55,17 +56,18 @@ import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
 import { filterTicketsByPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 
 // Helper function to ensure user exists in Zammad
-async function ensureZammadUser(email: string, fullName: string, role: string, region?: string) {
+async function ensureZammadUser(email: string, fullName: string, role: string, region?: string, requestId?: string) {
+  const log = createApiLogger('TicketSearchAPI', requestId)
   try {
     // Try to search for user by email
     const searchResult = await zammadClient.searchUsers(`email:${email}`)
     if (searchResult && searchResult.length > 0) {
-      console.log('[DEBUG] User already exists in Zammad:', searchResult[0].id)
+      log.debug('User already exists in Zammad', { userId: searchResult[0].id })
       return searchResult[0]
     }
 
     // User doesn't exist, create them
-    console.log('[DEBUG] Creating new user in Zammad:', email)
+    log.debug('Creating new user in Zammad', { email })
     const [firstname, ...lastnameArr] = fullName.split(' ')
     const lastname = lastnameArr.join(' ') || firstname
 
@@ -86,7 +88,7 @@ async function ensureZammadUser(email: string, fullName: string, role: string, r
       groupIds = {
         [groupId.toString()]: ['full']  // Full permission for staff in their region
       }
-      console.log('[DEBUG] Setting group_ids for staff user:', groupIds)
+      log.debug('Setting group_ids for staff user', { groupIds })
     }
 
     const newUser = await zammadClient.createUser({
@@ -100,10 +102,10 @@ async function ensureZammadUser(email: string, fullName: string, role: string, r
       verified: true,
     })
 
-    console.log('[DEBUG] Created new Zammad user:', newUser.id)
+    log.debug('Created new Zammad user', { userId: newUser.id })
     return newUser
   } catch (error) {
-    console.error('[ERROR] Failed to ensure Zammad user:', error)
+    log.error('Failed to ensure Zammad user', { error: error instanceof Error ? error.message : error })
     throw error
   }
 }
@@ -113,6 +115,7 @@ async function ensureZammadUser(email: string, fullName: string, role: string, r
 // ============================================================================
 
 export async function GET(request: NextRequest) {
+  const log = getApiLogger('TicketSearchAPI', request)
   try {
     const user = await requireAuth()
 
@@ -133,7 +136,7 @@ export async function GET(request: NextRequest) {
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
     if (!healthCheck.isHealthy) {
-      console.warn('[Tickets Search API] Zammad service unavailable:', healthCheck.error)
+      log.warning('Zammad service unavailable', { error: healthCheck.error })
       return serverErrorResponse(
         getZammadUnavailableMessage(),
         { service: 'zammad', available: false },
@@ -146,44 +149,44 @@ export async function GET(request: NextRequest) {
     if (user.role !== 'admin') {
       const cachedUserId = getVerifiedZammadUser(user.email, user.role, user.region)
       if (cachedUserId) {
-        console.log('[DEBUG] Zammad user verified from cache:', cachedUserId)
+        log.debug('Zammad user verified from cache', { userId: cachedUserId })
       } else {
         try {
-          const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, user.region)
+          const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, user.region, log.requestId)
           if (zammadUser?.id) {
             setVerifiedZammadUser(user.email, user.role, zammadUser.id, user.region)
-            console.log('[DEBUG] Zammad user verified and cached:', zammadUser.id)
+            log.debug('Zammad user verified and cached', { userId: zammadUser.id })
           }
         } catch (error) {
-          console.warn('[Tickets API] Failed to ensure Zammad user:', error)
+          log.warning('Failed to ensure Zammad user', { error: error instanceof Error ? error.message : error })
           // Continue anyway, search might still work
         }
       }
     }
 
     // Admin users search all tickets, other users search only their tickets
-    console.log('[DEBUG] Search API - Raw query:', query)
-    console.log('[DEBUG] Search API - User role:', user.role)
-    console.log('[DEBUG] Search API - Limit:', limit)
+    log.debug('Search API - Raw query', { query })
+    log.debug('Search API - User role', { role: user.role })
+    log.debug('Search API - Limit', { limit })
 
     let result
     if (user.role === 'admin') {
       // Admin: Search all tickets without X-On-Behalf-Of
-      console.log('[DEBUG] Search API - Calling searchTickets for admin')
+      log.debug('Search API - Calling searchTickets for admin')
       result = await zammadClient.searchTickets(query, limit)
-      console.log('[DEBUG] Search API - Result:', JSON.stringify(result, null, 2))
+      log.debug('Search API - Result', { result: JSON.stringify(result, null, 2) })
     } else if (user.role === 'customer') {
       // Customer: Search tickets on behalf of user (only their own tickets)
-      console.log('[DEBUG] Search API - Calling searchTickets for customer:', user.email)
+      log.debug('Search API - Calling searchTickets for customer', { email: user.email })
       result = await zammadClient.searchTickets(query, limit, user.email)
-      console.log('[DEBUG] Search API - Result:', JSON.stringify(result, null, 2))
+      log.debug('Search API - Result', { result: JSON.stringify(result, null, 2) })
     } else {
       // Staff: Search ALL tickets without X-On-Behalf-Of, then filter by permission
       // Using X-On-Behalf-Of would only return tickets where staff is assigned/has explicit access
       // Staff needs to see all customer-created tickets in their region
-      console.log('[DEBUG] Search API - Fetching all tickets for staff, will filter by permission')
+      log.debug('Search API - Fetching all tickets for staff, will filter by permission')
       result = await zammadClient.searchTickets(query, limit * 2) // Get more to account for permission filtering
-      console.log('[DEBUG] Search API - Before permission filter:', result.tickets?.length || 0, 'tickets')
+      log.debug('Search API - Before permission filter', { ticketCount: result.tickets?.length || 0 })
 
       // Apply unified permission filtering for staff (same as /api/tickets list)
       // This ensures consistent filtering between list and search APIs
@@ -199,10 +202,10 @@ export async function GET(request: NextRequest) {
         result.tickets = filterTicketsByPermission(result.tickets as unknown as PermissionTicket[], permissionUser) as unknown as typeof result.tickets
         result.tickets_count = result.tickets.length
       }
-      console.log('[DEBUG] Search API - After permission filter:', result.tickets?.length || 0, 'tickets')
+      log.debug('Search API - After permission filter', { ticketCount: result.tickets?.length || 0 })
     }
 
-    console.log('[DEBUG] Search API - Returning tickets count:', result.tickets?.length || 0)
+    log.debug('Search API - Returning tickets count', { count: result.tickets?.length || 0 })
 
     // Collect unique customer IDs (to avoid duplicate fetches)
     const tickets = result.tickets || []
@@ -229,7 +232,7 @@ export async function GET(request: NextRequest) {
         })
       }
     } catch (error) {
-      console.error('[Search API] Error in parallel customer fetching:', error)
+      log.error('Error in parallel customer fetching', { error: error instanceof Error ? error.message : error })
       // Continue even if fetch fails
     }
 
@@ -245,7 +248,7 @@ export async function GET(request: NextRequest) {
       limit,
     })
   } catch (error) {
-    console.error('GET /api/tickets/search error:', error)
+    log.error('GET /api/tickets/search error', { error: error instanceof Error ? error.message : error })
 
     // Check if error is authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -264,4 +267,3 @@ export async function GET(request: NextRequest) {
     return serverErrorResponse(error instanceof Error ? error.message : 'Failed to search tickets')
   }
 }
-

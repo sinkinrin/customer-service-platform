@@ -21,6 +21,8 @@ export interface TicketUpdate {
     subject?: string
     stateId?: number
     ownerId?: number
+    groupId?: number
+    customerId?: number
     title?: string
   }
   createdAt: string

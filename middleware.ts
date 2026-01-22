@@ -2,6 +2,7 @@
  * Next.js Middleware with NextAuth.js v5
  *
  * Handles:
+ * - Request ID generation for tracing
  * - Session validation via NextAuth
  * - Role-based route protection
  * - Development endpoint protection
@@ -11,26 +12,75 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 import { PUBLIC_ROUTES, isRouteMatch } from "@/lib/constants/routes"
+import { generateRequestId } from "@/lib/utils/request-id"
+
+/**
+ * Helper to create JSON response with request ID header
+ */
+function jsonResponse(
+  data: object,
+  status: number,
+  requestId: string
+): NextResponse {
+  const response = NextResponse.json(data, { status })
+  response.headers.set("x-request-id", requestId)
+  return response
+}
+
+/**
+ * Helper to create redirect response with request ID header
+ */
+function redirectResponse(url: URL, requestId: string): NextResponse {
+  const response = NextResponse.redirect(url)
+  response.headers.set("x-request-id", requestId)
+  return response
+}
+
+/**
+ * Helper to create NextResponse.next() that forwards the request ID downstream
+ */
+function nextResponseWithRequestId(req: Request, requestId: string): NextResponse {
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.set("x-request-id", requestId)
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
+
+  response.headers.set("x-request-id", requestId)
+  return response
+}
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
   const session = req.auth
 
+  // Generate request ID for tracing
+  // Format: G{groupId}-{role}-{zammadId}-{timestamp}-{random}
+  const requestId = generateRequestId({
+    region: session?.user?.region,
+    role: session?.user?.role,
+    zammadId: session?.user?.zammad_id,
+  })
+
   // Development endpoints - block in production
   if (pathname.startsWith("/api/dev/")) {
     if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "Not Found", message: "This endpoint is not available" },
-        { status: 404 }
+        404,
+        requestId
       )
     }
     // In development, allow dev endpoints
-    return NextResponse.next()
+    return nextResponseWithRequestId(req, requestId)
   }
 
   // Public routes - always allow (uses shared route constants)
   if (isRouteMatch(pathname, PUBLIC_ROUTES)) {
-    return NextResponse.next()
+    return nextResponseWithRequestId(req, requestId)
   }
 
   // Check authentication for protected routes
@@ -40,16 +90,17 @@ export default auth((req) => {
   if (!isLoggedIn) {
     // API routes return 401
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        { error: "Unauthorized", message: "Authentication required" },
-        { status: 401 }
+      return jsonResponse(
+        { error: "Unauthorized", message: "Authentication required", requestId },
+        401,
+        requestId
       )
     }
 
     // Page routes redirect to login
     const loginUrl = new URL("/auth/login", req.url)
     loginUrl.searchParams.set("callbackUrl", pathname)
-    return NextResponse.redirect(loginUrl)
+    return redirectResponse(loginUrl, requestId)
   }
 
   // Role-based access control for authenticated users
@@ -59,12 +110,13 @@ export default auth((req) => {
   if (pathname.startsWith("/admin")) {
     if (userRole !== "admin") {
       if (pathname.startsWith("/api/admin")) {
-        return NextResponse.json(
-          { error: "Forbidden", message: "Admin access required" },
-          { status: 403 }
+        return jsonResponse(
+          { error: "Forbidden", message: "Admin access required", requestId },
+          403,
+          requestId
         )
       }
-      return NextResponse.redirect(new URL("/unauthorized", req.url))
+      return redirectResponse(new URL("/unauthorized", req.url), requestId)
     }
   }
 
@@ -72,17 +124,18 @@ export default auth((req) => {
   if (pathname.startsWith("/staff")) {
     if (userRole !== "staff" && userRole !== "admin") {
       if (pathname.startsWith("/api/staff")) {
-        return NextResponse.json(
-          { error: "Forbidden", message: "Staff access required" },
-          { status: 403 }
+        return jsonResponse(
+          { error: "Forbidden", message: "Staff access required", requestId },
+          403,
+          requestId
         )
       }
-      return NextResponse.redirect(new URL("/unauthorized", req.url))
+      return redirectResponse(new URL("/unauthorized", req.url), requestId)
     }
   }
 
-  // Add custom headers for debugging
-  const response = NextResponse.next()
+  // Add custom headers for tracing and debugging
+  const response = nextResponseWithRequestId(req, requestId)
   response.headers.set("x-user-role", userRole || "anonymous")
 
   return response

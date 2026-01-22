@@ -23,9 +23,9 @@ const nextConfig = {
 
   // Compiler optimizations
   compiler: {
-    // Remove console.log in production
+    // Remove console.log/debug in production, but keep info for structured logging
     removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
+      exclude: ['error', 'warn', 'info'],
     } : false,
   },
 

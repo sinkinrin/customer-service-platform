@@ -42,6 +42,7 @@
 
 import { NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/utils/auth'
+import { getApiLogger } from '@/lib/utils/api-logger'
 import {
   successResponse,
   unauthorizedResponse,
@@ -80,6 +81,7 @@ const ALLOWED_MIME_TYPES = [
 
 // TODO: Replace with real file storage when implemented
 export async function POST(request: NextRequest) {
+  const log = getApiLogger('FileUploadAPI', request)
   try {
     const user = await requireAuth()
 
@@ -129,6 +131,17 @@ export async function POST(request: NextRequest) {
       referenceId: validation.data.reference_id,
     })
 
+    log.info('File uploaded', {
+      userId: user.id,
+      referenceType: validation.data.reference_type,
+      referenceId: validation.data.reference_id,
+      bucketName,
+      fileName: uploadedFile.fileName,
+      fileSize: uploadedFile.fileSize,
+      mimeType: uploadedFile.mimeType,
+      fileId: uploadedFile.id,
+    })
+
     return successResponse(
       {
         id: uploadedFile.id,
@@ -144,8 +157,11 @@ export async function POST(request: NextRequest) {
     )
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
+      log.warning('Unauthorized upload attempt')
       return unauthorizedResponse()
     }
+
+    log.error('File upload failed', { error: error instanceof Error ? error.message : error })
     return serverErrorResponse('Failed to upload file', error.message)
   }
 }

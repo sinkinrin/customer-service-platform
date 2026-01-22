@@ -58,7 +58,7 @@ export const mockUsers: Record<string, MockUser> = {
     phone: '+1234567891',
     language: 'en',
     region: 'asia-pacific',
-    group_ids: [2],  // Asia-Pacific group
+    group_ids: [4],  // Asia-Pacific group
     created_at: '2025-01-01T00:00:00.000Z',
   },
   'admin@test.com': {

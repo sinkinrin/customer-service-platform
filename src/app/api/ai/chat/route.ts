@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { readAISettings } from '@/lib/utils/ai-config'
+import { getApiLogger } from '@/lib/utils/api-logger'
 
 const ChatRequestSchema = z.object({
   conversationId: z.string(),
@@ -12,11 +13,18 @@ const ChatRequestSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const log = getApiLogger('AIChatAPI', request)
+  const startedAt = Date.now()
   try {
     const body = await request.json()
     const parsed = ChatRequestSchema.safeParse(body)
 
     if (!parsed.success) {
+      log.warning('Invalid request body', {
+        hasConversationId: typeof body?.conversationId === 'string',
+        messageLength: typeof body?.message === 'string' ? body.message.length : undefined,
+        historyLength: Array.isArray(body?.history) ? body.history.length : undefined,
+      })
       return NextResponse.json(
         { success: false, error: 'Invalid request body' },
         { status: 400 }
@@ -30,6 +38,7 @@ export async function POST(request: NextRequest) {
 
     // Check if AI is enabled
     if (!aiSettings.enabled) {
+      log.warning('AI chat is disabled')
       return NextResponse.json(
         { success: false, error: 'AI chat is disabled' },
         { status: 403 }
@@ -38,6 +47,11 @@ export async function POST(request: NextRequest) {
 
     // Check if FastGPT configuration exists
     if (!aiSettings.fastgptUrl || !aiSettings.fastgptAppId || !aiSettings.fastgptApiKey) {
+      log.error('FastGPT is not configured', {
+        hasFastgptUrl: !!aiSettings.fastgptUrl,
+        hasFastgptAppId: !!aiSettings.fastgptAppId,
+        hasFastgptApiKey: !!aiSettings.fastgptApiKey,
+      })
       return NextResponse.json(
         { success: false, error: 'FastGPT is not configured' },
         { status: 500 }
@@ -61,6 +75,13 @@ export async function POST(request: NextRequest) {
       ? `${aiSettings.fastgptUrl}api/v1/chat/completions`
       : `${aiSettings.fastgptUrl}/api/v1/chat/completions`
 
+    log.info('FastGPT request', {
+      conversationId: parsed.data.conversationId,
+      messageLength: message.length,
+      historyLength: history.length,
+      stream: false,
+    })
+
     const response = await fetch(fastgptUrl, {
       method: 'POST',
       headers: {
@@ -77,7 +98,12 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('FastGPT API error:', response.status, errorText)
+      log.error('FastGPT API error', {
+        status: response.status,
+        latencyMs: Date.now() - startedAt,
+        errorPreview: errorText.slice(0, 200),
+        errorLength: errorText.length,
+      })
       return NextResponse.json(
         { success: false, error: 'Failed to get AI response' },
         { status: 500 }
@@ -90,6 +116,13 @@ export async function POST(request: NextRequest) {
     // FastGPT returns OpenAI-compatible format
     const aiMessage = data.choices?.[0]?.message?.content || data.data || 'Sorry, I could not generate a response.'
 
+    log.info('FastGPT response', {
+      status: response.status,
+      latencyMs: Date.now() - startedAt,
+      model: aiSettings.model || 'FastGPT',
+      responseLength: typeof aiMessage === 'string' ? aiMessage.length : undefined,
+    })
+
     return NextResponse.json({
       success: true,
       data: {
@@ -98,7 +131,10 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('AI chat error:', error)
+    log.error('AI chat error', {
+      latencyMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : error,
+    })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

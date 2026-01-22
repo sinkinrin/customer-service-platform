@@ -1,130 +1,98 @@
 # TODO未实现功能清单
 
 > 扫描日期: 2025-12-23
+> **最后更新: 2026-01-21**
 > 扫描范围: src目录下所有代码文件
 
 ---
 
-## 🔴 P0 - 影响核心功能
+## 更新说明 (2026-01-21)
 
-### 1. 工单附件上传
-- **文件**: `src/app/customer/my-tickets/create/page.tsx:89-90`
-- **问题**: 客户创建工单时选择的文件从未发送到API
-- **代码**:
-  ```typescript
-  // TODO: Handle file attachments
-  // Zammad API supports attachments, but we need to implement file upload
-  ```
-- **影响**: 用户反馈#17 - 客户提交工单上传的附件无法送到技术支持界面
+以下功能在原扫描后已实现，状态已更新：
+
+| 原 TODO | 当前状态 | 实现位置 |
+|---------|----------|----------|
+| P0: 工单附件上传 | ✅ **已实现** | `useFileUpload` hook + `/api/attachments/upload` |
+| P1: 工单导出功能 | ✅ **已实现** | `/api/tickets/export` (CSV) |
+| P1: 密码更新 | ✅ **已实现** | `PUT /api/user/password` |
+| P2: Webhook处理 | ✅ **已实现** | 完整处理 + 通知 + SSE |
+
+---
+
+## ~~🔴 P0 - 影响核心功能~~ (已解决)
+
+### ~~1. 工单附件上传~~ ✅ 已实现
+- **状态**: ✅ **已实现** (2026-01)
+- **实现**:
+  - `src/lib/hooks/use-file-upload.ts` - 共享文件上传 hook
+  - `src/app/api/attachments/upload/route.ts` - 上传到 Zammad
+  - 支持 `attachment_ids` 和 `form_id` 引用
 
 ---
 
 ## 🟡 P1 - 影响用户体验
 
-### 2. 工单导出功能
-- **文件**: `src/app/admin/tickets/page.tsx:104`
-- **问题**: Export按钮只是console.log，没有实际导出功能
-- **代码**:
-  ```typescript
-  const exportTickets = () => {
-    // TODO: Implement CSV export
-    console.log('Exporting tickets...', filteredTickets)
-  }
-  ```
-- **影响**: 用户反馈#35 - admin账号下需要可以下载全部的TICKET
+### ~~2. 工单导出功能~~ ✅ 已实现
+- **状态**: ✅ **已实现** (2026-01)
+- **实现**: `src/app/api/tickets/export/route.ts`
+- **功能**: CSV 导出，包含工单详情、客户、处理人、满意度
 
 ### 3. 用户注册API
-- **文件**: `src/lib/hooks/use-auth.ts:141`
-- **问题**: 注册功能只是尝试登录，没有实际创建用户
-- **代码**:
-  ```typescript
-  // TODO: Implement actual user registration API
-  // For now, just attempt to sign in (works with mock users)
-  ```
+- **状态**: ⚠️ 部分实现 - 使用 Zammad 用户创建
+- **说明**: 通过 `/api/admin/users` POST 可创建用户，但无公开注册
 
-### 4. 密码重置/更新
-- **文件**: `src/lib/hooks/use-auth.ts:197, 209`
-- **问题**: 密码重置和更新功能未实现
-- **代码**:
-  ```typescript
-  // TODO: Implement password reset API
-  // TODO: Implement password update API
-  ```
+### ~~4. 密码重置/更新~~ ✅ 已实现
+- **状态**: ✅ **密码更新已实现** (2026-01)
+- **实现**: `PUT /api/user/password` - 验证当前密码后更新
+- **未实现**: 密码重置（忘记密码）流程
 
 ---
 
 ## 🟢 P2 - 技术债务/后续优化
 
-### 5. Zammad Webhook处理
-- **文件**: `src/app/api/webhooks/zammad/route.ts:6-9`
-- **问题**: Webhook接收但未处理实时更新
-- **代码**:
-  ```typescript
-  // TODO: Implement webhook processing logic
-  // - Store webhook events for real-time updates
-  // - Trigger WebSocket notifications to connected clients
-  // - Update conversation/ticket state in real-time
-  ```
+### ~~5. Zammad Webhook处理~~ ✅ 已实现
+- **状态**: ✅ **已实现** (2026-01)
+- **实现**: `src/app/api/webhooks/zammad/route.ts`
+- **功能**:
+  - 存储 TicketUpdate 到数据库
+  - 创建 in-app 通知
+  - SSE 广播实时更新
 
 ### 6. 文件存储系统
-- **文件**: `src/app/api/files/upload/route.ts:45`
-- **问题**: 使用本地文件存储，生产环境需要云存储
-- **代码**:
-  ```typescript
-  // TODO: Replace with real file storage when implemented
-  ```
+- **状态**: ⚠️ 本地存储 + Zammad upload_caches
+- **说明**: 附件通过 Zammad API 上传，本地文件用于头像等
 
 ### 7. Session管理
-- **文件**: `src/app/api/sessions/route.ts:6, 40` 和 `src/app/api/sessions/[id]/route.ts:7, 29, 62`
-- **问题**: 使用Mock session数据
-- **代码**:
-  ```typescript
-  // TODO: Replace with real session management system
-  // TODO: Replace with real database query
-  // TODO: Replace with real session deletion
-  ```
+- **状态**: ⚠️ 使用 NextAuth.js JWT sessions
+- **说明**: 无需传统 session 管理，JWT 无状态
 
 ### 8. 业务类型管理
-- **文件**: `src/app/api/admin/settings/route.ts:29`
-- **问题**: businessTypes返回空数组
-- **代码**:
-  ```typescript
-  businessTypes: [], // TODO: Implement business types management
-  ```
-- **影响**: 用户反馈#42 - BUSINESS TYPE暂时没有这个功能，先屏蔽
+- **状态**: ❌ 仍未实现
+- **代码**: `businessTypes: []` 返回空数组
 
-### 9. 认证系统
-- **文件**: `src/lib/mock-auth.ts:5` 和 `src/lib/stores/auth-store.ts:7`
-- **问题**: 仍有Mock认证相关代码
-- **代码**:
-  ```typescript
-  // TODO: Replace mock types with real authentication types
-  // TODO: Replace with real authentication system
-  ```
+### 9. ~~认证系统~~ ✅ 已实现
+- **状态**: ✅ **已实现** - NextAuth.js v5 + Zammad
+- **说明**: Mock auth 保留用于开发测试
 
 ### 10. 开发环境自动登录
-- **文件**: `src/app/api/dev/auto-login/route.ts:15`
-- **问题**: 开发环境特殊处理
-- **代码**:
-  ```typescript
-  // TODO: Replace with real authentication when implemented
-  ```
+- **状态**: ✅ 开发功能，正常工作
 
 ---
 
-## 📊 统计
+## 📊 统计 (更新后)
 
-| 优先级 | 数量 | 说明 |
-|--------|------|------|
-| P0 | 1 | 影响核心功能，需立即修复 |
-| P1 | 4 | 影响用户体验，需优先处理 |
-| P2 | 6 | 技术债务，可计划处理 |
+| 优先级 | 原数量 | 已完成 | 剩余 |
+|--------|--------|--------|------|
+| P0 | 1 | 1 | 0 |
+| P1 | 4 | 2 | 2 |
+| P2 | 6 | 3 | 3 |
 
 ---
 
-## 建议处理顺序
+## 剩余待处理项
 
-1. **立即修复**: 工单附件上传 (#1)
-2. **本周完成**: 工单导出功能 (#2)
-3. **下周计划**: 用户注册/密码重置 (#3, #4)
-4. **后续迭代**: Webhook处理、云存储迁移等
+1. **公开用户注册** - 当前只有管理员可创建用户
+2. **密码重置流程** - 忘记密码发送邮件
+3. **业务类型管理** - Admin settings 功能
+4. **云存储迁移** - 生产环境优化（可选）
+5. **Session 调试页面** - 开发工具（低优先级）

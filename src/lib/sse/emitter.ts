@@ -9,6 +9,7 @@
  */
 
 import { TicketUpdate } from '@/lib/hooks/use-ticket-updates'
+import { logger } from '@/lib/utils/logger'
 
 type SubscriberCallback = (update: TicketUpdate) => void
 
@@ -33,11 +34,13 @@ class SSEEmitter {
     const subscriberId = `${userId}-${Date.now()}`
     this.subscribers.set(subscriberId, { userId, userRole, callback })
 
-    console.log(`[SSE] Subscriber added: ${subscriberId} (${userRole})`)
+    logger.info('SSE', 'Subscriber added', {
+      data: { subscriberId, userRole },
+    })
 
     return () => {
       this.subscribers.delete(subscriberId)
-      console.log(`[SSE] Subscriber removed: ${subscriberId}`)
+      logger.info('SSE', 'Subscriber removed', { data: { subscriberId } })
     }
   }
 
@@ -50,15 +53,8 @@ class SSEEmitter {
    * - Customer: receives updates for their own tickets
    */
   broadcast(update: TicketUpdate, targetUserIds?: string[]): void {
-    console.log(`[SSE] Broadcasting update: ticketId=${update.ticketId}, event=${update.event}`)
-
     let sentCount = 0
     this.subscribers.forEach((subscriber) => {
-      // If specific targets are provided, only send to them
-      if (targetUserIds && !targetUserIds.includes(subscriber.userId)) {
-        return
-      }
-
       // Admin receives all updates
       if (subscriber.userRole === 'admin') {
         subscriber.callback(update)
@@ -66,15 +62,23 @@ class SSEEmitter {
         return
       }
 
-      // For staff and customer, we need to rely on targetUserIds
-      // If no targets specified, broadcast to all (webhook will specify targets)
-      if (!targetUserIds) {
+      // Staff/Customer: only deliver when explicitly targeted.
+      if (targetUserIds && targetUserIds.includes(subscriber.userId)) {
         subscriber.callback(update)
         sentCount++
       }
     })
 
-    console.log(`[SSE] Sent to ${sentCount} subscribers`)
+    if (sentCount === 0 && targetUserIds && targetUserIds.length > 0) {
+      logger.warning('SSE', 'Broadcast had no recipients', {
+        data: {
+          ticketId: update.ticketId,
+          event: update.event,
+          targetCount: targetUserIds.length,
+          subscriberCount: this.subscribers.size,
+        },
+      })
+    }
   }
 
   /**

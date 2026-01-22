@@ -1,10 +1,34 @@
 # FAQ Architecture Design
 
-**Document Version**: 1.0  
-**Date**: 2025-01-06  
-**Status**: Design Phase
+**Document Version**: 1.0
+**Date**: 2025-01-06
+**Status**: ~~Design Phase~~ **SUPERSEDED**
 
-## Executive Summary
+> ## ⚠️ Important Note (2026-01-21)
+>
+> **This design document is outdated.** The FAQ system was NOT implemented using Zammad Knowledge Base.
+>
+> ### Current Implementation
+>
+> The FAQ system uses **Prisma local database** instead of Zammad KB:
+>
+> | Component | Implementation |
+> |-----------|----------------|
+> | Data Storage | Prisma models: `FaqCategory`, `FaqArticle`, `FaqArticleTranslation`, `FaqRating` |
+> | API Routes | `/api/faq`, `/api/faq/categories`, `/api/faq/[id]`, `/api/faq/[id]/rating` |
+> | Admin Routes | `/api/admin/faq/*` for CRUD operations |
+> | Database | SQLite (dev) / PostgreSQL (prod) |
+> | Multi-language | `FaqArticleTranslation` model with locale field |
+>
+> See [DATABASE.md](./DATABASE.md) for the actual schema.
+>
+> ---
+>
+> *The original design below is preserved for historical reference.*
+
+---
+
+## Executive Summary (Original Design)
 
 This document outlines the architecture for integrating Zammad Knowledge Base (KB) into the Customer Service Platform's FAQ system. The design addresses the current token permission issue and provides a comprehensive solution for multi-language FAQ content delivery.
 

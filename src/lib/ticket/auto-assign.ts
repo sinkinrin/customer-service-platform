@@ -7,6 +7,7 @@
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
 import { getActiveStateIds } from '@/lib/constants/zammad-states'
+import { createApiLogger } from '@/lib/utils/api-logger'
 import {
   notifyTicketAssigned,
   notifySystemAlert,
@@ -34,21 +35,23 @@ export async function autoAssignSingleTicket(
   ticketId: number,
   ticketNumber: string,
   ticketTitle: string,
-  groupId: number
+  groupId: number,
+  requestId?: string
 ): Promise<SingleAssignResult> {
-  const DEBUG_PREFIX = '[Auto-Assign DEBUG]'
+  const log = createApiLogger('AutoAssign', requestId)
 
   try {
-    console.log(`${DEBUG_PREFIX} === Starting auto-assign for ticket #${ticketNumber} ===`)
-    console.log(`${DEBUG_PREFIX} Input: ticketId=${ticketId}, groupId=${groupId}, title="${ticketTitle}"`)
+    log.info('Starting auto-assign', { ticketNumber, ticketId, groupId, title: ticketTitle })
 
     // 1. Get all active agents
-    const allAgents = await zammadClient.getAgents(true)
-    console.log(`${DEBUG_PREFIX} Step 1: Fetched ${allAgents.length} active agents from Zammad`)
+    const agentsRaw = await zammadClient.getAgents(true)
+    const allAgents = Array.isArray(agentsRaw) ? agentsRaw : []
+    log.debug('Fetched active agents from Zammad', { count: allAgents.length })
 
     // 2. Get all tickets for load calculation
-    const allTickets = await zammadClient.getAllTickets()
-    console.log(`${DEBUG_PREFIX} Step 2: Fetched ${allTickets.length} total tickets from Zammad`)
+    const ticketsRaw = await zammadClient.getAllTickets()
+    const allTickets = Array.isArray(ticketsRaw) ? ticketsRaw : []
+    log.debug('Fetched total tickets from Zammad', { count: allTickets.length })
 
     // 3. Calculate current ticket count per agent
     // Only count active tickets (defined in zammad-states.ts)
@@ -59,11 +62,9 @@ export async function autoAssignSingleTicket(
         ticketCountByAgent[ticket.owner_id] = (ticketCountByAgent[ticket.owner_id] || 0) + 1
       }
     }
-    console.log(`${DEBUG_PREFIX} Step 3: Active state IDs: [${activeStateIds.join(', ')}]`)
-    console.log(`${DEBUG_PREFIX} Step 3: Ticket load by agent: ${JSON.stringify(ticketCountByAgent)}`)
+    log.debug('Calculated ticket load', { activeStateIds, ticketCountByAgent })
 
     const now = new Date()
-    console.log(`${DEBUG_PREFIX} Current time: ${now.toISOString()}`)
 
     // 4. Filter available agents with detailed logging
     const filterStats = {
@@ -78,14 +79,12 @@ export async function autoAssignSingleTicket(
       // Exclude system accounts
       if (EXCLUDED_EMAILS.some(email => agent.email?.toLowerCase() === email.toLowerCase())) {
         filterStats.excludedByEmail++
-        console.log(`${DEBUG_PREFIX}   - Excluded agent ${agent.email}: system account`)
         return false
       }
 
       // Exclude Admin role (role_id 1)
       if (agent.role_ids?.includes(1)) {
         filterStats.excludedByAdminRole++
-        console.log(`${DEBUG_PREFIX}   - Excluded agent ${agent.email}: Admin role (role_ids: ${JSON.stringify(agent.role_ids)})`)
         return false
       }
 
@@ -94,7 +93,6 @@ export async function autoAssignSingleTicket(
       const hasGroupAccess = Object.keys(agentGroupIds).includes(String(groupId))
       if (!hasGroupAccess) {
         filterStats.excludedByNoGroupAccess++
-        console.log(`${DEBUG_PREFIX}   - Excluded agent ${agent.email}: no access to group ${groupId} (agent groups: ${JSON.stringify(Object.keys(agentGroupIds))})`)
         return false
       }
 
@@ -103,46 +101,40 @@ export async function autoAssignSingleTicket(
         const startDate = agent.out_of_office_start_at ? new Date(agent.out_of_office_start_at) : null
         const endDate = agent.out_of_office_end_at ? new Date(agent.out_of_office_end_at) : null
 
-        console.log(`${DEBUG_PREFIX}   - Agent ${agent.email} out_of_office=true, start=${startDate?.toISOString()}, end=${endDate?.toISOString()}`)
-
         if (startDate && endDate) {
           if (now >= startDate && now <= endDate) {
             filterStats.excludedByVacation++
-            console.log(`${DEBUG_PREFIX}   - Excluded agent ${agent.email}: currently on vacation`)
             return false
           }
         } else if (startDate && !endDate) {
           if (now >= startDate) {
             filterStats.excludedByVacation++
-            console.log(`${DEBUG_PREFIX}   - Excluded agent ${agent.email}: on vacation (no end date)`)
             return false
           }
         } else if (!startDate && endDate) {
           if (now <= endDate) {
             filterStats.excludedByVacation++
-            console.log(`${DEBUG_PREFIX}   - Excluded agent ${agent.email}: on vacation (no start date)`)
             return false
           }
         }
       }
 
-      console.log(`${DEBUG_PREFIX}   + Agent ${agent.email} is AVAILABLE (load: ${ticketCountByAgent[agent.id] || 0})`)
       return true
     })
 
-    console.log(`${DEBUG_PREFIX} Step 4 Filter Summary:`)
-    console.log(`${DEBUG_PREFIX}   - Total agents: ${filterStats.total}`)
-    console.log(`${DEBUG_PREFIX}   - Excluded by system email: ${filterStats.excludedByEmail}`)
-    console.log(`${DEBUG_PREFIX}   - Excluded by Admin role: ${filterStats.excludedByAdminRole}`)
-    console.log(`${DEBUG_PREFIX}   - Excluded by no group access: ${filterStats.excludedByNoGroupAccess}`)
-    console.log(`${DEBUG_PREFIX}   - Excluded by vacation: ${filterStats.excludedByVacation}`)
-    console.log(`${DEBUG_PREFIX}   - Available agents: ${availableAgents.length}`)
+    log.debug('Agent filter summary', {
+      total: filterStats.total,
+      excludedByEmail: filterStats.excludedByEmail,
+      excludedByAdminRole: filterStats.excludedByAdminRole,
+      excludedByNoGroupAccess: filterStats.excludedByNoGroupAccess,
+      excludedByVacation: filterStats.excludedByVacation,
+      available: availableAgents.length
+    })
 
     // 5. No available agents
     if (availableAgents.length === 0) {
       const region = GROUP_REGION_MAPPING[groupId] || 'unknown'
-      console.log(`${DEBUG_PREFIX} Step 5: NO AVAILABLE AGENTS for region: ${region}`)
-      console.log(`${DEBUG_PREFIX} === Auto-assign FAILED for ticket #${ticketNumber} ===`)
+      log.warning('No available agents for region', { region, ticketNumber })
       return {
         success: false,
         error: `No available agents for region: ${region}`,
@@ -156,28 +148,25 @@ export async function autoAssignSingleTicket(
       return loadA - loadB
     })
 
-    console.log(`${DEBUG_PREFIX} Step 6: Available agents sorted by load:`)
-    availableAgents.forEach((agent, index) => {
-      const load = ticketCountByAgent[agent.id] || 0
-      console.log(`${DEBUG_PREFIX}   ${index + 1}. ${agent.email} (id=${agent.id}, load=${load})`)
+    const selectedAgent = availableAgents[0]
+    const selectedLoad = ticketCountByAgent[selectedAgent.id] || 0
+    log.debug('Selected agent with lowest load', {
+      email: selectedAgent.email,
+      agentId: selectedAgent.id,
+      load: selectedLoad
     })
 
-    const selectedAgent = availableAgents[0]
-    console.log(`${DEBUG_PREFIX} Step 6: Selected agent: ${selectedAgent.email} (id=${selectedAgent.id})`)
-
     // 7. Assign ticket and update state to open
-    console.log(`${DEBUG_PREFIX} Step 7: Calling zammadClient.updateTicket(${ticketId}, { owner_id: ${selectedAgent.id}, state: 'open' })`)
     await zammadClient.updateTicket(ticketId, {
       owner_id: selectedAgent.id,
       state: 'open', // new -> open
     })
-    console.log(`${DEBUG_PREFIX} Step 7: Ticket update successful`)
 
     const agentName = selectedAgent.firstname && selectedAgent.lastname
       ? `${selectedAgent.firstname} ${selectedAgent.lastname}`.trim()
       : selectedAgent.login || selectedAgent.email
 
-    console.log(`${DEBUG_PREFIX} === Auto-assign SUCCESS for ticket #${ticketNumber} -> ${agentName} ===`)
+    log.info('Auto-assign successful', { ticketNumber, assignedTo: agentName, agentId: selectedAgent.id })
     return {
       success: true,
       assignedTo: {
@@ -187,8 +176,7 @@ export async function autoAssignSingleTicket(
       },
     }
   } catch (error) {
-    console.error(`${DEBUG_PREFIX} === Auto-assign ERROR for ticket #${ticketNumber} ===`)
-    console.error(`${DEBUG_PREFIX} Error:`, error)
+    log.error('Auto-assign failed', { ticketNumber, error: error instanceof Error ? error.message : error })
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Auto-assignment failed',
@@ -206,8 +194,11 @@ export async function handleAssignmentNotification(
   ticketId: number,
   ticketNumber: string,
   ticketTitle: string,
-  region: string
+  region: string,
+  requestId?: string
 ): Promise<void> {
+  const log = createApiLogger('AutoAssign', requestId)
+
   try {
     if (result.success && result.assignedTo) {
       // Assignment succeeded -> notify Staff
@@ -220,7 +211,7 @@ export async function handleAssignmentNotification(
           ticketTitle,
         })
       }
-      console.log(`[Auto-Assign] Notified staff ${result.assignedTo.email} for ticket #${ticketNumber}`)
+      log.info('Notified staff for ticket assignment', { staffEmail: result.assignedTo.email, ticketNumber })
     } else {
       // Assignment failed -> notify all Admins
       // Get admin users from Zammad (users with role_id 1)
@@ -245,9 +236,9 @@ export async function handleAssignmentNotification(
           notifiedCount++
         }
       }
-      console.log(`[Auto-Assign] Notified ${notifiedCount} admins about failed assignment for ticket #${ticketNumber}`)
+      log.info('Notified admins about failed assignment', { ticketNumber, notifiedCount })
     }
   } catch (error) {
-    console.error('[Auto-Assign] Failed to send notification:', error)
+    log.error('Failed to send notification', { error: error instanceof Error ? error.message : error })
   }
 }

@@ -1,81 +1,146 @@
-# 📚 Documentation Index
+# Documentation
 
-> Customer Service Platform - 技术文档导航
+> Customer Service Platform - Technical Documentation
 
-**最后更新**: 2025-10-29
+**Chinese Index**: See [README.zh-CN.md](./README.zh-CN.md)
 
----
-
-## 📖 设计文档（中文）
-
-### 核心设计
-
-| 文档 | 描述 | 状态 |
-|------|------|------|
-| [00-项目概述](./00-项目概述.md) | 项目愿景、目标、时间线 | ✅ |
-| [01-requirements](./01-requirements.md) | 功能需求、用户故事、验收标准 | ✅ |
-| [02-business-flows](./02-business-flows.md) | 业务流程图（售前/售后/工单） | ✅ |
-| [03-用户旅程](./03-用户旅程.md) | 客户和员工旅程地图 | ✅ |
-| [04-数据库设计](./04-数据库设计.md) | ER 图、表结构、索引策略 | ✅ |
-| [05-API设计](./05-API设计.md) | RESTful API、WebSocket 事件 | ✅ |
-| [06-前端架构](./06-前端架构.md) | 前端技术栈、组件架构 | ✅ |
-| [07-后端架构](./07-后端架构.md) | 后端技术栈、服务层设计 | ✅ |
-| [08-实时通信](./08-实时通信.md) | WebSocket 架构、事件系统 | ✅ |
-
-### 集成设计
-
-| 文档 | 描述 | 状态 |
-|------|------|------|
-| [ZAMMAD-INTEGRATION-DESIGN](./ZAMMAD-INTEGRATION-DESIGN.md) | Zammad 集成方案、同步策略 | ✅ |
-| [SUPABASE-ZAMMAD-INTEGRATION-ANALYSIS](./SUPABASE-ZAMMAD-INTEGRATION-ANALYSIS.md) | Supabase + Zammad 集成分析 | ✅ |
-| [COMPANY-INFO](./COMPANY-INFO.md) | 公司信息配置（6 区域、6 语言） | ✅ |
-| [COMPANY-INFO-INTEGRATION-GUIDE](./COMPANY-INFO-INTEGRATION-GUIDE.md) | 公司信息集成指南 | ✅ |
+**Last Updated**: 2026-01-21
+**Platform Version**: 2.0
 
 ---
 
-## 🚀 实现文档
+## Quick Navigation
 
-### 后端实现
-
-| 文档 | 描述 | 状态 |
-|------|------|------|
-| [BACKEND-IMPLEMENTATION](./BACKEND-IMPLEMENTATION.md) | 后端实现总结（P0+P1+P2） | ✅ |
-| [DATABASE-IMPLEMENTATION](./DATABASE-IMPLEMENTATION.md) | 数据库实现总结（14 表） | ✅ |
-| [API-ENDPOINTS-SUMMARY](./API-ENDPOINTS-SUMMARY.md) | API 端点清单（26 个） | ✅ |
-
----
-
-## 📂 Legacy 文档
-
-基于 `howen-ai-chat` 项目的早期分析：
-
-| 文档 | 描述 |
-|------|------|
-| [Ticket-System-Architecture-zh](./legacy/Ticket-System-Architecture-zh.md) | 工单系统架构设计 |
-| [Analysis-Report-Ticket-System-zh](./legacy/Analysis-Report-Ticket-System-zh.md) | Supabase + Zammad 集成分析 |
-| [TICKET_SYSTEM_ANALYSIS_SUMMARY](./legacy/TICKET_SYSTEM_ANALYSIS_SUMMARY.md) | 分析总结 |
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture, tech stack, project structure |
+| [API-REFERENCE.md](./API-REFERENCE.md) | Complete API reference (69 endpoints) |
+| [DATABASE.md](./DATABASE.md) | Prisma schema, models, migrations |
+| [AUTHENTICATION.md](./AUTHENTICATION.md) | NextAuth.js v5, roles, middleware |
+| [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) | Zammad API client, webhooks, permissions |
 
 ---
 
-## 🔍 快速导航
+## Core Documentation
 
-### 开发者
+### System Architecture
 
-1. **后端开发**: [BACKEND-IMPLEMENTATION](./BACKEND-IMPLEMENTATION.md) → [DATABASE-IMPLEMENTATION](./DATABASE-IMPLEMENTATION.md) → [API-ENDPOINTS-SUMMARY](./API-ENDPOINTS-SUMMARY.md)
-2. **前端开发**: [06-前端架构](./06-前端架构.md) → [05-API设计](./05-API设计.md)
-3. **集成开发**: [ZAMMAD-INTEGRATION-DESIGN](./ZAMMAD-INTEGRATION-DESIGN.md) → [SUPABASE-ZAMMAD-INTEGRATION-ANALYSIS](./SUPABASE-ZAMMAD-INTEGRATION-ANALYSIS.md)
+**[ARCHITECTURE.md](./ARCHITECTURE.md)** - Complete system overview
 
-### 产品经理
+- Tech stack (Next.js 16, React 19, Prisma 6.19, NextAuth.js v5)
+- System architecture diagram
+- Project structure (69 API routes, 28 UI components)
+- Data flow diagrams
+- Key design decisions
 
-1. **需求**: [01-requirements](./01-requirements.md) → [02-business-flows](./02-business-flows.md)
-2. **用户体验**: [03-用户旅程](./03-用户旅程.md)
+### API Reference
 
-### 设计师
+**[API-REFERENCE.md](./API-REFERENCE.md)** - All 69 API endpoints
 
-1. **UI/UX**: [06-前端架构](./06-前端架构.md) → [03-用户旅程](./03-用户旅程.md)
+| Category | Endpoints | Description |
+|----------|-----------|-------------|
+| Tickets | 12 | Zammad ticket management |
+| Notifications | 5 | In-app notification system |
+| Conversations | 6 | AI chat (FastGPT) |
+| FAQ | 4 | Knowledge base |
+| User Profile | 4 | Account management |
+| Admin | 20 | Users, FAQ, stats, settings |
+| Files | 5 | Upload/download |
+| Health | 3 | Service monitoring |
+
+### Database Schema
+
+**[DATABASE.md](./DATABASE.md)** - Prisma ORM documentation
+
+| Model | Description |
+|-------|-------------|
+| FaqCategory | FAQ categories |
+| FaqArticle | FAQ articles |
+| FaqArticleTranslation | Multi-language content |
+| FaqRating | User feedback |
+| UserZammadMapping | User ID mapping |
+| UploadedFile | File metadata |
+| TicketRating | Ticket feedback |
+| ReplyTemplate | Staff templates |
+| TicketUpdate | Real-time tracking |
+| Notification | In-app notifications |
+
+### Authentication
+
+**[AUTHENTICATION.md](./AUTHENTICATION.md)** - Auth system details
+
+- NextAuth.js v5 configuration
+- Dual authentication (Zammad + Mock)
+- Role-based access control (Customer, Staff, Admin)
+- JWT session structure
+- Middleware protection
+
+### Zammad Integration
+
+**[ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md)** - External ticketing
+
+- ZammadClient API reference
+- X-On-Behalf-Of authentication pattern
+- Region to Group mapping (8 regions)
+- Auto-assignment algorithm
+- Webhook processing
+- Permission system
 
 ---
 
-**最后更新**: 2025-10-29
-**维护者**: 开发团队
+## For Developers
 
+### Getting Started
+
+1. **Environment Setup**: See [CLAUDE.md](../CLAUDE.md) for quick start
+2. **Architecture**: Read [ARCHITECTURE.md](./ARCHITECTURE.md) for system overview
+3. **API**: Reference [API-REFERENCE.md](./API-REFERENCE.md) for endpoints
+
+### Common Tasks
+
+| Task | Documentation |
+|------|---------------|
+| Add new API endpoint | [API-REFERENCE.md](./API-REFERENCE.md) |
+| Modify database schema | [DATABASE.md](./DATABASE.md) |
+| Update auth logic | [AUTHENTICATION.md](./AUTHENTICATION.md) |
+| Integrate with Zammad | [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) |
+
+### Test Accounts (Development)
+
+Mock authentication is enabled by default in development (`NODE_ENV !== "production"`).
+In production, mock auth is disabled by default, but can be explicitly enabled with `NEXT_PUBLIC_ENABLE_MOCK_AUTH=true`.
+
+| Email | Password | Role |
+|-------|----------|------|
+| customer@test.com | password123 | Customer |
+| staff@test.com | password123 | Staff |
+| admin@test.com | password123 | Admin |
+
+---
+
+## Supplementary Documentation
+
+| Document | Description | Status |
+|----------|-------------|--------|
+| [TESTING.md](./TESTING.md) | Test framework guide (Vitest, Playwright) | ✅ Current |
+| [PERFORMANCE-OPTIMIZATIONS.md](./PERFORMANCE-OPTIMIZATIONS.md) | LRU cache, FAQ optimization | ✅ Current |
+| [AI-CONFIGURATION-PERSISTENCE.md](./AI-CONFIGURATION-PERSISTENCE.md) | FastGPT settings persistence | ✅ Current |
+| [TRANSLATION-STATUS.md](./TRANSLATION-STATUS.md) | i18n translation progress | ⚠️ Verify |
+| [zammad-api-reference.md](./zammad-api-reference.md) | Zammad API endpoint comparison | ✅ Current |
+| [FAQ-ARCHITECTURE-DESIGN.md](./FAQ-ARCHITECTURE-DESIGN.md) | Original FAQ design (superseded) | 📋 Historical |
+| [feedback/TODO-未实现功能清单.md](./feedback/TODO-未实现功能清单.md) | TODO list with status updates | ✅ Updated |
+
+---
+
+## External Resources
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [NextAuth.js v5](https://authjs.dev/)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [Zammad REST API](https://docs.zammad.org/en/latest/api/)
+- [FastGPT Documentation](https://doc.fastai.site/)
+
+---
+
+**Maintainer**: Development Team
+**Last Updated**: 2026-01-21

@@ -91,6 +91,7 @@ import { NextRequest } from 'next/server'
 import { zammadClient } from '@/lib/zammad/client'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/utils/auth'
+import { getApiLogger } from '@/lib/utils/api-logger'
 import {
   successResponse,
   validationErrorResponse,
@@ -148,17 +149,26 @@ function transformTicket(
 }
 
 // Helper function to ensure user exists in Zammad
-async function ensureZammadUser(email: string, fullName: string, role: string, region?: string) {
+async function ensureZammadUser(
+  email: string,
+  fullName: string,
+  role: string,
+  region?: string,
+  requestId?: string
+) {
+  const { createApiLogger } = await import('@/lib/utils/api-logger')
+  const log = createApiLogger('TicketsAPI', requestId)
+
   try {
     // Try to search for user by email
     const searchResult = await zammadClient.searchUsers(`email:${email}`)
     if (searchResult && searchResult.length > 0) {
-      console.log('[DEBUG] User already exists in Zammad:', searchResult[0].id)
+      log.debug('User already exists in Zammad', { userId: searchResult[0].id })
       return searchResult[0]
     }
 
     // User doesn't exist, create them
-    console.log('[DEBUG] Creating new user in Zammad:', email)
+    log.debug('Creating new user in Zammad', { email })
     const [firstname, ...lastnameArr] = fullName.split(' ')
     const lastname = lastnameArr.join(' ') || firstname
 
@@ -179,7 +189,7 @@ async function ensureZammadUser(email: string, fullName: string, role: string, r
       groupIds = {
         [groupId.toString()]: ['full']  // Full permission for staff in their region
       }
-      console.log('[DEBUG] Setting group_ids for staff user:', groupIds)
+      log.debug('Setting group_ids for staff user', { groupIds })
     }
 
     const newUser = await zammadClient.createUser({
@@ -193,10 +203,10 @@ async function ensureZammadUser(email: string, fullName: string, role: string, r
       verified: true,
     })
 
-    console.log('[DEBUG] Created new Zammad user:', newUser.id)
+    log.debug('Created new Zammad user', { userId: newUser.id })
     return newUser
   } catch (error) {
-    console.error('[ERROR] Failed to ensure Zammad user:', error)
+    log.error('Failed to ensure Zammad user', { error: error instanceof Error ? error.message : error })
     throw error
   }
 }
@@ -233,13 +243,16 @@ const createTicketSchema = z.object({
 // ============================================================================
 
 export async function GET(request: NextRequest) {
+  const log = getApiLogger('TicketsAPI', request)
+
   try {
     const user = await requireAuth()
+    log.info('Fetching tickets', { userId: user.id, role: user.role })
 
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
     if (!healthCheck.isHealthy) {
-      console.warn('[Tickets API] Zammad service unavailable:', healthCheck.error)
+      log.warning('Zammad service unavailable', { error: healthCheck.error })
       return serverErrorResponse(
         getZammadUnavailableMessage(),
         { service: 'zammad', available: false },
@@ -266,16 +279,16 @@ export async function GET(request: NextRequest) {
     } else if (user.role === 'customer') {
       // Customer: Use search with X-On-Behalf-Of to get only their tickets
       // When using X-On-Behalf-Of, Zammad automatically filters to the user's tickets
-      console.log('[DEBUG] GET /api/tickets - Searching tickets for customer:', user.email)
+      log.debug('Searching tickets for customer', { email: user.email })
       const searchResponse = await zammadClient.searchTickets('state:*', 1000, user.email)
       tickets = searchResponse.tickets  // Extract tickets array from response object
-      console.log('[DEBUG] GET /api/tickets - Found', tickets?.length || 0, 'tickets for customer')
+      log.debug('Found tickets for customer', { count: tickets?.length || 0 })
     } else {
       // Staff: Get ALL tickets without X-On-Behalf-Of, then filter by region
       // Using X-On-Behalf-Of would only return tickets where staff is assigned/has explicit access
       // Staff needs to see all customer-created tickets in their region
       // P1 Fix: Use getAllTickets to iterate through all pages
-      console.log('[DEBUG] GET /api/tickets - Fetching all tickets for staff, will filter by region')
+      log.debug('Fetching all tickets for staff, will filter by region')
       tickets = await zammadClient.getAllTickets()
     }
 
@@ -284,8 +297,7 @@ export async function GET(request: NextRequest) {
     // - Customer only sees their own tickets (by customer_id)
     // - Staff only sees assigned or regional tickets (unassigned hidden)
     // - Admin sees all tickets
-    console.log('[DEBUG] GET /api/tickets - Before permission filter:', tickets.length, 'tickets')
-    console.log('[DEBUG] GET /api/tickets - User role:', user.role, 'Region:', user.region, 'Zammad ID:', user.zammad_id)
+    log.debug('Before permission filter', { ticketCount: tickets.length, userRole: user.role, region: user.region, zammadId: user.zammad_id })
 
     // Build permission user object
     const permissionUser: PermissionUser = {
@@ -298,10 +310,10 @@ export async function GET(request: NextRequest) {
     }
 
     let filteredTickets = filterTicketsByPermission(tickets as unknown as PermissionTicket[], permissionUser)
-    console.log('[DEBUG] GET /api/tickets - After permission filter:', filteredTickets.length, 'tickets')
+    log.debug('After permission filter', { ticketCount: filteredTickets.length })
 
     if (filteredTickets.length > 0) {
-      console.log('[DEBUG] GET /api/tickets - Sample ticket group_ids:', filteredTickets.slice(0, 3).map((t: any) => t.group_id))
+      log.debug('Sample ticket group_ids', { groupIds: filteredTickets.slice(0, 3).map((t: any) => t.group_id) })
     }
 
     // Filter by status if provided
@@ -377,7 +389,7 @@ export async function GET(request: NextRequest) {
         ownerMap.set(owner.id, { name })
       }
     } catch (error) {
-      console.error('[Tickets API] Error in parallel user fetching:', error)
+      log.error('Error in parallel user fetching', { error: error instanceof Error ? error.message : error })
       // Continue even if fetch fails, fields will just be missing
     }
 
@@ -409,7 +421,7 @@ export async function GET(request: NextRequest) {
         ratingMap.set(r.ticketId, r.rating as 'positive' | 'negative')
       }
     } catch (error) {
-      console.warn('[Tickets API] Could not load ratings:', error)
+      log.warning('Could not load ratings', { error: error instanceof Error ? error.message : error })
       // Continue without ratings
     }
 
@@ -424,7 +436,7 @@ export async function GET(request: NextRequest) {
       total: customerEmail ? transformedTickets.length : filteredTickets.length,
     })
   } catch (error) {
-    console.error('GET /api/tickets error:', error)
+    log.error('Failed to fetch tickets', { error: error instanceof Error ? error.message : error })
 
     // Check if error is authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -449,13 +461,15 @@ export async function GET(request: NextRequest) {
 // ============================================================================
 
 export async function POST(request: NextRequest) {
+  const log = getApiLogger('TicketsAPI', request)
+
   try {
     const user = await requireAuth()
 
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
     if (!healthCheck.isHealthy) {
-      console.warn('[Tickets API] Zammad service unavailable:', healthCheck.error)
+      log.warning('Zammad service unavailable', { error: healthCheck.error })
       return serverErrorResponse(
         getZammadUnavailableMessage(),
         { service: 'zammad', available: false },
@@ -465,27 +479,32 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json()
-    console.log('[DEBUG] POST /api/tickets - Request body:', JSON.stringify(body, null, 2))
-    console.log('[DEBUG] POST /api/tickets - User:', JSON.stringify(user, null, 2))
+    log.debug('Request body received', { title: body.title, region: body.region })
+    log.debug('User context', { userId: user.id, role: user.role, region: user.region })
 
     const validationResult = createTicketSchema.safeParse(body)
 
     if (!validationResult.success) {
-      console.error('[ERROR] POST /api/tickets - Validation failed:', validationResult.error.errors)
+      log.warning('Validation failed', { errors: validationResult.error.errors })
       return validationErrorResponse(validationResult.error.errors)
     }
 
     const ticketData = validationResult.data
 
     // Determine region (use provided region or user's region, default to 'asia-pacific' for admin)
+    log.debug('Region resolution', {
+      ticketDataRegion: ticketData.region,
+      userRegion: user.region,
+      userRole: user.role
+    })
     const region = (ticketData.region || user.region || 'asia-pacific') as RegionValue
-    console.log('[DEBUG] POST /api/tickets - Determined region:', region)
+    log.debug('Determined region', { region })
 
     // Validate user has permission to create ticket in this region
     try {
       validateTicketCreation(user, region)
     } catch (error) {
-      console.error('[ERROR] POST /api/tickets - Permission validation failed:', error)
+      log.warning('Permission validation failed', { error: error instanceof Error ? error.message : error })
       return validationErrorResponse([{
         path: ['region'],
         message: error instanceof Error ? error.message : 'Permission denied'
@@ -495,14 +514,14 @@ export async function POST(request: NextRequest) {
     // Ensure user exists in Zammad before creating ticket
     // P2 Fix: Use target region for staff group assignment, not user.region
     // This ensures staff creating tickets in a specific region get proper permissions
-    const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, region)
-    console.log('[DEBUG] POST /api/tickets - Zammad user ID:', zammadUser.id)
+    const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, region, log.requestId)
+    log.debug('Zammad user verified', { zammadUserId: zammadUser.id })
 
     // Determine group ID based on user's region
     // All users (customer/staff/admin) create tickets in their region's group
     // This ensures staff can see tickets created by customers in their region
     const groupId = getGroupIdByRegion(region)
-    console.log('[DEBUG] POST /api/tickets - Using region group:', groupId, 'for region:', region)
+    log.debug('Using region group', { groupId, region })
 
     // Create ticket with X-On-Behalf-Of to ensure correct sender identity
     // This shows the actual user's name instead of the API token user (e.g., "Howen Support")
@@ -533,7 +552,7 @@ export async function POST(request: NextRequest) {
       user.email  // Pass user email for X-On-Behalf-Of to show correct sender name
     )
 
-    console.log('[DEBUG] POST /api/tickets - Created ticket:', ticket.id)
+    log.info('Ticket created', { ticketId: ticket.id, ticketNumber: ticket.number })
 
     try {
       await notifyTicketCreated({
@@ -543,31 +562,27 @@ export async function POST(request: NextRequest) {
         ticketTitle: ticket.title,
       })
     } catch (notifyError) {
-      console.error('[Tickets API] Failed to create in-app notification for ticket creation:', notifyError)
+      log.error('Failed to create in-app notification for ticket creation', { error: notifyError instanceof Error ? notifyError.message : notifyError })
     }
 
     // Auto-assign to available Staff in the ticket's region
-    const assignResult = await autoAssignSingleTicket(
-      ticket.id,
-      ticket.number,
-      ticket.title,
-      groupId
-    )
+    const requestId = log.requestId
+    const assignResult = requestId
+      ? await autoAssignSingleTicket(ticket.id, ticket.number, ticket.title, groupId, requestId)
+      : await autoAssignSingleTicket(ticket.id, ticket.number, ticket.title, groupId)
 
     if (assignResult.success) {
-      console.log(`[Auto-Assign] Ticket #${ticket.number} assigned to ${assignResult.assignedTo?.name}`)
+      log.info('Ticket auto-assigned', { ticketNumber: ticket.number, assignedTo: assignResult.assignedTo?.name })
     } else {
-      console.warn(`[Auto-Assign] Failed for #${ticket.number}: ${assignResult.error}`)
+      log.warning('Ticket auto-assign failed', { ticketNumber: ticket.number, error: assignResult.error })
     }
 
     // Send notifications asynchronously (don't block response)
-    handleAssignmentNotification(
-      assignResult,
-      ticket.id,
-      ticket.number,
-      ticket.title,
-      region
-    ).catch(err => console.error('[Auto-Assign] Notification error:', err))
+    const notifyPromise = requestId
+      ? handleAssignmentNotification(assignResult, ticket.id, ticket.number, ticket.title, region, requestId)
+      : handleAssignmentNotification(assignResult, ticket.id, ticket.number, ticket.title, region)
+
+    notifyPromise.catch(err => log.error('Assignment notification error', { error: err instanceof Error ? err.message : err }))
 
     return successResponse(
       {
@@ -576,7 +591,7 @@ export async function POST(request: NextRequest) {
       201
     )
   } catch (error) {
-    console.error('POST /api/tickets error:', error)
+    log.error('Failed to create ticket', { error: error instanceof Error ? error.message : error })
 
     // Check if error is authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {

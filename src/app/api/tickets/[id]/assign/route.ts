@@ -23,6 +23,7 @@ import {
     resolveLocalUserIdsForZammadUserId,
 } from '@/lib/notification'
 import { mapStateIdToString } from '@/lib/constants/zammad-states'
+import { getApiLogger } from '@/lib/utils/api-logger'
 
 
 // mapStateIdToString is now imported from @/lib/constants/zammad-states
@@ -43,6 +44,8 @@ interface RouteParams {
  * Assign ticket to a staff member
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+    const log = getApiLogger('TicketAssignAPI', request)
+
     try {
         // Only admin can assign tickets
         await requireRole(['admin'])
@@ -79,7 +82,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                         name: [prevOwnerData.firstname, prevOwnerData.lastname].filter(Boolean).join(' ') || prevOwnerData.login || prevOwnerData.email,
                     }
                 } catch (err) {
-                    console.warn(`[API] Could not get previous owner info for owner_id ${ticket.owner_id}:`, err)
+                    log.warning('Could not get previous owner info', {
+                        owner_id: ticket.owner_id,
+                        error: err instanceof Error ? err.message : err,
+                    })
                 }
             }
         } catch {
@@ -108,7 +114,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 return validationErrorResponse(`User ${staff_id} (${staffMember.email}) is not an agent. Current roles: ${roles}`)
             }
         } catch (error) {
-            console.error(`[API] Failed to get user ${staff_id}:`, error)
+            log.error('Failed to get user', {
+                staff_id,
+                error: error instanceof Error ? error.message : error,
+            })
             if (error instanceof Error && error.message.includes('No such object')) {
                 return notFoundResponse(`Staff member with ID ${staff_id} does not exist in Zammad`)
             }
@@ -140,8 +149,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
                 // Use staff's smallest group_id (most predictable choice)
                 targetGroupIdForAutoChange = staffGroupIds[0]
-                console.log(`[API] Auto-changing ticket ${ticketId} from Group ${ticketGroupId} to Group ${targetGroupIdForAutoChange} for staff ${staff_id}`)
-                console.log(`[API] Staff ${staff_id} has access to groups: ${staffGroupIds.join(', ')}`)
+                log.info('Auto-changing ticket group for staff assignment', {
+                    ticketId,
+                    fromGroupId: ticketGroupId,
+                    toGroupId: targetGroupIdForAutoChange,
+                    staff_id,
+                })
+                log.info('Staff group access', {
+                    staff_id,
+                    groupIds: staffGroupIds,
+                })
             }
         }
 
@@ -160,7 +177,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 : (startDate ? now >= startDate : false)
 
             if (isCurrentlyOnVacation) {
-                console.warn(`[API] Warning: Assigning ticket ${ticketId} to staff ${staff_id} who is on vacation`)
+                log.warning('Assigning ticket to staff who is on vacation', {
+                    ticketId,
+                    staff_id,
+                })
             }
         }
 
@@ -173,7 +193,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         // This follows Zammad workflow: new tickets become open when assigned to staff
         if (ticket.state_id === 1) {
             updateData.state_id = 2 // new -> open
-            console.log(`[API] Auto-updating ticket ${ticketId} state from 'new' (1) to 'open' (2) on assignment`)
+            log.info('Auto-updating ticket state from new to open on assignment', {
+                ticketId,
+                fromStateId: 1,
+                toStateId: 2,
+            })
         }
 
         // If group_id is explicitly provided, use it
@@ -185,7 +209,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         else if (targetGroupIdForAutoChange !== null) {
             const group = await zammadClient.getGroup(targetGroupIdForAutoChange)
             updateData.group = group.name
-            console.log(`[API] Moving ticket ${ticketId} to group "${group.name}" (ID: ${targetGroupIdForAutoChange}) to enable assignment`)
+            log.info('Moving ticket to group to enable assignment', {
+                ticketId,
+                groupName: group.name,
+                groupId: targetGroupIdForAutoChange,
+            })
         }
 
         const updatedTicket = await zammadClient.updateTicket(ticketId, updateData)
@@ -213,7 +241,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 }
             }
         } catch (notifyError) {
-            console.error('[Ticket Assign] Failed to create in-app notifications:', notifyError)
+            log.error('Failed to create in-app notifications', {
+                error: notifyError instanceof Error ? notifyError.message : notifyError,
+            })
         }
 
         // Get the staff member's display name
@@ -224,7 +254,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         // Send email notification to previous owner if ticket was reassigned
         if (previousOwner && previousOwner.id !== staff_id && previousOwner.email) {
             try {
-                console.log(`[API] Sending reassignment notification to previous owner: ${previousOwner.email}`)
+                log.info('Sending reassignment notification to previous owner', {
+                    email: previousOwner.email,
+                })
                 const tEmail = await getTranslations({ locale: defaultLocale, namespace: 'emails.ticketAssign' })
                 const emailBody = `
 <p>${tEmail('greeting', { name: previousOwner.name })}</p>
@@ -252,10 +284,15 @@ ${tEmail('signature')}</p>
                     to: previousOwner.email,
                 })
 
-                console.log(`[API] Reassignment notification sent to ${previousOwner.email}`)
+                log.info('Reassignment notification sent', {
+                    email: previousOwner.email,
+                })
             } catch (emailError) {
                 // Log error but don't fail the assignment
-                console.error(`[API] Failed to send reassignment notification to ${previousOwner.email}:`, emailError)
+                log.error('Failed to send reassignment notification', {
+                    email: previousOwner.email,
+                    error: emailError instanceof Error ? emailError.message : emailError,
+                })
             }
         }
 
@@ -278,7 +315,9 @@ ${tEmail('signature')}</p>
             }
         })
     } catch (error) {
-        console.error('[API] Assign ticket error:', error)
+        log.error('Assign ticket error', {
+            error: error instanceof Error ? error.message : error,
+        })
 
         // Check for Zammad permission errors
         if (error instanceof Error) {
@@ -299,7 +338,9 @@ ${tEmail('signature')}</p>
  * DELETE /api/tickets/[id]/assign
  * Unassign ticket (remove owner)
  */
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+    const log = getApiLogger('TicketAssignAPI', request)
+
     try {
         await requireRole(['admin'])
 
@@ -340,7 +381,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
                 }
             }
         } catch (notifyError) {
-            console.error('[Ticket Assign] Failed to create unassigned notification:', notifyError)
+            log.error('Failed to create unassigned notification', {
+                error: notifyError instanceof Error ? notifyError.message : notifyError,
+            })
         }
 
         return successResponse({
@@ -353,7 +396,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
             }
         })
     } catch (error) {
-        console.error('[API] Unassign ticket error:', error)
+        log.error('Unassign ticket error', {
+            error: error instanceof Error ? error.message : error,
+        })
         return serverErrorResponse('Failed to unassign ticket')
     }
 }

@@ -13,6 +13,7 @@ import {
   errorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { getApiLogger } from '@/lib/utils/api-logger'
 import type { ZammadWebhookPayload } from '@/lib/zammad/types'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
@@ -40,7 +41,7 @@ function verifyWebhookSignature(
     // Zammad sends signature in format: sha1=<hex>
     const match = signature.match(/^sha1=([a-f0-9]+)$/i)
     if (!match) {
-      console.error('Invalid signature format, expected sha1=<hex>')
+      // Log will be handled by caller with access to logger
       return false
     }
     const providedHash = match[1]
@@ -71,6 +72,7 @@ function mapStateIdToStatus(stateId: number | null | undefined): string | undefi
 
 
 export async function POST(request: NextRequest) {
+  const log = getApiLogger('ZammadWebhook', request)
   const startTime = Date.now()
   let webhookPayload: ZammadWebhookPayload | null = null
   let rawBody = ''
@@ -90,19 +92,19 @@ export async function POST(request: NextRequest) {
       const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret)
 
       if (!isValid) {
-        console.error('Invalid webhook signature')
+        log.error('Invalid webhook signature')
         return errorResponse('INVALID_SIGNATURE', 'Invalid webhook signature', undefined, 401)
       }
     }
 
     // Validate payload - Zammad sends ticket/article data without explicit event field
     if (!webhookPayload || !webhookPayload.ticket) {
-      console.error('Invalid webhook payload - no ticket data:', webhookPayload)
+      log.error('Invalid webhook payload - no ticket data', { payload: webhookPayload })
       return errorResponse('INVALID_PAYLOAD', 'Invalid webhook payload', undefined, 400)
     }
 
     // Log webhook event
-    console.log('Zammad webhook received:', {
+    log.info('Zammad webhook received', {
       ticketId: webhookPayload.ticket?.id,
       ticketTitle: webhookPayload.ticket?.title,
       articleId: webhookPayload.article?.id,
@@ -116,6 +118,13 @@ export async function POST(request: NextRequest) {
       let updateEvent: TicketUpdateEvent | null = null
       let updateData: Record<string, unknown> = {}
 
+      const baseMetadata: Record<string, unknown> = {
+        customerId: typeof webhookPayload.ticket.customer_id === 'number' ? webhookPayload.ticket.customer_id : undefined,
+        ownerId: webhookPayload.ticket.owner_id ?? undefined,
+        groupId: webhookPayload.ticket.group_id ?? undefined,
+        stateId: webhookPayload.ticket.state_id ?? undefined,
+      }
+
       // Determine event type based on webhook payload content
       // Zammad doesn't send explicit event type, infer from payload
       if (webhookPayload.article) {
@@ -127,14 +136,15 @@ export async function POST(request: NextRequest) {
         if (Math.abs(ticketCreatedAt - articleCreatedAt) < 5000) {
           updateEvent = 'created'
           updateData = {
+            ...baseMetadata,
             title: webhookPayload.ticket?.title,
-            stateId: webhookPayload.ticket?.state_id,
             articleId: webhookPayload.article.id,
           }
         } else {
           // New article/message on existing ticket
           updateEvent = 'article_created'
           updateData = {
+            ...baseMetadata,
             articleId: webhookPayload.article.id,
             senderEmail: webhookPayload.article.from || String(webhookPayload.article.created_by_id),
             subject: webhookPayload.article.subject,
@@ -153,13 +163,12 @@ export async function POST(request: NextRequest) {
         if (ownerChangedRecently && webhookPayload.ticket.owner_id && webhookPayload.ticket.owner_id !== 1) {
           updateEvent = 'assigned'
           updateData = {
-            ownerId: webhookPayload.ticket.owner_id,
+            ...baseMetadata,
           }
         } else {
           updateEvent = 'status_changed'
           updateData = {
-            stateId: webhookPayload.ticket?.state_id,
-            ownerId: webhookPayload.ticket?.owner_id,
+            ...baseMetadata,
           }
         }
       }
@@ -174,7 +183,7 @@ export async function POST(request: NextRequest) {
               data: JSON.stringify(updateData),
             },
           })
-          console.log('TicketUpdate created:', { ticketId, event: updateEvent })
+          log.info('TicketUpdate created', { ticketId, event: updateEvent })
 
           // Broadcast via SSE to connected clients (targeted to relevant users only)
           try {
@@ -202,10 +211,10 @@ export async function POST(request: NextRequest) {
               createdAt: ticketUpdate.createdAt.toISOString(),
             }, targetUserIds.length > 0 ? targetUserIds : undefined)
           } catch (sseError) {
-            console.error('[Webhook] SSE broadcast failed:', sseError)
+            log.error('SSE broadcast failed', { error: sseError instanceof Error ? sseError.message : sseError })
           }
         } catch (dbError) {
-          console.error('Failed to create TicketUpdate:', dbError)
+          log.error('Failed to create TicketUpdate', { error: dbError instanceof Error ? dbError.message : dbError })
           // Don't fail the webhook - log and continue
         }
       }
@@ -266,7 +275,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (notifyError) {
-        console.error('[Webhook] Failed to create in-app notifications:', notifyError)
+        log.error('Failed to create in-app notifications', { error: notifyError instanceof Error ? notifyError.message : notifyError })
       }
     }
 
@@ -277,7 +286,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime,
     })
   } catch (error) {
-    console.error('POST /api/webhooks/zammad error:', error)
+    log.error('POST /api/webhooks/zammad error', { error: error instanceof Error ? error.message : error })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

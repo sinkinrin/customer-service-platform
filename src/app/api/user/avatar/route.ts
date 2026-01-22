@@ -9,12 +9,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { uploadFile } from '@/lib/file-storage'
+import { getApiLogger } from '@/lib/utils/api-logger'
 
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024 // 2MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
 // GET - Get current avatar URL
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const log = getApiLogger('AvatarAPI', request)
   try {
     const session = await auth()
     if (!session?.user) {
@@ -33,7 +35,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('[GET /api/user/avatar] Error:', error)
+    log.error('Failed to get avatar', { error: error instanceof Error ? error.message : error })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get avatar' } },
       { status: 500 }
@@ -43,6 +45,7 @@ export async function GET() {
 
 // POST - Upload new avatar
 export async function POST(request: NextRequest) {
+  const log = getApiLogger('AvatarAPI', request)
   try {
     const session = await auth()
     if (!session?.user) {
@@ -89,10 +92,17 @@ export async function POST(request: NextRequest) {
 
     // Avatar uploaded to file storage
     // The URL can be used directly for display
-    console.log('[Avatar] Uploaded avatar for user:', session.user.id, 'URL:', uploadedFile.url)
-
     // Use public avatar URL (no auth required for display)
     const publicAvatarUrl = `/api/avatars/${uploadedFile.id}`
+
+    log.info('Avatar uploaded', {
+      userId: session.user.id,
+      fileId: uploadedFile.id,
+      fileName: uploadedFile.fileName,
+      fileSize: uploadedFile.fileSize,
+      mimeType: uploadedFile.mimeType,
+      avatarUrl: publicAvatarUrl,
+    })
 
     return NextResponse.json({
       success: true,
@@ -102,7 +112,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[POST /api/user/avatar] Error:', error)
+    log.error('Failed to upload avatar', { error: error instanceof Error ? error.message : error })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to upload avatar' } },
       { status: 500 }
@@ -111,7 +121,8 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE - Remove avatar (placeholder - actual file deletion would require storage cleanup)
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  const log = getApiLogger('AvatarAPI', request)
   try {
     const session = await auth()
     if (!session?.user) {
@@ -123,14 +134,14 @@ export async function DELETE() {
 
     // Note: Actual file deletion from storage would be implemented here
     // For now, just return success
-    console.log('[Avatar] Delete request for user:', session.user.id)
+    log.info('Avatar delete requested', { userId: session.user.id })
 
     return NextResponse.json({
       success: true,
       data: { message: 'Avatar removed' },
     })
   } catch (error) {
-    console.error('[DELETE /api/user/avatar] Error:', error)
+    log.error('Failed to remove avatar', { error: error instanceof Error ? error.message : error })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to remove avatar' } },
       { status: 500 }

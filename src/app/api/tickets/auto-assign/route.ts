@@ -10,6 +10,7 @@
 
 import { NextRequest } from 'next/server'
 import { requireRole } from '@/lib/utils/auth'
+import { getApiLogger } from '@/lib/utils/api-logger'
 import {
     successResponse,
     serverErrorResponse,
@@ -39,6 +40,7 @@ interface AssignmentResult {
  * Trigger auto-assignment for all unassigned tickets
  */
 export async function POST(request: NextRequest) {
+    const log = getApiLogger('TicketAutoAssignAPI', request)
     try {
         // Check for cron secret authentication first
         const cronSecret = request.headers.get('x-cron-secret')
@@ -48,6 +50,7 @@ export async function POST(request: NextRequest) {
         // This ensures wrong secrets get 403 even without a valid session
         if (cronSecret) {
             if (!expectedSecret || cronSecret !== expectedSecret) {
+                log.warning('Auto-assign denied: invalid cron secret')
                 return errorResponse('FORBIDDEN', 'Invalid cron secret', undefined, 403)
             }
             // Valid cron secret - proceed without session auth
@@ -55,6 +58,8 @@ export async function POST(request: NextRequest) {
             // No cron secret provided - require admin role via session
             await requireRole(['admin'])
         }
+
+        log.info('Auto-assign started', { mode: cronSecret ? 'cron' : 'session' })
 
         // Get all tickets
         const allTickets = await zammadClient.getAllTickets()
@@ -67,6 +72,7 @@ export async function POST(request: NextRequest) {
         )
 
         if (unassignedTickets.length === 0) {
+            log.info('No unassigned tickets found')
             return successResponse({
                 message: 'No unassigned tickets found',
                 processed: 0,
@@ -169,6 +175,10 @@ export async function POST(request: NextRequest) {
                     ? `${selectedAgent.firstname} ${selectedAgent.lastname}`.trim()
                     : selectedAgent.login || selectedAgent.email
 
+                const agentNameForLog = selectedAgent.firstname && selectedAgent.lastname
+                    ? `${selectedAgent.firstname} ${selectedAgent.lastname}`.trim()
+                    : selectedAgent.login || `agent#${selectedAgent.id}`
+
                 results.push({
                     ticketId: ticket.id,
                     ticketNumber: ticket.number,
@@ -179,9 +189,20 @@ export async function POST(request: NextRequest) {
                     },
                 })
 
-                console.log(`[Auto-Assign] Ticket #${ticket.number} assigned to ${agentName} (${selectedAgent.email})`)
+                log.info('Ticket auto-assigned', {
+                    ticketId: ticket.id,
+                    ticketNumber: ticket.number,
+                    groupId,
+                    agentId: selectedAgent.id,
+                    agentName: agentNameForLog,
+                })
             } catch (error) {
-                console.error(`[Auto-Assign] Failed to assign ticket ${ticket.id}:`, error)
+                log.error('Failed to auto-assign ticket', {
+                    ticketId: ticket.id,
+                    ticketNumber: ticket.number,
+                    groupId,
+                    error: error instanceof Error ? error.message : error,
+                })
                 results.push({
                     ticketId: ticket.id,
                     ticketNumber: ticket.number,
@@ -225,7 +246,9 @@ export async function POST(request: NextRequest) {
                     }
                 }
             } catch (notifyError) {
-                console.error('[Auto-Assign] Failed to create system alert notifications:', notifyError)
+                log.error('Failed to create system alert notifications', {
+                    error: notifyError instanceof Error ? notifyError.message : notifyError,
+                })
             }
         }
 
@@ -237,7 +260,9 @@ export async function POST(request: NextRequest) {
             results,
         })
     } catch (error) {
-        console.error('POST /api/tickets/auto-assign error:', error)
+        log.error('POST /api/tickets/auto-assign error', {
+            error: error instanceof Error ? error.message : error,
+        })
         return serverErrorResponse(error instanceof Error ? error.message : 'Auto-assignment failed')
     }
 }
@@ -246,7 +271,8 @@ export async function POST(request: NextRequest) {
  * GET /api/tickets/auto-assign
  * Get status of unassigned tickets (for monitoring)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+    const log = getApiLogger('TicketAutoAssignAPI', request)
     try {
         // Only admin can view this
         await requireRole(['admin'])
@@ -273,6 +299,7 @@ export async function GET() {
             byRegion[region] = count
         }
 
+        log.info('Unassigned ticket status requested', { totalUnassigned: unassignedTickets.length })
         return successResponse({
             totalUnassigned: unassignedTickets.length,
             byRegion,
@@ -285,7 +312,9 @@ export async function GET() {
             })),
         })
     } catch (error) {
-        console.error('GET /api/tickets/auto-assign error:', error)
+        log.error('GET /api/tickets/auto-assign error', {
+            error: error instanceof Error ? error.message : error,
+        })
         return serverErrorResponse(error instanceof Error ? error.message : 'Failed to get unassigned tickets')
     }
 }

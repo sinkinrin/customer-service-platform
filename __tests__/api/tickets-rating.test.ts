@@ -10,6 +10,12 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
+vi.mock('@/lib/zammad/client', () => ({
+  zammadClient: {
+    getTicket: vi.fn(),
+  },
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     ticketRating: {
@@ -21,6 +27,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 import { auth } from '@/auth'
+import { zammadClient } from '@/lib/zammad/client'
 import { prisma } from '@/lib/prisma'
 
 function createRequest(url: string, method: string, body?: any): NextRequest {
@@ -50,7 +57,14 @@ describe('Ticket Rating API', () => {
 
   it('returns rating record when present', async () => {
     vi.mocked(auth).mockResolvedValue({
-      user: { id: 'staff_001', role: 'staff', email: 'staff@test.com' },
+      user: { id: 'staff_001', role: 'staff', email: 'staff@test.com', zammad_id: 200, group_ids: [2] },
+    } as any)
+
+    vi.mocked(zammadClient.getTicket).mockResolvedValue({
+      id: 1,
+      customer_id: 300,
+      owner_id: 200,
+      group_id: 2,
     } as any)
 
     vi.mocked(prisma.ticketRating.findUnique).mockResolvedValue({
@@ -94,7 +108,14 @@ describe('Ticket Rating API', () => {
 
   it('creates rating when none exists', async () => {
     vi.mocked(auth).mockResolvedValue({
-      user: { id: 'cust_001', role: 'customer', email: 'cust@test.com' },
+      user: { id: 'cust_001', role: 'customer', email: 'cust@test.com', zammad_id: 300 },
+    } as any)
+
+    vi.mocked(zammadClient.getTicket).mockResolvedValue({
+      id: 1,
+      customer_id: 300,
+      owner_id: 200,
+      group_id: 2,
     } as any)
 
     vi.mocked(prisma.ticketRating.findUnique).mockResolvedValue(null)
@@ -117,7 +138,14 @@ describe('Ticket Rating API', () => {
 
   it('updates rating when existing record is found', async () => {
     vi.mocked(auth).mockResolvedValue({
-      user: { id: 'cust_001', role: 'customer', email: 'cust@test.com' },
+      user: { id: 'cust_001', role: 'customer', email: 'cust@test.com', zammad_id: 300 },
+    } as any)
+
+    vi.mocked(zammadClient.getTicket).mockResolvedValue({
+      id: 1,
+      customer_id: 300,
+      owner_id: 200,
+      group_id: 2,
     } as any)
 
     vi.mocked(prisma.ticketRating.findUnique).mockResolvedValue({

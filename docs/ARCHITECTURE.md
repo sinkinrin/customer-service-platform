@@ -1,328 +1,367 @@
-# Architecture Overview
+# System Architecture
 
-**Last Updated**: 2025-10-31  
-**Status**: ✅ Post-Supabase Removal - Mock Implementation
+> Customer Service Platform - Production Architecture Documentation
+
+**中文概览**: See [ARCHITECTURE.zh-CN.md](./ARCHITECTURE.zh-CN.md)
+
+**Last Updated**: 2026-01-21
+**Version**: 2.0
 
 ---
 
-## Current Architecture
+## Overview
 
-### Tech Stack
+The Customer Service Platform is a production-ready customer support solution built with modern web technologies. It integrates with Zammad as the external ticketing system and provides three distinct portals for different user roles.
 
-**Frontend**:
-- Next.js 14 (App Router, TypeScript, Server Components)
-- React 18 with Hooks
-- Tailwind CSS 3.4.0 (responsive design, dark mode)
-- shadcn/ui (15 components)
-- Zustand 5.0.8 (state management with persist)
-- React Hook Form + Zod (form validation)
-- next-intl 4.4.0 (i18n: en, zh-CN, fr, es, ru, pt)
-- lucide-react (icons)
-- date-fns (date formatting)
+### Key Features
 
-**Backend**:
-- Next.js API Routes (REST API)
-- Mock Authentication (temporary)
-- In-memory Data Storage (temporary)
-- Zammad Integration (external ticket system)
+- **Multi-Portal Access**: Customer, Staff, and Admin portals
+- **Zammad Integration**: Complete ticketing system with X-On-Behalf-Of authentication
+- **Real-time Updates**: SSE-based ticket notifications
+- **Region-based Access Control**: 8 regions with dedicated Zammad groups
+- **Multilingual Support**: 6 languages (en, zh-CN, fr, es, ru, pt)
+- **AI Integration**: Optional FastGPT for intelligent auto-replies
 
-**Development**:
-- TypeScript (strict mode)
-- ESLint + Prettier
-- PowerShell (Windows environment)
+---
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|-------|------------|---------|
+| **Framework** | Next.js (App Router) | 16.0.10 |
+| **UI Library** | React | 19.0.0 |
+| **Language** | TypeScript | 5.3 |
+| **Authentication** | NextAuth.js | 5.0.0-beta.30 |
+| **Database ORM** | Prisma | 6.19.0 |
+| **Database** | SQLite (current) | - |
+| **UI Components** | shadcn/ui + Tailwind CSS | 3.4 |
+| **State Management** | Zustand | 5.0.8 |
+| **Forms** | React Hook Form + Zod | 7.65 / 3.22 |
+| **Internationalization** | next-intl | 4.5.7 |
+| **Icons** | Lucide React | 0.548 |
+| **Testing** | Vitest + Playwright | 4.0 / 1.57 |
+| **Ticketing** | Zammad REST API | External |
+
+---
+
+## System Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Customer Service Platform                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐               │
+│   │  Customer   │   │    Staff    │   │    Admin    │               │
+│   │   Portal    │   │   Portal    │   │   Portal    │               │
+│   │ /customer/* │   │  /staff/*   │   │  /admin/*   │               │
+│   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘               │
+│          │                 │                 │                       │
+│          └─────────────────┼─────────────────┘                       │
+│                            │                                         │
+│                   ┌────────▼────────┐                                │
+│                   │   Next.js API   │                                │
+│                   │   Routes (69)   │                                │
+│                   └────────┬────────┘                                │
+│                            │                                         │
+│         ┌──────────────────┼──────────────────┐                      │
+│         │                  │                  │                      │
+│   ┌─────▼─────┐    ┌──────▼──────┐    ┌──────▼──────┐              │
+│   │  Prisma   │    │   Zammad    │    │   FastGPT   │              │
+│   │ (SQLite)  │    │  REST API   │    │     API     │              │
+│   └───────────┘    └─────────────┘    └─────────────┘              │
+│                                                                       │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Project Structure
 
 ```
-src/
-├── app/                        # Next.js App Router
-│   ├── (customer)/            # Customer portal routes
-│   ├── (staff)/               # Staff portal routes
-│   ├── (admin)/               # Admin panel routes
-│   ├── login/                 # Login page
-│   └── api/                   # API routes
-│       ├── health/            # Health check
-│       ├── conversations/     # Conversation API
-│       ├── tickets/           # Zammad ticket API
-│       └── admin/             # Admin API
-├── components/                # React components
-│   ├── auth/                  # Authentication components
-│   ├── ui/                    # shadcn/ui components
-│   ├── customer/              # Customer-specific components
-│   ├── staff/                 # Staff-specific components
-│   └── admin/                 # Admin-specific components
-├── lib/                       # Utilities and libraries
-│   ├── hooks/                 # Custom React hooks
-│   ├── stores/                # Zustand stores
-│   ├── utils/                 # Utility functions
-│   ├── zammad/                # Zammad integration
-│   ├── mock-auth.ts           # Mock authentication (TODO: replace)
-│   └── mock-data.ts           # Mock data storage (TODO: replace)
-├── services/                  # Business logic layer
-│   ├── zammad.service.ts      # Zammad service
-│   └── zammad-user.service.ts # Zammad user management
-├── repositories/              # Data access layer
-│   ├── zammad.repository.ts   # Zammad repository
-│   └── webhook.repository.ts  # Webhook repository
-├── types/                     # TypeScript type definitions
-└── middleware.ts              # Next.js middleware (TODO: replace)
+customer-service-platform/
+├── src/
+│   ├── app/                          # Next.js App Router
+│   │   ├── (auth)/                   # Auth pages (login, signup, error)
+│   │   ├── (customer)/               # Customer portal routes
+│   │   │   ├── dashboard/            # Customer dashboard
+│   │   │   ├── faq/                  # Self-service FAQ
+│   │   │   ├── conversations/        # AI chat
+│   │   │   └── my-tickets/           # Ticket management
+│   │   ├── (staff)/                  # Staff portal routes
+│   │   │   ├── dashboard/            # Staff dashboard
+│   │   │   └── tickets/              # Ticket handling
+│   │   ├── (admin)/                  # Admin panel routes
+│   │   │   ├── dashboard/            # Admin dashboard
+│   │   │   ├── users/                # User management
+│   │   │   ├── faq/                  # FAQ management
+│   │   │   └── settings/             # System settings
+│   │   └── api/                      # API Routes (69 endpoints)
+│   │       ├── auth/                 # NextAuth endpoints
+│   │       ├── tickets/              # Ticket management
+│   │       ├── conversations/        # AI conversations
+│   │       ├── notifications/        # In-app notifications
+│   │       ├── admin/                # Admin operations
+│   │       ├── faq/                  # FAQ endpoints
+│   │       ├── user/                 # User profile
+│   │       └── webhooks/             # Zammad webhooks
+│   │
+│   ├── auth.ts                       # NextAuth.js v5 configuration
+│   ├── middleware.ts                 # Route protection middleware
+│   │
+│   ├── components/                   # React Components
+│   │   ├── ui/                       # shadcn/ui (28 components)
+│   │   ├── layouts/                  # Portal layouts
+│   │   ├── auth/                     # Auth components
+│   │   ├── ticket/                   # Ticket components
+│   │   ├── conversation/             # Chat components
+│   │   ├── faq/                      # FAQ components
+│   │   ├── notification/             # Notification center
+│   │   └── providers/                # Context providers
+│   │
+│   ├── lib/                          # Utilities & Services
+│   │   ├── zammad/                   # Zammad API client
+│   │   │   ├── client.ts             # REST client with retry
+│   │   │   ├── types.ts              # TypeScript interfaces
+│   │   │   └── health-check.ts       # Health monitoring
+│   │   ├── notification/             # Notification service
+│   │   │   ├── service.ts            # CRUD operations
+│   │   │   ├── triggers.ts           # Event triggers
+│   │   │   └── types.ts              # Type definitions
+│   │   ├── stores/                   # Zustand stores
+│   │   │   ├── auth-store.ts         # Authentication state
+│   │   │   ├── conversation-store.ts # Chat state
+│   │   │   └── ticket-store.ts       # Ticket state
+│   │   ├── constants/                # App constants
+│   │   │   ├── regions.ts            # Region/Group mapping
+│   │   │   ├── zammad-states.ts      # Ticket states
+│   │   │   └── routes.ts             # Route definitions
+│   │   ├── hooks/                    # Custom React hooks
+│   │   ├── utils/                    # Utility functions
+│   │   │   ├── auth.ts               # Auth helpers
+│   │   │   ├── permission.ts         # Permission checks
+│   │   │   ├── region-auth.ts        # Region access control
+│   │   │   └── api-response.ts       # Response helpers
+│   │   ├── prisma.ts                 # Prisma singleton
+│   │   ├── mock-auth.ts              # Development auth
+│   │   └── env.ts                    # Environment validation
+│   │
+│   └── types/                        # TypeScript definitions
+│       └── api.types.ts              # API type definitions
+│
+├── prisma/
+│   ├── schema.prisma                 # Database schema (10 models)
+│   ├── migrations/                   # Migration history
+│   └── seed.ts                       # Seed data
+│
+├── messages/                         # i18n translations
+│   ├── en.json                       # English
+│   ├── zh-CN.json                    # Simplified Chinese
+│   ├── fr.json                       # French
+│   ├── es.json                       # Spanish
+│   ├── ru.json                       # Russian
+│   └── pt.json                       # Portuguese
+│
+├── __tests__/                        # Unit tests (Vitest)
+├── e2e/                              # E2E tests (Playwright)
+└── docs/                             # Documentation
 ```
 
 ---
 
-## Authentication Flow (Current - Mock)
+## Authentication Flow
+
+The platform uses NextAuth.js v5 with a dual authentication strategy:
 
 ```
-User Login → Mock Authentication → Always Succeeds → Set Session → Redirect to Dashboard
+┌─────────────────────────────────────────────────────────────────┐
+│                    Authentication Flow                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│   User Login (email + password)                                  │
+│         │                                                        │
+│         ▼                                                        │
+│   ┌─────────────────────────────────┐                           │
+│   │  Strategy 1: Zammad Auth        │                           │
+│   │  - Validate via Zammad API      │                           │
+│   │  - Extract role from role_ids   │                           │
+│   │  - Extract region from groups   │                           │
+│   └────────────┬────────────────────┘                           │
+│                │ Success?                                        │
+│         ┌──────┴──────┐                                          │
+│         │ Yes         │ No                                       │
+│         ▼             ▼                                          │
+│   ┌───────────┐  ┌─────────────────────────────┐                │
+│   │  Return   │  │  Strategy 2: Mock Auth      │                │
+│   │   User    │  │  (if ENABLE_MOCK_AUTH=true) │                │
+│   └───────────┘  └──────────────┬──────────────┘                │
+│                                  │                               │
+│                                  ▼                               │
+│                        ┌─────────────────┐                       │
+│                        │  JWT Session    │                       │
+│                        │  (7 days TTL)   │                       │
+│                        └─────────────────┘                       │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**Mock Users**:
-- `customer@test.com` → role: 'customer'
-- `staff@test.com` → role: 'staff'
-- `admin@test.com` → role: 'admin'
+### Role-Based Access Control
 
-**TODO**: Replace with real authentication (NextAuth.js, Auth0, Clerk)
-
----
-
-## Data Storage (Current - Mock)
-
-**In-Memory Storage** (`src/lib/mock-data.ts`):
-- `mockConversations` - Empty array
-- `mockMessages` - Empty array
-- `mockUsers` - 3 test users
-- `mockFAQItems` - Empty array
-
-**Zammad User Mapping** (`src/lib/zammad/user-mapping.ts`):
-- In-memory Map for user-to-Zammad ID mapping
-- Replaces previous `user_zammad_mapping` database table
-
-**TODO**: Replace with real database (PostgreSQL + Prisma, MongoDB)
-
----
-
-## Route Groups
-
-### (customer) - Customer Portal
-- `/customer/dashboard` - Statistics and recent activity
-- `/customer/faq` - Self-service FAQ
-- `/customer/conversations` - Live chat (auto-join)
-- `/customer/my-tickets` - Ticket management
-- `/customer/feedback` - Submit feedback
-- `/customer/complaints` - Submit complaints
-
-### (staff) - Staff Portal
-- `/staff/dashboard` - Overview and statistics
-- `/staff/tickets` - Ticket management
-- `/staff/faq` - Knowledge base
-
-### (admin) - Admin Panel
-- `/admin/dashboard` - System overview
-- `/admin/users` - User management
-- `/admin/faq` - FAQ management
-- `/admin/settings` - System settings (AI auto-reply)
-
----
-
-## API Routes
-
-### Health Check
-- `GET /api/health` - Returns system health status
-
-### Conversations (TODO: Update to use mock data)
-- `GET /api/conversations` - List conversations
-- `POST /api/conversations` - Create conversation
-- `GET /api/conversations/:id` - Get conversation
-- `PUT /api/conversations/:id` - Update conversation
-- `GET /api/conversations/:id/messages` - Get messages
-- `POST /api/conversations/:id/messages` - Send message
-- `GET /api/conversations/stats` - Get statistics
-
-### Tickets (Zammad Integration)
-- `GET /api/tickets/search` - Search tickets
-- `POST /api/tickets` - Create ticket
-- `GET /api/tickets/:id` - Get ticket
-- `PUT /api/tickets/:id` - Update ticket
-- `GET /api/tickets/:id/articles` - Get articles
-- `POST /api/tickets/:id/articles` - Add article
-
-### Admin (TODO: Update to use mock data)
-- `GET /api/admin/users` - List users
-- `PUT /api/admin/users/:id` - Update user
-- `GET /api/admin/faq` - List FAQ items
-- `POST /api/admin/faq` - Create FAQ item
-- `PUT /api/admin/faq/:id` - Update FAQ item
-- `DELETE /api/admin/faq/:id` - Delete FAQ item
-- `GET /api/admin/settings` - Get settings
-- `PUT /api/admin/settings` - Update settings
-
----
-
-## State Management
-
-### Zustand Stores
-
-**Auth Store** (`src/lib/stores/auth-store.ts`):
-```typescript
-interface AuthState {
-  user: MockUser | null
-  session: MockSession | null
-  userRole: 'customer' | 'staff' | 'admin' | null
-  isLoading: boolean
-  isInitialized: boolean
-}
-```
-
-**Conversation Store** (if exists):
-- Active conversation
-- Message list
-- Typing indicators
-- Real-time updates
-
----
-
-## Internationalization (i18n)
-
-**Supported Languages**:
-- English (en)
-- Simplified Chinese (zh-CN)
-- French (fr)
-- Spanish (es)
-- Russian (ru)
-- Portuguese (pt)
-
-**Implementation**:
-- next-intl 4.4.0
-- Message files in `messages/` directory
-- Language switcher in UI
-- Server-side and client-side translations
+| Role | Portal Access | Permissions |
+|------|---------------|-------------|
+| **customer** | `/customer/*` | View own tickets, create tickets, use FAQ, AI chat |
+| **staff** | `/staff/*`, `/customer/*` | Handle region tickets, manage assignments |
+| **admin** | `/admin/*`, `/staff/*`, `/customer/*` | Full system access, user management |
 
 ---
 
 ## Zammad Integration
 
-**External Ticket System**:
-- Zammad URL: http://172.16.40.22:8080
-- API Token: Configured in environment variables
-- X-On-Behalf-Of: Admin token with user impersonation
+The platform integrates deeply with Zammad for ticket management.
 
-**Features**:
-- Create tickets from conversations
-- Search and filter tickets
-- Update ticket status and priority
-- Add articles (replies)
-- Webhook integration for real-time updates
+### Key Integration Points
 
-**See**: `docs/ZAMMAD-INTEGRATION.md` for detailed guide
+1. **Authentication**: User credentials validated against Zammad
+2. **Ticket Management**: Full CRUD via Zammad REST API
+3. **User Sync**: Users created in Zammad on first ticket
+4. **Webhook Events**: Real-time updates from Zammad
+5. **X-On-Behalf-Of**: Admin token with user impersonation
 
----
+### Region to Group Mapping
 
-## Middleware
+| Region | Zammad Group ID | Group Name |
+|--------|-----------------|------------|
+| africa | 1 | 非洲 Users |
+| europe-zone-1 | 2 | 欧洲 |
+| middle-east | 3 | 中东 |
+| asia-pacific | 4 | 亚太 |
+| cis | 5 | 独联体 |
+| north-america | 6 | 北美 |
+| latin-america | 7 | 拉美 |
+| europe-zone-2 | 8 | 欧洲二区 |
 
-**Current** (`src/middleware.ts`):
-- Bypass all authentication checks
-- Allow all requests to pass through
-- TODO: Implement real authentication middleware
-
-**Future**:
-- Session validation
-- Role-based access control
-- JWT token verification
-- Redirect logic based on user role
+See [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) for detailed integration documentation.
 
 ---
 
-## Performance Considerations
+## Data Flow
 
-**Current Limitations**:
-- In-memory storage (data lost on restart)
-- No database indexes
-- No caching layer
-- No CDN for static assets
+### Ticket Creation Flow
 
-**Future Optimizations**:
-- Database indexes for common queries
-- Redis caching for frequently accessed data
-- CDN for images and static files
-- API response caching
-- Database connection pooling
+```
+Customer                    Platform                      Zammad
+   │                           │                            │
+   │  1. Create ticket         │                            │
+   │──────────────────────────>│                            │
+   │                           │  2. Ensure user exists     │
+   │                           │───────────────────────────>│
+   │                           │                            │
+   │                           │  3. Create ticket          │
+   │                           │  (X-On-Behalf-Of: customer)│
+   │                           │───────────────────────────>│
+   │                           │                            │
+   │                           │  4. Auto-assign to staff   │
+   │                           │<──────────────────────────>│
+   │                           │                            │
+   │                           │  5. Create notification    │
+   │                           │  (staff + customer)        │
+   │  6. Return ticket         │                            │
+   │<──────────────────────────│                            │
+```
 
----
+### Real-time Update Flow
 
-## Security Considerations
-
-**Current** (Mock Implementation):
-- No real authentication
-- No password hashing
-- No session encryption
-- No CSRF protection
-- No rate limiting
-
-**Future** (Production Ready):
-- Real authentication system (NextAuth.js, Auth0, Clerk)
-- Password hashing (bcrypt, argon2)
-- Session encryption (JWT, secure cookies)
-- CSRF tokens
-- Rate limiting (API routes)
-- Input validation (Zod schemas)
-- SQL injection prevention (Prisma, parameterized queries)
-- XSS prevention (React auto-escaping)
-
----
-
-## Deployment
-
-**Development**:
-- Local: `npm run dev` on port 3010
-- Hot reload enabled
-- Mock data and authentication
-
-**Production** (Future):
-- Platform: Vercel, Netlify, or custom server
-- Database: PostgreSQL, MongoDB
-- Authentication: NextAuth.js, Auth0, or Clerk
-- File Storage: S3, Cloudinary
-- Real-time: Socket.IO, Pusher
-- Monitoring: Sentry, LogRocket, or custom solution
+```
+Zammad                      Platform                      Client
+   │                           │                            │
+   │  1. Webhook event         │                            │
+   │  (ticket update)          │                            │
+   │──────────────────────────>│                            │
+   │                           │  2. Store TicketUpdate     │
+   │                           │  3. Create Notification    │
+   │                           │  4. SSE broadcast          │
+   │                           │───────────────────────────>│
+   │                           │                            │
+   │                           │  5. Poll notifications     │
+   │                           │<──────────────────────────>│
+```
 
 ---
 
-## Migration Path
+## Key Design Decisions
 
-### Phase 1: Current State ✅
-- Supabase removed
-- Mock authentication implemented
-- Mock data storage implemented
-- Zammad integration preserved
-- Dev server running
+### 1. JWT-only Sessions
 
-### Phase 2: Choose Solutions (TODO)
-- Evaluate authentication options
-- Evaluate database options
-- Evaluate real-time options
-- Evaluate file storage options
+- No database session storage
+- Stateless, scalable authentication
+- 7-day session TTL
 
-### Phase 3: Implement Real Systems (TODO)
-- Replace mock-auth.ts with real authentication
-- Replace mock-data.ts with real database
-- Update API routes to use real data
-- Implement real-time features
-- Add file upload functionality
+### 2. Zammad as Source of Truth
 
-### Phase 4: Production Ready (TODO)
-- Security hardening
-- Performance optimization
-- Comprehensive testing
-- Monitoring and logging
-- Documentation updates
+- All ticket data stored in Zammad
+- Platform only stores metadata (ratings, updates, notifications)
+- Prisma for local-only features
+
+### 3. Region-based Access Control
+
+- Staff limited to their assigned region
+- Tickets routed to regional Zammad groups
+- Admin has global access
+
+### 4. X-On-Behalf-Of Pattern
+
+- Single admin API token for all operations
+- Customer/staff identity preserved via header
+- Simplifies permission management
+
+### 5. SSE + Polling Hybrid
+
+- SSE for instant ticket updates
+- Polling fallback for notifications
+- No WebSocket complexity
+
+---
+
+## Environment Configuration
+
+### Required Variables
+
+```env
+# Authentication
+AUTH_SECRET=<32+ character secret>
+
+# Database (SQLite)
+DATABASE_URL=file:./dev.db
+
+# Zammad Integration
+ZAMMAD_URL=http://your-zammad-server:8080/
+ZAMMAD_API_TOKEN=<admin token with admin.user permission>
+```
+
+### Optional Variables
+
+```env
+# AI Integration
+FASTGPT_API_KEY=<api key>
+
+# Mock auth
+# - Development: always enabled when NODE_ENV !== "production"
+# - Production: disabled by default, can be explicitly enabled:
+NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
+
+# Webhook Security
+ZAMMAD_WEBHOOK_SECRET=<webhook secret>
+
+# Logging
+LOG_LEVEL=info
+```
 
 ---
 
 ## Related Documentation
-- `docs/ZAMMAD-INTEGRATION.md` - Zammad integration guide
-- `docs/05-API设计.md` - API design documentation
-- Supabase removal report (historical)
-- `README.md` - Project overview and setup
 
+- [API-REFERENCE.md](./API-REFERENCE.md) - Complete API endpoint reference
+- [DATABASE.md](./DATABASE.md) - Prisma schema documentation
+- [AUTHENTICATION.md](./AUTHENTICATION.md) - Auth system details
+- [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) - Zammad integration guide
+- [TESTING.md](./TESTING.md) - Testing guide

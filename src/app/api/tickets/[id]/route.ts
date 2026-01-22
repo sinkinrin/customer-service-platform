@@ -70,6 +70,7 @@
 import { NextRequest } from 'next/server'
 import { zammadClient } from '@/lib/zammad/client'
 import { requireAuth } from '@/lib/utils/auth'
+import { getApiLogger } from '@/lib/utils/api-logger'
 import {
   successResponse,
   errorResponse,
@@ -189,6 +190,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const log = getApiLogger('TicketDetailAPI', request)
   try {
     const { id } = await params
     const user = await requireAuth()
@@ -201,7 +203,7 @@ export async function GET(
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
     if (!healthCheck.isHealthy) {
-      console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
+      log.warning('Zammad service unavailable', { error: healthCheck.error })
       return serverErrorResponse(
         getZammadUnavailableMessage(),
         { service: 'zammad', available: false },
@@ -244,7 +246,7 @@ export async function GET(
     })
 
     if (!permissionResult.allowed) {
-      console.warn('[Ticket API] Access denied:', permissionResult.reason)
+      log.warning('Access denied', { reason: permissionResult.reason })
       // Return 404 for customers to not leak ticket existence, 403 for staff
       if (user.role === 'customer') {
         return notFoundResponse('Ticket not found')
@@ -264,7 +266,7 @@ export async function GET(
         email: customer.email,
       }
     } catch (error) {
-      console.error(`[DEBUG] Failed to fetch customer ${rawTicket.customer_id}:`, error)
+      log.debug('Failed to fetch customer', { customerId: rawTicket.customer_id, error: error instanceof Error ? error.message : error })
       // Continue without customer info
     }
 
@@ -278,7 +280,7 @@ export async function GET(
           : owner.firstname || owner.lastname || owner.login || undefined
         ownerInfo = { name }
       } catch (error) {
-        console.error(`[DEBUG] Failed to fetch owner ${rawTicket.owner_id}:`, error)
+        log.debug('Failed to fetch owner', { ownerId: rawTicket.owner_id, error: error instanceof Error ? error.message : error })
         // Continue without owner info
       }
     }
@@ -293,7 +295,7 @@ export async function GET(
     response.headers.set('Expires', '0')
     return response
   } catch (error) {
-    console.error('GET /api/tickets/[id] error:', error)
+    log.error('GET /api/tickets/[id] error', { error: error instanceof Error ? error.message : error })
 
     // Check if error is authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -325,6 +327,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const log = getApiLogger('TicketDetailAPI', request)
   try {
     const { id } = await params
     const user = await requireAuth()
@@ -337,7 +340,7 @@ export async function PUT(
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
     if (!healthCheck.isHealthy) {
-      console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
+      log.warning('Zammad service unavailable', { error: healthCheck.error })
       return serverErrorResponse(
         getZammadUnavailableMessage(),
         { service: 'zammad', available: false },
@@ -387,8 +390,8 @@ export async function PUT(
       payload.owner_id = updateData.owner_id
     }
 
-    console.log('[DEBUG] PUT /api/tickets/[id] - Update payload:', JSON.stringify(payload, null, 2))
-    console.log('[DEBUG] PUT /api/tickets/[id] - Original updateData:', JSON.stringify(updateData, null, 2))
+    log.debug('Update payload', { payload })
+    log.debug('Original updateData', { updateData })
 
     // OpenSpec: Validate region/ownership access before update
     // First, fetch the ticket to check permissions
@@ -434,7 +437,7 @@ export async function PUT(
     })
 
     if (!permissionResult.allowed) {
-      console.warn('[Ticket API] Update access denied:', permissionResult.reason)
+      log.warning('Update access denied', { reason: permissionResult.reason })
       if (user.role === 'customer') {
         return notFoundResponse('Ticket not found')
       }
@@ -480,7 +483,7 @@ export async function PUT(
 
     return successResponse({ ticket })
   } catch (error) {
-    console.error('PUT /api/tickets/[id] error:', error)
+    log.error('PUT /api/tickets/[id] error', { error: error instanceof Error ? error.message : error })
 
     // Check if error is authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -509,9 +512,10 @@ export async function PUT(
 // ============================================================================
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const log = getApiLogger('TicketDetailAPI', request)
   try {
     const { id } = await params
     const user = await requireAuth()
@@ -529,7 +533,7 @@ export async function DELETE(
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
     if (!healthCheck.isHealthy) {
-      console.warn('[Ticket API] Zammad service unavailable:', healthCheck.error)
+      log.warning('Zammad service unavailable', { error: healthCheck.error })
       return serverErrorResponse(
         getZammadUnavailableMessage(),
         { service: 'zammad', available: false },
@@ -542,7 +546,7 @@ export async function DELETE(
 
     return successResponse({ message: 'Ticket deleted successfully' })
   } catch (error) {
-    console.error('DELETE /api/tickets/[id] error:', error)
+    log.error('DELETE /api/tickets/[id] error', { error: error instanceof Error ? error.message : error })
 
     // Check if error is authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {

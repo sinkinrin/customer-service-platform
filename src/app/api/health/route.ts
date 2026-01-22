@@ -14,6 +14,7 @@ import { NextResponse } from "next/server"
 import { checkZammadHealth } from "@/lib/zammad/health-check"
 import { prisma } from "@/lib/prisma"
 import { ensureEnvValidation, isProduction, hasAuthSecret } from "@/lib/env"
+import { logger } from "@/lib/utils/logger"
 
 interface HealthCheckResult {
   status: "healthy" | "degraded" | "unhealthy"
@@ -129,6 +130,11 @@ export async function GET() {
 
   // Add response time
   const responseTime = Date.now() - startTime
+
+  // Log health check result
+  logger.info("Health", "Health check completed", {
+    data: { status: result.status, responseTimeMs: responseTime },
+  })
 
   const httpStatus =
     result.status === "healthy"

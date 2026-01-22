@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { ZammadClient } from '@/lib/zammad/client'
+import { zammadClient } from '@/lib/zammad/client'
 import { notifyTicketRated, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
+import { checkTicketPermission, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 import { z } from 'zod'
-
-const zammadClient = new ZammadClient()
 
 // Schema for rating submission
 const ratingSchema = z.object({
@@ -34,6 +33,43 @@ export async function GET(
       return NextResponse.json(
         { success: false, error: { code: 'INVALID_ID', message: 'Invalid ticket ID' } },
         { status: 400 }
+      )
+    }
+
+    // Permission check (must be based on the real ticket)
+    let ticket: PermissionTicket
+    try {
+      // Customer must use X-On-Behalf-Of to ensure they can only access their own tickets
+      if (session.user.role === 'customer') {
+        ticket = (await zammadClient.getTicket(ticketId, session.user.email)) as any
+      } else {
+        // Staff/Admin: fetch as admin token, but enforce our permission policy below
+        ticket = (await zammadClient.getTicket(ticketId)) as any
+      }
+    } catch {
+      return NextResponse.json(
+        { success: false, error: { code: 'NOT_FOUND', message: 'Ticket not found' } },
+        { status: 404 }
+      )
+    }
+
+    const permission = checkTicketPermission({
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        role: session.user.role,
+        zammad_id: session.user.zammad_id,
+        group_ids: session.user.group_ids,
+        region: session.user.region,
+      },
+      ticket,
+      action: 'view',
+    })
+
+    if (!permission.allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } },
+        { status: 403 }
       )
     }
 
@@ -97,6 +133,16 @@ export async function POST(
     }
 
     const { rating, reason } = validationResult.data
+
+    // Enforce ownership: customer must be able to access this ticket (Zammad validates via X-On-Behalf-Of)
+    try {
+      await zammadClient.getTicket(ticketId, session.user.email)
+    } catch {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Ticket not accessible' } },
+        { status: 403 }
+      )
+    }
 
     // Check if rating already exists
     const existingRating = await prisma.ticketRating.findUnique({

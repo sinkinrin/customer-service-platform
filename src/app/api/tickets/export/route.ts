@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { filterTicketsByRegion } from '@/lib/utils/region-auth'
+import { getApiLogger } from '@/lib/utils/api-logger'
 import { getRegionByGroupId } from '@/lib/constants/regions'
 import { getRegionLabelForLocale } from '@/lib/i18n/region-labels'
 import { prisma } from '@/lib/prisma'
@@ -57,10 +58,13 @@ function getRatingText(rating: string | null | undefined): string {
 }
 
 // GET /api/tickets/export - Export tickets to CSV
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  const log = getApiLogger('TicketExportAPI', request)
+  const startedAt = Date.now()
   try {
     const session = await auth()
     if (!session?.user) {
+      log.warning('Export denied: not authenticated')
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
         { status: 401 }
@@ -69,22 +73,23 @@ export async function GET(_request: NextRequest) {
 
     // Only staff and admin can export
     if (session.user.role === 'customer') {
+      log.warning('Export denied: customer role', { userId: session.user.id })
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } },
         { status: 403 }
       )
     }
 
-    console.log('[Export] Starting export for user:', session.user.email)
+    log.info('Export started', { userId: session.user.id, role: session.user.role })
 
     // Get all tickets from Zammad
     let tickets: RawZammadTicket[] = await zammadClient.getAllTickets()
-    console.log('[Export] Fetched', tickets.length, 'tickets from Zammad')
+    log.info('Fetched tickets from Zammad', { count: tickets.length })
 
     // Staff can only export their region's tickets
     if (session.user.role === 'staff') {
       tickets = filterTicketsByRegion(tickets, session.user)
-      console.log('[Export] After region filter:', tickets.length, 'tickets')
+      log.info('Applied region filter', { count: tickets.length })
     }
 
     // Fetch customer and owner info for all tickets (with concurrency limit)
@@ -134,9 +139,11 @@ export async function GET(_request: NextRequest) {
           ratingMap.set(r.ticketId, r.rating)
         }
       }
-      console.log('[Export] Loaded', ratingMap.size, 'ratings from database')
+      log.info('Loaded ratings from database', { count: ratingMap.size })
     } catch (error) {
-      console.warn('[Export] Could not load ratings (table may not exist yet):', error)
+      log.warning('Could not load ratings (table may not exist yet)', {
+        error: error instanceof Error ? error.message : error,
+      })
       // Continue without ratings - will show "No Rating" for all
     }
 
@@ -172,10 +179,14 @@ export async function GET(_request: NextRequest) {
 
     const csvContent = BOM + [csvHeaders.join(','), ...csvRows].join('\n')
 
-    console.log('[Export] Generated CSV with', csvRows.length, 'rows')
-
     // Return as downloadable file
     const filename = `tickets-export-${new Date().toISOString().split('T')[0]}.csv`
+
+    log.info('Export completed', {
+      rows: csvRows.length,
+      filename,
+      latencyMs: Date.now() - startedAt,
+    })
     
     return new NextResponse(csvContent, {
       status: 200,
@@ -185,7 +196,10 @@ export async function GET(_request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('[GET /api/tickets/export] Error:', error)
+    log.error('Export failed', {
+      latencyMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : error,
+    })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to export tickets' } },
       { status: 500 }

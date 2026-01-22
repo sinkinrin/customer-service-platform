@@ -42,7 +42,7 @@ A comprehensive customer service platform featuring:
 | **State** | Zustand 5.0 |
 | **Forms** | React Hook Form + Zod |
 | **Auth** | NextAuth.js 5 (beta) |
-| **Database** | Prisma 6.19 + SQLite (dev) / PostgreSQL (prod) |
+| **Database** | Prisma 6.19 + SQLite |
 | **i18n** | next-intl 4.5 |
 | **Ticketing** | Zammad REST API |
 | **Icons** | Lucide React |
@@ -78,10 +78,10 @@ npm run dev
 
 ### Access
 - **URL**: http://localhost:3010
-- **Test Accounts** (mock auth mode):
-  - Customer: `customer@test.com`
-  - Staff: `staff@test.com`
-  - Admin: `admin@test.com`
+- **Test Accounts** (development mock fallback):
+  - Customer: `customer@test.com` / `password123`
+  - Staff: `staff@test.com` / `password123`
+  - Admin: `admin@test.com` / `password123`
 
 ---
 
@@ -155,10 +155,8 @@ openspec/                  # Requirements & change proposals
 
 ## 📚 Documentation
 
-- [Project Overview](./docs/00-project-overview.md)
-- [Requirements](./docs/01-requirements.md)
-- [Business Flows](./docs/02-business-flows.md)
-- [API Design](./docs/05-API设计.md)
+- [Documentation Index](./docs/README.md)
+- [Legacy Docs](./docs/legacy/)
 - [OpenSpec Changes](./openspec/)
 
 ---

@@ -1,5 +1,7 @@
 # AI Configuration Persistence Guide
 
+**中文概览**: See [AI-CONFIGURATION-PERSISTENCE.zh-CN.md](./AI-CONFIGURATION-PERSISTENCE.zh-CN.md)
+
 **Date**: 2025-11-06  
 **Status**: ✅ **IMPLEMENTED**
 
@@ -50,9 +52,6 @@ customer-service-platform/
 # Zammad Integration
 ZAMMAD_URL=http://your-zammad-instance:8080/
 ZAMMAD_API_TOKEN=your_zammad_api_token_here
-
-# Socket.IO
-SOCKET_IO_PORT=3001
 
 # AI Auto-Reply Configuration (Sensitive Data)
 # Note: FastGPT API Key is stored here for security

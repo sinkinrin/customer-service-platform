@@ -60,6 +60,7 @@
 import { NextRequest } from 'next/server'
 import { zammadClient } from '@/lib/zammad/client'
 import { requireAuth } from '@/lib/utils/auth'
+import { getApiLogger } from '@/lib/utils/api-logger'
 import {
   successResponse,
   errorResponse,
@@ -102,6 +103,11 @@ const createArticleSchema = z.object({
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
+
+  // Direct diagnostic output (bypassing logger)
+  console.log('[DIAG] Articles API called, LOG_LEVEL=' + process.env.LOG_LEVEL + ', NODE_ENV=' + process.env.NODE_ENV)
+
+  const log = getApiLogger('TicketArticlesAPI', request)
   try {
     const user = await requireAuth()
     const ticketId = parseInt(params.id)
@@ -113,7 +119,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
     if (!healthCheck.isHealthy) {
-      console.warn('[Articles API] Zammad service unavailable:', healthCheck.error)
+      log.warning('Zammad service unavailable', { error: healthCheck.error })
       return serverErrorResponse(
         getZammadUnavailableMessage(),
         { service: 'zammad', available: false },
@@ -138,7 +144,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       try {
         validateTicketAccess(user, ticket.group_id)
       } catch (error) {
-        console.warn('[Articles API] Staff access denied:', error instanceof Error ? error.message : 'Unknown error')
+        log.warning('Staff access denied', { error: error instanceof Error ? error.message : error })
         return errorResponse('FORBIDDEN', 'You do not have permission to access articles for this ticket', undefined, 403)
       }
     } else if (user.role === 'customer') {
@@ -152,17 +158,17 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
         // If email is missing, trust the X-On-Behalf-Of result (already limited to user's tickets)
         if (ticketCustomer.email) {
           if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
-            console.warn('[Articles API] Customer access denied: ticket belongs to different customer')
+            log.warning('Customer access denied: ticket belongs to different customer')
             return notFoundResponse('Ticket not found')
           }
         } else {
           // Email missing in Zammad - trust X-On-Behalf-Of validation
-          console.log('[Articles API] Ticket customer has no email, trusting X-On-Behalf-Of validation')
+          log.info('Ticket customer has no email, trusting X-On-Behalf-Of validation')
         }
       } catch (error) {
         // P2 Fix: If we can't fetch user info, trust X-On-Behalf-Of result
         // The ticket was already fetched with X-On-Behalf-Of, so ownership is verified
-        console.warn('[Articles API] Failed to fetch ticket customer, trusting X-On-Behalf-Of:', error)
+        log.warning('Failed to fetch ticket customer, trusting X-On-Behalf-Of', { error: error instanceof Error ? error.message : error })
       }
     }
 
@@ -177,7 +183,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       total: articles.length,
     })
   } catch (error) {
-    console.error('GET /api/tickets/[id]/articles error:', error)
+    log.error('GET /api/tickets/[id]/articles error', { error: error instanceof Error ? error.message : error })
 
     // Check if error is authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -203,6 +209,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
 
 export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
+  const log = getApiLogger('TicketArticlesAPI', request)
   try {
     const user = await requireAuth()
     const ticketId = parseInt(params.id)
@@ -214,7 +221,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
     if (!healthCheck.isHealthy) {
-      console.warn('[Articles API] Zammad service unavailable:', healthCheck.error)
+      log.warning('Zammad service unavailable', { error: healthCheck.error })
       return serverErrorResponse(
         getZammadUnavailableMessage(),
         { service: 'zammad', available: false },
@@ -239,7 +246,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       try {
         validateTicketAccess(user, ticket.group_id)
       } catch (error) {
-        console.warn('[Articles API] Staff create access denied:', error instanceof Error ? error.message : 'Unknown error')
+        log.warning('Staff create access denied', { error: error instanceof Error ? error.message : error })
         return errorResponse('FORBIDDEN', 'You do not have permission to create articles for this ticket', undefined, 403)
       }
     } else if (user.role === 'customer') {
@@ -248,15 +255,15 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         const ticketCustomer = await zammadClient.getUser(ticket.customer_id)
         // Guard against missing email from Zammad
         if (!ticketCustomer.email) {
-          console.warn('[Articles API] Customer create access denied: ticket customer has no email')
+          log.warning('Customer create access denied: ticket customer has no email')
           return notFoundResponse('Ticket not found')
         }
         if (ticketCustomer.email.toLowerCase() !== user.email.toLowerCase()) {
-          console.warn('[Articles API] Customer create access denied: ticket belongs to different customer')
+          log.warning('Customer create access denied: ticket belongs to different customer')
           return notFoundResponse('Ticket not found')
         }
       } catch (error) {
-        console.error('[Articles API] Failed to verify ticket ownership for article creation:', error)
+        log.error('Failed to verify ticket ownership for article creation', { error: error instanceof Error ? error.message : error })
         return notFoundResponse('Ticket not found')
       }
     }
@@ -291,7 +298,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         const ticketCustomer = await zammadClient.getUser(ticket.customer_id)
         recipientEmail = ticketCustomer.email
       } catch (error) {
-        console.warn('[Articles API] Failed to get customer email for email article:', error)
+        log.warning('Failed to get customer email for email article', { error: error instanceof Error ? error.message : error })
       }
     }
 
@@ -331,7 +338,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       201
     )
   } catch (error) {
-    console.error('POST /api/tickets/[id]/articles error:', error)
+    log.error('POST /api/tickets/[id]/articles error', { error: error instanceof Error ? error.message : error })
 
     // Check if error is authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {

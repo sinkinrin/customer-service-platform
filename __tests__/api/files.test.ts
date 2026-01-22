@@ -59,7 +59,7 @@ function createMockUploadRequest(payload: {
 describe('Files API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(requireAuth).mockResolvedValue({ id: 'user_1' } as any)
+    vi.mocked(requireAuth).mockResolvedValue({ id: 'user_1', role: 'customer' } as any)
   })
 
   afterEach(() => {
@@ -144,6 +144,7 @@ describe('Files API', () => {
     it('returns file metadata', async () => {
       vi.mocked(getFileMetadata).mockResolvedValue({
         id: 'file_1',
+        userId: 'user_1',
         fileName: 'note.txt',
         fileSize: 5,
         mimeType: 'text/plain',
@@ -189,6 +190,7 @@ describe('Files API', () => {
     it('returns file content with headers', async () => {
       vi.mocked(getFileMetadata).mockResolvedValue({
         id: 'file_1',
+        userId: 'user_1',
         fileName: 'note.txt',
         fileSize: 5,
         mimeType: 'text/plain',

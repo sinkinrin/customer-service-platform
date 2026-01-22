@@ -6,19 +6,24 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/utils/auth'
-import { unauthorizedResponse, notFoundResponse, serverErrorResponse } from '@/lib/utils/api-response'
+import { unauthorizedResponse, forbiddenResponse, notFoundResponse, serverErrorResponse } from '@/lib/utils/api-response'
 import { getFileMetadata, getFilePath } from '@/lib/file-storage'
 import { promises as fs } from 'fs'
 
 export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params
   try {
-    await requireAuth()
+    const user = await requireAuth()
 
     // Get file metadata
     const file = await getFileMetadata(params.id)
     if (!file) {
       return notFoundResponse('File not found')
+    }
+
+    // Access control: only owner or admin can download
+    if (user.role !== 'admin' && file.userId !== user.id) {
+      return forbiddenResponse('File not found or unauthorized')
     }
 
     // Get file path

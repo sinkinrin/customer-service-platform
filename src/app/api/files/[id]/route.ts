@@ -36,6 +36,7 @@ import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
   unauthorizedResponse,
+  forbiddenResponse,
   notFoundResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
@@ -44,12 +45,17 @@ import { getFileMetadata, deleteFile } from '@/lib/file-storage'
 export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params
   try {
-    await requireAuth()
+    const user = await requireAuth()
 
     const file = await getFileMetadata(params.id)
 
     if (!file) {
       return notFoundResponse('File not found')
+    }
+
+    // Access control: only owner or admin can read file metadata/download URL
+    if (user.role !== 'admin' && file.userId !== user.id) {
+      return forbiddenResponse('File not found or unauthorized')
     }
 
     return successResponse({

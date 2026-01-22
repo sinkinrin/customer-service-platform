@@ -36,7 +36,13 @@ describe('Ticket Updates API', () => {
 
   it('returns updates with parsed data payloads', async () => {
     vi.mocked(auth).mockResolvedValue({
-      user: { id: 'staff_001', role: 'staff', email: 'staff@test.com' },
+      user: {
+        id: 'staff_001',
+        role: 'staff',
+        email: 'staff@test.com',
+        zammad_id: 200,
+        group_ids: [2],
+      },
     } as any)
 
     vi.mocked(prisma.ticketUpdate.findMany).mockResolvedValue([
@@ -44,7 +50,8 @@ describe('Ticket Updates API', () => {
         id: 'upd_1',
         ticketId: 10,
         event: 'article.created',
-        data: JSON.stringify({ author: 'staff@test.com' }),
+        // Include region metadata so the updates endpoint can filter safely
+        data: JSON.stringify({ author: 'staff@test.com', ownerId: 200, groupId: 2, customerId: 300 }),
         createdAt: new Date('2025-01-01T10:00:00Z'),
       },
     ] as any)

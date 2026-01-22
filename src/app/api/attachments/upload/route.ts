@@ -18,6 +18,7 @@
 import { NextRequest } from 'next/server'
 import { fileTypeFromBuffer } from 'file-type'
 import { requireAuth } from '@/lib/utils/auth'
+import { getApiLogger } from '@/lib/utils/api-logger'
 import {
   successResponse,
   validationErrorResponse,
@@ -33,6 +34,7 @@ import {
 } from '@/lib/constants/attachments'
 
 export async function POST(request: NextRequest) {
+  const log = getApiLogger('AttachmentUploadAPI', request)
   try {
     const user = await requireAuth()
 
@@ -43,11 +45,16 @@ export async function POST(request: NextRequest) {
     const formId = formData.get('form_id') as string | null
 
     if (!file) {
+      log.warning('Validation failed: missing file')
       return validationErrorResponse({ file: 'File is required' })
     }
 
     // Validate file size
     if (file.size > ATTACHMENT_LIMITS.MAX_SIZE) {
+      log.warning('Validation failed: file too large', {
+        size: file.size,
+        maxSize: ATTACHMENT_LIMITS.MAX_SIZE,
+      })
       return validationErrorResponse({
         file: `File size exceeds limit. Maximum allowed: ${formatFileSize(ATTACHMENT_LIMITS.MAX_SIZE)}`,
       })
@@ -65,6 +72,11 @@ export async function POST(request: NextRequest) {
 
     // Check if the effective MIME type is allowed
     if (!ALLOWED_MIME_TYPES.includes(effectiveMimeType)) {
+      log.warning('Validation failed: file type not allowed', {
+        detectedMime: detectedType?.mime,
+        claimedMime: file.type,
+        effectiveMime: effectiveMimeType,
+      })
       return validationErrorResponse({
         file: `File type not allowed. Detected: ${effectiveMimeType}. Allowed types: images, documents, archives, videos.`,
       })
@@ -73,6 +85,10 @@ export async function POST(request: NextRequest) {
     // Additional check: if file-type detected a type, ensure it's consistent
     // This catches cases where someone renames malicious.exe to malicious.pdf
     if (detectedType && !ALLOWED_MIME_TYPES.includes(detectedType.mime)) {
+      log.warning('Validation failed: detected file type not allowed', {
+        detectedMime: detectedType.mime,
+        claimedMime: file.type,
+      })
       return validationErrorResponse({
         file: `File content does not match a valid file type. Detected: ${detectedType.mime}`,
       })
@@ -91,16 +107,15 @@ export async function POST(request: NextRequest) {
       formId || undefined  // Pass form_id if provided
     )
 
-    console.log('[Attachment Upload] Success:', {
+    log.info('Attachment uploaded', {
       userId: user.id,
-      originalFilename: file.name,
-      safeFilename,
       size: file.size,
       detectedMime: detectedType?.mime,
       claimedMime: file.type,
       effectiveMime: effectiveMimeType,
       formId: result.form_id,
       storeId: result.store_id,
+      filename: safeFilename,
     })
 
     return successResponse({
@@ -112,7 +127,9 @@ export async function POST(request: NextRequest) {
       mimeType: effectiveMimeType,
     })
   } catch (error) {
-    console.error('[Attachment Upload] Error:', error)
+    log.error('Attachment upload failed', {
+      error: error instanceof Error ? error.message : error,
+    })
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)

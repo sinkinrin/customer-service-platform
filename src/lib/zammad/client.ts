@@ -5,6 +5,7 @@
  */
 
 import { ATTACHMENT_LIMITS } from '@/lib/constants/attachments'
+import { logger } from '@/lib/utils/logger'
 import type {
   ZammadTicket,
   CreateTicketRequest,
@@ -195,7 +196,7 @@ export class ZammadClient {
       page++
     }
 
-    console.log(`[Zammad] Fetched ${allTickets.length} tickets across ${page} pages`)
+    logger.info('ZammadClient', `Fetched ${allTickets.length} tickets across ${page} pages`)
     return allTickets
   }
 
@@ -262,26 +263,26 @@ export class ZammadClient {
    * @param onBehalfOf - User email/login/ID to search tickets on behalf of
    */
   async searchTickets(query: string, limit: number = 10, onBehalfOf?: string): Promise<ZammadSearchResponse> {
-    console.log('[DEBUG] ZammadClient.searchTickets - Raw query:', query)
+    logger.debug('ZammadClient', 'searchTickets - Raw query', { data: { query } })
     const formattedQuery = this.formatSearchQuery(query)
-    console.log('[DEBUG] ZammadClient.searchTickets - Formatted query:', formattedQuery)
-    console.log('[DEBUG] ZammadClient.searchTickets - Limit:', limit)
-    console.log('[DEBUG] ZammadClient.searchTickets - OnBehalfOf:', onBehalfOf)
+    logger.debug('ZammadClient', 'searchTickets - Formatted query', { data: { formattedQuery } })
+    logger.debug('ZammadClient', 'searchTickets - Limit', { data: { limit } })
+    logger.debug('ZammadClient', 'searchTickets - OnBehalfOf', { data: { onBehalfOf } })
 
     const params = new URLSearchParams({ query: formattedQuery, limit: limit.toString() })
     const url = `/tickets/search?${params}`
-    console.log('[DEBUG] ZammadClient.searchTickets - Full URL:', url)
+    logger.debug('ZammadClient', 'searchTickets - Full URL', { data: { url } })
 
     // Zammad search API returns an array directly, not an object
     const tickets = await this.request<ZammadTicket[]>(url, {}, 0, onBehalfOf)
-    console.log('[DEBUG] ZammadClient.searchTickets - Raw response from Zammad:', JSON.stringify(tickets, null, 2))
+    logger.debug('ZammadClient', 'searchTickets - Raw response from Zammad', { data: { tickets } })
 
     // Wrap the array in the expected response format
     const result: ZammadSearchResponse = {
       tickets: tickets || [],
       tickets_count: tickets?.length || 0
     }
-    console.log('[DEBUG] ZammadClient.searchTickets - Wrapped response:', JSON.stringify(result, null, 2))
+    logger.debug('ZammadClient', 'searchTickets - Wrapped response', { data: { result } })
 
     return result
   }
@@ -571,7 +572,7 @@ export class ZammadClient {
   async authenticateUser(email: string, password: string): Promise<ZammadUser | null> {
     // Validate configuration
     if (!this.baseUrl) {
-      console.error('[Zammad Auth] Base URL not configured')
+      logger.error('ZammadClient', 'Base URL not configured')
       return null
     }
 
@@ -592,14 +593,14 @@ export class ZammadClient {
       })
 
       if (!response.ok) {
-        console.log('[Zammad Auth] Authentication failed:', response.status)
+        logger.info('ZammadClient', 'Authentication failed', { data: { status: response.status } })
         return null
       }
 
       const userData = await response.json()
 
       if (!userData || !userData.id) {
-        console.log('[Zammad Auth] No user data in response')
+        logger.info('ZammadClient', 'No user data in response')
         return null
       }
 
@@ -608,16 +609,20 @@ export class ZammadClient {
       try {
         const fullUserData = await this.getUser(userData.id)
         if (fullUserData) {
-          console.log('[Zammad Auth] Fetched complete user data with note field')
+          logger.info('ZammadClient', 'Fetched complete user data with note field')
           return fullUserData
         }
       } catch (fetchError) {
-        console.warn('[Zammad Auth] Failed to fetch complete user data, using partial data:', fetchError)
+        logger.warning('ZammadClient', 'Failed to fetch complete user data, using partial data', {
+          data: { error: fetchError instanceof Error ? fetchError.message : fetchError }
+        })
       }
 
       return userData as ZammadUser
     } catch (error) {
-      console.error('[Zammad Auth] Error during authentication:', error)
+      logger.error('ZammadClient', 'Error during authentication', {
+        data: { error: error instanceof Error ? error.message : error }
+      })
       return null
     }
   }
@@ -634,7 +639,9 @@ export class ZammadClient {
       const user = users.find(u => u.email.toLowerCase() === email.toLowerCase())
       return user || null
     } catch (error) {
-      console.error('[Zammad] Error fetching user by email:', error)
+      logger.error('ZammadClient', 'Error fetching user by email', {
+        data: { error: error instanceof Error ? error.message : error }
+      })
       return null
     }
   }
@@ -663,7 +670,9 @@ export class ZammadClient {
             try {
               return await this.getUser(id)
             } catch (error) {
-              console.error(`[Zammad] Failed to fetch user ${id}:`, error)
+              logger.error('ZammadClient', `Failed to fetch user ${id}`, {
+                data: { error: error instanceof Error ? error.message : error }
+              })
               return null
             }
           })
@@ -673,7 +682,9 @@ export class ZammadClient {
         const validUsers = chunkResults.filter((u): u is ZammadUser => u !== null)
         results.push(...validUsers)
       } catch (error) {
-        console.error('[Zammad] Error processing user chunk:', error)
+        logger.error('ZammadClient', 'Error processing user chunk', {
+          data: { error: error instanceof Error ? error.message : error }
+        })
       }
     }
 

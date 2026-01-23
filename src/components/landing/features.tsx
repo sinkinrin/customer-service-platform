@@ -1,13 +1,13 @@
 'use client'
 
-import { Truck, BarChart3, Shield, Clock } from 'lucide-react'
+import { Bot, Ticket, BookOpen, BarChart3 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 const featureKeys = [
-    { key: 'realTimeTracking', icon: Truck },
-    { key: 'performanceAnalytics', icon: BarChart3 },
-    { key: 'safetyCompliance', icon: Shield },
-    { key: 'maintenanceScheduling', icon: Clock },
+    { key: 'aiChat', icon: Bot },
+    { key: 'ticketManagement', icon: Ticket },
+    { key: 'knowledgeBase', icon: BookOpen },
+    { key: 'analytics', icon: BarChart3 },
 ] as const
 
 export function Features() {

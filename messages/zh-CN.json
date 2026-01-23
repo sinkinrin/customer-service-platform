@@ -1943,52 +1943,50 @@
       "title": "加载仪表板中...",
       "verifying": "验证凭证中"
     },
-    "brand": "FleetCommand",
+    "brand": "Howen",
     "nav": {
-      "solutions": "解决方案",
-      "pricing": "价格",
-      "resources": "资源",
-      "company": "公司",
+      "features": "功能特性",
+      "faq": "帮助中心",
       "login": "登录",
       "getStarted": "开始使用"
     },
     "hero": {
-      "titlePart1": "现代车队管理",
-      "titlePart2": "简化",
-      "description": "通过我们的综合平台跟踪、管理和优化您的车队运营。实时洞察助力更好决策。",
-      "startFreeTrial": "开始免费试用",
-      "watchDemo": "观看演示",
-      "freeTrial": "14 天免费试用",
-      "noCreditCard": "无需信用卡"
+      "titlePart1": "智能客服系统",
+      "titlePart2": "AI 驱动",
+      "description": "通过 AI 智能客服和全面的工单管理系统，简化您的客户支持流程。更快响应，更好体验。",
+      "getStarted": "开始使用",
+      "learnMore": "了解更多",
+      "feature1": "AI 智能回复",
+      "feature2": "7×24 全天候服务"
     },
     "features": {
-      "title": "管理车队所需的一切",
-      "description": "强大的功能，旨在帮助您降低成本、提高安全性并增加运营效率。",
-      "realTimeTracking": {
-        "name": "实时跟踪",
-        "description": "通过先进的 GPS 集成实时监控车队位置和状态。"
+      "title": "客户服务所需的一切",
+      "description": "强大的工具，帮助您大规模提供卓越的客户支持。",
+      "aiChat": {
+        "name": "AI 智能客服",
+        "description": "智能聊天机器人即时处理常见咨询，减少响应时间和工作负担。"
       },
-      "performanceAnalytics": {
-        "name": "性能分析",
-        "description": "获取燃油使用、驾驶行为和维护需求的详细洞察。"
+      "ticketManagement": {
+        "name": "工单管理",
+        "description": "通过全面的工单系统跟踪、优先处理和解决客户问题。"
       },
-      "safetyCompliance": {
-        "name": "安全与合规",
-        "description": "确保您的车队自动满足所有监管要求和安全标准。"
+      "knowledgeBase": {
+        "name": "知识库",
+        "description": "自助 FAQ 门户让客户能够独立找到答案。"
       },
-      "maintenanceScheduling": {
-        "name": "维护调度",
-        "description": "自动警报和车辆维护调度，防止停机。"
+      "analytics": {
+        "name": "分析与报告",
+        "description": "通过详细的分析和报告获取支持绩效洞察。"
       }
     },
     "cta": {
-      "title": "准备好优化您的车队运营了吗？",
-      "description": "加入超过 2,000 家使用 FleetCommand 降低成本和提高安全性的公司。",
-      "button": "开始免费试用",
-      "noCreditCard": "无需信用卡。14 天免费试用。"
+      "title": "准备好变革您的客户服务了吗？",
+      "description": "加入全球企业，使用 Howen 提供卓越的客户体验。",
+      "button": "联系我们",
+      "learnMore": "访问 howentech.com 了解更多"
     },
     "footer": {
-      "copyright": "© 2025 FleetCommand Inc. 保留所有权利。"
+      "copyright": "© 深圳市浩文安通科技有限公司 版权所有"
     }
   },
   "dashboardComponents": {

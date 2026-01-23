@@ -1943,52 +1943,50 @@
       "title": "Loading Dashboard...",
       "verifying": "Verifying credentials"
     },
-    "brand": "FleetCommand",
+    "brand": "Howen",
     "nav": {
-      "solutions": "Solutions",
-      "pricing": "Pricing",
-      "resources": "Resources",
-      "company": "Company",
+      "features": "Features",
+      "faq": "FAQ",
       "login": "Log in",
       "getStarted": "Get Started"
     },
     "hero": {
-      "titlePart1": "Modern Fleet Management",
-      "titlePart2": "Simplified",
-      "description": "Track, manage, and optimize your fleet operations with our comprehensive platform. Real-time insights for better decision making.",
-      "startFreeTrial": "Start Free Trial",
-      "watchDemo": "Watch Demo",
-      "freeTrial": "14-day free trial",
-      "noCreditCard": "No credit card required"
+      "titlePart1": "Smart Customer Service",
+      "titlePart2": "Powered by AI",
+      "description": "Streamline your customer support with AI-powered chat and comprehensive ticket management. Deliver faster responses and better experiences.",
+      "getStarted": "Get Started",
+      "learnMore": "Learn More",
+      "feature1": "AI-Powered Responses",
+      "feature2": "24/7 Availability"
     },
     "features": {
-      "title": "Everything you need to manage your fleet",
-      "description": "Powerful features designed to help you reduce costs, improve safety, and increase operational efficiency.",
-      "realTimeTracking": {
-        "name": "Real-time Tracking",
-        "description": "Monitor your fleet locations and status in real-time with advanced GPS integration."
+      "title": "Everything you need for customer service",
+      "description": "Powerful tools to help you deliver exceptional customer support at scale.",
+      "aiChat": {
+        "name": "AI-Powered Chat",
+        "description": "Intelligent chatbot handles common inquiries instantly, reducing response time and workload."
       },
-      "performanceAnalytics": {
-        "name": "Performance Analytics",
-        "description": "Get detailed insights into fuel usage, driver behavior, and maintenance needs."
+      "ticketManagement": {
+        "name": "Ticket Management",
+        "description": "Track, prioritize, and resolve customer issues with a comprehensive ticketing system."
       },
-      "safetyCompliance": {
-        "name": "Safety & Compliance",
-        "description": "Ensure your fleet meets all regulatory requirements and safety standards automatically."
+      "knowledgeBase": {
+        "name": "Knowledge Base",
+        "description": "Self-service FAQ portal empowers customers to find answers independently."
       },
-      "maintenanceScheduling": {
-        "name": "Maintenance Scheduling",
-        "description": "Automated alerts and scheduling for vehicle maintenance to prevent downtime."
+      "analytics": {
+        "name": "Analytics & Reports",
+        "description": "Gain insights into support performance with detailed analytics and reporting."
       }
     },
     "cta": {
-      "title": "Ready to optimize your fleet operations?",
-      "description": "Join over 2,000 companies using FleetCommand to reduce costs and improve safety.",
-      "button": "Start Your Free Trial",
-      "noCreditCard": "No credit card required. 14-day free trial."
+      "title": "Ready to transform your customer service?",
+      "description": "Join companies worldwide using Howen to deliver exceptional customer experiences.",
+      "button": "Contact Us",
+      "learnMore": "Learn more at howentech.com"
     },
     "footer": {
-      "copyright": "© 2025 FleetCommand Inc. All rights reserved."
+      "copyright": "© HowenTechnologies All rights reserved."
     }
   },
   "dashboardComponents": {

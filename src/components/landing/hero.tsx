@@ -18,25 +18,25 @@ export function Hero() {
                         {t('description')}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link href="/auth/register">
+                        <Link href="/auth/login">
                             <Button size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white h-12 px-8">
-                                {t('startFreeTrial')}
+                                {t('getStarted')}
                             </Button>
                         </Link>
-                        <Link href="/demo">
+                        <Link href="https://www.howentech.com" target="_blank" rel="noopener noreferrer">
                             <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8">
-                                {t('watchDemo')}
+                                {t('learnMore')}
                             </Button>
                         </Link>
                     </div>
                     <div className="mt-12 flex items-center justify-center gap-8 text-sm text-slate-500">
                         <div className="flex items-center gap-2">
                             <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                            <span>{t('freeTrial')}</span>
+                            <span>{t('feature1')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                            <span>{t('noCreditCard')}</span>
+                            <span>{t('feature2')}</span>
                         </div>
                     </div>
                 </div>

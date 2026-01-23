@@ -47,16 +47,14 @@ export default function HomePage() {
             {t('brand')}
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-            <Link href="#" className="hover:text-blue-600 transition-colors">{t('nav.solutions')}</Link>
-            <Link href="#" className="hover:text-blue-600 transition-colors">{t('nav.pricing')}</Link>
-            <Link href="#" className="hover:text-blue-600 transition-colors">{t('nav.resources')}</Link>
-            <Link href="#" className="hover:text-blue-600 transition-colors">{t('nav.company')}</Link>
+            <Link href="#features" className="hover:text-blue-600 transition-colors">{t('nav.features')}</Link>
+            <Link href="/customer/faq" className="hover:text-blue-600 transition-colors">{t('nav.faq')}</Link>
           </nav>
           <div className="flex items-center gap-4">
             <Link href="/auth/login" className="text-sm font-medium text-slate-600 hover:text-blue-600 hidden sm:block">
               {t('nav.login')}
             </Link>
-            <Link href="/auth/register">
+            <Link href="/auth/login">
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                 {t('nav.getStarted')}
               </Button>
@@ -67,7 +65,9 @@ export default function HomePage() {
 
       <main className="flex-1">
         <Hero />
-        <Features />
+        <div id="features">
+          <Features />
+        </div>
 
         {/* CTA Section */}
         <section className="py-20 bg-slate-900 text-white">
@@ -76,12 +76,12 @@ export default function HomePage() {
             <p className="text-slate-300 mb-8 text-lg">
               {t('cta.description')}
             </p>
-            <Link href="/auth/register">
+            <Link href="/auth/login">
               <Button size="lg" className="bg-white text-slate-900 hover:bg-slate-100 px-8 h-12 font-semibold">
                 {t('cta.button')}
               </Button>
             </Link>
-            <p className="mt-4 text-sm text-slate-400">{t('cta.noCreditCard')}</p>
+            <p className="mt-4 text-sm text-slate-400">{t('cta.learnMore')}</p>
           </div>
         </section>
       </main>

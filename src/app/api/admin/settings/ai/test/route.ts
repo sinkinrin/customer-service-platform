@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, requireRole } from '@/lib/utils/auth'
 import { readAISettings } from '@/lib/utils/ai-config'
+import { logger } from '@/lib/utils/logger'
 
 export async function POST(_request: NextRequest) {
   try {
@@ -155,7 +156,7 @@ export async function POST(_request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('[FastGPT Test] Error:', error)
+    logger.error('AISettings', 'FastGPT connection test failed', { data: { error: error instanceof Error ? error.message : error } })
 
     // Handle timeout
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {

@@ -73,3 +73,6 @@ tmpclaude-*
 
 # Server logs
 start.*.log
+
+# Application logs
+/logs/

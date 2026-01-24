@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 // Schema for template update
 const updateTemplateSchema = z.object({
@@ -59,7 +60,7 @@ export async function GET(
       data: template,
     })
   } catch (error) {
-    console.error('[GET /api/templates/[id]] Error:', error)
+    logger.error('Templates', 'Failed to fetch template by ID', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch template' } },
       { status: 500 }
@@ -118,7 +119,7 @@ export async function PUT(
       data: template,
     })
   } catch (error) {
-    console.error('[PUT /api/templates/[id]] Error:', error)
+    logger.error('Templates', 'Failed to update template', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to update template' } },
       { status: 500 }
@@ -167,7 +168,7 @@ export async function DELETE(
       message: 'Template deleted successfully',
     })
   } catch (error) {
-    console.error('[DELETE /api/templates/[id]] Error:', error)
+    logger.error('Templates', 'Failed to delete template', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to delete template' } },
       { status: 500 }

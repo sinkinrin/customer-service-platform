@@ -10,6 +10,7 @@ import {
   successResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 
 // ============================================================================
 // GET /api/faq/categories
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
       source: 'database',
     })
   } catch (error) {
-    console.error('GET /api/faq/categories error:', error)
+    logger.error('FAQ', 'Failed to fetch FAQ categories', { data: { error: error instanceof Error ? error.message : error } })
 
     // Handle database connection errors
     if (error instanceof Error) {

@@ -12,6 +12,7 @@
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { successResponse, errorResponse, serverErrorResponse } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 import type { CreateTriggerRequest, ZammadTrigger } from '@/lib/zammad/types'
 
 const TRIGGER_PREFIX = '[CSP]' // Customer Service Platform prefix
@@ -200,7 +201,7 @@ export async function POST() {
       },
     })
   } catch (error) {
-    console.error('POST /api/admin/triggers/setup error:', error)
+    logger.error('Triggers', 'Failed to setup default triggers', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

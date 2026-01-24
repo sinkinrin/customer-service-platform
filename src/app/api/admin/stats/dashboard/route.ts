@@ -11,6 +11,7 @@ import {
     serverErrorResponse,
     unauthorizedResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 import { zammadClient } from '@/lib/zammad/client'
 import { REGIONS, getRegionByGroupId } from '@/lib/constants/regions'
 import { getRegionLabelForLocale } from '@/lib/i18n/region-labels'
@@ -203,7 +204,7 @@ export async function GET(request: NextRequest) {
             totalUsers,
         })
     } catch (error: any) {
-        console.error('[Dashboard Stats API] Error:', error)
+        logger.error('StatsDashboard', 'Failed to fetch dashboard statistics', { data: { error: error instanceof Error ? error.message : error } })
         if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
             return unauthorizedResponse()
         }

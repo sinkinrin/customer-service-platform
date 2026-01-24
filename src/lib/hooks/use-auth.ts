@@ -14,7 +14,7 @@ import {
   signIn as nextAuthSignIn,
   signOut as nextAuthSignOut,
 } from "next-auth/react"
-import { logInfo, logError } from "@/lib/utils/logger"
+import { logInfo, logError } from "@/lib/utils/logger-client"
 
 // User type matching NextAuth session
 export interface AuthUser {

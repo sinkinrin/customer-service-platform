@@ -13,6 +13,7 @@ import {
   unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 
 // ============================================================================
 // POST /api/faq/[id]/rating
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       )
     }
   } catch (error: any) {
-    console.error('POST /api/faq/[id]/rating error:', error)
+    logger.error('FAQRating', 'Failed to submit FAQ rating', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }

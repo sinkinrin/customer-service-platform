@@ -18,6 +18,7 @@ import { zammadClient } from '@/lib/zammad/client'
 import { mockUsers } from '@/lib/mock-auth'
 import { z } from 'zod'
 import { notifyAccountStatusChanged, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
+import { logger } from '@/lib/utils/logger'
 
 const UpdateStatusSchema = z.object({
     active: z.boolean(),
@@ -77,7 +78,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
                 })
             }
         } catch (notifyError) {
-            console.error('[User Status API] Failed to create in-app notification:', notifyError)
+            logger.warning('UserStatus', 'Failed to send status change notification', { data: { userId, error: notifyError instanceof Error ? notifyError.message : notifyError } })
         }
 
         return successResponse({
@@ -95,7 +96,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
             return unauthorizedResponse()
         }
-        console.error('[User Status API] Error:', error)
+        logger.error('UserStatus', 'Failed to update user status', { data: { error: error.message } })
         return serverErrorResponse('Failed to update user status', error.message)
     }
 }
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
             return unauthorizedResponse()
         }
-        console.error('[User Status API] Error:', error)
+        logger.error('UserStatus', 'Failed to get user status', { data: { error: error.message } })
         return serverErrorResponse('Failed to get user status', error.message)
     }
 }

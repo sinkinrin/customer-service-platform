@@ -3,6 +3,8 @@
  * 所有工单相关 API 必须使用该模块进行权限检查
  */
 
+import { logger } from '@/lib/utils/logger'
+
 export interface AuthUser {
   id: string
   email: string
@@ -150,14 +152,12 @@ export function filterTicketsByPermission(
 
   // Admin sees all tickets
   if (user.role === 'admin') {
-    console.log(`[Permission] Admin ${user.email} sees all ${tickets.length} tickets`)
     return tickets
   }
 
   // Customer only sees their own tickets
   if (user.role === 'customer') {
     const filtered = tickets.filter(t => t.customer_id === userZammadId)
-    console.log(`[Permission] Customer ${user.email} (zammad_id: ${userZammadId}) sees ${filtered.length}/${tickets.length} tickets`)
     return filtered
   }
 
@@ -186,13 +186,12 @@ export function filterTicketsByPermission(
       
       return false
     })
-    
-    console.log(`[Permission] Staff ${user.email} (zammad_id: ${userZammadId}, groups: [${userGroupIds.join(',')}]) sees ${filtered.length}/${tickets.length} tickets`)
+
     return filtered
   }
 
   // Unknown role sees nothing
-  console.warn(`[Permission] Unknown role ${user.role} for user ${user.email}, returning empty list`)
+  logger.warning('Permission', `Unknown role ${user.role} for user ${user.email}, returning empty list`, {})
   return []
 }
 

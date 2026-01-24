@@ -11,6 +11,7 @@ import {
   unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 import { zammadClient } from '@/lib/zammad/client'
 import { REGIONS, getRegionByGroupId } from '@/lib/constants/regions'
 import { getRegionLabelForLocale } from '@/lib/i18n/region-labels'
@@ -63,7 +64,7 @@ export async function GET(_request: NextRequest) {
       // All group_ids 1-8 now have valid region mappings
       // If somehow there's an unknown group, skip it (don't count as unassigned)
       if (!region) {
-        console.warn(`[Stats] Unknown group_id ${ticket.group_id} for ticket ${ticket.id}`)
+        logger.warning('StatsRegions', 'Unknown group_id for ticket', { data: { groupId: ticket.group_id, ticketId: ticket.id } })
         return
       }
 
@@ -95,7 +96,7 @@ export async function GET(_request: NextRequest) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return unauthorizedResponse()
     }
-    console.error('Failed to fetch regional statistics:', error)
+    logger.error('StatsRegions', 'Failed to fetch regional statistics', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to fetch regional statistics', error.message)
   }
 }

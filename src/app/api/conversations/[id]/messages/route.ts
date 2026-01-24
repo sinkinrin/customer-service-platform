@@ -8,6 +8,7 @@
  */
 
 import { NextRequest } from 'next/server'
+import { logger } from '@/lib/utils/logger'
 import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       },
     })
   } catch (error: any) {
-    console.error('GET /api/conversations/[id]/messages error:', error)
+    logger.error('Conversations', 'Failed to get messages', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -160,8 +161,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       validation.data.message_type
     )
 
-    console.log('[LocalStorage] Created message:', newMessage.id, 'in conversation:', conversationId)
-
     // Transform to API format
     const message = {
       id: newMessage.id,
@@ -182,7 +181,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     return successResponse(message, 201)
   } catch (error: any) {
-    console.error('POST /api/conversations/[id]/messages error:', error)
+    logger.error('Conversations', 'Failed to send message', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }

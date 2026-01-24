@@ -9,6 +9,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/utils/logger'
 
 // Storage configuration
 const UPLOAD_BASE_DIR = path.join(process.cwd(), 'uploads')
@@ -25,7 +26,7 @@ async function ensureDirectories() {
       await fs.mkdir(bucketPath, { recursive: true })
     }
   } catch (error) {
-    console.error('Error creating upload directories:', error)
+    logger.error('FileStorage', 'Error creating upload directories', { data: { error: error instanceof Error ? error.message : error } })
     throw error
   }
 }
@@ -131,7 +132,7 @@ export async function deleteFile(fileId: string, userId?: string): Promise<boole
     try {
       await fs.unlink(absoluteFilePath)
     } catch (error) {
-      console.error('Error deleting file from disk:', error)
+      logger.error('FileStorage', 'Error deleting file from disk', { data: { error: error instanceof Error ? error.message : error } })
       // Continue to delete metadata even if file doesn't exist
     }
 
@@ -142,7 +143,7 @@ export async function deleteFile(fileId: string, userId?: string): Promise<boole
 
     return true
   } catch (error) {
-    console.error('Error deleting file:', error)
+    logger.error('FileStorage', 'Error deleting file', { data: { error: error instanceof Error ? error.message : error } })
     return false
   }
 }

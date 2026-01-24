@@ -7,7 +7,34 @@
  * - Request ID support for tracing
  * - JSON format output in production for log aggregation
  * - Sensitive data sanitization
+ * - File-based persistence (optional, via LOG_TO_FILE=true)
  */
+
+import 'server-only'
+
+type FileLoggerModule = typeof import('./file-logger')
+
+let fileLoggerModulePromise: Promise<FileLoggerModule> | null = null
+
+function canWriteFileLogs(): boolean {
+  if (typeof process === 'undefined') return false
+  if (process.env.NEXT_RUNTIME === 'edge') return false
+  return process.env.LOG_TO_FILE === 'true'
+}
+
+async function writeLogToFile(entry: string): Promise<void> {
+  if (!canWriteFileLogs()) return
+
+  try {
+    if (!fileLoggerModulePromise) {
+      fileLoggerModulePromise = import('./file-logger')
+    }
+    const { fileLogger } = await fileLoggerModulePromise
+    await fileLogger.write(entry)
+  } catch {
+    // Silently ignore file write errors to avoid log loops
+  }
+}
 
 export enum LogLevel {
   DEBUG = 'DEBUG',
@@ -245,6 +272,12 @@ class Logger {
           : console.error(output)
         break
     }
+
+    // Write to file if enabled (always use JSON format for file logs)
+    if (canWriteFileLogs()) {
+      const fileEntry = this.formatJson(entry)
+      void writeLogToFile(fileEntry)
+    }
   }
 
   /**
@@ -269,6 +302,13 @@ class Logger {
   }
 
   /**
+   * Log warning message (alias for warning)
+   */
+  warn(module: string, message: string, options?: LogOptions) {
+    this.log(LogLevel.WARNING, module, message, options)
+  }
+
+  /**
    * Log error message
    */
   error(module: string, message: string, options?: LogOptions) {
@@ -283,18 +323,42 @@ export const logger = new Logger()
 // Convenience functions (backward compatible)
 // ============================================================================
 
+/**
+ * Log a debug message
+ * @param module - Module/component name for categorization
+ * @param message - Log message
+ * @param data - Optional structured data to include
+ */
 export const logDebug = (module: string, message: string, data?: unknown) => {
   logger.debug(module, message, { data })
 }
 
+/**
+ * Log an info message
+ * @param module - Module/component name for categorization
+ * @param message - Log message
+ * @param data - Optional structured data to include
+ */
 export const logInfo = (module: string, message: string, data?: unknown) => {
   logger.info(module, message, { data })
 }
 
+/**
+ * Log a warning message
+ * @param module - Module/component name for categorization
+ * @param message - Log message
+ * @param data - Optional structured data to include
+ */
 export const logWarning = (module: string, message: string, data?: unknown) => {
   logger.warning(module, message, { data })
 }
 
+/**
+ * Log an error message
+ * @param module - Module/component name for categorization
+ * @param message - Log message
+ * @param data - Optional structured data to include (e.g., error details)
+ */
 export const logError = (module: string, message: string, data?: unknown) => {
   logger.error(module, message, { data })
 }

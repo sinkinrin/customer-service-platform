@@ -19,6 +19,7 @@ import { mockUsers } from '@/lib/mock-auth'
 import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, REGIONS, type RegionValue } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (error.message?.includes('not found') || error.message?.includes('404')) {
       return notFoundResponse('User not found')
     }
-    console.error('[User API] Error:', error)
+    logger.error('AdminUsers', 'Failed to fetch user', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to fetch user', error.message)
   }
 }
@@ -233,7 +234,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return unauthorizedResponse()
     }
-    console.error('[User API] Error:', error)
+    logger.error('AdminUsers', 'Failed to update user', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to update user', error.message)
   }
 }

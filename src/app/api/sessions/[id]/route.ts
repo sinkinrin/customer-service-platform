@@ -15,6 +15,7 @@ import {
   notFoundResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 
 // ============================================================================
 // GET /api/sessions/[id]
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
 
     return successResponse({ session: mockSession })
   } catch (error) {
-    console.error('GET /api/sessions/[id] error:', error)
+    logger.error('Sessions', 'Failed to get session by ID', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }
@@ -72,7 +73,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       sessionId,
     })
   } catch (error) {
-    console.error('DELETE /api/sessions/[id] error:', error)
+    logger.error('Sessions', 'Failed to delete session', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

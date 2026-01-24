@@ -9,6 +9,7 @@ import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { successResponse, errorResponse, serverErrorResponse } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 import type { CreateTriggerRequest } from '@/lib/zammad/types'
 
 export async function GET() {
@@ -30,7 +31,7 @@ export async function GET() {
       count: triggers.length,
     })
   } catch (error) {
-    console.error('GET /api/admin/triggers error:', error)
+    logger.error('Triggers', 'Failed to list triggers', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       message: 'Trigger created successfully',
     })
   } catch (error) {
-    console.error('POST /api/admin/triggers error:', error)
+    logger.error('Triggers', 'Failed to create trigger', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

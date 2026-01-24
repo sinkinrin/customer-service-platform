@@ -13,6 +13,7 @@ import {
   successResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 
 // ============================================================================
 // GET /api/sessions
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
       totalPages: 1,
     })
   } catch (error) {
-    console.error('GET /api/sessions error:', error)
+    logger.error('Sessions', 'Failed to get sessions', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

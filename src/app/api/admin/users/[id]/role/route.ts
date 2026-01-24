@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/utils/auth'
 import { successResponse, errorResponse, unauthorizedResponse, forbiddenResponse, serverErrorResponse } from '@/lib/utils/api-response'
 import { mockUpdateUserRole, mockGetUserById } from '@/lib/mock-auth'
 import { notifyAccountRoleChanged } from '@/lib/notification'
+import { logger } from '@/lib/utils/logger'
 
 // Helper for bad request
 const badRequestResponse = (message: string) => errorResponse('BAD_REQUEST', message, undefined, 400)
@@ -51,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         nextRole: updated.role,
       })
     } catch (notifyError) {
-      console.error('[Admin Role] Failed to create in-app notification:', notifyError)
+      logger.warning('UserRole', 'Failed to send role change notification', { data: { targetUserId: updated.id, error: notifyError instanceof Error ? notifyError.message : notifyError } })
     }
 
     return successResponse({

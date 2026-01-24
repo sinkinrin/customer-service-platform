@@ -5,6 +5,7 @@ import { zammadClient } from '@/lib/zammad/client'
 import { notifyTicketRated, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 import { checkTicketPermission, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 // Schema for rating submission
 const ratingSchema = z.object({
@@ -82,7 +83,7 @@ export async function GET(
       data: rating,
     })
   } catch (error) {
-    console.error('[GET /api/tickets/[id]/rating] Error:', error)
+    logger.error('TicketRating', 'Failed to get rating', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get rating' } },
       { status: 500 }
@@ -187,7 +188,7 @@ export async function POST(
         }
       }
     } catch (notifyError) {
-      console.error('[Rating] Failed to create in-app notification:', notifyError)
+      logger.warning('TicketRating', 'Failed to send notification', { data: { error: notifyError instanceof Error ? notifyError.message : notifyError } })
     }
 
     return NextResponse.json({
@@ -195,7 +196,7 @@ export async function POST(
       data: savedRating,
     })
   } catch (error) {
-    console.error('[POST /api/tickets/[id]/rating] Error:', error)
+    logger.error('TicketRating', 'Failed to save rating', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to save rating' } },
       { status: 500 }

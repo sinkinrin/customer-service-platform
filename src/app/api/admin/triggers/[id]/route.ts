@@ -10,6 +10,7 @@ import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { successResponse, errorResponse, serverErrorResponse } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 import type { UpdateTriggerRequest } from '@/lib/zammad/types'
 
 interface RouteParams {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     return successResponse({ trigger })
   } catch (error) {
-    console.error('GET /api/admin/triggers/[id] error:', error)
+    logger.error('Triggers', 'Failed to get trigger', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }
@@ -71,7 +72,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       message: 'Trigger updated successfully',
     })
   } catch (error) {
-    console.error('PUT /api/admin/triggers/[id] error:', error)
+    logger.error('Triggers', 'Failed to update trigger', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }
@@ -101,7 +102,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       message: 'Trigger deleted successfully',
     })
   } catch (error) {
-    console.error('DELETE /api/admin/triggers/[id] error:', error)
+    logger.error('Triggers', 'Failed to delete trigger', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

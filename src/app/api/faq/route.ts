@@ -46,6 +46,7 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { faqCache } from '@/lib/cache/simple-cache'
+import { logger } from '@/lib/utils/logger'
 
 // ============================================================================
 // GET /api/faq
@@ -182,7 +183,7 @@ export async function GET(request: NextRequest) {
 
     return successResponse(response)
   } catch (error) {
-    console.error('GET /api/faq error:', error)
+    logger.error('FAQ', 'Failed to fetch FAQ articles', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

@@ -15,6 +15,7 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 const UpdateProfileSchema = z.object({
   full_name: z.string().min(1, 'Name is required').optional(),
@@ -45,7 +46,7 @@ export async function GET() {
         })
       } catch (zammadError) {
         // Fall back to session data if Zammad fetch fails
-        console.warn('[GET /api/user/profile] Failed to fetch from Zammad, using session data:', zammadError)
+        logger.warning('UserProfile', 'Failed to fetch from Zammad, using session data', { data: { error: zammadError instanceof Error ? zammadError.message : zammadError } })
       }
     }
 
@@ -65,7 +66,7 @@ export async function GET() {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
     }
-    console.error('[GET /api/user/profile] Error:', error)
+    logger.error('UserProfile', 'Failed to get profile', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to get profile')
   }
 }
@@ -88,7 +89,6 @@ export async function PUT(request: NextRequest) {
     if (!zammadId) {
       // For mock users without Zammad ID, just return success
       // In production, all users should have a Zammad ID
-      console.log('[Profile] No Zammad ID found for user:', user.email)
       return successResponse({
         profile: {
           id: user.id,
@@ -139,7 +139,7 @@ export async function PUT(request: NextRequest) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
     }
-    console.error('[PUT /api/user/profile] Error:', error)
+    logger.error('UserProfile', 'Failed to update profile', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to update profile')
   }
 }

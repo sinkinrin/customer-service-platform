@@ -11,6 +11,7 @@ import {
   errorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 
 // ============================================================================
 // GET /api/faq/[id]
@@ -101,7 +102,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       source: 'database',
     })
   } catch (error) {
-    console.error('GET /api/faq/[id] error:', error)
+    logger.error('FAQ', 'Failed to fetch FAQ article by ID', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

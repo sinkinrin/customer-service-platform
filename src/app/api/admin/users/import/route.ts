@@ -17,6 +17,7 @@ import {
 import { zammadClient } from '@/lib/zammad/client'
 import { mockUsers, mockPasswords } from '@/lib/mock-auth'
 import { getGroupIdByRegion, isValidRegion } from '@/lib/constants/regions'
+import { logger } from '@/lib/utils/logger'
 
 interface ParsedUser {
     email: string
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
         if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
             return unauthorizedResponse()
         }
-        console.error('[Import Users API] Error:', error)
+        logger.error('UserImport', 'Failed to import users', { data: { error: error instanceof Error ? error.message : error } })
         return serverErrorResponse('Failed to import users', error.message)
     }
 }

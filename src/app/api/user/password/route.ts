@@ -16,6 +16,7 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 const UpdatePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
@@ -43,7 +44,6 @@ export async function PUT(request: NextRequest) {
     const zammadId = user.zammad_id
     if (!zammadId) {
       // Mock users cannot change password
-      console.log('[Password] No Zammad ID found for user:', user.email)
       return serverErrorResponse('Password change not available for this account type')
     }
 
@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
     }
-    console.error('[PUT /api/user/password] Error:', error)
+    logger.error('UserPassword', 'Failed to update password', { data: { error: error instanceof Error ? error.message : error } })
 
     // Handle specific error cases
     if (error instanceof Error) {

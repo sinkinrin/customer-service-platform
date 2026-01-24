@@ -17,6 +17,7 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 // Default preferences for new users
 const DEFAULT_PREFERENCES = {
@@ -68,7 +69,7 @@ export async function GET() {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
     }
-    console.error('[GET /api/user/preferences] Error:', error)
+    logger.error('UserPreferences', 'Failed to get preferences', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to get preferences')
   }
 }
@@ -90,7 +91,6 @@ export async function PUT(request: NextRequest) {
     const zammadId = user.zammad_id
     if (!zammadId) {
       // For mock users, just return success with the provided preferences
-      console.log('[Preferences] No Zammad ID found for user:', user.email)
       return successResponse({
         preferences: {
           ...DEFAULT_PREFERENCES,
@@ -136,7 +136,7 @@ export async function PUT(request: NextRequest) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return errorResponse('UNAUTHORIZED', 'Authentication required', undefined, 401)
     }
-    console.error('[PUT /api/user/preferences] Error:', error)
+    logger.error('UserPreferences', 'Failed to update preferences', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to update preferences')
   }
 }

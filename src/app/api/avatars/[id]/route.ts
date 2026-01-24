@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getFileMetadata, getFilePath } from '@/lib/file-storage'
 import { promises as fs } from 'fs'
+import { logger } from '@/lib/utils/logger'
 
 export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params
@@ -36,7 +37,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
       },
     })
   } catch (error: any) {
-    console.error('[GET /api/avatars/[id]] Error:', error)
+    logger.error('Avatars', 'Failed to get avatar', { data: { error: error instanceof Error ? error.message : error } })
     if (error.code === 'ENOENT') {
       return new NextResponse('Not found', { status: 404 })
     }

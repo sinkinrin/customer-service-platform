@@ -9,6 +9,7 @@
  */
 
 import { requireRole, getCurrentUser } from '@/lib/utils/auth'
+import { logger } from '@/lib/utils/logger'
 import {
     successResponse,
     serverErrorResponse,
@@ -49,11 +50,9 @@ export async function GET() {
         let allAgents, allTickets
 
         if (isCacheValid) {
-            console.log('[API] Using cached staff data (age:', Math.round(cacheAge / 1000), 'seconds)')
             allAgents = staffCache.data.agents
             allTickets = staffCache.data.tickets
         } else {
-            console.log('[API] Fetching fresh staff data')
             // Fetch agents and tickets in parallel for better performance
             const [agentsResult, ticketsResult] = await Promise.all([
                 zammadClient.getAgents(true),
@@ -83,7 +82,7 @@ export async function GET() {
                 // Fallback: look up by email
                 currentUserDetails = await zammadClient.getUserByEmail(currentUser.email)
                 if (!currentUserDetails) {
-                    console.warn('[API] Could not find Zammad user for staff:', currentUser.email)
+                    logger.warning('StaffAvailable', 'Could not find Zammad user for staff', { data: { email: currentUser.email } })
                     return serverErrorResponse('User not linked to Zammad')
                 }
             }
@@ -159,7 +158,7 @@ export async function GET() {
             available_count: staffList.filter((s: any) => s.is_available).length,
         })
     } catch (error) {
-        console.error('[API] Get available staff error:', error)
+        logger.error('StaffAvailable', 'Get available staff error', { data: { error: error instanceof Error ? error.message : error } })
         return serverErrorResponse('Failed to get available staff')
     }
 }

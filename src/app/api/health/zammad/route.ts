@@ -7,6 +7,7 @@
 import { NextRequest } from 'next/server'
 import { checkZammadHealth } from '@/lib/zammad/health-check'
 import { successResponse, serviceUnavailableResponse, serverErrorResponse } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 
 export async function GET(_request: NextRequest) {
   try {
@@ -31,7 +32,7 @@ export async function GET(_request: NextRequest) {
       )
     }
   } catch (error) {
-    console.error('Health check error:', error)
+    logger.error('HealthCheck', 'Failed to check Zammad service health', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(
       'Failed to check Zammad service health',
       { service: 'zammad', available: false }

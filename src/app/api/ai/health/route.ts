@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { readAISettings } from '@/lib/utils/ai-config'
+import { logger } from '@/lib/utils/logger'
 
 export async function GET() {
   try {
@@ -82,7 +83,7 @@ export async function GET() {
       }, { status: 503 })
     }
   } catch (error: any) {
-    console.error('[AI Health Check] Error:', error)
+    logger.error('AIHealth', 'Health check failed', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json({
       status: 'error',
       message: 'Health check failed',

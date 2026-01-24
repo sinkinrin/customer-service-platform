@@ -10,6 +10,7 @@ import {
     serverErrorResponse,
     unauthorizedResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 import { mockUsers } from '@/lib/mock-auth'
 
 interface StaffPerformance {
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
             teamStats,
         })
     } catch (error: any) {
-        console.error('[Stats Staff API] Error:', error)
+        logger.error('StatsStaff', 'Failed to fetch staff statistics', { data: { error: error instanceof Error ? error.message : error } })
         if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
             return unauthorizedResponse()
         }

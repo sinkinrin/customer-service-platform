@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 // Schema for template creation/update
 const templateSchema = z.object({
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
       data: templates,
     })
   } catch (error) {
-    console.error('[GET /api/templates] Error:', error)
+    logger.error('Templates', 'Failed to fetch templates', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch templates' } },
       { status: 500 }
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       data: template,
     }, { status: 201 })
   } catch (error) {
-    console.error('[POST /api/templates] Error:', error)
+    logger.error('Templates', 'Failed to create template', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to create template' } },
       { status: 500 }

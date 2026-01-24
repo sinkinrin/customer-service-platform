@@ -18,6 +18,7 @@
  */
 
 import { NextRequest } from 'next/server'
+import { logger } from '@/lib/utils/logger'
 import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
@@ -51,7 +52,7 @@ export async function POST(
     // For now, we just return success as the local storage doesn't track read status
     return successResponse({ success: true, conversation_id: id })
   } catch (error: any) {
-    console.error('POST /api/conversations/[id]/mark-read error:', error)
+    logger.error('Conversations', 'Failed to mark conversation as read', { data: { error: error instanceof Error ? error.message : error } })
     if (error?.message === 'Unauthorized') {
       return unauthorizedResponse()
     }

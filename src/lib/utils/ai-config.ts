@@ -9,6 +9,7 @@
 
 import fs from 'fs'
 import path from 'path'
+import { logger } from '@/lib/utils/logger'
 
 export interface AISettings {
   enabled: boolean
@@ -48,7 +49,7 @@ export function readAISettings(): AISettings {
       fastgptApiKey: process.env.FASTGPT_API_KEY || '',
     }
   } catch (error) {
-    console.error('[AI Config] Error reading settings:', error)
+    logger.error('AIConfig', 'Error reading settings', { data: { error: error instanceof Error ? error.message : error } })
     // Return default settings on error
     return {
       enabled: false,
@@ -91,19 +92,13 @@ export function writeAISettings(settings: Partial<AISettings>): void {
       'utf-8'
     )
 
-    console.log('[AI Config] Settings saved successfully')
-
     // Log warning if API key was provided but not saved to file
     if (settings.fastgptApiKey) {
-      console.warn(
-        '[AI Config] WARNING: FastGPT API Key was provided but NOT saved to config file.'
-      )
-      console.warn(
-        '[AI Config] To persist the API key, add it to .env.local: FASTGPT_API_KEY=your-key'
-      )
+      logger.warning('AIConfig', 'FastGPT API Key was provided but NOT saved to config file', {})
+      logger.warning('AIConfig', 'To persist the API key, add it to .env.local: FASTGPT_API_KEY=your-key', {})
     }
   } catch (error) {
-    console.error('[AI Config] Error writing settings:', error)
+    logger.error('AIConfig', 'Error writing settings', { data: { error: error instanceof Error ? error.message : error } })
     throw new Error('Failed to save AI settings')
   }
 }
@@ -138,10 +133,9 @@ export function updateEnvFile(apiKey: string): void {
     // Write back to .env.local
     fs.writeFileSync(envPath, envContent, 'utf-8')
 
-    console.log('[AI Config] FastGPT API Key updated in .env.local')
-    console.warn('[AI Config] WARNING: Server restart required for changes to take effect')
+    logger.warning('AIConfig', 'Server restart required for changes to take effect', {})
   } catch (error) {
-    console.error('[AI Config] Error updating .env.local:', error)
+    logger.error('AIConfig', 'Error updating .env.local', { data: { error: error instanceof Error ? error.message : error } })
     throw new Error('Failed to update .env.local file')
   }
 }

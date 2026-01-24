@@ -8,6 +8,7 @@
 
 import { NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/utils/auth'
+import { logger } from '@/lib/utils/logger'
 import {
     successResponse,
     validationErrorResponse,
@@ -43,7 +44,7 @@ async function getZammadUserId(user: { email: string; zammad_id?: number }): Pro
         const zammadUser = await zammadClient.getUserByEmail(user.email)
         return zammadUser?.id || null
     } catch (error) {
-        console.error('[API] Failed to get Zammad user by email:', error)
+        logger.error('StaffVacation', 'Failed to get Zammad user by email', { data: { error: error instanceof Error ? error.message : error } })
         return null
     }
 }
@@ -82,7 +83,7 @@ export async function GET() {
             }
         })
     } catch (error) {
-        console.error('[API] Get vacation status error:', error)
+        logger.error('StaffVacation', 'Get vacation status error', { data: { error: error instanceof Error ? error.message : error } })
         return serverErrorResponse('Failed to get vacation status')
     }
 }
@@ -122,7 +123,7 @@ export async function PUT(request: NextRequest) {
                 const requestedStart = start_date
                 // Warn if replacement is on vacation during the requested period
                 if (replacementEnd && new Date(replacementEnd) >= new Date(requestedStart)) {
-                    console.warn('[API] Warning: Replacement agent is also on vacation during this period')
+                    logger.warning('StaffVacation', 'Replacement agent is also on vacation during this period', { data: { replacement_id, replacementEnd, requestedStart } })
                 }
             }
         }
@@ -144,7 +145,7 @@ export async function PUT(request: NextRequest) {
             }
         })
     } catch (error) {
-        console.error('[API] Set vacation error:', error)
+        logger.error('StaffVacation', 'Set vacation error', { data: { error: error instanceof Error ? error.message : error } })
         return serverErrorResponse('Failed to set vacation')
     }
 }
@@ -179,7 +180,7 @@ export async function DELETE() {
             }
         })
     } catch (error) {
-        console.error('[API] Cancel vacation error:', error)
+        logger.error('StaffVacation', 'Cancel vacation error', { data: { error: error instanceof Error ? error.message : error } })
         return serverErrorResponse('Failed to cancel vacation')
     }
 }

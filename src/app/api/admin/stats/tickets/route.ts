@@ -11,6 +11,7 @@ import {
     serverErrorResponse,
     unauthorizedResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 import { zammadClient } from '@/lib/zammad/client'
 import { subDays, format, parseISO, startOfDay } from 'date-fns'
 
@@ -130,7 +131,7 @@ export async function GET(request: NextRequest) {
             summary,
         })
     } catch (error: any) {
-        console.error('[Stats Tickets API] Error:', error)
+        logger.error('StatsTickets', 'Failed to fetch ticket statistics', { data: { error: error instanceof Error ? error.message : error } })
         if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
             return unauthorizedResponse()
         }

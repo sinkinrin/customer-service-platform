@@ -11,6 +11,7 @@ import { requireAuth } from '@/lib/utils/auth'
 import { successResponse, serverErrorResponse } from '@/lib/utils/api-response'
 import { prisma } from '@/lib/prisma'
 import { isValidRegion, getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
+import { logger } from '@/lib/utils/logger'
 
 // Maximum updates to return per request
 const MAX_UPDATES = 100
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
       count: filteredUpdates.length,
     })
   } catch (error) {
-    console.error('GET /api/tickets/updates error:', error)
+    logger.error('TicketUpdates', 'Failed to fetch ticket updates', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
   }
 }

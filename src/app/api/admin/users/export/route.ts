@@ -12,6 +12,7 @@ import { unauthorizedResponse, serverErrorResponse } from '@/lib/utils/api-respo
 import { zammadClient } from '@/lib/zammad/client'
 import { getRegionByGroupId } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
+import { logger } from '@/lib/utils/logger'
 
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
         if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
             return unauthorizedResponse()
         }
-        console.error('[Export Users API] Error:', error)
+        logger.error('UserExport', 'Failed to export users', { data: { error: error instanceof Error ? error.message : error } })
         return serverErrorResponse('Failed to export users', error.message)
     }
 }

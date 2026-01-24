@@ -43,6 +43,7 @@
  */
 
 import { NextRequest } from 'next/server'
+import { logger } from '@/lib/utils/logger'
 import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
 
     return successResponse(paginatedConversations)
   } catch (error: any) {
-    console.error('GET /api/conversations error:', error)
+    logger.error('Conversations', 'Failed to get conversations', { data: { error: error instanceof Error ? error.message : error } })
     const message = error?.message || 'Unknown error'
     if (message === 'Unauthorized') {
       return unauthorizedResponse()
@@ -136,8 +137,6 @@ export async function POST(request: NextRequest) {
     // Create local AI conversation
     const conversation = await createAIConversation(user.id, user.email)
 
-    console.log('[LocalStorage] Created AI conversation:', conversation.id)
-
     // Save initial message if provided
     let initialMessage = null
     if (validation.data.initial_message) {
@@ -148,7 +147,6 @@ export async function POST(request: NextRequest) {
         validation.data.initial_message,
         { sender_name: user.full_name || user.email }
       )
-      console.log('[LocalStorage] Saved initial message for conversation:', conversation.id)
     }
 
     // Transform to API format
@@ -166,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     return successResponse(response, 201)
   } catch (error: any) {
-    console.error('POST /api/conversations error:', error)
+    logger.error('Conversations', 'Failed to create conversation', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }

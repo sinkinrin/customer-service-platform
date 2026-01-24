@@ -8,6 +8,7 @@
 
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/utils/logger'
 import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
@@ -77,7 +78,6 @@ export async function POST(request: NextRequest) {
 
     // FIX: Clear FAQ cache after article creation
     faqCache.clear()
-    console.log('[Cache] Cleared FAQ cache after article creation')
 
     return successResponse(
       {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       201
     )
   } catch (error: any) {
-    console.error('POST /api/admin/faq/articles error:', error)
+    logger.error('FAQArticles', 'POST /api/admin/faq/articles error', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -169,14 +169,13 @@ export async function PUT(request: NextRequest) {
 
     // FIX: Clear FAQ cache after article update
     faqCache.clear()
-    console.log('[Cache] Cleared FAQ cache after article update')
 
     return successResponse({
       message: 'Article updated successfully',
       article: updatedArticle,
     })
   } catch (error: any) {
-    console.error('PUT /api/admin/faq/articles error:', error)
+    logger.error('FAQArticles', 'PUT /api/admin/faq/articles error', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -219,13 +218,12 @@ export async function DELETE(request: NextRequest) {
 
     // FIX: Clear FAQ cache after article deletion
     faqCache.clear()
-    console.log('[Cache] Cleared FAQ cache after article deletion')
 
     return successResponse({
       message: 'Article deleted successfully',
     })
   } catch (error: any) {
-    console.error('DELETE /api/admin/faq/articles error:', error)
+    logger.error('FAQArticles', 'DELETE /api/admin/faq/articles error', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }

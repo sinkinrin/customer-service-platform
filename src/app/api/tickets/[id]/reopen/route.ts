@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { ZammadClient } from '@/lib/zammad/client'
 import { notifyTicketReopened, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
+import { logger } from '@/lib/utils/logger'
 
 const zammadClient = new ZammadClient()
 
@@ -89,7 +90,7 @@ export async function PUT(
         }
       }
     } catch (notifyError) {
-      console.error('[Reopen Ticket] Failed to create in-app notification:', notifyError)
+      logger.warning('TicketReopen', 'Failed to send notification', { data: { error: notifyError instanceof Error ? notifyError.message : notifyError } })
     }
 
     return NextResponse.json({
@@ -101,7 +102,7 @@ export async function PUT(
       },
     })
   } catch (error) {
-    console.error('[PUT /api/tickets/[id]/reopen] Error:', error)
+    logger.error('TicketReopen', 'Failed to reopen ticket', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to reopen ticket' } },
       { status: 500 }

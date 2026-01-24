@@ -13,6 +13,7 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/utils/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
       total: items.length,
     })
   } catch (error: any) {
-    console.error('GET /api/admin/faq error:', error)
+    logger.error('AdminFAQ', 'Failed to fetch FAQ items', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return unauthorizedResponse()
     }

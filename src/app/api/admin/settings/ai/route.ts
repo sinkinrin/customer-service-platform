@@ -14,6 +14,7 @@ import {
   unauthorizedResponse,
   forbiddenResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'
 import { readAISettings, writeAISettings, updateEnvFile } from '@/lib/utils/ai-config'
 
@@ -92,7 +93,7 @@ export async function PUT(request: NextRequest) {
       try {
         updateEnvFile(fastgpt_api_key)
       } catch (error) {
-        console.error('[AI Settings] Failed to update .env.local:', error)
+        logger.error('AISettings', 'Failed to update .env.local', { data: { error: error instanceof Error ? error.message : error } })
         // Continue anyway - settings are still saved to config file
       }
     }

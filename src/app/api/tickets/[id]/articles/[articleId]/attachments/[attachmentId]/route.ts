@@ -13,6 +13,7 @@ import {
   notFoundResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
+import { logger } from '@/lib/utils/logger'
 
 interface RouteParams {
   params: Promise<{
@@ -66,16 +67,16 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       },
     })
   } catch (error: any) {
-    console.error('[Attachment Download] Error:', error)
-    
+    logger.error('Attachments', 'Failed to download attachment', { data: { error: error instanceof Error ? error.message : error } })
+
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
-    
+
     if (error.message?.includes('404') || error.message?.includes('not found')) {
       return notFoundResponse('Attachment not found')
     }
-    
+
     return serverErrorResponse('Failed to download attachment', error.message)
   }
 }

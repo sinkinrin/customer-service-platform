@@ -9,6 +9,7 @@
  */
 
 import { NextRequest } from 'next/server'
+import { logger } from '@/lib/utils/logger'
 import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
 
     return successResponse(response)
   } catch (error: any) {
-    console.error('GET /api/conversations/[id] error:', error)
+    logger.error('Conversations', 'Failed to get conversation', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -135,7 +136,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 
     return successResponse(response)
   } catch (error: any) {
-    console.error('PUT /api/conversations/[id] error:', error)
+    logger.error('Conversations', 'Failed to update conversation', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -164,11 +165,9 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     // Delete conversation and its messages
     await deleteConversation(conversationId)
 
-    console.log('[LocalStorage] Deleted conversation:', conversationId)
-
     return successResponse({ message: 'Conversation deleted successfully' })
   } catch (error: any) {
-    console.error('DELETE /api/conversations/[id] error:', error)
+    logger.error('Conversations', 'Failed to delete conversation', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }

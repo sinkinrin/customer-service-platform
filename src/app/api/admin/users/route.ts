@@ -74,6 +74,7 @@ import { zammadClient } from '@/lib/zammad/client'
 import { getGroupIdByRegion, isValidRegion, getRegionByGroupId } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 // Validation schema for creating a new user
 const CreateUserSchema = z.object({
@@ -177,7 +178,7 @@ export async function GET(request: NextRequest) {
           }
         })
       } catch (error) {
-        console.warn('[Admin Users API] Zammad unavailable, falling back to mock data:', error)
+        logger.warning('AdminUsers', 'Zammad unavailable, falling back to mock data', { data: { error: error instanceof Error ? error.message : error } })
         // Fall back to mock data
         allUsers = Object.values(mockUsers).map(user => ({
           ...user,
@@ -331,7 +332,7 @@ export async function POST(request: NextRequest) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return unauthorizedResponse()
     }
-    console.error('Failed to create user:', error)
+    logger.error('AdminUsers', 'Failed to create user', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to create user', error.message)
   }
 }

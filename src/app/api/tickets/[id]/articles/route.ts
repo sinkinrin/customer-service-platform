@@ -104,9 +104,6 @@ const createArticleSchema = z.object({
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
 
-  // Direct diagnostic output (bypassing logger)
-  console.log('[DIAG] Articles API called, LOG_LEVEL=' + process.env.LOG_LEVEL + ', NODE_ENV=' + process.env.NODE_ENV)
-
   const log = getApiLogger('TicketArticlesAPI', request)
   try {
     const user = await requireAuth()

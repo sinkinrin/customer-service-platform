@@ -6,6 +6,7 @@
 
 import fs from 'fs/promises'
 import path from 'path'
+import { logger } from '@/lib/utils/logger'
 
 const STORAGE_DIR = path.join(process.cwd(), 'data', 'conversations')
 const CONVERSATIONS_FILE = path.join(STORAGE_DIR, 'conversations.json')
@@ -55,7 +56,7 @@ async function initStorage() {
       await fs.writeFile(MESSAGES_FILE, JSON.stringify([]))
     }
   } catch (error) {
-    console.error('[LocalStorage] Failed to initialize storage:', error)
+    logger.error('LocalStorage', 'Failed to initialize storage', { data: { error: error instanceof Error ? error.message : error } })
     throw error
   }
 }
@@ -69,7 +70,7 @@ async function readConversations(): Promise<LocalConversation[]> {
     const data = await fs.readFile(CONVERSATIONS_FILE, 'utf-8')
     return JSON.parse(data)
   } catch (error) {
-    console.error('[LocalStorage] Failed to read conversations:', error)
+    logger.error('LocalStorage', 'Failed to read conversations', { data: { error: error instanceof Error ? error.message : error } })
     return []
   }
 }
@@ -82,7 +83,7 @@ async function writeConversations(conversations: LocalConversation[]): Promise<v
     await initStorage()
     await fs.writeFile(CONVERSATIONS_FILE, JSON.stringify(conversations, null, 2))
   } catch (error) {
-    console.error('[LocalStorage] Failed to write conversations:', error)
+    logger.error('LocalStorage', 'Failed to write conversations', { data: { error: error instanceof Error ? error.message : error } })
     throw error
   }
 }
@@ -96,7 +97,7 @@ async function readMessages(): Promise<LocalMessage[]> {
     const data = await fs.readFile(MESSAGES_FILE, 'utf-8')
     return JSON.parse(data)
   } catch (error) {
-    console.error('[LocalStorage] Failed to read messages:', error)
+    logger.error('LocalStorage', 'Failed to read messages', { data: { error: error instanceof Error ? error.message : error } })
     return []
   }
 }
@@ -109,7 +110,7 @@ async function writeMessages(messages: LocalMessage[]): Promise<void> {
     await initStorage()
     await fs.writeFile(MESSAGES_FILE, JSON.stringify(messages, null, 2))
   } catch (error) {
-    console.error('[LocalStorage] Failed to write messages:', error)
+    logger.error('LocalStorage', 'Failed to write messages', { data: { error: error instanceof Error ? error.message : error } })
     throw error
   }
 }
@@ -137,7 +138,6 @@ export async function createAIConversation(
   conversations.push(newConversation)
   await writeConversations(conversations)
 
-  console.log('[LocalStorage] Created AI conversation:', newConversation.id)
   return newConversation
 }
 
@@ -219,7 +219,6 @@ export async function addMessage(
     last_message_at: newMessage.created_at,
   })
 
-  console.log('[LocalStorage] Added message to conversation:', conversation_id, message_type || 'text')
   return newMessage
 }
 
@@ -244,7 +243,6 @@ export async function deleteConversation(id: string): Promise<boolean> {
   await writeConversations(filteredConversations)
   await writeMessages(filteredMessages)
 
-  console.log('[LocalStorage] Deleted conversation:', id)
   return true
 }
 

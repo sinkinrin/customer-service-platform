@@ -8,6 +8,7 @@
 
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/utils/logger'
 import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
@@ -61,7 +62,6 @@ export async function POST(request: NextRequest) {
     // FIX: Clear FAQ and categories cache after category creation
     faqCache.clear()
     categoriesCache.clear()
-    console.log('[Cache] Cleared FAQ and categories cache after category creation')
 
     return successResponse(
       {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       201
     )
   } catch (error: any) {
-    console.error('POST /api/admin/faq/categories error:', error)
+    logger.error('FAQCategories', 'POST /api/admin/faq/categories error', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -122,14 +122,13 @@ export async function PUT(request: NextRequest) {
     // FIX: Clear FAQ and categories cache after category update
     faqCache.clear()
     categoriesCache.clear()
-    console.log('[Cache] Cleared FAQ and categories cache after category update')
 
     return successResponse({
       message: 'Category updated successfully',
       category,
     })
   } catch (error: any) {
-    console.error('PUT /api/admin/faq/categories error:', error)
+    logger.error('FAQCategories', 'PUT /api/admin/faq/categories error', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
@@ -188,13 +187,12 @@ export async function DELETE(request: NextRequest) {
     // FIX: Clear FAQ and categories cache after category deletion
     faqCache.clear()
     categoriesCache.clear()
-    console.log('[Cache] Cleared FAQ and categories cache after category deletion')
 
     return successResponse({
       message: 'Category deleted successfully',
     })
   } catch (error: any) {
-    console.error('DELETE /api/admin/faq/categories error:', error)
+    logger.error('FAQCategories', 'DELETE /api/admin/faq/categories error', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/utils/logger'
 
 // GET /api/admin/stats/ratings - Get customer satisfaction statistics
 export async function GET() {
@@ -75,7 +76,7 @@ export async function GET() {
       })
     } catch (dbError) {
       // Database table may not exist yet
-      console.warn('[Rating Stats] Could not query ratings:', dbError)
+      logger.warning('StatsRatings', 'Could not query ratings', { data: { error: dbError instanceof Error ? dbError.message : dbError } })
       return NextResponse.json({
         success: true,
         data: {
@@ -88,7 +89,7 @@ export async function GET() {
       })
     }
   } catch (error) {
-    console.error('[GET /api/admin/stats/ratings] Error:', error)
+    logger.error('StatsRatings', 'Failed to get rating stats', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get rating stats' } },
       { status: 500 }

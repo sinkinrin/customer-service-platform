@@ -10,6 +10,7 @@
  *         description: Unread count
  */
 
+import { logger } from '@/lib/utils/logger'
 import { requireAuth } from '@/lib/utils/auth'
 import {
   successResponse,
@@ -44,7 +45,7 @@ export async function GET() {
 
     return successResponse({ unreadCount })
   } catch (error: any) {
-    console.error('GET /api/conversations/unread-count error:', error)
+    logger.error('Conversations', 'Failed to get unread count', { data: { error: error instanceof Error ? error.message : error } })
     if (error?.message === 'Unauthorized') {
       return unauthorizedResponse()
     }

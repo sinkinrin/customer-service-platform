@@ -41,7 +41,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
       {/* Footer */}
       <footer className="border-t py-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} {tCommon('appName')}. All rights reserved.</p>
+          <p>© HowenTechnologies All rights reserved.</p>
         </div>
       </footer>
     </div>

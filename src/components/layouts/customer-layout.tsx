@@ -356,17 +356,15 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
               <div className="container mx-auto px-4 py-6 flex-1 flex flex-col min-h-0 w-full">{children}</div>
             )}
           </PageTransition>
+          {!isFullHeightPage && (
+            <footer className="py-6 border-t bg-background">
+              <div className="container px-4 mx-auto text-center text-muted-foreground text-sm">
+                <p>© HowenTechnologies All rights reserved.</p>
+              </div>
+            </footer>
+          )}
         </main>
       </div>
-
-      {/* Footer - Hidden on full-height pages */}
-      {!isFullHeightPage && (
-        <footer className="border-t py-6 mt-auto">
-          <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} {tCommon('appName')}. All rights reserved.</p>
-          </div>
-        </footer>
-      )}
     </div>
   )
 }

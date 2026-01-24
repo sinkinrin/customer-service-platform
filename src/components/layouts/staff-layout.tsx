@@ -274,6 +274,13 @@ export function StaffLayout({
             {children}
           </PageTransition>
         </main>
+        {!isTicketDetailPage && (
+          <footer className="py-6 border-t bg-background">
+            <div className="container px-4 mx-auto text-center text-muted-foreground text-sm">
+              <p>© HowenTechnologies All rights reserved.</p>
+            </div>
+          </footer>
+        )}
       </div>
     </div>
   )

@@ -1943,52 +1943,54 @@
       "title": "Cargando panel...",
       "verifying": "Verificando credenciales"
     },
-    "brand": "FleetCommand",
+    "brand": "Howen",
     "nav": {
-      "solutions": "Soluciones",
-      "pricing": "Precios",
-      "resources": "Recursos",
-      "company": "Empresa",
       "login": "Iniciar sesión",
-      "getStarted": "Comenzar"
+      "getStarted": "Comenzar",
+      "features": "Características",
+      "faq": "Preguntas Frecuentes"
     },
     "hero": {
-      "titlePart1": "Gestión de flotas moderna",
-      "titlePart2": "Simplificada",
-      "description": "Rastrea, gestiona y optimiza las operaciones de tu flota con nuestra plataforma integral. Información en tiempo real para una mejor toma de decisiones.",
-      "startFreeTrial": "Comenzar prueba gratuita",
-      "watchDemo": "Ver demostración",
-      "freeTrial": "14 días de prueba gratuita",
-      "noCreditCard": "No se requiere tarjeta de crédito"
+      "titlePart1": "Servicio al Cliente Inteligente",
+      "titlePart2": "Impulsado por IA",
+      "description": "Optimice su soporte al cliente con chat de IA y gestión integral de tickets. Ofrezca respuestas más rápidas y mejores experiencias.",
+      "getStarted": "Empezar",
+      "learnMore": "Saber Más",
+      "feature1": "Respuestas de IA",
+      "feature2": "Disponibilidad 24/7"
     },
     "features": {
-      "title": "Todo lo que necesitas para gestionar tu flota",
-      "description": "Funciones potentes diseñadas para ayudarte a reducir costos, mejorar la seguridad y aumentar la eficiencia operativa.",
-      "realTimeTracking": {
-        "name": "Seguimiento en tiempo real",
-        "description": "Monitorea las ubicaciones y el estado de tu flota en tiempo real con integración GPS avanzada."
+      "title": "Todo lo que necesita para el servicio al cliente",
+      "description": "Herramientas poderosas para ayudarle a brindar un soporte al cliente excepcional a escala.",
+      "realTimeTracking": {},
+      "performanceAnalytics": {},
+      "safetyCompliance": {},
+      "maintenanceScheduling": {},
+      "aiChat": {
+        "name": "Chat de IA",
+        "description": "El chatbot inteligente maneja consultas comunes al instante, reduciendo el tiempo de respuesta y la carga de trabajo."
       },
-      "performanceAnalytics": {
-        "name": "Análisis de rendimiento",
-        "description": "Obtén información detallada sobre el uso de combustible, comportamiento del conductor y necesidades de mantenimiento."
+      "ticketManagement": {
+        "name": "Gestión de Tickets",
+        "description": "Rastree, priorice y resuelva problemas de clientes con un sistema de tickets completo."
       },
-      "safetyCompliance": {
-        "name": "Seguridad y cumplimiento",
-        "description": "Asegura que tu flota cumpla con todos los requisitos regulatorios y estándares de seguridad automáticamente."
+      "knowledgeBase": {
+        "name": "Base de Conocimientos",
+        "description": "El portal de preguntas frecuentes de autoservicio permite a los clientes encontrar respuestas de forma independiente."
       },
-      "maintenanceScheduling": {
-        "name": "Programación de mantenimiento",
-        "description": "Alertas automatizadas y programación para el mantenimiento de vehículos para prevenir tiempos de inactividad."
+      "analytics": {
+        "name": "Análisis e Informes",
+        "description": "Obtenga información sobre el rendimiento del soporte con análisis e informes detallados."
       }
     },
     "cta": {
-      "title": "¿Listo para optimizar las operaciones de tu flota?",
-      "description": "Únete a más de 2,000 empresas que usan FleetCommand para reducir costos y mejorar la seguridad.",
-      "button": "Comienza tu prueba gratuita",
-      "noCreditCard": "No se requiere tarjeta de crédito. 14 días de prueba gratuita."
+      "title": "¿Listo para transformar su servicio al cliente?",
+      "description": "Únase a empresas de todo el mundo que usan Howen para ofrecer experiencias excepcionales al cliente.",
+      "button": "Contáctenos",
+      "learnMore": "Saber más en howentech.com"
     },
     "footer": {
-      "copyright": "© 2025 FleetCommand Inc. Todos los derechos reservados."
+      "copyright": "© HowenTechnologies All rights reserved."
     }
   },
   "dashboardComponents": {

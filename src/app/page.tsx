@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useTranslations } from 'next-intl'
 import { Logo } from '@/components/ui/logo'
+import { LanguageSelector } from '@/components/language-selector'
 
 export default function HomePage() {
   const router = useRouter()
@@ -51,6 +52,7 @@ export default function HomePage() {
             <Link href="/customer/faq" className="hover:text-blue-600 transition-colors">{t('nav.faq')}</Link>
           </nav>
           <div className="flex items-center gap-4">
+            <LanguageSelector />
             <Link href="/auth/login" className="text-sm font-medium text-slate-600 hover:text-blue-600 hidden sm:block">
               {t('nav.login')}
             </Link>

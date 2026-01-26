@@ -18,6 +18,11 @@ export const REGIONS = [
 export type RegionValue = typeof REGIONS[number]['value']
 
 /**
+ * Zammad staging group ID for newly created email tickets awaiting routing.
+ */
+export const STAGING_GROUP_ID = 9
+
+/**
  * Region to Zammad Group ID Mapping
  *
  * NOTE: These Group IDs match the actual Zammad Groups in the system

@@ -24,6 +24,7 @@ import {
   resolveLocalUserIdsForZammadUserId,
 } from '@/lib/notification'
 import { sseEmitter } from '@/lib/sse/emitter'
+import { handleEmailTicketRoutingFromWebhookPayload } from '@/lib/ticket/email-ticket-routing'
 
 // Event types for TicketUpdate
 type TicketUpdateEvent = 'article_created' | 'status_changed' | 'assigned' | 'created'
@@ -276,6 +277,11 @@ export async function POST(request: NextRequest) {
         }
       } catch (notifyError) {
         log.error('Failed to create in-app notifications', { error: notifyError instanceof Error ? notifyError.message : notifyError })
+      }
+
+      // Non-blocking: route newly created email tickets from staging group to regional group
+      if (updateEvent === 'created') {
+        void handleEmailTicketRoutingFromWebhookPayload(webhookPayload!, log.requestId)
       }
     }
 

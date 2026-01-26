@@ -81,8 +81,11 @@ export interface CreateTicketRequest {
 export interface UpdateTicketRequest {
   title?: string
   group?: string
+  group_id?: number
   state?: string
+  state_id?: number
   priority?: string
+  priority_id?: number
   owner_id?: number
   pending_time?: string // ISO 8601 datetime string (required for pending states)
   article?: {

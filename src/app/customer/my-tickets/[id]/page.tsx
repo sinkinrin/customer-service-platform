@@ -177,11 +177,11 @@ export default function CustomerTicketDetailPage() {
 
     setSubmitting(true)
     try {
-      // Get attachment IDs and form_id from successfully uploaded files
-      const attachmentIds = getAttachmentIds()
+      // Get form_id from successfully uploaded files
+      // Note: Only form_id is needed - Zammad retrieves attachments from UploadCache by form_id
       const formId = getFormId()
 
-      // Call API with attachment_ids and form_id (Zammad native API)
+      // Call API with form_id (Zammad native API)
       const response = await fetch(`/api/tickets/${ticketId}/articles`, {
         method: 'POST',
         headers: {
@@ -192,7 +192,6 @@ export default function CustomerTicketDetailPage() {
           body: replyText,
           type: 'web',
           internal: false,
-          ...(attachmentIds.length > 0 && { attachment_ids: attachmentIds }),
           ...(formId && { form_id: formId }),
         }),
       })

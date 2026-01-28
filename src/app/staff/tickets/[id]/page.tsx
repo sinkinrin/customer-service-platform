@@ -169,15 +169,16 @@ export default function StaffTicketDetailPage() {
     }
   }
 
-  const handleAddNote = async (note: string, internal: boolean, attachmentIds?: number[], replyType?: 'note' | 'email', formId?: string) => {
+  const handleAddNote = async (note: string, internal: boolean, _attachmentIds?: number[], replyType?: 'note' | 'email', formId?: string) => {
     // Generate a temporary message ID
     const tempMessageId = `temp-${Date.now()}`
 
+    // Note: Only form_id is needed - Zammad retrieves attachments from UploadCache by form_id
+    // The _attachmentIds parameter is kept for interface compatibility but not used
     const article = await addArticle(ticketId, tempMessageId, {
       subject: ticket?.title || 'Note',
       body: note,
       internal,
-      attachment_ids: attachmentIds,
       form_id: formId,
       type: replyType || 'note',  // Use replyType to determine if email should be sent
     })

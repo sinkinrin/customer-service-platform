@@ -208,8 +208,10 @@ export function useTicket() {
       body: string
       internal?: boolean
       attachments?: Array<{filename: string; data: string; 'mime-type': string}>
-      attachment_ids?: number[]  // Pre-uploaded attachments via /api/attachments/upload
-      form_id?: string  // Form ID from upload_caches for grouped attachments
+      // Note: attachment_ids is deprecated - Zammad retrieves attachments from UploadCache by form_id
+      // @deprecated Use form_id instead - Zammad's CreatesTicketArticles processes form_id to get cached files
+      attachment_ids?: number[]
+      form_id?: string  // Form ID from upload_caches - Zammad automatically retrieves attached files
       type?: 'note' | 'email' | 'phone' | 'web'  // 'email' will send email to customer
     }
   ): Promise<TicketArticle | null> => {

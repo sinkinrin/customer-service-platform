@@ -146,8 +146,8 @@ ${values.expectedResult || 'N/A'}
 【${tTemplate('actualResult')}】
 ${values.actualResult || 'N/A'}`
 
-      // Get attachment IDs and form_id from successfully uploaded files
-      const attachmentIds = getAttachmentIds()
+      // Get form_id from successfully uploaded files
+      // Note: Only form_id is needed - Zammad retrieves attachments from UploadCache by form_id
       const formId = getFormId()
 
       // Create ticket data (matching API schema)
@@ -160,8 +160,7 @@ ${values.actualResult || 'N/A'}`
           body: ticketBody,
           type: 'web' as const,
           internal: false,
-          // Use attachment_ids and form_id for pre-uploaded files (Zammad native API)
-          ...(attachmentIds.length > 0 && { attachment_ids: attachmentIds }),
+          // Use form_id for pre-uploaded files (Zammad UploadCache API)
           ...(formId && { form_id: formId }),
         },
       }

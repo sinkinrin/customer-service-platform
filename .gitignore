@@ -76,3 +76,6 @@ start.*.log
 
 # Application logs
 /logs/
+
+# External reference projects (not part of this repo)
+/Yuxi-Know/

@@ -373,6 +373,59 @@ Staff regions are determined by their `group_ids` in Zammad.
 
 ---
 
+## Email User Welcome System
+
+Location: `src/lib/ticket/email-user-welcome.ts`
+
+### Overview
+
+When a user first contacts support via email, Zammad automatically creates a customer account but without a usable password. This system automatically generates a password and sends a welcome email.
+
+### Configuration
+
+```env
+# Enable auto-generation of password for first-time email users (default: true)
+EMAIL_USER_AUTO_PASSWORD_ENABLED=true
+
+# Enable sending welcome email with login credentials (default: true)
+EMAIL_USER_WELCOME_EMAIL_ENABLED=true
+
+# Web platform URL for the login link in welcome emails
+WEB_PLATFORM_URL=https://support.example.com
+```
+
+### How It Works
+
+1. **Webhook Trigger**: When a ticket is created via email (`article.type === 'email'`), the webhook handler triggers the welcome flow asynchronously.
+
+2. **Idempotency Check**: The system checks the user's `note` field for a `WelcomeEmailSent:` marker to avoid duplicate processing.
+
+3. **Password Generation**: A 12-character secure random password is generated using `crypto.randomBytes()`. The password excludes confusing characters (0/O, 1/l/I).
+
+4. **Password Setting**: The password is set via `zammadClient.updateUser()`.
+
+5. **Welcome Email**: An HTML email is sent via `zammadClient.createArticle()` with:
+   - Login credentials (email + temporary password)
+   - Login URL link
+   - Security warning to change password after first login
+
+6. **Marker Update**: After successful email delivery, the user's `note` field is updated with `WelcomeEmailSent: <timestamp>`.
+
+### Security Considerations
+
+⚠️ **Important**: The welcome email is sent as an external article and appears in the ticket history. This means:
+- Staff and admins can see the temporary password in ticket history
+- The email prominently warns users to change their password immediately
+- Password is only set once per user (idempotent)
+
+### Retry Logic
+
+- If password setting fails: the flow aborts, no marker is written
+- If email sending fails: marker is NOT written, allowing retry on next ticket
+- All errors are logged but don't block the webhook response
+
+---
+
 ## Permission System
 
 Location: `src/lib/utils/permission.ts`

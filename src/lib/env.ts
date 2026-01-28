@@ -38,6 +38,11 @@ interface EnvConfig {
 
   // Node Environment
   NODE_ENV: string
+
+  // Email User Welcome
+  EMAIL_USER_AUTO_PASSWORD_ENABLED: boolean
+  EMAIL_USER_WELCOME_EMAIL_ENABLED: boolean
+  WEB_PLATFORM_URL?: string
 }
 
 /**
@@ -147,6 +152,9 @@ export function getEnv(): EnvConfig {
     FASTGPT_API_KEY: process.env.FASTGPT_API_KEY,
     LOG_LEVEL: process.env.LOG_LEVEL || "info",
     NODE_ENV: process.env.NODE_ENV || "development",
+    EMAIL_USER_AUTO_PASSWORD_ENABLED: process.env.EMAIL_USER_AUTO_PASSWORD_ENABLED !== "false",
+    EMAIL_USER_WELCOME_EMAIL_ENABLED: process.env.EMAIL_USER_WELCOME_EMAIL_ENABLED !== "false",
+    WEB_PLATFORM_URL: process.env.WEB_PLATFORM_URL,
   }
 }
 

@@ -25,6 +25,7 @@ import {
 } from '@/lib/notification'
 import { sseEmitter } from '@/lib/sse/emitter'
 import { handleEmailTicketRoutingFromWebhookPayload } from '@/lib/ticket/email-ticket-routing'
+import { handleEmailUserWelcomeFromWebhookPayload } from '@/lib/ticket/email-user-welcome'
 
 // Event types for TicketUpdate
 type TicketUpdateEvent = 'article_created' | 'status_changed' | 'assigned' | 'created'
@@ -282,6 +283,8 @@ export async function POST(request: NextRequest) {
       // Non-blocking: route newly created email tickets from staging group to regional group
       if (updateEvent === 'created') {
         void handleEmailTicketRoutingFromWebhookPayload(webhookPayload!, log.requestId)
+        // Non-blocking: send welcome email to first-time email users
+        void handleEmailUserWelcomeFromWebhookPayload(webhookPayload!, log.requestId)
       }
     }
 

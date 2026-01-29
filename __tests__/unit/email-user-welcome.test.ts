@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   generateSecurePassword,
+  isFirstTimeEmailUser,
+  hasPasswordBeenSet,
   hasWelcomeEmailSent,
+  buildNoteWithPasswordMarker,
   buildNoteWithWelcomeMarker,
   handleEmailUserWelcomeFromWebhookPayload,
 } from '@/lib/ticket/email-user-welcome'
@@ -76,6 +79,44 @@ describe('generateSecurePassword', () => {
   })
 })
 
+describe('isFirstTimeEmailUser', () => {
+  it('returns true for empty or null note (no Region)', () => {
+    expect(isFirstTimeEmailUser(null)).toBe(true)
+    expect(isFirstTimeEmailUser(undefined)).toBe(true)
+    expect(isFirstTimeEmailUser('')).toBe(true)
+  })
+
+  it('returns false when user has valid Region', () => {
+    expect(isFirstTimeEmailUser('Region: asia-pacific')).toBe(false)
+    expect(isFirstTimeEmailUser('Region: europe-zone-1')).toBe(false)
+    expect(isFirstTimeEmailUser('Some prefix\nRegion: middle-east')).toBe(false)
+  })
+
+  it('returns true when Region is invalid or missing', () => {
+    expect(isFirstTimeEmailUser('Some other note')).toBe(true)
+    expect(isFirstTimeEmailUser('WelcomePasswordSet: 2024-01-01T00:00:00Z')).toBe(true)
+    expect(isFirstTimeEmailUser('Region: invalid-region')).toBe(true) // Invalid region value
+  })
+})
+
+describe('hasPasswordBeenSet', () => {
+  it('returns false for empty or null note', () => {
+    expect(hasPasswordBeenSet(null)).toBe(false)
+    expect(hasPasswordBeenSet(undefined)).toBe(false)
+    expect(hasPasswordBeenSet('')).toBe(false)
+  })
+
+  it('returns false when marker is not present', () => {
+    expect(hasPasswordBeenSet('Region: asia-pacific')).toBe(false)
+    expect(hasPasswordBeenSet('Some other note')).toBe(false)
+  })
+
+  it('returns true when marker is present', () => {
+    expect(hasPasswordBeenSet('WelcomePasswordSet: 2024-01-01T00:00:00Z')).toBe(true)
+    expect(hasPasswordBeenSet('Region: asia-pacific\nWelcomePasswordSet: 2024-01-01T00:00:00Z')).toBe(true)
+  })
+})
+
 describe('hasWelcomeEmailSent', () => {
   it('returns false for empty or null note', () => {
     expect(hasWelcomeEmailSent(null)).toBe(false)
@@ -85,12 +126,25 @@ describe('hasWelcomeEmailSent', () => {
 
   it('returns false when marker is not present', () => {
     expect(hasWelcomeEmailSent('Region: asia-pacific')).toBe(false)
-    expect(hasWelcomeEmailSent('Some other note')).toBe(false)
+    expect(hasWelcomeEmailSent('WelcomePasswordSet: 2024-01-01T00:00:00Z')).toBe(false)
   })
 
   it('returns true when marker is present', () => {
     expect(hasWelcomeEmailSent('WelcomeEmailSent: 2024-01-01T00:00:00Z')).toBe(true)
-    expect(hasWelcomeEmailSent('Region: asia-pacific\nWelcomeEmailSent: 2024-01-01T00:00:00Z')).toBe(true)
+    expect(hasWelcomeEmailSent('WelcomePasswordSet: 2024-01-01T00:00:00Z\nWelcomeEmailSent: 2024-01-01T00:00:00Z')).toBe(true)
+  })
+})
+
+describe('buildNoteWithPasswordMarker', () => {
+  it('creates marker for empty note', () => {
+    const result = buildNoteWithPasswordMarker('')
+    expect(result).toMatch(/^WelcomePasswordSet: \d{4}-\d{2}-\d{2}T/)
+  })
+
+  it('appends marker to existing note', () => {
+    const result = buildNoteWithPasswordMarker('Region: asia-pacific')
+    expect(result).toContain('Region: asia-pacific')
+    expect(result).toContain('\nWelcomePasswordSet:')
   })
 })
 
@@ -101,8 +155,8 @@ describe('buildNoteWithWelcomeMarker', () => {
   })
 
   it('appends marker to existing note', () => {
-    const result = buildNoteWithWelcomeMarker('Region: asia-pacific')
-    expect(result).toContain('Region: asia-pacific')
+    const result = buildNoteWithWelcomeMarker('WelcomePasswordSet: 2024-01-01T00:00:00Z')
+    expect(result).toContain('WelcomePasswordSet: 2024-01-01T00:00:00Z')
     expect(result).toContain('\nWelcomeEmailSent:')
   })
 })
@@ -126,11 +180,11 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     expect(mockGetUser).not.toHaveBeenCalled()
   })
 
-  it('skips when user already has welcome email marker', async () => {
+  it('skips when user has Region (existing user)', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
-      note: 'WelcomeEmailSent: 2024-01-01T00:00:00Z',
+      note: 'Region: asia-pacific',
     })
 
     await handleEmailUserWelcomeFromWebhookPayload({
@@ -142,13 +196,29 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     expect(mockCreateArticle).not.toHaveBeenCalled()
   })
 
-  it('sets password and sends welcome email for new email user', async () => {
+  it('skips when user already has WelcomePasswordSet marker (but no Region)', async () => {
+    mockGetUser.mockResolvedValue({
+      id: 1,
+      email: 'customer@example.com',
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z\nWelcomeEmailSent: 2024-01-01T00:00:00Z',
+    })
+
+    await handleEmailUserWelcomeFromWebhookPayload({
+      ticket: { id: 100, customer_id: 1, number: '100', title: 'Test' },
+      article: { id: 1, type: 'email' },
+    } as any)
+
+    expect(mockUpdateUser).not.toHaveBeenCalled()
+    expect(mockCreateArticle).not.toHaveBeenCalled()
+  })
+
+  it('sets password and sends welcome email for first-time email user', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
       firstname: 'John',
       lastname: 'Doe',
-      note: 'Region: asia-pacific',
+      note: '', // No Region = first-time email user
     })
     mockUpdateUser.mockResolvedValue({ id: 1 })
     mockCreateArticle.mockResolvedValue({ id: 10 })
@@ -163,6 +233,11 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       password: expect.any(String),
     }))
 
+    // Should mark password as set (second updateUser call)
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomePasswordSet:'),
+    }))
+
     // Should send welcome email
     expect(mockCreateArticle).toHaveBeenCalledWith(expect.objectContaining({
       ticket_id: 100,
@@ -172,13 +247,34 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       to: 'customer@example.com',
     }))
 
-    // Should mark welcome email as sent (second updateUser call)
+    // Should mark welcome email as sent (third updateUser call)
     expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
       note: expect.stringContaining('WelcomeEmailSent:'),
     }))
   })
 
-  it('does not mark as sent if email fails', async () => {
+  it('marks password set but does not resend email if password was already set', async () => {
+    mockGetUser.mockResolvedValue({
+      id: 1,
+      email: 'customer@example.com',
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z', // Password set but email not sent
+    })
+
+    await handleEmailUserWelcomeFromWebhookPayload({
+      ticket: { id: 100, customer_id: 1, number: '100', title: 'Test' },
+      article: { id: 1, type: 'email' },
+    } as any)
+
+    // Should NOT set password again
+    expect(mockUpdateUser).not.toHaveBeenCalledWith(1, expect.objectContaining({
+      password: expect.any(String),
+    }))
+
+    // Should NOT send email (password not available)
+    expect(mockCreateArticle).not.toHaveBeenCalled()
+  })
+
+  it('does not mark email sent if email fails', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
@@ -197,8 +293,13 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       password: expect.any(String),
     }))
 
-    // Should NOT mark as sent (only one updateUser call for password)
-    expect(mockUpdateUser).toHaveBeenCalledTimes(1)
+    // Should mark password as set
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomePasswordSet:'),
+    }))
+
+    // Should NOT mark email as sent (only two updateUser calls)
+    expect(mockUpdateUser).toHaveBeenCalledTimes(2)
   })
 
   it('handles password setting failure gracefully', async () => {

@@ -4,8 +4,8 @@
 
 **中文概览**: See [ZAMMAD-INTEGRATION.zh-CN.md](./ZAMMAD-INTEGRATION.zh-CN.md)
 
-**Last Updated**: 2026-01-21
-**Version**: 2.0
+**Last Updated**: 2026-01-29
+**Version**: 2.1
 
 ---
 
@@ -398,31 +398,39 @@ WEB_PLATFORM_URL=https://support.example.com
 
 1. **Webhook Trigger**: When a ticket is created via email (`article.type === 'email'`), the webhook handler triggers the welcome flow asynchronously.
 
-2. **Idempotency Check**: The system checks the user's `note` field for a `WelcomeEmailSent:` marker to avoid duplicate processing.
+2. **First-Time User Detection**: The system distinguishes first-time email users from existing users by checking the `note` field for a Region marker:
+   - **No Region** = First-time email user (auto-created by Zammad with empty note)
+   - **Has Region** = Existing user (registered via web or created by admin, always has `Region: xxx`)
 
-3. **Password Generation**: A 12-character secure random password is generated using `crypto.randomBytes()`. The password excludes confusing characters (0/O, 1/l/I).
+3. **Two-Step Idempotency**: The system uses two separate markers to ensure safe retries:
+   - `WelcomePasswordSet:` - Written immediately after password is set
+   - `WelcomeEmailSent:` - Written after welcome email is successfully sent
 
-4. **Password Setting**: The password is set via `zammadClient.updateUser()`.
+4. **Password Generation**: A 12-character secure random password is generated using `crypto.randomBytes()`. The password excludes confusing characters (0/O, 1/l/I).
 
-5. **Welcome Email**: An HTML email is sent via `zammadClient.createArticle()` with:
+5. **Password Setting**: The password is set via `zammadClient.updateUser()`, then immediately marked with `WelcomePasswordSet:`.
+
+6. **Welcome Email**: An HTML email is sent via `zammadClient.createArticle()` with:
    - Login credentials (email + temporary password)
    - Login URL link
    - Security warning to change password after first login
 
-6. **Marker Update**: After successful email delivery, the user's `note` field is updated with `WelcomeEmailSent: <timestamp>`.
+7. **Marker Update**: After successful email delivery, the user's `note` field is updated with `WelcomeEmailSent: <timestamp>`.
 
 ### Security Considerations
 
 ⚠️ **Important**: The welcome email is sent as an external article and appears in the ticket history. This means:
 - Staff and admins can see the temporary password in ticket history
 - The email prominently warns users to change their password immediately
-- Password is only set once per user (idempotent)
+- Password is only set once per user (idempotent via `WelcomePasswordSet:` marker)
+- Only truly new email users (no Region) receive credentials; existing users are never affected
 
 ### Retry Logic
 
 - If password setting fails: the flow aborts, no marker is written
-- If email sending fails: marker is NOT written, allowing retry on next ticket
+- If email sending fails: only `WelcomePasswordSet:` is written; password won't be regenerated on retry
 - All errors are logged but don't block the webhook response
+- Note: If password was set but email failed, subsequent retries cannot send the welcome email (password is not stored)
 
 ---
 

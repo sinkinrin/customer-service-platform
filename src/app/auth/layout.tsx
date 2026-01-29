@@ -11,7 +11,6 @@ import { getTranslations } from 'next-intl/server'
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
   const t = await getTranslations('auth.layout')
-  const tCommon = await getTranslations('common')
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">

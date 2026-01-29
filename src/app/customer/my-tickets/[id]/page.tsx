@@ -64,7 +64,6 @@ export default function CustomerTicketDetailPage() {
     addFiles,
     removeFile: handleRemoveFile,
     clearFiles,
-    getAttachmentIds,
     getFormId,
   } = useFileUpload({
     onError: (msg) => toast.error(msg),

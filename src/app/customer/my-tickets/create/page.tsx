@@ -100,7 +100,6 @@ export default function CreateTicketPage() {
     isUploading,
     addFiles,
     removeFile,
-    getAttachmentIds,
     getFormId,
   } = useFileUpload({
     onError: (msg) => toast.error(msg),

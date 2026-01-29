@@ -13,10 +13,10 @@
 
 - [x] 新增 `src/lib/ticket/email-user-welcome.ts`
 - [x] 实现 `generateSecurePassword()`：12 位安全随机密码（crypto.randomBytes + 排除易混淆字符）
-- [x] 实现去重判定（基于 user.note 标记）
+- [x] 实现首次用户判定（基于 Region 标记：无 Region = 邮件新用户）
+- [x] 实现两步幂等标记：`WelcomePasswordSet:` + `WelcomeEmailSent:`
 - [x] 实现 `setUserPassword()`：`zammadClient.updateUser(userId, { password })`（含错误处理与日志）
 - [x] 实现 `sendWelcomeEmail()`：`zammadClient.createArticle(...)`（type=email、content_type=text/html、internal=false）
-- [x] 成功发送后写入 `WelcomeEmailSent:` 标记（含时间戳）
 
 ## 3. Webhook 集成
 
@@ -30,9 +30,15 @@
 - [x] 单元测试：模板变量替换
 - [x] 单元测试：首封邮件 -> 设置密码 + 发送欢迎邮件
 - [x] 单元测试：重复邮件 -> 不重复处理
+- [x] 单元测试：现有用户（有 Region）-> 跳过处理
 - [x] 单元测试：API 失败 -> 不阻塞 webhook（记录错误）
 
 ## 5. 文档
 
 - [x] 更新 `docs/ZAMMAD-INTEGRATION.md`：说明欢迎邮件与配置项
 - [x] 在 `.env.example` 增加配置说明
+
+## 6. 代码清理
+
+- [x] 修复 lint 错误（移除未使用的变量）
+- [x] 更新文档日期

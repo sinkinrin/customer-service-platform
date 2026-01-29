@@ -84,6 +84,7 @@ export class YuxiLegacyProvider implements AIProvider {
       }
 
       let fullResponse = ''
+      let errorMessage = ''
       const decoder = new TextDecoder()
 
       while (true) {
@@ -96,17 +97,29 @@ export class YuxiLegacyProvider implements AIProvider {
         for (const line of lines) {
           try {
             const chunk = JSON.parse(line)
+            // Accumulate response content
             if (chunk.response) {
               fullResponse += chunk.response
             }
-            // Handle final message or status
-            if (chunk.status === 'done' || chunk.status === 'error') {
+            // Check for error status
+            if (chunk.status === 'error') {
+              errorMessage = chunk.error_message || chunk.message || 'Unknown error from AI'
+              break
+            }
+            // Handle final status (Yuxi-Know uses 'finished', not 'done')
+            if (chunk.status === 'finished' || chunk.status === 'interrupted') {
               break
             }
           } catch {
             // Skip invalid JSON lines
           }
         }
+      }
+
+      // Return error if we got one
+      if (errorMessage) {
+        logger.error('YuxiLegacy', 'AI error', { data: { error: errorMessage } })
+        return { success: false, error: errorMessage }
       }
 
       return {
@@ -181,6 +194,7 @@ export class YuxiLegacyProvider implements AIProvider {
       }
 
       let fullResponse = ''
+      let errorMessage = ''
       const decoder = new TextDecoder()
 
       while (true) {
@@ -193,15 +207,33 @@ export class YuxiLegacyProvider implements AIProvider {
         for (const line of lines) {
           try {
             const chunk = JSON.parse(line)
+            // Accumulate response content
             if (chunk.response) {
               fullResponse += chunk.response
             }
-            if (chunk.status === 'done' || chunk.status === 'error') {
+            // Check for error status
+            if (chunk.status === 'error') {
+              errorMessage = chunk.error_message || chunk.message || 'Unknown error from AI'
+              break
+            }
+            // Handle final status (Yuxi-Know uses 'finished', not 'done')
+            if (chunk.status === 'finished' || chunk.status === 'interrupted') {
               break
             }
           } catch {
             // Skip invalid JSON lines
           }
+        }
+      }
+
+      // Return error if we got one
+      if (errorMessage) {
+        return {
+          success: false,
+          connectivity: true,
+          functional: false,
+          error: errorMessage,
+          responseTime: Date.now() - startTime,
         }
       }
 

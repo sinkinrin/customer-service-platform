@@ -1558,6 +1558,12 @@
       "promptLabel": "Prompt do sistema",
       "promptPlaceholder": "Você é um assistente de suporte profissional...",
       "promptHint": "Defina a função da IA e o estilo de resposta",
+      "provider": {
+        "label": "AI Provider",
+        "fastgpt": "FastGPT",
+        "openai": "OpenAI Compatible",
+        "yuxiLegacy": "Yuxi-Know (Native)"
+      },
       "fastgpt": {
         "title": "Configuração do FastGPT",
         "url": "URL do FastGPT",
@@ -1567,16 +1573,36 @@
         "apiKey": "Chave da API FastGPT",
         "apiKeyHint": "Chave da API FastGPT"
       },
+      "openai": {
+        "title": "OpenAI Compatible Configuration",
+        "url": "API Base URL",
+        "urlHint": "e.g., https://api.openai.com or your compatible endpoint",
+        "apiKey": "API Key",
+        "apiKeyHint": "Your API key",
+        "model": "Model",
+        "modelHint": "e.g., gpt-4o-mini, chatbot"
+      },
+      "yuxiLegacy": {
+        "title": "Yuxi-Know Configuration",
+        "url": "Base URL",
+        "urlHint": "e.g., https://yuxi.example.com",
+        "username": "Username",
+        "usernameHint": "Yuxi-Know login username",
+        "password": "Password",
+        "passwordHint": "Yuxi-Know login password",
+        "agentId": "Agent ID",
+        "agentIdHint": "e.g., chatbot"
+      },
       "save": {
         "label": "Salvar configurações",
         "saving": "Salvando..."
       },
       "test": {
-        "label": "Testar conexão FastGPT",
+        "label": "Testar conexão",
         "testing": "Testando...",
         "success": "Teste de conexão bem-sucedido",
         "error": "Teste de conexão falhou",
-        "missingConfig": "Habilite a IA e preencha os campos do FastGPT antes de testar",
+        "missingConfig": "Habilite a IA e configure o provedor antes de testar",
         "resultSuccess": "Conexão bem-sucedida",
         "resultFail": "Conexão falhou",
         "responseTime": "Tempo de resposta: {ms}ms",

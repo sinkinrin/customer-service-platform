@@ -1558,6 +1558,12 @@
       "promptLabel": "系统提示词",
       "promptPlaceholder": "你是一个专业的支持助手...",
       "promptHint": "定义 AI 角色和回复风格",
+      "provider": {
+        "label": "AI 服务提供商",
+        "fastgpt": "FastGPT",
+        "openai": "OpenAI 兼容",
+        "yuxiLegacy": "Yuxi-Know（原生）"
+      },
       "fastgpt": {
         "title": "FastGPT 配置",
         "url": "FastGPT URL",
@@ -1567,16 +1573,36 @@
         "apiKey": "FastGPT API 密钥",
         "apiKeyHint": "FastGPT API 密钥"
       },
+      "openai": {
+        "title": "OpenAI 兼容配置",
+        "url": "API 基础 URL",
+        "urlHint": "例如：https://api.openai.com 或您的兼容端点",
+        "apiKey": "API 密钥",
+        "apiKeyHint": "您的 API 密钥",
+        "model": "模型",
+        "modelHint": "例如：gpt-4o-mini、chatbot"
+      },
+      "yuxiLegacy": {
+        "title": "Yuxi-Know 配置",
+        "url": "基础 URL",
+        "urlHint": "例如：https://yuxi.example.com",
+        "username": "用户名",
+        "usernameHint": "Yuxi-Know 登录用户名",
+        "password": "密码",
+        "passwordHint": "Yuxi-Know 登录密码",
+        "agentId": "智能体 ID",
+        "agentIdHint": "例如：chatbot"
+      },
       "save": {
         "label": "保存设置",
         "saving": "保存中..."
       },
       "test": {
-        "label": "测试 FastGPT 连接",
+        "label": "测试连接",
         "testing": "测试中...",
         "success": "连接测试成功",
         "error": "连接测试失败",
-        "missingConfig": "请启用 AI 并完成 FastGPT 字段配置后再测试",
+        "missingConfig": "请启用 AI 并完成服务商配置后再测试",
         "resultSuccess": "连接成功",
         "resultFail": "连接失败",
         "responseTime": "响应时间：{ms}毫秒",

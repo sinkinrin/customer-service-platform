@@ -1558,6 +1558,12 @@
       "promptLabel": "Системный промпт",
       "promptPlaceholder": "Вы профессиональный ассистент поддержки...",
       "promptHint": "Определите роль ИИ и стиль ответов",
+      "provider": {
+        "label": "AI Provider",
+        "fastgpt": "FastGPT",
+        "openai": "OpenAI Compatible",
+        "yuxiLegacy": "Yuxi-Know (Native)"
+      },
       "fastgpt": {
         "title": "Конфигурация FastGPT",
         "url": "URL FastGPT",
@@ -1567,16 +1573,36 @@
         "apiKey": "API-ключ FastGPT",
         "apiKeyHint": "API-ключ FastGPT"
       },
+      "openai": {
+        "title": "OpenAI Compatible Configuration",
+        "url": "API Base URL",
+        "urlHint": "e.g., https://api.openai.com or your compatible endpoint",
+        "apiKey": "API Key",
+        "apiKeyHint": "Your API key",
+        "model": "Model",
+        "modelHint": "e.g., gpt-4o-mini, chatbot"
+      },
+      "yuxiLegacy": {
+        "title": "Yuxi-Know Configuration",
+        "url": "Base URL",
+        "urlHint": "e.g., https://yuxi.example.com",
+        "username": "Username",
+        "usernameHint": "Yuxi-Know login username",
+        "password": "Password",
+        "passwordHint": "Yuxi-Know login password",
+        "agentId": "Agent ID",
+        "agentIdHint": "e.g., chatbot"
+      },
       "save": {
         "label": "Сохранить настройки",
         "saving": "Сохранение..."
       },
       "test": {
-        "label": "Тест подключения FastGPT",
+        "label": "Тест подключения",
         "testing": "Тестирование...",
         "success": "Тест подключения успешен",
         "error": "Тест подключения не пройден",
-        "missingConfig": "Включите ИИ и заполните поля FastGPT перед тестированием",
+        "missingConfig": "Включите ИИ и настройте провайдера перед тестированием",
         "resultSuccess": "Подключение успешно",
         "resultFail": "Подключение не удалось",
         "responseTime": "Время ответа: {ms}мс",

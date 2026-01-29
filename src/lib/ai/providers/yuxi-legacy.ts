@@ -1,5 +1,5 @@
 import { AISettings } from '@/lib/utils/ai-config'
-import { ChatRequest, ChatResponse, AIProvider } from './index'
+import { ChatRequest, ChatResponse, AIProvider, TestConnectionResult } from './index'
 import { logger } from '@/lib/utils/logger'
 
 // Simple in-memory token cache
@@ -121,13 +121,130 @@ export class YuxiLegacyProvider implements AIProvider {
     }
   }
 
-  async testConnection(settings: AISettings): Promise<{ success: boolean; error?: string }> {
+  async testConnection(settings: AISettings): Promise<TestConnectionResult> {
+    const startTime = Date.now()
+
+    if (!settings.yuxiUrl || !settings.yuxiUsername || !settings.yuxiPassword || !settings.yuxiAgentId) {
+      return {
+        success: false,
+        connectivity: false,
+        functional: false,
+        error: 'Yuxi-Know is not configured',
+      }
+    }
+
+    // Step 1: Test connectivity by getting a token
     try {
-      // Just try to get a token
-      await this.getToken(settings)
-      return { success: true }
+      const token = await this.getToken(settings)
+      const responseTime = Date.now() - startTime
+
+      // Step 2: Test AI functionality with a simple query
+      const chatUrl = settings.yuxiUrl.endsWith('/')
+        ? `${settings.yuxiUrl}api/chat/agent/${settings.yuxiAgentId}`
+        : `${settings.yuxiUrl}/api/chat/agent/${settings.yuxiAgentId}`
+
+      const chatResponse = await fetch(chatUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: '你好，这是连接测试',
+          config: {},
+          meta: {},
+        }),
+        signal: AbortSignal.timeout(15000),
+      })
+
+      if (!chatResponse.ok) {
+        const errorText = await chatResponse.text()
+        return {
+          success: false,
+          connectivity: true,
+          functional: false,
+          error: `API error: ${chatResponse.status} - ${errorText.slice(0, 100)}`,
+          responseTime,
+        }
+      }
+
+      // Parse streaming response to verify AI functionality
+      const reader = chatResponse.body?.getReader()
+      if (!reader) {
+        return {
+          success: false,
+          connectivity: true,
+          functional: false,
+          error: 'No response body',
+          responseTime,
+        }
+      }
+
+      let fullResponse = ''
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const text = decoder.decode(value, { stream: true })
+        const lines = text.split('\n').filter(Boolean)
+
+        for (const line of lines) {
+          try {
+            const chunk = JSON.parse(line)
+            if (chunk.response) {
+              fullResponse += chunk.response
+            }
+            if (chunk.status === 'done' || chunk.status === 'error') {
+              break
+            }
+          } catch {
+            // Skip invalid JSON lines
+          }
+        }
+      }
+
+      if (!fullResponse) {
+        return {
+          success: false,
+          connectivity: true,
+          functional: false,
+          error: 'AI response is empty',
+          responseTime: Date.now() - startTime,
+        }
+      }
+
+      return {
+        success: true,
+        connectivity: true,
+        functional: true,
+        responseTime: Date.now() - startTime,
+        testResponse: fullResponse,
+      }
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+      const responseTime = Date.now() - startTime
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      // Clear token cache on error
+      cachedToken = null
+
+      // Determine if it's a connectivity issue
+      const isConnectivityError =
+        errorMessage.includes('fetch') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('ENOTFOUND') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('abort')
+
+      return {
+        success: false,
+        connectivity: !isConnectivityError,
+        functional: false,
+        error: errorMessage,
+        responseTime,
+      }
     }
   }
 }

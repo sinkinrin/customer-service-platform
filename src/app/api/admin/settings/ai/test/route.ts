@@ -25,6 +25,8 @@ export async function POST(_request: NextRequest) {
     if (!settings.enabled) {
       return NextResponse.json({
         success: false,
+        connectivity: false,
+        functional: false,
         error: 'AI is not enabled',
       })
     }
@@ -33,23 +35,28 @@ export async function POST(_request: NextRequest) {
     if (!provider) {
       return NextResponse.json({
         success: false,
+        connectivity: false,
+        functional: false,
         error: `Unknown provider: ${settings.provider}`,
       })
     }
 
-    const startTime = Date.now()
     const result = await provider.testConnection(settings)
-    const responseTime = Date.now() - startTime
 
     return NextResponse.json({
       success: result.success,
       provider: settings.provider,
+      connectivity: result.connectivity,
+      functional: result.functional,
       error: result.error,
-      responseTime,
+      responseTime: result.responseTime,
+      testResponse: result.testResponse,
     })
   } catch (error) {
     return NextResponse.json({
       success: false,
+      connectivity: false,
+      functional: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     })
   }

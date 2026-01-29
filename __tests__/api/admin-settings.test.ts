@@ -156,10 +156,12 @@ describe('Admin settings APIs', () => {
       const payload = await response.json()
       expect(response.status).toBe(200)
       expect(payload.success).toBe(false)
+      expect(payload.connectivity).toBe(false)
+      expect(payload.functional).toBe(false)
       expect(payload.error).toBe('AI is not enabled')
     })
 
-    it('returns success when FastGPT responds', async () => {
+    it('returns success with connectivity and functional status when FastGPT responds', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
         provider: 'fastgpt',
@@ -184,6 +186,8 @@ describe('Admin settings APIs', () => {
 
       expect(response.status).toBe(200)
       expect(payload.success).toBe(true)
+      expect(payload.connectivity).toBe(true)
+      expect(payload.functional).toBe(true)
       expect(payload.provider).toBe('fastgpt')
     })
   })

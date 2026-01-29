@@ -15,9 +15,18 @@ export interface ChatResponse {
   error?: string
 }
 
+export interface TestConnectionResult {
+  success: boolean
+  connectivity: boolean // Server reachable?
+  functional: boolean // AI working?
+  error?: string
+  responseTime?: number
+  testResponse?: string
+}
+
 export interface AIProvider {
   chat(request: ChatRequest, settings: AISettings): Promise<ChatResponse>
-  testConnection(settings: AISettings): Promise<{ success: boolean; error?: string }>
+  testConnection(settings: AISettings): Promise<TestConnectionResult>
 }
 
 export { FastGPTProvider } from './fastgpt'

@@ -394,6 +394,9 @@ function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
     details?: string
     responseTime?: number
     provider?: string
+    connectivity?: boolean
+    functional?: boolean
+    testResponse?: string
   } | null>(null)
 
   const handleTest = async () => {
@@ -407,12 +410,28 @@ function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
       })
 
       const data = await response.json()
+
+      // Build detailed message based on connectivity and functional status
+      let message = ''
+      if (data.success) {
+        message = t('resultSuccess')
+      } else if (data.connectivity && !data.functional) {
+        message = t('resultConnectedButNotFunctional')
+      } else if (!data.connectivity) {
+        message = t('resultNotConnected')
+      } else {
+        message = t('resultFail')
+      }
+
       setTestResult({
         success: data.success,
-        message: data.success ? t('resultSuccess') : t('resultFail'),
+        message,
         details: data.error,
         responseTime: data.responseTime,
         provider: data.provider,
+        connectivity: data.connectivity,
+        functional: data.functional,
+        testResponse: data.testResponse,
       })
 
       if (data.success) {
@@ -486,6 +505,27 @@ function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
                     Provider: {testResult.provider}
                   </div>
                 )}
+                {/* Show connectivity and functional status */}
+                {testResult.connectivity !== undefined && (
+                  <div className="text-sm mt-2 space-y-1">
+                    <div className="flex items-center gap-2">
+                      {testResult.connectivity ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <span>{t('connectivityStatus')}: {testResult.connectivity ? t('connected') : t('notConnected')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {testResult.functional ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <span>{t('functionalStatus')}: {testResult.functional ? t('working') : t('notWorking')}</span>
+                    </div>
+                  </div>
+                )}
                 {testResult.details && (
                   <div className="text-sm mt-1 opacity-90">
                     {testResult.details}
@@ -494,6 +534,12 @@ function TestConnectionButton({ aiSettings }: { aiSettings: AISettings }) {
                 {testResult.responseTime !== undefined && (
                   <div className="text-sm mt-1 opacity-90">
                     {t('responseTime', { ms: testResult.responseTime })}
+                  </div>
+                )}
+                {testResult.testResponse && (
+                  <div className="text-sm mt-2 p-2 bg-muted rounded">
+                    <div className="font-medium mb-1">{t('aiResponse')}:</div>
+                    <div className="text-xs">{testResult.testResponse.slice(0, 200)}{testResult.testResponse.length > 200 ? '...' : ''}</div>
                   </div>
                 )}
               </AlertDescription>

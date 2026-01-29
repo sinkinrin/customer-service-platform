@@ -143,21 +143,26 @@ describe('Admin settings APIs', () => {
   })
 
   describe('POST /api/admin/settings/ai/test', () => {
-    it('returns 400 when AI is disabled', async () => {
+    it('returns error when AI is disabled', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: false,
-        fastgptUrl: null,
-        fastgptAppId: null,
-        fastgptApiKey: null,
+        provider: 'fastgpt',
+        fastgptUrl: '',
+        fastgptAppId: '',
+        fastgptApiKey: '',
       } as any)
 
       const response = await POST_AI_TEST(createRequest('http://localhost:3000/api/admin/settings/ai/test', { method: 'POST' }))
-      expect(response.status).toBe(400)
+      const payload = await response.json()
+      expect(response.status).toBe(200)
+      expect(payload.success).toBe(false)
+      expect(payload.error).toBe('AI is not enabled')
     })
 
     it('returns success when FastGPT responds', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
+        provider: 'fastgpt',
         model: 'FastGPT',
         temperature: 0.7,
         systemPrompt: 'Hello',
@@ -179,7 +184,7 @@ describe('Admin settings APIs', () => {
 
       expect(response.status).toBe(200)
       expect(payload.success).toBe(true)
-      expect(payload.testResponse).toBe('pong')
+      expect(payload.provider).toBe('fastgpt')
     })
   })
 })

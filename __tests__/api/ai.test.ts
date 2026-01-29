@@ -60,9 +60,10 @@ describe('AI APIs', () => {
     it('returns 500 when FastGPT is not configured', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
-        fastgptUrl: null,
-        fastgptAppId: null,
-        fastgptApiKey: null,
+        provider: 'fastgpt',
+        fastgptUrl: '',
+        fastgptAppId: '',
+        fastgptApiKey: '',
       } as any)
 
       const response = await POST_CHAT(
@@ -78,6 +79,7 @@ describe('AI APIs', () => {
     it('returns AI response when FastGPT succeeds', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
+        provider: 'fastgpt',
         model: 'FastGPT',
         fastgptUrl: 'http://fastgpt',
         fastgptAppId: 'app',
@@ -120,9 +122,10 @@ describe('AI APIs', () => {
     it('reports misconfiguration', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
-        fastgptUrl: null,
-        fastgptAppId: null,
-        fastgptApiKey: null,
+        provider: 'fastgpt',
+        fastgptUrl: '',
+        fastgptAppId: '',
+        fastgptApiKey: '',
       } as any)
 
       const response = await GET_AI_HEALTH()
@@ -135,6 +138,7 @@ describe('AI APIs', () => {
     it('reports healthy when FastGPT responds', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
+        provider: 'fastgpt',
         model: 'FastGPT',
         fastgptUrl: 'http://fastgpt',
         fastgptAppId: 'app',
@@ -157,6 +161,7 @@ describe('AI APIs', () => {
     it('reports unreachable when fetch fails', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
+        provider: 'fastgpt',
         fastgptUrl: 'http://fastgpt',
         fastgptAppId: 'app',
         fastgptApiKey: 'key',

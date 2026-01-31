@@ -41,7 +41,7 @@ export class YuxiLegacyProvider implements AIProvider {
   }
 
   async chat(request: ChatRequest, settings: AISettings): Promise<ChatResponse> {
-    const { message } = request
+    const { message, conversationId } = request
 
     if (!settings.yuxiUrl || !settings.yuxiUsername || !settings.yuxiPassword || !settings.yuxiAgentId) {
       return { success: false, error: 'Yuxi-Know is not configured' }
@@ -54,6 +54,7 @@ export class YuxiLegacyProvider implements AIProvider {
         ? `${settings.yuxiUrl}api/chat/agent/${settings.yuxiAgentId}`
         : `${settings.yuxiUrl}/api/chat/agent/${settings.yuxiAgentId}`
 
+      // Pass conversationId as thread_id to enable conversation history in Yuxi-Know
       const response = await fetch(chatUrl, {
         method: 'POST',
         headers: {
@@ -62,7 +63,9 @@ export class YuxiLegacyProvider implements AIProvider {
         },
         body: JSON.stringify({
           query: message,
-          config: {},
+          config: {
+            thread_id: conversationId,
+          },
           meta: {},
         }),
       })

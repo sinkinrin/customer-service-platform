@@ -13,6 +13,7 @@ import { getLocale, getMessages } from "next-intl/server"
 import { SessionProvider } from "@/components/providers/session-provider"
 import { TicketUpdatesProvider } from "@/components/providers/ticket-updates-provider"
 import { NotificationProvider } from "@/components/providers/notification-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { ensureEnvValidation } from "@/lib/env"
 import { auth } from "@/auth"
 
@@ -52,6 +53,7 @@ export default async function RootLayout({
             <TicketUpdatesProvider>
               <NotificationProvider>
                 {children}
+                <Toaster position="top-right" richColors closeButton />
               </NotificationProvider>
             </TicketUpdatesProvider>
           </NextIntlClientProvider>

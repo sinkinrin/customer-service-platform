@@ -11,6 +11,7 @@
  */
 export const PUBLIC_ROUTES = [
   "/",
+  "/login",
   "/auth/login",
   "/auth/register",
   "/auth/forgot-password",

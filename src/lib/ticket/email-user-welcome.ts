@@ -175,8 +175,8 @@ async function sendWelcomeEmail(
   const log = createApiLogger('EmailUserWelcome', requestId)
 
   const loginUrl = env.WEB_PLATFORM_URL
-    ? `${env.WEB_PLATFORM_URL}/login`
-    : 'https://support.example.com/login'
+    ? new URL('/auth/login', env.WEB_PLATFORM_URL).toString()
+    : 'https://support.example.com/auth/login'
 
   const emailHtml = generateWelcomeEmailHtml({
     customerName: params.customerName || '',

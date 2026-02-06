@@ -11,7 +11,7 @@
 
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
-import { PUBLIC_ROUTES, isRouteMatch } from "@/lib/constants/routes"
+import { PUBLIC_ROUTES, isRouteMatch, getAllowedRolesForPath } from "@/lib/constants/routes"
 import { generateRequestId } from "@/lib/utils/request-id"
 
 /**
@@ -106,32 +106,31 @@ export default auth((req) => {
   // Role-based access control for authenticated users
   const userRole = session.user.role
 
-  // Admin routes - only admin
-  if (pathname.startsWith("/admin")) {
-    if (userRole !== "admin") {
-      if (pathname.startsWith("/api/admin")) {
-        return jsonResponse(
-          { error: "Forbidden", message: "Admin access required", requestId },
-          403,
-          requestId
-        )
-      }
-      return redirectResponse(new URL("/unauthorized", req.url), requestId)
+  // Portal routes - centralized role matrix from route constants
+  const allowedRoles = getAllowedRolesForPath(pathname)
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    if (pathname.startsWith("/api/admin")) {
+      return jsonResponse(
+        { error: "Forbidden", message: "Admin access required", requestId },
+        403,
+        requestId
+      )
     }
-  }
-
-  // Staff routes - staff or admin
-  if (pathname.startsWith("/staff")) {
-    if (userRole !== "staff" && userRole !== "admin") {
-      if (pathname.startsWith("/api/staff")) {
-        return jsonResponse(
-          { error: "Forbidden", message: "Staff access required", requestId },
-          403,
-          requestId
-        )
-      }
-      return redirectResponse(new URL("/unauthorized", req.url), requestId)
+    if (pathname.startsWith("/api/staff")) {
+      return jsonResponse(
+        { error: "Forbidden", message: "Staff access required", requestId },
+        403,
+        requestId
+      )
     }
+    if (pathname.startsWith("/api/customer")) {
+      return jsonResponse(
+        { error: "Forbidden", message: "Customer portal access required", requestId },
+        403,
+        requestId
+      )
+    }
+    return redirectResponse(new URL("/unauthorized", req.url), requestId)
   }
 
   // Add custom headers for tracing and debugging

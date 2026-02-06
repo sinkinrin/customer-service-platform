@@ -33,6 +33,8 @@ export const STATIC_ROUTES = [
   "/favicon.ico",
 ] as const
 
+export type AppRole = "customer" | "staff" | "admin"
+
 /**
  * Check if a pathname matches any route in the given list.
  * Matches both exact paths and paths that start with route + "/".
@@ -62,9 +64,36 @@ export const ROLE_ROUTES = {
 } as const
 
 /**
+ * Get allowed roles for a protected portal pathname.
+ * Returns null when the pathname does not match a role-protected portal route.
+ */
+export function getAllowedRolesForPath(pathname: string): readonly AppRole[] | null {
+  if (pathname.startsWith(ROLE_ROUTES.admin.prefix)) {
+    return ROLE_ROUTES.admin.allowedRoles
+  }
+  if (pathname.startsWith(ROLE_ROUTES.staff.prefix)) {
+    return ROLE_ROUTES.staff.allowedRoles
+  }
+  if (pathname.startsWith(ROLE_ROUTES.customer.prefix)) {
+    return ROLE_ROUTES.customer.allowedRoles
+  }
+  return null
+}
+
+/**
+ * Check whether a role can access a protected portal pathname.
+ */
+export function isRoleAllowedForPath(pathname: string, role?: AppRole | null): boolean {
+  if (!role) return false
+  const allowedRoles = getAllowedRolesForPath(pathname)
+  if (!allowedRoles) return true
+  return allowedRoles.includes(role)
+}
+
+/**
  * Get the default dashboard route for a given role.
  */
-export function getDefaultDashboard(role: "customer" | "staff" | "admin"): string {
+export function getDefaultDashboard(role: AppRole): string {
   switch (role) {
     case "admin":
       return "/admin/dashboard"

@@ -16,7 +16,12 @@ import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import type { NextAuthConfig } from "next-auth"
 import { ensureEnvValidation, isMockAuthEnabled, env } from "@/lib/env"
-import { PUBLIC_ROUTES, STATIC_ROUTES, isRouteMatch } from "@/lib/constants/routes"
+import {
+  PUBLIC_ROUTES,
+  STATIC_ROUTES,
+  isRouteMatch,
+  isRoleAllowedForPath,
+} from "@/lib/constants/routes"
 import { zammadClient } from "@/lib/zammad/client"
 import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, type RegionValue } from "@/lib/constants/regions"
 import { ZAMMAD_ROLES } from "@/lib/constants/zammad"
@@ -360,20 +365,9 @@ const authConfig: NextAuthConfig = {
         return isLoggedIn
       }
 
-      // Protected portal routes
-      if (pathname.startsWith("/admin")) {
-        return isLoggedIn && auth?.user?.role === "admin"
-      }
-
-      if (pathname.startsWith("/staff")) {
-        return (
-          isLoggedIn &&
-          (auth?.user?.role === "staff" || auth?.user?.role === "admin")
-        )
-      }
-
-      if (pathname.startsWith("/customer")) {
-        return isLoggedIn
+      // Protected portal routes - central role matrix
+      if (pathname.startsWith("/admin") || pathname.startsWith("/staff") || pathname.startsWith("/customer")) {
+        return isLoggedIn && isRoleAllowedForPath(pathname, auth?.user?.role)
       }
 
       // Default: require authentication for other routes

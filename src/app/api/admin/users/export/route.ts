@@ -35,6 +35,13 @@ function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string {
     return ''
 }
 
+// Get region from note field for customers
+function getRegionFromNote(note?: string): string {
+    if (!note) return ''
+    const match = note.match(/Region:\s*(\S+)/)
+    return match?.[1] || ''
+}
+
 // Escape CSV field
 function escapeCSV(value: string | null | undefined): string {
     if (value == null) return ''
@@ -53,31 +60,55 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const roleFilter = searchParams.get('role') // 'admin', 'staff', 'customer', or null for all
 
-        // Fetch all users from Zammad
-        const zammadUsers = await zammadClient.searchUsers('*')
+        const users: Array<{
+            id: number
+            email: string
+            full_name: string
+            role: 'admin' | 'staff' | 'customer'
+            region: string
+            phone: string
+            active: boolean
+            verified: boolean
+            created_at: string
+            last_login: string
+        }> = []
 
-        // Filter and transform users
-        let users = zammadUsers.map(user => {
-            const role = getRoleFromZammad(user.role_ids || [])
-            const region = getRegionFromGroupIds(user.group_ids)
-
-            return {
-                id: user.id,
-                email: user.email,
-                full_name: `${user.firstname || ''} ${user.lastname || ''}`.trim(),
-                role,
-                region,
-                phone: user.phone || '',
-                active: user.active,
-                verified: user.verified,
-                created_at: user.created_at,
-                last_login: user.last_login || '',
+        const pageSize = 100
+        let page = 1
+        while (true) {
+            const zammadUsers = await zammadClient.searchUsersPaginated('*', pageSize, page)
+            if (zammadUsers.length === 0) {
+                break
             }
-        })
 
-        // Apply role filter if specified
-        if (roleFilter && ['admin', 'staff', 'customer'].includes(roleFilter)) {
-            users = users.filter(u => u.role === roleFilter)
+            for (const user of zammadUsers) {
+                const role = getRoleFromZammad(user.role_ids || [])
+                if (roleFilter && ['admin', 'staff', 'customer'].includes(roleFilter) && role !== roleFilter) {
+                    continue
+                }
+
+                const region = role === 'customer'
+                    ? getRegionFromNote(user.note)
+                    : (getRegionFromGroupIds(user.group_ids) || getRegionFromNote(user.note))
+
+                users.push({
+                    id: user.id,
+                    email: user.email,
+                    full_name: `${user.firstname || ''} ${user.lastname || ''}`.trim(),
+                    role,
+                    region,
+                    phone: user.phone || '',
+                    active: user.active,
+                    verified: user.verified,
+                    created_at: user.created_at,
+                    last_login: user.last_login || '',
+                })
+            }
+
+            if (zammadUsers.length < pageSize) {
+                break
+            }
+            page++
         }
 
         // Generate CSV content

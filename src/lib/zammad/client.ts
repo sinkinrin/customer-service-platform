@@ -261,15 +261,25 @@ export class ZammadClient {
    * @param query - Search query (will be auto-formatted for Zammad syntax)
    * @param limit - Maximum number of results
    * @param onBehalfOf - User email/login/ID to search tickets on behalf of
+   * @param page - Page number (1-indexed)
    */
-  async searchTickets(query: string, limit: number = 10, onBehalfOf?: string): Promise<ZammadSearchResponse> {
+  async searchTickets(
+    query: string,
+    limit: number = 10,
+    onBehalfOf?: string,
+    page: number = 1
+  ): Promise<ZammadSearchResponse> {
     logger.debug('ZammadClient', 'searchTickets - Raw query', { data: { query } })
     const formattedQuery = this.formatSearchQuery(query)
     logger.debug('ZammadClient', 'searchTickets - Formatted query', { data: { formattedQuery } })
-    logger.debug('ZammadClient', 'searchTickets - Limit', { data: { limit } })
+    logger.debug('ZammadClient', 'searchTickets - Pagination', { data: { limit, page } })
     logger.debug('ZammadClient', 'searchTickets - OnBehalfOf', { data: { onBehalfOf } })
 
-    const params = new URLSearchParams({ query: formattedQuery, limit: limit.toString() })
+    const params = new URLSearchParams({
+      query: formattedQuery,
+      limit: limit.toString(),
+      page: page.toString(),
+    })
     const url = `/tickets/search?${params}`
     logger.debug('ZammadClient', 'searchTickets - Full URL', { data: { url } })
 
@@ -285,6 +295,21 @@ export class ZammadClient {
     logger.debug('ZammadClient', 'searchTickets - Wrapped response', { data: { result } })
 
     return result
+  }
+
+  /**
+   * Get total ticket count for a search query.
+   * Uses Zammad `only_total_count=true` mode to avoid fetching full result sets.
+   */
+  async searchTicketsTotalCount(query: string, onBehalfOf?: string): Promise<number> {
+    const formattedQuery = this.formatSearchQuery(query)
+    const params = new URLSearchParams({
+      query: formattedQuery,
+      only_total_count: 'true',
+    })
+    const url = `/tickets/search?${params}`
+    const response = await this.request<{ total_count?: number }>(url, {}, 0, onBehalfOf)
+    return response.total_count ?? 0
   }
 
   // ============================================================================
@@ -523,6 +548,15 @@ export class ZammadClient {
   }
 
   /**
+   * Get users with pagination.
+   * @param page - Page number (1-indexed)
+   * @param perPage - Items per page
+   */
+  async getUsers(page: number = 1, perPage: number = 100): Promise<ZammadUser[]> {
+    return this.request<ZammadUser[]>(`/users?page=${page}&per_page=${perPage}`)
+  }
+
+  /**
    * Create a new user
    * @param data - User data
    * @returns Created user object
@@ -561,6 +595,34 @@ export class ZammadClient {
   async searchUsers(query: string): Promise<ZammadUser[]> {
     const params = new URLSearchParams({ query })
     return this.request<ZammadUser[]>(`/users/search?${params}`)
+  }
+
+  /**
+   * Search users with explicit pagination.
+   * @param query - Search query
+   * @param limit - Page size
+   * @param page - Page number (1-indexed)
+   */
+  async searchUsersPaginated(query: string, limit: number = 20, page: number = 1): Promise<ZammadUser[]> {
+    const params = new URLSearchParams({
+      query,
+      limit: limit.toString(),
+      page: page.toString(),
+    })
+    return this.request<ZammadUser[]>(`/users/search?${params}`)
+  }
+
+  /**
+   * Get total user count for a search query.
+   * Uses Zammad `only_total_count=true` mode to avoid fetching full result sets.
+   */
+  async searchUsersTotalCount(query: string): Promise<number> {
+    const params = new URLSearchParams({
+      query,
+      only_total_count: 'true',
+    })
+    const response = await this.request<{ total_count?: number }>(`/users/search?${params}`)
+    return response.total_count ?? 0
   }
 
   /**

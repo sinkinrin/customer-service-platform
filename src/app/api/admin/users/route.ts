@@ -120,6 +120,67 @@ function getRegionFromNote(note?: string): string | undefined {
   return undefined
 }
 
+const ZAMMAD_USERS_PAGE_SIZE = 100
+const ZAMMAD_USERS_MAX_SCAN_PAGES = 50
+
+function mapZammadUser(user: any) {
+  const role = getRoleFromZammad(user.role_ids || [])
+  const regionFromGroups = getRegionFromGroupIds(user.group_ids)
+  const regionFromNote = getRegionFromNote(user.note)
+  const region = role === 'customer' ? regionFromNote : (regionFromGroups || regionFromNote)
+  const mockUser = mockUsers[user.email]
+
+  return {
+    id: String(user.id),
+    user_id: String(user.id),
+    email: user.email,
+    full_name: `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.login,
+    firstname: user.firstname || '',
+    lastname: user.lastname || '',
+    role,
+    region: region || mockUser?.region,
+    phone: user.phone || mockUser?.phone || '',
+    language: mockUser?.language || 'en',
+    active: user.active,
+    verified: user.verified,
+    zammad_id: user.id,
+    created_at: user.created_at,
+  }
+}
+
+function matchesLocalFilters(
+  user: any,
+  search: string,
+  roleFilter: string,
+  regionFilter: string,
+  statusFilter: string
+): boolean {
+  if (search) {
+    const searchLower = search.toLowerCase()
+    const matched = user.full_name?.toLowerCase().includes(searchLower) ||
+      user.email?.toLowerCase().includes(searchLower)
+    if (!matched) return false
+  }
+
+  if (roleFilter && ['customer', 'staff', 'admin'].includes(roleFilter) && user.role !== roleFilter) {
+    return false
+  }
+
+  if (regionFilter && user.region !== regionFilter) {
+    return false
+  }
+
+  if (statusFilter === 'active' && user.active === false) {
+    return false
+  }
+
+  if (statusFilter === 'disabled' && user.active !== false) {
+    return false
+  }
+
+  return true
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Allow both admin and staff to view users
@@ -137,45 +198,82 @@ export async function GET(request: NextRequest) {
       ? currentUser.region
       : (searchParams.get('region') || '')
     const source = searchParams.get('source') || 'zammad' // 'zammad' or 'mock'
+    const statusFilter = searchParams.get('status') || ''
 
     // Fetch from Zammad (primary source)
     let allUsers: any[] = []
 
     if (source === 'zammad') {
       try {
-        const zammadUsers = await zammadClient.searchUsers('*')
+        const query = search || '*'
+        const hasLocalPostFilters = Boolean(roleFilter || regionFilter || statusFilter)
 
-        allUsers = zammadUsers.map(user => {
-          const role = getRoleFromZammad(user.role_ids || [])
-          // For staff/admin: get region from group_ids first, fallback to note field
-          // For customers: get from note field only
-          // Note: Some regions (europe-zone-2, north-america, latin-america, africa) 
-          // don't have dedicated Zammad groups, so we also check note field for staff
-          const regionFromGroups = getRegionFromGroupIds(user.group_ids)
-          const regionFromNote = getRegionFromNote(user.note)
-          const region = role === 'customer'
-            ? regionFromNote
-            : (regionFromGroups || regionFromNote)
+        // Fast path: when no local post-filters, use direct page+count from Zammad search.
+        if (!hasLocalPostFilters && offset % limit === 0) {
+          const page = Math.floor(offset / limit) + 1
+          const [zammadUsers, total] = await Promise.all([
+            zammadClient.searchUsersPaginated(query, limit, page),
+            zammadClient.searchUsersTotalCount(query),
+          ])
 
-          // Augment with mockUsers data if available (for language preference etc.)
-          const mockUser = mockUsers[user.email]
+          const users = zammadUsers.map(mapZammadUser)
+          return successResponse({
+            users,
+            pagination: {
+              limit,
+              offset,
+              total,
+            },
+            source,
+          })
+        }
 
-          return {
-            id: String(user.id),
-            user_id: String(user.id),
-            email: user.email,
-            full_name: `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.login,
-            firstname: user.firstname || '',
-            lastname: user.lastname || '',
-            role,
-            region: region || mockUser?.region,
-            phone: user.phone || mockUser?.phone || '',
-            language: mockUser?.language || 'en',
-            active: user.active,
-            verified: user.verified,
-            zammad_id: user.id,
-            created_at: user.created_at,
+        // Filter path: scan paginated users and only retain requested window.
+        const targetStart = offset
+        const targetEnd = offset + limit
+        let matchedTotal = 0
+        const usersWindow: any[] = []
+        let page = 1
+        let reachedEnd = false
+
+        while (page <= ZAMMAD_USERS_MAX_SCAN_PAGES) {
+          const batch = await zammadClient.searchUsersPaginated(query, ZAMMAD_USERS_PAGE_SIZE, page)
+          if (batch.length === 0) {
+            reachedEnd = true
+            break
           }
+
+          for (const item of batch) {
+            const mapped = mapZammadUser(item)
+            if (!matchesLocalFilters(mapped, search, roleFilter, regionFilter, statusFilter)) {
+              continue
+            }
+
+            if (matchedTotal >= targetStart && matchedTotal < targetEnd) {
+              usersWindow.push(mapped)
+            }
+
+            matchedTotal++
+          }
+
+          if (batch.length < ZAMMAD_USERS_PAGE_SIZE) {
+            reachedEnd = true
+            break
+          }
+
+          page++
+        }
+
+        const truncated = !reachedEnd
+        return successResponse({
+          users: usersWindow,
+          pagination: {
+            limit,
+            offset,
+            total: matchedTotal,
+            ...(truncated ? { truncated: true } : {}),
+          },
+          source,
         })
       } catch (error) {
         logger.warning('AdminUsers', 'Zammad unavailable, falling back to mock data', { data: { error: error instanceof Error ? error.message : error } })
@@ -198,29 +296,9 @@ export async function GET(request: NextRequest) {
     // Apply filters
     let filteredUsers = allUsers
 
-    if (search) {
-      const searchLower = search.toLowerCase()
-      filteredUsers = filteredUsers.filter(user =>
-        user.full_name?.toLowerCase().includes(searchLower) ||
-        user.email?.toLowerCase().includes(searchLower)
-      )
-    }
-
-    if (roleFilter && ['customer', 'staff', 'admin'].includes(roleFilter)) {
-      filteredUsers = filteredUsers.filter(user => user.role === roleFilter)
-    }
-
-    if (regionFilter) {
-      filteredUsers = filteredUsers.filter(user => user.region === regionFilter)
-    }
-
-    // Status filter (active/disabled)
-    const statusFilter = searchParams.get('status') || ''
-    if (statusFilter === 'active') {
-      filteredUsers = filteredUsers.filter(user => user.active !== false)
-    } else if (statusFilter === 'disabled') {
-      filteredUsers = filteredUsers.filter(user => user.active === false)
-    }
+    filteredUsers = filteredUsers.filter((entry) =>
+      matchesLocalFilters(entry, search, roleFilter, regionFilter, statusFilter)
+    )
 
     // Apply pagination
     const paginatedUsers = filteredUsers.slice(offset, offset + limit)

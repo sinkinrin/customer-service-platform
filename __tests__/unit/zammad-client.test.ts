@@ -250,6 +250,38 @@ describe('ZammadClient', () => {
       expect(capturedUrl).toContain('title')
     })
 
+    it('searchTickets should include explicit page parameter', async () => {
+      let capturedUrl = ''
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/tickets/search`, ({ request }) => {
+          capturedUrl = request.url
+          return HttpResponse.json([])
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      await client.searchTickets('state:*', 20, undefined, 3)
+
+      expect(capturedUrl).toContain('limit=20')
+      expect(capturedUrl).toContain('page=3')
+    })
+
+    it('searchTicketsTotalCount should request only_total_count', async () => {
+      let capturedUrl = ''
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/tickets/search`, ({ request }) => {
+          capturedUrl = request.url
+          return HttpResponse.json({ total_count: 93 })
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      const total = await client.searchTicketsTotalCount('state:*')
+
+      expect(capturedUrl).toContain('only_total_count=true')
+      expect(total).toBe(93)
+    })
+
     it('createArticle should POST to /ticket_articles', async () => {
       let capturedBody: unknown = null
       server.use(
@@ -460,6 +492,38 @@ describe('ZammadClient', () => {
       await client.createUser(userData)
 
       expect(capturedBody).toEqual(userData)
+    })
+
+    it('searchUsersPaginated should include page and limit', async () => {
+      let capturedUrl = ''
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/users/search`, ({ request }) => {
+          capturedUrl = request.url
+          return HttpResponse.json([])
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      await client.searchUsersPaginated('*', 25, 2)
+
+      expect(capturedUrl).toContain('limit=25')
+      expect(capturedUrl).toContain('page=2')
+    })
+
+    it('searchUsersTotalCount should request only_total_count', async () => {
+      let capturedUrl = ''
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/users/search`, ({ request }) => {
+          capturedUrl = request.url
+          return HttpResponse.json({ total_count: 44 })
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      const total = await client.searchUsersTotalCount('*')
+
+      expect(capturedUrl).toContain('only_total_count=true')
+      expect(total).toBe(44)
     })
 
     it('getGroups should GET /groups', async () => {

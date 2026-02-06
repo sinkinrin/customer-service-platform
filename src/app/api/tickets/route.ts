@@ -148,6 +148,72 @@ function transformTicket(
   }
 }
 
+function getStatusSearchQuery(status?: string | null): string | null {
+  if (!status) return null
+  if (status === 'open') return 'state_id:2'
+  if (status === 'closed') return 'state_id:4'
+  if (status === 'new') return 'state_id:1'
+  if (status === 'pending') return '(state_id:3 OR state_id:7)'
+  return null
+}
+
+function buildTicketsSearchQuery(options: {
+  status?: string | null
+  priority?: string | null
+  customerEmail?: string | null
+  staffConstraint?: string | null
+}): string {
+  const parts: string[] = ['state:*']
+
+  const statusQuery = getStatusSearchQuery(options.status)
+  if (statusQuery) {
+    parts.push(statusQuery)
+  }
+
+  if (options.priority) {
+    const priorityId = parseInt(options.priority, 10)
+    if (!Number.isNaN(priorityId)) {
+      parts.push(`priority_id:${priorityId}`)
+    }
+  }
+
+  if (options.customerEmail) {
+    parts.push(`customer.email:${options.customerEmail}`)
+  }
+
+  if (options.staffConstraint) {
+    parts.push(options.staffConstraint)
+  }
+
+  return parts.join(' AND ')
+}
+
+function buildStaffVisibilityQuery(user: PermissionUser): string | null {
+  const clauses: string[] = []
+  const userZammadId = user.zammad_id
+
+  if (typeof userZammadId === 'number') {
+    clauses.push(`owner_id:${userZammadId}`)
+  }
+
+  const groupIds = (user.group_ids || []).filter((id): id is number => Number.isFinite(id))
+  if (groupIds.length === 1) {
+    clauses.push(`group_id:${groupIds[0]}`)
+  } else if (groupIds.length > 1) {
+    clauses.push(`group_id:(${groupIds.join(' OR ')})`)
+  }
+
+  if (clauses.length === 0) {
+    return null
+  }
+
+  // Keep staff visibility aligned with current permission semantics:
+  // - staff can see assigned tickets
+  // - staff can see regional tickets
+  // - staff cannot see unassigned (owner_id 0/1)
+  return `(${clauses.join(' OR ')}) AND NOT owner_id:0 AND NOT owner_id:1`
+}
+
 // Helper function to ensure user exists in Zammad
 async function ensureZammadUser(
   email: string,
@@ -267,37 +333,16 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort') || 'created_at' // created_at, updated_at, priority
     const order = searchParams.get('order') || 'desc' // asc, desc
     const limit = parseInt(searchParams.get('limit') || '50')
+    const page = parseInt(searchParams.get('page') || '1')
     const customerEmail = searchParams.get('customer_email') // Filter by customer email
 
-    // Get tickets based on user role
-    // P1 Fix: Use getAllTickets to handle Zammad pagination (default 50 per page)
-    let tickets
-    if (user.role === 'admin') {
-      // Admin: Get all tickets without X-On-Behalf-Of
-      // Use getAllTickets to iterate through all pages
-      tickets = await zammadClient.getAllTickets()
-    } else if (user.role === 'customer') {
-      // Customer: Use search with X-On-Behalf-Of to get only their tickets
-      // When using X-On-Behalf-Of, Zammad automatically filters to the user's tickets
-      log.debug('Searching tickets for customer', { email: user.email })
-      const searchResponse = await zammadClient.searchTickets('state:*', 1000, user.email)
-      tickets = searchResponse.tickets  // Extract tickets array from response object
-      log.debug('Found tickets for customer', { count: tickets?.length || 0 })
-    } else {
-      // Staff: Get ALL tickets without X-On-Behalf-Of, then filter by region
-      // Using X-On-Behalf-Of would only return tickets where staff is assigned/has explicit access
-      // Staff needs to see all customer-created tickets in their region
-      // P1 Fix: Use getAllTickets to iterate through all pages
-      log.debug('Fetching all tickets for staff, will filter by region')
-      tickets = await zammadClient.getAllTickets()
+    if (!Number.isFinite(limit) || limit < 1 || limit > 200) {
+      return validationErrorResponse([{ path: ['limit'], message: 'Limit must be between 1 and 200' }])
     }
 
-    // Use unified permission filter for all roles
-    // This ensures:
-    // - Customer only sees their own tickets (by customer_id)
-    // - Staff only sees assigned or regional tickets (unassigned hidden)
-    // - Admin sees all tickets
-    log.debug('Before permission filter', { ticketCount: tickets.length, userRole: user.role, region: user.region, zammadId: user.zammad_id })
+    if (!Number.isFinite(page) || page < 1) {
+      return validationErrorResponse([{ path: ['page'], message: 'Page must be greater than or equal to 1' }])
+    }
 
     // Build permission user object
     const permissionUser: PermissionUser = {
@@ -309,31 +354,43 @@ export async function GET(request: NextRequest) {
       region: user.region,
     }
 
-    let filteredTickets = filterTicketsByPermission(tickets as unknown as PermissionTicket[], permissionUser)
-    log.debug('After permission filter', { ticketCount: filteredTickets.length })
-
-    if (filteredTickets.length > 0) {
-      log.debug('Sample ticket group_ids', { groupIds: filteredTickets.slice(0, 3).map((t: any) => t.group_id) })
-    }
-
-    // Filter by status if provided
-    if (status) {
-      filteredTickets = filteredTickets.filter((ticket: any) => {
-        if (status === 'open') return ticket.state_id === 2
-        if (status === 'closed') return ticket.state_id === 4
-        if (status === 'new') return ticket.state_id === 1
-        if (status === 'pending') return ticket.state_id === 3 || ticket.state_id === 7
-        return true
+    const staffConstraint = user.role === 'staff' ? buildStaffVisibilityQuery(permissionUser) : null
+    if (user.role === 'staff' && !staffConstraint) {
+      log.warning('Staff user has no visibility scope, returning empty list', {
+        userId: user.id,
+        region: user.region,
       })
+      return successResponse({ tickets: [], total: 0 })
     }
 
-    // Filter by priority if provided
-    if (priority) {
-      const priorityId = parseInt(priority, 10)
-      if (!isNaN(priorityId)) {
-        filteredTickets = filteredTickets.filter((ticket: any) => ticket.priority_id === priorityId)
-      }
-    }
+    const query = buildTicketsSearchQuery({
+      status,
+      priority,
+      customerEmail,
+      staffConstraint,
+    })
+
+    const onBehalfOf = user.role === 'customer' ? user.email : undefined
+
+    const [searchResult, total] = await Promise.all([
+      zammadClient.searchTickets(query, limit, onBehalfOf, page),
+      zammadClient.searchTicketsTotalCount(query, onBehalfOf),
+    ])
+
+    log.debug('Fetched paged ticket candidates', {
+      query,
+      page,
+      limit,
+      ticketCount: searchResult.tickets?.length || 0,
+      total,
+      role: user.role,
+    })
+
+    // Keep region-auth / permission filter as final authority on ticket visibility.
+    const filteredTickets = filterTicketsByPermission(
+      (searchResult.tickets || []) as unknown as PermissionTicket[],
+      permissionUser
+    )
 
     // Sort tickets
     filteredTickets.sort((a: any, b: any) => {
@@ -348,13 +405,10 @@ export async function GET(request: NextRequest) {
       return order === 'desc' ? -comparison : comparison
     })
 
-    // Apply limit
-    const limitedTickets = filteredTickets.slice(0, limit)
-
     // Collect unique customer IDs (to avoid duplicate fetches)
-    const customerIds = [...new Set(limitedTickets.map((t: any) => t.customer_id))]
+    const customerIds = [...new Set(filteredTickets.map((t: any) => t.customer_id))]
     // Collect unique owner IDs
-    const ownerIds = [...new Set(limitedTickets.map((t: any) => t.owner_id).filter(Boolean))]
+    const ownerIds = [...new Set(filteredTickets.map((t: any) => t.owner_id).filter(Boolean))]
 
     // In-memory cache for this request to avoid duplicate fetches
     const customerMap = new Map<number, { name?: string; email?: string }>()
@@ -394,20 +448,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform tickets to include priority, state, customer and owner information
-    let transformedTickets = limitedTickets.map((ticket: any) =>
+    const transformedTickets = filteredTickets.map((ticket: any) =>
       transformTicket(
         ticket,
         customerMap.get(ticket.customer_id),
         ticket.owner_id ? ownerMap.get(ticket.owner_id) : undefined
       )
     )
-
-    // Filter by customer email if provided (post-transform filter)
-    if (customerEmail) {
-      transformedTickets = transformedTickets.filter((ticket: any) =>
-        ticket.customer_email?.toLowerCase() === customerEmail.toLowerCase()
-      )
-    }
 
     // Fetch ratings for all tickets from Prisma
     const ticketIds = transformedTickets.map((t: any) => t.id)
@@ -433,7 +480,7 @@ export async function GET(request: NextRequest) {
 
     return successResponse({
       tickets: ticketsWithRating,
-      total: customerEmail ? transformedTickets.length : filteredTickets.length,
+      total,
     })
   } catch (error) {
     log.error('Failed to fetch tickets', { error: error instanceof Error ? error.message : error })

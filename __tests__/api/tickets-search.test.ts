@@ -14,8 +14,11 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/zammad/client', () => ({
   zammadClient: {
     searchTickets: vi.fn(),
-    getUser: vi.fn(),
+    searchTicketsTotalCount: vi.fn(),
+    getUsersByIds: vi.fn(),
     searchUsers: vi.fn(),
+    searchUsersPaginated: vi.fn(),
+    searchUsersTotalCount: vi.fn(),
     createUser: vi.fn(),
   },
 }))
@@ -78,12 +81,14 @@ describe('Ticket Search API', () => {
       tickets: [],
       tickets_count: 0,
     } as any)
+    vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(0)
+    vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
 
     const request = createRequest('http://localhost:3000/api/tickets/search?query=reset&limit=5')
     const response = await GET(request)
 
     expect(response.status).toBe(200)
-    expect(zammadClient.searchTickets).toHaveBeenCalledWith('reset', 5)
+    expect(zammadClient.searchTickets).toHaveBeenCalledWith('reset', 5, undefined, 1)
   })
 
   it('staff searches and filters by region', async () => {
@@ -109,13 +114,21 @@ describe('Ticket Search API', () => {
       ],
       tickets_count: 2,
     } as any)
-
-    vi.mocked(zammadClient.getUser).mockResolvedValue({
-      id: 100,
-      firstname: 'Cust',
-      lastname: 'One',
-      email: 'cust@test.com',
-    } as any)
+    vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(2)
+    vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([
+      {
+        id: 100,
+        firstname: 'Cust',
+        lastname: 'One',
+        email: 'cust@test.com',
+      },
+      {
+        id: 200,
+        firstname: 'Cust',
+        lastname: 'Two',
+        email: 'cust2@test.com',
+      },
+    ] as any)
 
     const request = createRequest('http://localhost:3000/api/tickets/search?query=test&limit=5')
     const response = await GET(request)
@@ -124,6 +137,12 @@ describe('Ticket Search API', () => {
     expect(response.status).toBe(200)
     expect(payload.data.tickets).toHaveLength(1)
     expect(payload.data.tickets[0].group_id).toBe(asiaGroupId)
+    expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+      expect.stringContaining('test'),
+      5,
+      undefined,
+      1
+    )
   })
 
   it('customer searches only their tickets', async () => {
@@ -140,11 +159,13 @@ describe('Ticket Search API', () => {
       tickets: [],
       tickets_count: 0,
     } as any)
+    vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(0)
+    vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
 
     const request = createRequest('http://localhost:3000/api/tickets/search?query=test&limit=5')
     const response = await GET(request)
 
     expect(response.status).toBe(200)
-    expect(zammadClient.searchTickets).toHaveBeenCalledWith('test', 5, 'customer@test.com')
+    expect(zammadClient.searchTickets).toHaveBeenCalledWith('test', 5, 'customer@test.com', 1)
   })
 })

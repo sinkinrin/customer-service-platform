@@ -55,6 +55,27 @@ function transformTicket(ticket: RawZammadTicket, customerInfo?: { name?: string
 import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
 import { filterTicketsByPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 
+function buildStaffVisibilityQuery(user: PermissionUser): string | null {
+  const clauses: string[] = []
+
+  if (typeof user.zammad_id === 'number') {
+    clauses.push(`owner_id:${user.zammad_id}`)
+  }
+
+  const groupIds = (user.group_ids || []).filter((id): id is number => Number.isFinite(id))
+  if (groupIds.length === 1) {
+    clauses.push(`group_id:${groupIds[0]}`)
+  } else if (groupIds.length > 1) {
+    clauses.push(`group_id:(${groupIds.join(' OR ')})`)
+  }
+
+  if (clauses.length === 0) {
+    return null
+  }
+
+  return `(${clauses.join(' OR ')}) AND NOT owner_id:0 AND NOT owner_id:1`
+}
+
 // Helper function to ensure user exists in Zammad
 async function ensureZammadUser(email: string, fullName: string, role: string, region?: string, requestId?: string) {
   const log = createApiLogger('TicketSearchAPI', requestId)
@@ -123,6 +144,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('query')
     const limit = parseInt(searchParams.get('limit') || '10')
+    const page = parseInt(searchParams.get('page') || '1')
 
     if (!query) {
       return errorResponse('INVALID_QUERY', 'Query parameter is required', undefined, 400)
@@ -131,6 +153,9 @@ export async function GET(request: NextRequest) {
     // Validate limit (increased to 200 to support dashboard/list statistics)
     if (limit < 1 || limit > 200) {
       return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 200', undefined, 400)
+    }
+    if (!Number.isFinite(page) || page < 1) {
+      return errorResponse('INVALID_PAGE', 'Page must be greater than or equal to 1', undefined, 400)
     }
 
     // Check Zammad health before proceeding
@@ -170,37 +195,56 @@ export async function GET(request: NextRequest) {
     log.debug('Search API - Limit', { limit })
 
     let result
+    let total = 0
     if (user.role === 'admin') {
       // Admin: Search all tickets without X-On-Behalf-Of
       log.debug('Search API - Calling searchTickets for admin')
-      result = await zammadClient.searchTickets(query, limit)
+      const [searchResult, count] = await Promise.all([
+        zammadClient.searchTickets(query, limit, undefined, page),
+        zammadClient.searchTicketsTotalCount(query),
+      ])
+      result = searchResult
+      total = count
       log.debug('Search API - Result', { result: JSON.stringify(result, null, 2) })
     } else if (user.role === 'customer') {
       // Customer: Search tickets on behalf of user (only their own tickets)
       log.debug('Search API - Calling searchTickets for customer', { email: user.email })
-      result = await zammadClient.searchTickets(query, limit, user.email)
+      const [searchResult, count] = await Promise.all([
+        zammadClient.searchTickets(query, limit, user.email, page),
+        zammadClient.searchTicketsTotalCount(query, user.email),
+      ])
+      result = searchResult
+      total = count
       log.debug('Search API - Result', { result: JSON.stringify(result, null, 2) })
     } else {
-      // Staff: Search ALL tickets without X-On-Behalf-Of, then filter by permission
-      // Using X-On-Behalf-Of would only return tickets where staff is assigned/has explicit access
-      // Staff needs to see all customer-created tickets in their region
-      log.debug('Search API - Fetching all tickets for staff, will filter by permission')
-      result = await zammadClient.searchTickets(query, limit * 2) // Get more to account for permission filtering
-      log.debug('Search API - Before permission filter', { ticketCount: result.tickets?.length || 0 })
+      const permissionUser: PermissionUser = {
+        id: user.id,
+        email: user.email,
+        role: user.role as 'admin' | 'staff' | 'customer',
+        zammad_id: user.zammad_id,
+        group_ids: user.group_ids,
+        region: user.region,
+      }
+      const staffConstraint = buildStaffVisibilityQuery(permissionUser)
+      if (!staffConstraint) {
+        return successResponse({ tickets: [], total: 0, query, limit, page })
+      }
+
+      const scopedQuery = `(${query}) AND ${staffConstraint}`
+
+      log.debug('Search API - Calling scoped search for staff', { scopedQuery, page, limit })
+      const [searchResult, count] = await Promise.all([
+        zammadClient.searchTickets(scopedQuery, limit, undefined, page),
+        zammadClient.searchTicketsTotalCount(scopedQuery),
+      ])
+      result = searchResult
+      total = count
+      log.debug('Search API - Before permission filter', { ticketCount: result.tickets?.length || 0, total })
 
       // Apply unified permission filtering for staff (same as /api/tickets list)
       // This ensures consistent filtering between list and search APIs
       if (result.tickets) {
-        const permissionUser: PermissionUser = {
-          id: user.id,
-          email: user.email,
-          role: user.role as 'admin' | 'staff' | 'customer',
-          zammad_id: user.zammad_id,
-          group_ids: user.group_ids,
-          region: user.region,
-        }
         result.tickets = filterTicketsByPermission(result.tickets as unknown as PermissionTicket[], permissionUser) as unknown as typeof result.tickets
-        result.tickets_count = result.tickets.length
       }
       log.debug('Search API - After permission filter', { ticketCount: result.tickets?.length || 0 })
     }
@@ -243,9 +287,10 @@ export async function GET(request: NextRequest) {
 
     return successResponse({
       tickets: transformedTickets,
-      total: result.tickets_count || 0,
+      total,
       query,
       limit,
+      page,
     })
   } catch (error) {
     log.error('GET /api/tickets/search error', { error: error instanceof Error ? error.message : error })

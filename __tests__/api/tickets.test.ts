@@ -24,12 +24,16 @@ vi.mock('@/lib/zammad/client', () => ({
     getTickets: vi.fn(),
     getAllTickets: vi.fn(),
     searchTickets: vi.fn(),
+    searchTicketsTotalCount: vi.fn(),
     getTicket: vi.fn(),
     createTicket: vi.fn(),
     updateTicket: vi.fn(),
     deleteTicket: vi.fn(),
     getUser: vi.fn(),
+    getUsersByIds: vi.fn(),
     searchUsers: vi.fn(),
+    searchUsersPaginated: vi.fn(),
+    searchUsersTotalCount: vi.fn(),
     createUser: vi.fn(),
     createArticle: vi.fn(),
   },
@@ -125,13 +129,17 @@ describe('Tickets API 集成测试', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       } as any)
 
-      vi.mocked(zammadClient.getAllTickets).mockResolvedValue([mockTicket])
-      vi.mocked(zammadClient.getUser).mockResolvedValue({
+      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+        tickets: [mockTicket],
+        tickets_count: 1,
+      } as any)
+      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(1)
+      vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([{
         id: 100,
         email: 'customer@test.com',
         firstname: 'Test',
         lastname: 'Customer',
-      } as any)
+      }] as any)
 
       const request = createMockRequest('http://localhost:3000/api/tickets')
       const response = await GET(request)
@@ -152,13 +160,14 @@ describe('Tickets API 集成测试', () => {
       vi.mocked(zammadClient.searchTickets).mockResolvedValue({
         tickets: [mockTicket],
         tickets_count: 1,
-      })
-      vi.mocked(zammadClient.getUser).mockResolvedValue({
+      } as any)
+      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(1)
+      vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([{
         id: 100,
         email: 'customer@test.com',
         firstname: 'Test',
         lastname: 'Customer',
-      } as any)
+      }] as any)
 
       const request = createMockRequest('http://localhost:3000/api/tickets')
       const response = await GET(request)
@@ -167,8 +176,9 @@ describe('Tickets API 集成测试', () => {
       // Verify searchTickets was called with customer email for X-On-Behalf-Of
       expect(zammadClient.searchTickets).toHaveBeenCalledWith(
         'state:*',
-        1000,
-        mockCustomer.email
+        50,
+        mockCustomer.email,
+        1
       )
     })
 

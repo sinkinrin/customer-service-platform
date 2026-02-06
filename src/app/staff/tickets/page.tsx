@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Input } from '@/components/ui/input'
@@ -11,14 +11,25 @@ import { TicketList } from '@/components/ticket/ticket-list'
 import { useTicketsSearch } from '@/lib/hooks/use-tickets-swr'
 import { toast } from 'sonner'
 
+type TicketTab = 'all' | 'open' | 'pending' | 'closed'
+
+function getStatusQueryForTab(tab: TicketTab): string | null {
+  if (tab === 'open') return '(state_id:1 OR state_id:2)'
+  if (tab === 'pending') return '(state_id:3 OR state_id:7)'
+  if (tab === 'closed') return 'state_id:4'
+  return null
+}
+
 export default function TicketsPage() {
   const t = useTranslations('staff.tickets')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const PAGE_SIZE = 50
 
   // Read initial tab from URL, localStorage, or default to 'all'
-  const tabFromUrl = searchParams.get('tab') as 'all' | 'open' | 'pending' | 'closed' | null
+  const tabFromUrl = searchParams.get('tab') as TicketTab | null
   const validTabs = ['all', 'open', 'pending', 'closed']
 
   // Get initial tab: prioritize URL > localStorage > default 'all'
@@ -28,7 +39,7 @@ export default function TicketsPage() {
     }
     // Try to restore from localStorage if no URL param
     if (typeof window !== 'undefined') {
-      const savedTab = localStorage.getItem('staff-tickets-tab') as 'all' | 'open' | 'pending' | 'closed' | null
+      const savedTab = localStorage.getItem('staff-tickets-tab') as TicketTab | null
       if (savedTab && validTabs.includes(savedTab)) {
         return savedTab
       }
@@ -38,14 +49,25 @@ export default function TicketsPage() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('state:*') // Actual query sent to API
-  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>(getInitialTab())
+  const [activeTab, setActiveTab] = useState<TicketTab>(getInitialTab())
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const statusQuery = getStatusQueryForTab(activeTab)
+  const scopedSearchQuery = statusQuery ? `(${submittedQuery}) AND ${statusQuery}` : submittedQuery
 
   // Use SWR for caching - only fetches when submittedQuery changes
-  // Use higher limit to ensure accurate tab counts (counts are calculated from fetched tickets)
-  const { tickets, isLoading, revalidate } = useTicketsSearch(submittedQuery, 200)
+  const { tickets, total, isLoading, revalidate } = useTicketsSearch(scopedSearchQuery, PAGE_SIZE, currentPage)
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   const handleSearch = () => {
     const query = searchQuery.trim() || 'state:*'
+    setCurrentPage(1)
     setSubmittedQuery(query)
   }
 
@@ -57,6 +79,7 @@ export default function TicketsPage() {
   const handleTabChange = (value: string) => {
     const newTab = value as typeof activeTab
     setActiveTab(newTab)
+    setCurrentPage(1)
 
     // Save to localStorage for persistence across navigations
     if (typeof window !== 'undefined') {
@@ -73,37 +96,16 @@ export default function TicketsPage() {
     router.push(`${pathname}?${params.toString()}`, { scroll: false })
   }
 
-  const filteredTickets = tickets.filter((ticket) => {
-    if (activeTab === 'all') return true
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1))
+  }
 
-    const stateLower = ticket.state.toLowerCase()
-    if (activeTab === 'open') {
-      return stateLower.includes('new') || stateLower.includes('open')
-    }
-    if (activeTab === 'pending') {
-      return stateLower.includes('pending')
-    }
-    if (activeTab === 'closed') {
-      return stateLower.includes('closed')
-    }
-    return true
-  })
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+  }
 
-  // Calculate counts for all tabs in a single pass (performance optimization)
-  const tabCounts = tickets.reduce(
-    (acc, ticket) => {
-      const stateLower = ticket.state.toLowerCase()
-      if (stateLower.includes('new') || stateLower.includes('open')) {
-        acc.open++
-      } else if (stateLower.includes('pending')) {
-        acc.pending++
-      } else if (stateLower.includes('closed')) {
-        acc.closed++
-      }
-      return acc
-    },
-    { all: tickets.length, open: 0, pending: 0, closed: 0 }
-  )
+  const startTicketIndex = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1
+  const endTicketIndex = Math.min(currentPage * PAGE_SIZE, total)
 
   return (
     <div className="space-y-6">
@@ -156,32 +158,46 @@ export default function TicketsPage() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all" className="min-w-[120px]">
             {t('tabs.all')}
-            <span className="ml-2 text-xs">
-              ({isLoading ? '...' : tabCounts.all})
-            </span>
           </TabsTrigger>
           <TabsTrigger value="open" className="min-w-[120px]">
             {t('tabs.open')}
-            <span className="ml-2 text-xs">
-              ({isLoading ? '...' : tabCounts.open})
-            </span>
           </TabsTrigger>
           <TabsTrigger value="pending" className="min-w-[120px]">
             {t('tabs.pending')}
-            <span className="ml-2 text-xs">
-              ({isLoading ? '...' : tabCounts.pending})
-            </span>
           </TabsTrigger>
           <TabsTrigger value="closed" className="min-w-[120px]">
             {t('tabs.closed')}
-            <span className="ml-2 text-xs">
-              ({isLoading ? '...' : tabCounts.closed})
-            </span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
-          <TicketList tickets={filteredTickets} isLoading={isLoading} />
+          <TicketList tickets={tickets} isLoading={isLoading} />
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {startTicketIndex}-{endTicketIndex} / {total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handlePreviousPage}
+                disabled={isLoading || currentPage <= 1}
+              >
+                {tCommon('previous')}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleNextPage}
+                disabled={isLoading || total === 0 || currentPage >= totalPages}
+              >
+                {tCommon('next')}
+              </Button>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

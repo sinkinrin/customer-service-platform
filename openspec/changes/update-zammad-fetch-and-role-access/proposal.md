@@ -1,6 +1,6 @@
 # 变更：优化 Zammad 查询路径并统一三角色页面访问矩阵
 
-## 原因
+## Why
 
 当前实现在多个核心接口中存在“全量拉取后本地过滤/分页”的模式，长期运行会带来明显风险：
 
@@ -28,7 +28,7 @@
 
 结论：可通过“分页查询 + 计数查询 + 受控补页”替代当前全量拉取路径。
 
-## 变更内容
+## What Changes
 
 ### 1) Zammad 查询策略改造（避免全量拉取）
 
@@ -49,7 +49,13 @@
   - `/customer/**`：`customer`、`staff`、`admin`
 - 在 `auth.ts`、`middleware.ts`、`ProtectedRoute` 三层保持一致，避免“前后端判断不一致”。
 
-## 影响
+### 4) 与 `refactor-authorization-system-v3` 的衔接约束
+
+- 本变更将 `region-auth` 明确为过渡期裁决层，仅保持在现有关键链路中生效（如 tickets create、tickets export、tickets articles）。
+- 本变更不引入/实现新的统一授权引擎，也不在此变更内移除 `region-auth`。
+- 后续在 `refactor-authorization-system-v3` 落地时，再将上述链路迁移到统一授权层并移除重复逻辑，避免并行实现语义冲突。
+
+## Impact
 
 ### 受影响的规范
 

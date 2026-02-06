@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -26,16 +26,34 @@ interface SelectedTicket {
   owner_id?: number | null
 }
 
+type TicketTab = 'all' | 'open' | 'pending' | 'closed'
+
+function getStatusQueryForTab(tab: TicketTab): string | null {
+  if (tab === 'open') return '(state_id:1 OR state_id:2)'
+  if (tab === 'pending') return '(state_id:3 OR state_id:7)'
+  if (tab === 'closed') return 'state_id:4'
+  return null
+}
+
+function getPriorityId(priority: string): number | undefined {
+  if (priority === 'low') return 1
+  if (priority === 'normal') return 2
+  if (priority === 'high') return 3
+  return undefined
+}
+
 export default function AdminTicketsPage() {
   const t = useTranslations('admin.tickets')
+  const tCommon = useTranslations('common')
   const tToast = useTranslations('toast.admin.tickets')
   const tRegions = useTranslations('common.regions')
+  const PAGE_SIZE = 50
   const [searchQuery, setSearchQuery] = useState('')
 
   // Get initial tab from localStorage or default to 'all'
   const getInitialTab = () => {
     if (typeof window !== 'undefined') {
-      const savedTab = localStorage.getItem('admin-tickets-tab') as 'all' | 'open' | 'pending' | 'closed' | null
+      const savedTab = localStorage.getItem('admin-tickets-tab') as TicketTab | null
       if (savedTab && ['all', 'open', 'pending', 'closed'].includes(savedTab)) {
         return savedTab
       }
@@ -43,25 +61,55 @@ export default function AdminTicketsPage() {
     return 'all'
   }
 
-  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'pending' | 'closed'>(getInitialTab())
+  const [activeTab, setActiveTab] = useState<TicketTab>(getInitialTab())
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
   const [submittedQuery, setSubmittedQuery] = useState('') // Empty = fetch all
+  const [currentPage, setCurrentPage] = useState(1)
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<SelectedTicket | null>(null)
   const [autoAssigning, setAutoAssigning] = useState(false)
 
+  const statusQuery = getStatusQueryForTab(activeTab)
+  const statusFilter = activeTab === 'all' ? undefined : activeTab
+  const priorityFilter = getPriorityId(selectedPriority)
+  const groupIdFilter = selectedRegion === 'all' ? undefined : getGroupIdByRegion(selectedRegion as any)
+
+  const scopedSearchQuery = (() => {
+    const baseQuery = submittedQuery.trim() ? `(${submittedQuery.trim()})` : 'state:*'
+    const parts = [baseQuery]
+    if (statusQuery) {
+      parts.push(statusQuery)
+    }
+    if (priorityFilter) {
+      parts.push(`priority_id:${priorityFilter}`)
+    }
+    if (groupIdFilter) {
+      parts.push(`group_id:${groupIdFilter}`)
+    }
+    return parts.join(' AND ')
+  })()
+
   // Use SWR for caching - search when query exists, otherwise fetch all
-  const searchResult = useTicketsSearch(submittedQuery, 100, !!submittedQuery)
-  const listResult = useTicketsList(200, undefined, !submittedQuery)
+  const searchResult = useTicketsSearch(scopedSearchQuery, PAGE_SIZE, currentPage, !!submittedQuery)
+  const listResult = useTicketsList(PAGE_SIZE, currentPage, statusFilter, priorityFilter, groupIdFilter, !submittedQuery)
 
   // Use search results if query exists, otherwise use list results
   const tickets = submittedQuery ? searchResult.tickets : listResult.tickets
+  const totalTickets = submittedQuery ? searchResult.total : listResult.total
   const isLoading = submittedQuery ? searchResult.isLoading : listResult.isLoading
   const revalidate = submittedQuery ? searchResult.revalidate : listResult.revalidate
+  const totalPages = Math.max(1, Math.ceil(totalTickets / PAGE_SIZE))
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   const handleSearch = () => {
     const query = searchQuery.trim()
+    setCurrentPage(1)
     setSubmittedQuery(query)
   }
 
@@ -73,6 +121,7 @@ export default function AdminTicketsPage() {
   const handleTabChange = (value: string) => {
     const newTab = value as typeof activeTab
     setActiveTab(newTab)
+    setCurrentPage(1)
 
     // Save to localStorage for persistence across navigations
     if (typeof window !== 'undefined') {
@@ -84,95 +133,6 @@ export default function AdminTicketsPage() {
     if (e.key === 'Enter') {
       handleSearch()
     }
-  }
-
-  // Filter tickets by region and priority
-  const filteredTickets = tickets.filter((ticket) => {
-    // Filter by status tab
-    if (activeTab !== 'all') {
-      const stateLower = ticket.state?.toLowerCase() || ''
-      if (activeTab === 'open') {
-        if (!stateLower.includes('new') && !stateLower.includes('open')) return false
-      } else if (activeTab === 'pending') {
-        if (!stateLower.includes('pending')) return false
-      } else if (activeTab === 'closed') {
-        if (!stateLower.includes('closed')) return false
-      }
-    }
-
-    // Filter by region using canonical group_id
-    if (selectedRegion !== 'all') {
-      const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
-      if (ticket.group_id && ticket.group_id !== expectedGroupId) {
-        return false
-      }
-    }
-
-    // Filter by priority
-    if (selectedPriority !== 'all') {
-      const priorityLower = ticket.priority?.toLowerCase() || ''
-      if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
-    }
-
-    return true
-  })
-
-  // Calculate counts for all tabs to prevent layout shifts
-  const tabCounts = {
-    all: tickets.filter((ticket) => {
-      // Apply region and priority filters only
-      if (selectedRegion !== 'all') {
-        const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
-        if (ticket.group_id && ticket.group_id !== expectedGroupId) return false
-      }
-      if (selectedPriority !== 'all') {
-        const priorityLower = ticket.priority?.toLowerCase() || ''
-        if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
-      }
-      return true
-    }).length,
-    open: tickets.filter((ticket) => {
-      const stateLower = ticket.state?.toLowerCase() || ''
-      if (!stateLower.includes('new') && !stateLower.includes('open')) return false
-      // Apply region and priority filters
-      if (selectedRegion !== 'all') {
-        const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
-        if (ticket.group_id && ticket.group_id !== expectedGroupId) return false
-      }
-      if (selectedPriority !== 'all') {
-        const priorityLower = ticket.priority?.toLowerCase() || ''
-        if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
-      }
-      return true
-    }).length,
-    pending: tickets.filter((ticket) => {
-      const stateLower = ticket.state?.toLowerCase() || ''
-      if (!stateLower.includes('pending')) return false
-      // Apply region and priority filters
-      if (selectedRegion !== 'all') {
-        const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
-        if (ticket.group_id && ticket.group_id !== expectedGroupId) return false
-      }
-      if (selectedPriority !== 'all') {
-        const priorityLower = ticket.priority?.toLowerCase() || ''
-        if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
-      }
-      return true
-    }).length,
-    closed: tickets.filter((ticket) => {
-      const stateLower = ticket.state?.toLowerCase() || ''
-      if (!stateLower.includes('closed')) return false
-      // Apply region and priority filters
-      if (selectedRegion !== 'all') {
-        const expectedGroupId = getGroupIdByRegion(selectedRegion as any)
-        if (ticket.group_id && ticket.group_id !== expectedGroupId) return false
-      }
-      if (selectedPriority !== 'all') {
-        const priorityLower = ticket.priority?.toLowerCase() || ''
-        if (!priorityLower.includes(selectedPriority.toLowerCase())) return false
-      }
-      return true
-    }).length,
   }
 
   const exportTickets = async () => {
@@ -213,6 +173,17 @@ export default function AdminTicketsPage() {
   const handleAssignSuccess = () => {
     revalidate()
   }
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1))
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+  }
+
+  const startTicketIndex = totalTickets === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1
+  const endTicketIndex = Math.min(currentPage * PAGE_SIZE, totalTickets)
 
   const handleAutoAssign = async () => {
     setAutoAssigning(true)
@@ -272,7 +243,13 @@ export default function AdminTicketsPage() {
           </Button>
         </div>
         <div className="flex gap-2">
-          <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+          <Select
+            value={selectedRegion}
+            onValueChange={(value) => {
+              setSelectedRegion(value)
+              setCurrentPage(1)
+            }}
+          >
             <SelectTrigger className="w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder={t('filters.allRegions')} />
@@ -286,7 +263,13 @@ export default function AdminTicketsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+          <Select
+            value={selectedPriority}
+            onValueChange={(value) => {
+              setSelectedPriority(value)
+              setCurrentPage(1)
+            }}
+          >
             <SelectTrigger className="w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder={t('filters.allPriorities')} />
@@ -322,32 +305,46 @@ export default function AdminTicketsPage() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all" className="min-w-[120px]">
             {t('tabs.all')}
-            {!isLoading && (
-              <span className="ml-2 text-xs">({tabCounts.all})</span>
-            )}
           </TabsTrigger>
           <TabsTrigger value="open" className="min-w-[120px]">
             {t('tabs.open')}
-            {!isLoading && (
-              <span className="ml-2 text-xs">({tabCounts.open})</span>
-            )}
           </TabsTrigger>
           <TabsTrigger value="pending" className="min-w-[120px]">
             {t('tabs.pending')}
-            {!isLoading && (
-              <span className="ml-2 text-xs">({tabCounts.pending})</span>
-            )}
           </TabsTrigger>
           <TabsTrigger value="closed" className="min-w-[120px]">
             {t('tabs.closed')}
-            {!isLoading && (
-              <span className="ml-2 text-xs">({tabCounts.closed})</span>
-            )}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
-          <TicketList tickets={filteredTickets} isLoading={isLoading} onAssign={handleAssign} />
+          <TicketList tickets={tickets} isLoading={isLoading} onAssign={handleAssign} />
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {startTicketIndex}-{endTicketIndex} / {totalTickets}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handlePreviousPage}
+                disabled={isLoading || currentPage <= 1}
+              >
+                {tCommon('previous')}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleNextPage}
+                disabled={isLoading || totalTickets === 0 || currentPage >= totalPages}
+              >
+                {tCommon('next')}
+              </Button>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 

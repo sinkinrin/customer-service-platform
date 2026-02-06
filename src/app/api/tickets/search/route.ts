@@ -73,7 +73,7 @@ function buildStaffVisibilityQuery(user: PermissionUser): string | null {
     return null
   }
 
-  return `(${clauses.join(' OR ')}) AND NOT owner_id:0 AND NOT owner_id:1`
+  return `(${clauses.join(' OR ')}) AND NOT owner_id:null AND NOT owner_id:0 AND NOT owner_id:1`
 }
 
 // Helper function to ensure user exists in Zammad

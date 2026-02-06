@@ -143,6 +143,15 @@ describe('Ticket Search API', () => {
       undefined,
       1
     )
+    expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+      expect.stringContaining('NOT owner_id:null'),
+      5,
+      undefined,
+      1
+    )
+    expect(zammadClient.searchTicketsTotalCount).toHaveBeenCalledWith(
+      expect.stringContaining('NOT owner_id:null')
+    )
   })
 
   it('customer searches only their tickets', async () => {

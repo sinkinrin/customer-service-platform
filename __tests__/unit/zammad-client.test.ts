@@ -266,6 +266,22 @@ describe('ZammadClient', () => {
       expect(capturedUrl).toContain('page=3')
     })
 
+    it('searchTickets should include sort parameters when provided', async () => {
+      let capturedUrl = ''
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/tickets/search`, ({ request }) => {
+          capturedUrl = request.url
+          return HttpResponse.json([])
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      await client.searchTickets('state:*', 20, undefined, 2, 'priority_id', 'asc')
+
+      expect(capturedUrl).toContain('sort_by=priority_id')
+      expect(capturedUrl).toContain('order_by=asc')
+    })
+
     it('searchTicketsTotalCount should request only_total_count', async () => {
       let capturedUrl = ''
       server.use(

@@ -22,6 +22,7 @@ export interface TicketsSearchResult {
   total: number
   query: string
   limit: number
+  page: number
 }
 
 interface ApiResponse<T> {
@@ -84,15 +85,17 @@ const defaultConfig = {
  * 
  * @param query - Search query (e.g., 'state:*')
  * @param limit - Maximum number of tickets to return
+ * @param page - Page number (1-based)
  * @param enabled - Whether to fetch (useful for conditional fetching)
  */
 export function useTicketsSearch(
   query: string,
   limit: number = 50,
+  page: number = 1,
   enabled: boolean = true
 ) {
   const key = enabled && query 
-    ? `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}`
+    ? `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&page=${page}`
     : null
 
   const { data, error, isLoading, isValidating, mutate: revalidate } = useSWR<TicketsSearchResult>(
@@ -120,12 +123,24 @@ export function useTicketsSearch(
  */
 export function useTicketsList(
   limit: number = 50,
+  page: number = 1,
   status?: string,
+  priority?: number,
+  groupId?: number,
   enabled: boolean = true
 ) {
-  const params = new URLSearchParams({ limit: limit.toString() })
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    page: page.toString(),
+  })
   if (status) {
     params.append('status', status)
+  }
+  if (priority) {
+    params.append('priority', priority.toString())
+  }
+  if (groupId) {
+    params.append('group_id', groupId.toString())
   }
 
   const key = enabled ? `/api/tickets?${params}` : null
@@ -206,7 +221,7 @@ export function invalidateTicketCache(ticketId: string) {
 /**
  * Prefetch tickets (useful for navigation optimization)
  */
-export async function prefetchTickets(query: string, limit: number = 50) {
-  const key = `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}`
+export async function prefetchTickets(query: string, limit: number = 50, page: number = 1) {
+  const key = `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&page=${page}`
   await mutate(key, fetcher(key), { revalidate: false })
 }

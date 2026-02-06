@@ -262,12 +262,16 @@ export class ZammadClient {
    * @param limit - Maximum number of results
    * @param onBehalfOf - User email/login/ID to search tickets on behalf of
    * @param page - Page number (1-indexed)
+   * @param sortBy - Sort field supported by Zammad search
+   * @param orderBy - Sort direction (asc/desc)
    */
   async searchTickets(
     query: string,
     limit: number = 10,
     onBehalfOf?: string,
-    page: number = 1
+    page: number = 1,
+    sortBy?: string,
+    orderBy?: 'asc' | 'desc'
   ): Promise<ZammadSearchResponse> {
     logger.debug('ZammadClient', 'searchTickets - Raw query', { data: { query } })
     const formattedQuery = this.formatSearchQuery(query)
@@ -280,6 +284,12 @@ export class ZammadClient {
       limit: limit.toString(),
       page: page.toString(),
     })
+    if (sortBy) {
+      params.set('sort_by', sortBy)
+    }
+    if (orderBy) {
+      params.set('order_by', orderBy)
+    }
     const url = `/tickets/search?${params}`
     logger.debug('ZammadClient', 'searchTickets - Full URL', { data: { url } })
 

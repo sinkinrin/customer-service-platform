@@ -150,7 +150,7 @@ function transformTicket(
 
 function getStatusSearchQuery(status?: string | null): string | null {
   if (!status) return null
-  if (status === 'open') return 'state_id:2'
+  if (status === 'open') return '(state_id:1 OR state_id:2)'
   if (status === 'closed') return 'state_id:4'
   if (status === 'new') return 'state_id:1'
   if (status === 'pending') return '(state_id:3 OR state_id:7)'
@@ -160,6 +160,7 @@ function getStatusSearchQuery(status?: string | null): string | null {
 function buildTicketsSearchQuery(options: {
   status?: string | null
   priority?: string | null
+  groupId?: number | null
   customerEmail?: string | null
   staffConstraint?: string | null
 }): string {
@@ -175,6 +176,10 @@ function buildTicketsSearchQuery(options: {
     if (!Number.isNaN(priorityId)) {
       parts.push(`priority_id:${priorityId}`)
     }
+  }
+
+  if (typeof options.groupId === 'number') {
+    parts.push(`group_id:${options.groupId}`)
   }
 
   if (options.customerEmail) {
@@ -210,8 +215,18 @@ function buildStaffVisibilityQuery(user: PermissionUser): string | null {
   // Keep staff visibility aligned with current permission semantics:
   // - staff can see assigned tickets
   // - staff can see regional tickets
-  // - staff cannot see unassigned (owner_id 0/1)
-  return `(${clauses.join(' OR ')}) AND NOT owner_id:0 AND NOT owner_id:1`
+  // - staff cannot see unassigned (owner_id null/0/1)
+  return `(${clauses.join(' OR ')}) AND NOT owner_id:null AND NOT owner_id:0 AND NOT owner_id:1`
+}
+
+function mapSortField(sort: string): string {
+  if (sort === 'updated_at') return 'updated_at'
+  if (sort === 'priority') return 'priority_id'
+  return 'created_at'
+}
+
+function mapSortOrder(order: string): 'asc' | 'desc' {
+  return order === 'asc' ? 'asc' : 'desc'
 }
 
 // Helper function to ensure user exists in Zammad
@@ -335,6 +350,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const page = parseInt(searchParams.get('page') || '1')
     const customerEmail = searchParams.get('customer_email') // Filter by customer email
+    const groupIdRaw = searchParams.get('group_id')
+    let groupId: number | undefined
 
     if (!Number.isFinite(limit) || limit < 1 || limit > 200) {
       return validationErrorResponse([{ path: ['limit'], message: 'Limit must be between 1 and 200' }])
@@ -342,6 +359,14 @@ export async function GET(request: NextRequest) {
 
     if (!Number.isFinite(page) || page < 1) {
       return validationErrorResponse([{ path: ['page'], message: 'Page must be greater than or equal to 1' }])
+    }
+
+    if (groupIdRaw) {
+      const parsedGroupId = parseInt(groupIdRaw, 10)
+      if (!Number.isFinite(parsedGroupId) || parsedGroupId < 1) {
+        return validationErrorResponse([{ path: ['group_id'], message: 'group_id must be a positive integer' }])
+      }
+      groupId = parsedGroupId
     }
 
     // Build permission user object
@@ -366,14 +391,18 @@ export async function GET(request: NextRequest) {
     const query = buildTicketsSearchQuery({
       status,
       priority,
+      groupId,
       customerEmail,
       staffConstraint,
     })
 
     const onBehalfOf = user.role === 'customer' ? user.email : undefined
 
+    const sortBy = mapSortField(sort)
+    const orderBy = mapSortOrder(order)
+
     const [searchResult, total] = await Promise.all([
-      zammadClient.searchTickets(query, limit, onBehalfOf, page),
+      zammadClient.searchTickets(query, limit, onBehalfOf, page, sortBy, orderBy),
       zammadClient.searchTicketsTotalCount(query, onBehalfOf),
     ])
 
@@ -391,19 +420,6 @@ export async function GET(request: NextRequest) {
       (searchResult.tickets || []) as unknown as PermissionTicket[],
       permissionUser
     )
-
-    // Sort tickets
-    filteredTickets.sort((a: any, b: any) => {
-      let comparison = 0
-      if (sort === 'created_at') {
-        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      } else if (sort === 'updated_at') {
-        comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
-      } else if (sort === 'priority') {
-        comparison = a.priority_id - b.priority_id
-      }
-      return order === 'desc' ? -comparison : comparison
-    })
 
     // Collect unique customer IDs (to avoid duplicate fetches)
     const customerIds = [...new Set(filteredTickets.map((t: any) => t.customer_id))]

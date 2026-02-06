@@ -178,7 +178,128 @@ describe('Tickets API 集成测试', () => {
         'state:*',
         50,
         mockCustomer.email,
-        1
+        1,
+        'created_at',
+        'desc'
+      )
+    })
+
+    it('应将排序参数下推到 Zammad 以保证全局排序', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+
+      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+        tickets: [mockTicket],
+        tickets_count: 1,
+      } as any)
+      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(1)
+      vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([{
+        id: 100,
+        email: 'customer@test.com',
+        firstname: 'Test',
+        lastname: 'Customer',
+      }] as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets?sort=priority&order=asc&page=2&limit=10')
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+        'state:*',
+        10,
+        undefined,
+        2,
+        'priority_id',
+        'asc'
+      )
+    })
+
+    it('应将状态、优先级和地区过滤下推到 Zammad 查询', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+
+      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+        tickets: [mockTicket],
+        tickets_count: 1,
+      } as any)
+      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(1)
+      vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([{
+        id: 100,
+        email: 'customer@test.com',
+        firstname: 'Test',
+        lastname: 'Customer',
+      }] as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets?status=open&priority=3&group_id=101&limit=20&page=1')
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+        expect.stringContaining('(state_id:1 OR state_id:2)'),
+        20,
+        undefined,
+        1,
+        'created_at',
+        'desc'
+      )
+      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+        expect.stringContaining('priority_id:3'),
+        20,
+        undefined,
+        1,
+        'created_at',
+        'desc'
+      )
+      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+        expect.stringContaining('group_id:101'),
+        20,
+        undefined,
+        1,
+        'created_at',
+        'desc'
+      )
+    })
+
+    it('staff 查询应排除 owner_id:null 以避免 total 虚高', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: 'staff_001',
+          email: 'staff@test.com',
+          role: 'staff',
+          full_name: 'Test Staff',
+          region: 'asia-pacific',
+          zammad_id: 501,
+          group_ids: [1],
+        },
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+
+      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+        tickets: [],
+        tickets_count: 0,
+      } as any)
+      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(0)
+      vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets?page=1&limit=5')
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+        expect.stringContaining('NOT owner_id:null'),
+        5,
+        undefined,
+        1,
+        'created_at',
+        'desc'
+      )
+      expect(zammadClient.searchTicketsTotalCount).toHaveBeenCalledWith(
+        expect.stringContaining('NOT owner_id:null'),
+        undefined
       )
     })
 

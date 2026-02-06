@@ -83,7 +83,7 @@ export function useTicket() {
 
     try {
       const response = await fetch(
-        `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}`
+        `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&queryMode=dsl`
       )
 
       if (!response.ok) {

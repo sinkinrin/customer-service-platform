@@ -28,13 +28,6 @@ interface SelectedTicket {
 
 type TicketTab = 'all' | 'open' | 'pending' | 'closed'
 
-function getStatusQueryForTab(tab: TicketTab): string | null {
-  if (tab === 'open') return '(state_id:1 OR state_id:2)'
-  if (tab === 'pending') return '(state_id:3 OR state_id:7)'
-  if (tab === 'closed') return 'state_id:4'
-  return null
-}
-
 function getPriorityId(priority: string): number | undefined {
   if (priority === 'low') return 1
   if (priority === 'normal') return 2
@@ -70,28 +63,19 @@ export default function AdminTicketsPage() {
   const [selectedTicket, setSelectedTicket] = useState<SelectedTicket | null>(null)
   const [autoAssigning, setAutoAssigning] = useState(false)
 
-  const statusQuery = getStatusQueryForTab(activeTab)
   const statusFilter = activeTab === 'all' ? undefined : activeTab
   const priorityFilter = getPriorityId(selectedPriority)
   const groupIdFilter = selectedRegion === 'all' ? undefined : getGroupIdByRegion(selectedRegion as any)
 
-  const scopedSearchQuery = (() => {
-    const baseQuery = submittedQuery.trim() ? `(${submittedQuery.trim()})` : 'state:*'
-    const parts = [baseQuery]
-    if (statusQuery) {
-      parts.push(statusQuery)
-    }
-    if (priorityFilter) {
-      parts.push(`priority_id:${priorityFilter}`)
-    }
-    if (groupIdFilter) {
-      parts.push(`group_id:${groupIdFilter}`)
-    }
-    return parts.join(' AND ')
-  })()
-
   // Use SWR for caching - search when query exists, otherwise fetch all
-  const searchResult = useTicketsSearch(scopedSearchQuery, PAGE_SIZE, currentPage, !!submittedQuery)
+  const searchResult = useTicketsSearch(submittedQuery, PAGE_SIZE, currentPage, !!submittedQuery, {
+    queryMode: 'keyword',
+    status: statusFilter,
+    priority: priorityFilter,
+    groupId: groupIdFilter,
+    sort: 'created_at',
+    order: 'desc',
+  })
   const listResult = useTicketsList(PAGE_SIZE, currentPage, statusFilter, priorityFilter, groupIdFilter, !submittedQuery)
 
   // Use search results if query exists, otherwise use list results

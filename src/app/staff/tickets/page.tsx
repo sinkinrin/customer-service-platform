@@ -13,13 +13,6 @@ import { toast } from 'sonner'
 
 type TicketTab = 'all' | 'open' | 'pending' | 'closed'
 
-function getStatusQueryForTab(tab: TicketTab): string | null {
-  if (tab === 'open') return '(state_id:1 OR state_id:2)'
-  if (tab === 'pending') return '(state_id:3 OR state_id:7)'
-  if (tab === 'closed') return 'state_id:4'
-  return null
-}
-
 export default function TicketsPage() {
   const t = useTranslations('staff.tickets')
   const tCommon = useTranslations('common')
@@ -48,15 +41,18 @@ export default function TicketsPage() {
   }
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [submittedQuery, setSubmittedQuery] = useState('state:*') // Actual query sent to API
+  const [submittedQuery, setSubmittedQuery] = useState('') // Actual query sent to API
   const [activeTab, setActiveTab] = useState<TicketTab>(getInitialTab())
   const [currentPage, setCurrentPage] = useState(1)
+  const statusFilter = activeTab === 'all' ? undefined : activeTab
 
-  const statusQuery = getStatusQueryForTab(activeTab)
-  const scopedSearchQuery = statusQuery ? `(${submittedQuery}) AND ${statusQuery}` : submittedQuery
-
-  // Use SWR for caching - only fetches when submittedQuery changes
-  const { tickets, total, isLoading, revalidate } = useTicketsSearch(scopedSearchQuery, PAGE_SIZE, currentPage)
+  // Use SWR for caching - fetches with server-side filters for stable pagination
+  const { tickets, total, isLoading, revalidate } = useTicketsSearch(submittedQuery, PAGE_SIZE, currentPage, true, {
+    queryMode: 'keyword',
+    status: statusFilter,
+    sort: 'created_at',
+    order: 'desc',
+  })
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   useEffect(() => {
@@ -66,7 +62,7 @@ export default function TicketsPage() {
   }, [currentPage, totalPages])
 
   const handleSearch = () => {
-    const query = searchQuery.trim() || 'state:*'
+    const query = searchQuery.trim()
     setCurrentPage(1)
     setSubmittedQuery(query)
   }

@@ -25,6 +25,15 @@ export interface TicketsSearchResult {
   page: number
 }
 
+export interface TicketSearchFilters {
+  status?: string
+  priority?: number
+  groupId?: number
+  queryMode?: 'auto' | 'keyword' | 'dsl'
+  sort?: string
+  order?: 'asc' | 'desc'
+}
+
 interface ApiResponse<T> {
   success: boolean
   data: T
@@ -87,16 +96,40 @@ const defaultConfig = {
  * @param limit - Maximum number of tickets to return
  * @param page - Page number (1-based)
  * @param enabled - Whether to fetch (useful for conditional fetching)
+ * @param filters - Optional server-side filters (status, priority, group, sorting)
  */
 export function useTicketsSearch(
   query: string,
   limit: number = 50,
   page: number = 1,
-  enabled: boolean = true
+  enabled: boolean = true,
+  filters?: TicketSearchFilters
 ) {
-  const key = enabled && query 
-    ? `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&page=${page}`
-    : null
+  const params = new URLSearchParams({
+    query,
+    limit: limit.toString(),
+    page: page.toString(),
+  })
+  if (filters?.status) {
+    params.append('status', filters.status)
+  }
+  if (filters?.priority) {
+    params.append('priority', filters.priority.toString())
+  }
+  if (filters?.groupId) {
+    params.append('group_id', filters.groupId.toString())
+  }
+  if (filters?.queryMode) {
+    params.append('queryMode', filters.queryMode)
+  }
+  if (filters?.sort) {
+    params.append('sort', filters.sort)
+  }
+  if (filters?.order) {
+    params.append('order', filters.order)
+  }
+
+  const key = enabled ? `/api/tickets/search?${params}` : null
 
   const { data, error, isLoading, isValidating, mutate: revalidate } = useSWR<TicketsSearchResult>(
     key,
@@ -221,7 +254,36 @@ export function invalidateTicketCache(ticketId: string) {
 /**
  * Prefetch tickets (useful for navigation optimization)
  */
-export async function prefetchTickets(query: string, limit: number = 50, page: number = 1) {
-  const key = `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&page=${page}`
+export async function prefetchTickets(
+  query: string,
+  limit: number = 50,
+  page: number = 1,
+  filters?: TicketSearchFilters
+) {
+  const params = new URLSearchParams({
+    query,
+    limit: limit.toString(),
+    page: page.toString(),
+  })
+  if (filters?.status) {
+    params.append('status', filters.status)
+  }
+  if (filters?.priority) {
+    params.append('priority', filters.priority.toString())
+  }
+  if (filters?.groupId) {
+    params.append('group_id', filters.groupId.toString())
+  }
+  if (filters?.queryMode) {
+    params.append('queryMode', filters.queryMode)
+  }
+  if (filters?.sort) {
+    params.append('sort', filters.sort)
+  }
+  if (filters?.order) {
+    params.append('order', filters.order)
+  }
+
+  const key = `/api/tickets/search?${params}`
   await mutate(key, fetcher(key), { revalidate: false })
 }

@@ -17,6 +17,8 @@ import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { mapStateIdToString } from '@/lib/constants/zammad-states'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 import { getVerifiedZammadUser, setVerifiedZammadUser } from '@/lib/cache/zammad-user-cache'
+import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
+import { filterTicketsByPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 
 // ============================================================================
 // Helper Functions
@@ -52,8 +54,101 @@ function transformTicket(ticket: RawZammadTicket, customerInfo?: { name?: string
     customer_email: customerInfo?.email,
   }
 }
-import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
-import { filterTicketsByPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
+
+const VALID_STATUS = new Set(['open', 'closed', 'new', 'pending'])
+const VALID_SORT = new Set(['created_at', 'updated_at', 'priority'])
+const VALID_ORDER = new Set(['asc', 'desc'])
+const VALID_QUERY_MODE = new Set(['auto', 'keyword', 'dsl'])
+
+type QueryMode = 'auto' | 'keyword' | 'dsl'
+
+function getStatusSearchQuery(status?: string | null): string | null {
+  if (!status) return null
+  if (status === 'open') return '(state_id:1 OR state_id:2)'
+  if (status === 'closed') return 'state_id:4'
+  if (status === 'new') return 'state_id:1'
+  if (status === 'pending') return '(state_id:3 OR state_id:7)'
+  return null
+}
+
+function mapSortField(sort: string): string {
+  if (sort === 'updated_at') return 'updated_at'
+  if (sort === 'priority') return 'priority_id'
+  return 'created_at'
+}
+
+function mapSortOrder(order: string): 'asc' | 'desc' {
+  return order === 'asc' ? 'asc' : 'desc'
+}
+
+function buildKeywordQuery(rawQuery: string): string | null {
+  const trimmed = rawQuery.trim()
+  if (!trimmed) return null
+
+  if (/^\d+$/.test(trimmed)) {
+    return `number:${trimmed}`
+  }
+
+  return `title:*${trimmed}*`
+}
+
+function isDslLikeQuery(query: string): boolean {
+  const trimmed = query.trim()
+  if (!trimmed) return false
+  return trimmed.includes(':') || /\b(AND|OR|NOT)\b|\(|\)/i.test(trimmed)
+}
+
+function getBaseQuery(rawQuery: string, queryMode: QueryMode): string | null {
+  const trimmed = rawQuery.trim()
+
+  if (queryMode === 'keyword') {
+    return buildKeywordQuery(trimmed)
+  }
+
+  if (queryMode === 'dsl') {
+    return trimmed || null
+  }
+
+  // auto mode: preserve backward compatibility for existing DSL callers.
+  if (!trimmed) return null
+  if (isDslLikeQuery(trimmed)) return trimmed
+  return buildKeywordQuery(trimmed)
+}
+
+function buildSearchQuery(options: {
+  rawQuery: string
+  queryMode: QueryMode
+  status?: string | null
+  priority?: number
+  groupId?: number
+  staffConstraint?: string | null
+}): string {
+  const parts: string[] = []
+  const baseQuery = getBaseQuery(options.rawQuery, options.queryMode)
+  const statusQuery = getStatusSearchQuery(options.status)
+
+  if (baseQuery) {
+    parts.push(baseQuery)
+  }
+  if (statusQuery) {
+    parts.push(statusQuery)
+  }
+  if (options.priority) {
+    parts.push(`priority_id:${options.priority}`)
+  }
+  if (options.groupId) {
+    parts.push(`group_id:${options.groupId}`)
+  }
+  if (options.staffConstraint) {
+    parts.push(options.staffConstraint)
+  }
+
+  if (parts.length === 0) {
+    return 'state:*'
+  }
+
+  return parts.join(' AND ')
+}
 
 function buildStaffVisibilityQuery(user: PermissionUser): string | null {
   const clauses: string[] = []
@@ -142,21 +237,67 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
-    const query = searchParams.get('query')
+    const rawQuery = (searchParams.get('query') || '').trim()
+    const queryModeRaw = searchParams.get('queryMode') || 'auto'
+    const status = searchParams.get('status')
+    const priorityRaw = searchParams.get('priority')
+    const groupIdRaw = searchParams.get('group_id')
+    const sort = searchParams.get('sort') || 'created_at'
+    const order = searchParams.get('order') || 'desc'
     const limit = parseInt(searchParams.get('limit') || '10')
     const page = parseInt(searchParams.get('page') || '1')
 
-    if (!query) {
-      return errorResponse('INVALID_QUERY', 'Query parameter is required', undefined, 400)
-    }
-
-    // Validate limit (increased to 200 to support dashboard/list statistics)
-    if (limit < 1 || limit > 200) {
+    // Validate pagination
+    if (!Number.isFinite(limit) || limit < 1 || limit > 200) {
       return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 200', undefined, 400)
     }
     if (!Number.isFinite(page) || page < 1) {
       return errorResponse('INVALID_PAGE', 'Page must be greater than or equal to 1', undefined, 400)
     }
+
+    if (!VALID_QUERY_MODE.has(queryModeRaw)) {
+      return errorResponse('INVALID_QUERY_MODE', 'queryMode must be one of: auto, keyword, dsl', undefined, 400)
+    }
+    const queryMode = queryModeRaw as QueryMode
+
+    // Validate filter and sort parameters
+    if (status && !VALID_STATUS.has(status)) {
+      return errorResponse('INVALID_STATUS', 'Status must be one of: open, closed, new, pending', undefined, 400)
+    }
+
+    let priority: number | undefined
+    if (priorityRaw) {
+      if (!/^\d+$/.test(priorityRaw)) {
+        return errorResponse('INVALID_PRIORITY', 'priority must be an integer between 1 and 3', undefined, 400)
+      }
+      const parsedPriority = Number(priorityRaw)
+      if (parsedPriority < 1 || parsedPriority > 3) {
+        return errorResponse('INVALID_PRIORITY', 'priority must be an integer between 1 and 3', undefined, 400)
+      }
+      priority = parsedPriority
+    }
+
+    let groupId: number | undefined
+    if (groupIdRaw) {
+      if (!/^\d+$/.test(groupIdRaw)) {
+        return errorResponse('INVALID_GROUP_ID', 'group_id must be a positive integer', undefined, 400)
+      }
+      const parsedGroupId = Number(groupIdRaw)
+      if (parsedGroupId < 1) {
+        return errorResponse('INVALID_GROUP_ID', 'group_id must be a positive integer', undefined, 400)
+      }
+      groupId = parsedGroupId
+    }
+
+    if (!VALID_SORT.has(sort)) {
+      return errorResponse('INVALID_SORT', 'sort must be one of: created_at, updated_at, priority', undefined, 400)
+    }
+    if (!VALID_ORDER.has(order)) {
+      return errorResponse('INVALID_ORDER', 'order must be one of: asc, desc', undefined, 400)
+    }
+
+    const sortBy = mapSortField(sort)
+    const orderBy = mapSortOrder(order)
 
     // Check Zammad health before proceeding
     const healthCheck = await checkZammadHealth()
@@ -190,28 +331,42 @@ export async function GET(request: NextRequest) {
     }
 
     // Admin users search all tickets, other users search only their tickets
-    log.debug('Search API - Raw query', { query })
+    log.debug('Search API - Raw query', { rawQuery })
     log.debug('Search API - User role', { role: user.role })
-    log.debug('Search API - Limit', { limit })
+    log.debug('Search API - Filters', { limit, page, queryMode, status, priority, groupId, sortBy, orderBy })
 
     let result
     let total = 0
     if (user.role === 'admin') {
       // Admin: Search all tickets without X-On-Behalf-Of
-      log.debug('Search API - Calling searchTickets for admin')
+      const effectiveQuery = buildSearchQuery({
+        rawQuery,
+        queryMode,
+        status,
+        priority,
+        groupId,
+      })
+      log.debug('Search API - Calling searchTickets for admin', { effectiveQuery })
       const [searchResult, count] = await Promise.all([
-        zammadClient.searchTickets(query, limit, undefined, page),
-        zammadClient.searchTicketsTotalCount(query),
+        zammadClient.searchTicketsRawQuery(effectiveQuery, limit, undefined, page, sortBy, orderBy),
+        zammadClient.searchTicketsTotalCountRawQuery(effectiveQuery),
       ])
       result = searchResult
       total = count
       log.debug('Search API - Result', { result: JSON.stringify(result, null, 2) })
     } else if (user.role === 'customer') {
       // Customer: Search tickets on behalf of user (only their own tickets)
-      log.debug('Search API - Calling searchTickets for customer', { email: user.email })
+      const effectiveQuery = buildSearchQuery({
+        rawQuery,
+        queryMode,
+        status,
+        priority,
+        groupId,
+      })
+      log.debug('Search API - Calling searchTickets for customer', { email: user.email, effectiveQuery })
       const [searchResult, count] = await Promise.all([
-        zammadClient.searchTickets(query, limit, user.email, page),
-        zammadClient.searchTicketsTotalCount(query, user.email),
+        zammadClient.searchTicketsRawQuery(effectiveQuery, limit, user.email, page, sortBy, orderBy),
+        zammadClient.searchTicketsTotalCountRawQuery(effectiveQuery, user.email),
       ])
       result = searchResult
       total = count
@@ -227,15 +382,22 @@ export async function GET(request: NextRequest) {
       }
       const staffConstraint = buildStaffVisibilityQuery(permissionUser)
       if (!staffConstraint) {
-        return successResponse({ tickets: [], total: 0, query, limit, page })
+        return successResponse({ tickets: [], total: 0, query: rawQuery, queryMode, limit, page })
       }
 
-      const scopedQuery = `(${query}) AND ${staffConstraint}`
+      const scopedQuery = buildSearchQuery({
+        rawQuery,
+        queryMode,
+        status,
+        priority,
+        groupId,
+        staffConstraint,
+      })
 
       log.debug('Search API - Calling scoped search for staff', { scopedQuery, page, limit })
       const [searchResult, count] = await Promise.all([
-        zammadClient.searchTickets(scopedQuery, limit, undefined, page),
-        zammadClient.searchTicketsTotalCount(scopedQuery),
+        zammadClient.searchTicketsRawQuery(scopedQuery, limit, undefined, page, sortBy, orderBy),
+        zammadClient.searchTicketsTotalCountRawQuery(scopedQuery),
       ])
       result = searchResult
       total = count
@@ -288,7 +450,8 @@ export async function GET(request: NextRequest) {
     return successResponse({
       tickets: transformedTickets,
       total,
-      query,
+      query: rawQuery,
+      queryMode,
       limit,
       page,
     })

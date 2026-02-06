@@ -14,7 +14,9 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/zammad/client', () => ({
   zammadClient: {
     searchTickets: vi.fn(),
+    searchTicketsRawQuery: vi.fn(),
     searchTicketsTotalCount: vi.fn(),
+    searchTicketsTotalCountRawQuery: vi.fn(),
     getUsersByIds: vi.fn(),
     searchUsers: vi.fn(),
     searchUsersPaginated: vi.fn(),
@@ -50,15 +52,30 @@ describe('Ticket Search API', () => {
     vi.clearAllMocks()
   })
 
-  it('rejects requests without query', async () => {
+  it('allows empty query and falls back to base state search', async () => {
     vi.mocked(auth).mockResolvedValue({
       user: { role: 'admin' },
     } as any)
 
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [],
+      tickets_count: 0,
+    } as any)
+    vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(0)
+    vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
+
     const request = createRequest('http://localhost:3000/api/tickets/search')
     const response = await GET(request)
 
-    expect(response.status).toBe(400)
+    expect(response.status).toBe(200)
+    expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
+      'state:*',
+      10,
+      undefined,
+      1,
+      'created_at',
+      'desc'
+    )
   })
 
   it('rejects invalid limit', async () => {
@@ -77,18 +94,75 @@ describe('Ticket Search API', () => {
       user: { role: 'admin', email: 'admin@test.com' },
     } as any)
 
-    vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
       tickets: [],
       tickets_count: 0,
     } as any)
-    vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(0)
+    vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(0)
     vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
 
     const request = createRequest('http://localhost:3000/api/tickets/search?query=reset&limit=5')
     const response = await GET(request)
 
     expect(response.status).toBe(200)
-    expect(zammadClient.searchTickets).toHaveBeenCalledWith('reset', 5, undefined, 1)
+    expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
+      expect.stringContaining('title:*reset*'),
+      5,
+      undefined,
+      1,
+      'created_at',
+      'desc'
+    )
+    expect(zammadClient.searchTicketsTotalCountRawQuery).toHaveBeenCalledWith(
+      expect.stringContaining('title:*reset*')
+    )
+  })
+
+  it('auto mode preserves DSL query syntax for backward compatibility', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { role: 'admin', email: 'admin@test.com' },
+    } as any)
+
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [],
+      tickets_count: 0,
+    } as any)
+    vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(0)
+    vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
+
+    const request = createRequest('http://localhost:3000/api/tickets/search?query=state:*&limit=5')
+    const response = await GET(request)
+
+    expect(response.status).toBe(200)
+    const calledQuery = vi.mocked(zammadClient.searchTicketsRawQuery).mock.calls[0][0] as string
+    expect(calledQuery).toContain('state:*')
+    expect(calledQuery).not.toContain('title:*state:**')
+  })
+
+  it('dsl mode keeps pre-built DSL query unchanged', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { role: 'admin', email: 'admin@test.com' },
+    } as any)
+
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [],
+      tickets_count: 0,
+    } as any)
+    vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(0)
+    vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
+
+    const request = createRequest('http://localhost:3000/api/tickets/search?query=number:10001&queryMode=dsl&limit=5')
+    const response = await GET(request)
+
+    expect(response.status).toBe(200)
+    expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
+      expect.stringContaining('number:10001'),
+      5,
+      undefined,
+      1,
+      'created_at',
+      'desc'
+    )
   })
 
   it('staff searches and filters by region', async () => {
@@ -107,14 +181,14 @@ describe('Ticket Search API', () => {
       },
     } as any)
 
-    vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
       tickets: [
         { id: 1, owner_id: 999, group_id: asiaGroupId, customer_id: 100, priority_id: 2, state_id: 2 },
         { id: 2, owner_id: 999, group_id: europeGroupId, customer_id: 200, priority_id: 2, state_id: 2 },
       ],
       tickets_count: 2,
     } as any)
-    vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(2)
+    vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(2)
     vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([
       {
         id: 100,
@@ -137,19 +211,23 @@ describe('Ticket Search API', () => {
     expect(response.status).toBe(200)
     expect(payload.data.tickets).toHaveLength(1)
     expect(payload.data.tickets[0].group_id).toBe(asiaGroupId)
-    expect(zammadClient.searchTickets).toHaveBeenCalledWith(
-      expect.stringContaining('test'),
+    expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
+      expect.stringContaining('title:*test*'),
       5,
       undefined,
-      1
+      1,
+      'created_at',
+      'desc'
     )
-    expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+    expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
       expect.stringContaining('NOT owner_id:null'),
       5,
       undefined,
-      1
+      1,
+      'created_at',
+      'desc'
     )
-    expect(zammadClient.searchTicketsTotalCount).toHaveBeenCalledWith(
+    expect(zammadClient.searchTicketsTotalCountRawQuery).toHaveBeenCalledWith(
       expect.stringContaining('NOT owner_id:null')
     )
   })
@@ -164,17 +242,46 @@ describe('Ticket Search API', () => {
       },
     } as any)
 
-    vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
       tickets: [],
       tickets_count: 0,
     } as any)
-    vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(0)
+    vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(0)
     vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
 
     const request = createRequest('http://localhost:3000/api/tickets/search?query=test&limit=5')
     const response = await GET(request)
 
     expect(response.status).toBe(200)
-    expect(zammadClient.searchTickets).toHaveBeenCalledWith('test', 5, 'customer@test.com', 1)
+    expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
+      expect.stringContaining('title:*test*'),
+      5,
+      'customer@test.com',
+      1,
+      'created_at',
+      'desc'
+    )
+  })
+
+  it('rejects dirty group_id values', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { role: 'admin' },
+    } as any)
+
+    const request = createRequest('http://localhost:3000/api/tickets/search?group_id=101abc')
+    const response = await GET(request)
+
+    expect(response.status).toBe(400)
+  })
+
+  it('rejects invalid queryMode', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { role: 'admin' },
+    } as any)
+
+    const request = createRequest('http://localhost:3000/api/tickets/search?query=reset&queryMode=legacy')
+    const response = await GET(request)
+
+    expect(response.status).toBe(400)
   })
 })

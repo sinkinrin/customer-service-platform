@@ -177,3 +177,57 @@ model Notification {
   @@index([type])
   @@map("notifications")
 }
+
+// AI Conversations (replaces file-based storage)
+model AiConversation {
+  id            String   @id @default(cuid())
+  customerId    String
+  customerEmail String
+  status        String   @default("active") // active | closed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastMessageAt DateTime @default(now())
+
+  messages AiMessage[]
+
+  @@index([customerId])
+  @@index([customerEmail])
+  @@index([status])
+  @@map("ai_conversations")
+}
+
+// AI Messages
+model AiMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderRole     String   // customer | ai | system
+  senderId       String
+  content        String
+  messageType    String   @default("text")
+  metadata       String?  // JSON
+  createdAt      DateTime @default(now())
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  rating       AiMessageRating?
+
+  @@index([conversationId])
+  @@map("ai_messages")
+}
+
+// AI Message Ratings (thumbs up/down on AI responses)
+model AiMessageRating {
+  id        String   @id @default(cuid())
+  messageId String   @unique
+  userId    String
+  rating    String   // positive | negative
+  feedback  String?  // Optional feedback text for negative ratings
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  message AiMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId])
+  @@index([rating])
+  @@map("ai_message_ratings")
+}

@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useEffect, useRef, useMemo } from 'react'
+import React, { useEffect, useRef, useMemo } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Download, Bot } from 'lucide-react'
@@ -23,12 +23,14 @@ interface MessageListProps {
   isTyping?: boolean
   typingUser?: string | null
   isAiLoading?: boolean
+  renderMessageActions?: (message: Message) => React.ReactNode | null
 }
 
 export function MessageList({
   messages,
   isLoading = false,
   isAiLoading = false,
+  renderMessageActions,
 }: MessageListProps) {
   const t = useTranslations('components.conversation.messageList')
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -326,6 +328,9 @@ export function MessageList({
               >
                 {renderMessageContent(message, isCustomerMessage, isAI)}
               </div>
+
+              {/* Message actions (e.g., thumbs up/down for AI messages) */}
+              {renderMessageActions && renderMessageActions(message)}
 
               {/* Timestamp - only show for last message in group */}
               {group.isLast && (

@@ -1,20 +1,39 @@
 /**
  * Customer journey scenarios
  *
- * These scenarios exercise real storage utilities instead of synthetic data checks.
+ * These scenarios verify AI conversation service behavior using Prisma mocks.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import fs from 'fs/promises'
 
-vi.mock('fs/promises', () => ({
-  default: {
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    access: vi.fn().mockResolvedValue(undefined),
-    readFile: vi.fn(),
-    writeFile: vi.fn().mockResolvedValue(undefined),
+// Mock Prisma
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    aiConversation: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      delete: vi.fn(),
+      count: vi.fn(),
+    },
+    aiMessage: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    aiMessageRating: {
+      upsert: vi.fn(),
+      findUnique: vi.fn(),
+      delete: vi.fn(),
+      count: vi.fn(),
+      findMany: vi.fn(),
+    },
   },
 }))
+
+import { prisma } from '@/lib/prisma'
 
 describe('Customer journey: AI conversation', () => {
   const customer = {
@@ -26,82 +45,86 @@ describe('Customer journey: AI conversation', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([]))
   })
 
   it('creates a new AI conversation for the customer', async () => {
-    const { createAIConversation } = await import('@/lib/local-conversation-storage')
-
-    const conversation = await createAIConversation(
-      customer.id,
-      customer.email
-    )
-
-    expect(conversation.mode).toBe('ai')
-    expect(conversation.status).toBe('active')
-    expect(conversation.customer_id).toBe(customer.id)
-  })
-
-  it('persists multiple customer messages without loss', async () => {
-    const messages: any[] = []
-
-    vi.mocked(fs.readFile).mockImplementation(async () => JSON.stringify(messages))
-    vi.mocked(fs.writeFile).mockImplementation(async (_path, data) => {
-      const parsed = JSON.parse(data as string)
-      messages.length = 0
-      messages.push(...parsed)
-    })
-
-    const { addMessage } = await import('@/lib/local-conversation-storage')
-
-    await addMessage('conv_001', 'customer', customer.id, 'First message')
-    await addMessage('conv_001', 'customer', customer.id, 'Second message')
-    await addMessage('conv_001', 'customer', customer.id, 'Third message')
-
-    expect(messages.length).toBe(3)
-    expect(messages[0].content).toBe('First message')
-  })
-
-  it('closes a conversation by updating status', async () => {
-    const conversations = [{
+    const mockConversation = {
       id: 'conv_001',
-      customer_id: customer.id,
-      customer_email: customer.email,
-      mode: 'ai',
+      customerId: customer.id,
+      customerEmail: customer.email,
       status: 'active',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      last_message_at: new Date().toISOString(),
-    }]
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastMessageAt: new Date(),
+    }
 
-    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(conversations))
+    vi.mocked(prisma.aiConversation.updateMany).mockResolvedValue({ count: 0 })
+    vi.mocked(prisma.aiConversation.create).mockResolvedValue(mockConversation as any)
 
-    const { updateConversation } = await import('@/lib/local-conversation-storage')
+    const { createAIConversation } = await import('@/lib/ai-conversation-service')
+    const conversation = await createAIConversation(customer.id, customer.email)
 
-    const updated = await updateConversation('conv_001', {
-      status: 'closed',
+    expect(conversation.status).toBe('active')
+    expect(conversation.customerId).toBe(customer.id)
+    expect(prisma.aiConversation.updateMany).toHaveBeenCalledWith({
+      where: { customerId: customer.id, status: 'active' },
+      data: { status: 'closed' },
     })
-
-    expect(updated?.mode).toBe('ai')
-    expect(updated?.status).toBe('closed')
   })
 
-  it('preserves AI history when retrieving conversation messages', async () => {
-    const messages = [
-      { id: 'msg_1', conversation_id: 'conv_001', sender_role: 'customer', content: 'Refund request' },
-      { id: 'msg_2', conversation_id: 'conv_001', sender_role: 'ai', content: 'Need more info' },
-      { id: 'msg_3', conversation_id: 'conv_001', sender_role: 'customer', content: 'Product issue' },
+  it('retrieves conversation messages with ratings', async () => {
+    const mockMessages = [
+      {
+        id: 'msg_1',
+        conversationId: 'conv_001',
+        senderRole: 'customer',
+        senderId: customer.id,
+        content: 'Refund request',
+        messageType: 'text',
+        metadata: null,
+        createdAt: new Date(),
+        rating: null,
+      },
+      {
+        id: 'msg_2',
+        conversationId: 'conv_001',
+        senderRole: 'ai',
+        senderId: 'ai',
+        content: 'Need more info',
+        messageType: 'text',
+        metadata: null,
+        createdAt: new Date(),
+        rating: { id: 'r1', rating: 'positive', feedback: null },
+      },
     ]
 
-    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(messages))
+    vi.mocked(prisma.aiMessage.findMany).mockResolvedValue(mockMessages as any)
 
-    const { getConversationMessages } = await import('@/lib/local-conversation-storage')
-
+    const { getConversationMessages } = await import('@/lib/ai-conversation-service')
     const history = await getConversationMessages('conv_001')
 
-    expect(history.length).toBe(3)
-    expect(history[1].sender_role).toBe('ai')
+    expect(history.length).toBe(2)
+    expect(history[1].senderRole).toBe('ai')
+    expect(history[1].rating?.rating).toBe('positive')
   })
 
-  // Human handoff, assignment, and rating flows were removed from local storage.
+  it('rates an AI message with upsert', async () => {
+    const mockRating = {
+      id: 'rating_1',
+      messageId: 'msg_2',
+      userId: customer.id,
+      rating: 'negative',
+      feedback: 'Not accurate',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    vi.mocked(prisma.aiMessageRating.upsert).mockResolvedValue(mockRating as any)
+
+    const { rateMessage } = await import('@/lib/ai-conversation-service')
+    const result = await rateMessage('msg_2', customer.id, 'negative', 'Not accurate')
+
+    expect(result?.rating).toBe('negative')
+    expect(result?.feedback).toBe('Not accurate')
+  })
 })

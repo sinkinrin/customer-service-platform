@@ -470,6 +470,21 @@
         "total": "Total de avaliações",
         "recentNegative": "Feedback negativo recente:"
       },
+      "aiStats": {
+        "title": "Conversas IA",
+        "conversations": "Conversas IA",
+        "active": "ativas",
+        "closed": "fechadas",
+        "messages": "Mensagens IA",
+        "customerMessages": "msgs usuário",
+        "aiReplies": "respostas IA",
+        "ratingsTitle": "Satisfação IA",
+        "positive": "positivos",
+        "negative": "negativos",
+        "satisfactionRate": "Taxa de satisfação",
+        "recentNegative": "Feedback negativo recente",
+        "noNegativeFeedback": "Sem feedback negativo"
+      },
       "ticketTrends": {
         "title": "Tendências diárias de tickets",
         "description": "Tickets novos e fechados por dia",
@@ -2075,6 +2090,19 @@
       "noLongerHandle": "Você não precisa mais cuidar deste ticket. Se tiver dúvidas, entre em contato com seu administrador.",
       "closing": "Atenciosamente,",
       "signature": "Sistema de suporte"
+    }
+  },
+  "aiChat": {
+    "rate": {
+      "helpful": "Útil",
+      "notHelpful": "Não útil"
+    },
+    "feedback": {
+      "title": "O que deu errado?",
+      "description": "Ajude-nos a melhorar compartilhando o que havia de errado com esta resposta.",
+      "placeholder": "Diga-nos o que pode ser melhorado... (opcional)",
+      "submit": "Enviar",
+      "skip": "Pular"
     }
   }
 }

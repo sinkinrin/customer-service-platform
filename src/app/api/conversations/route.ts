@@ -57,7 +57,7 @@ import {
   getCustomerConversations,
   getConversationMessages,
   addMessage,
-} from '@/lib/local-conversation-storage'
+} from '@/lib/ai-conversation-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -80,18 +80,18 @@ export async function GET(request: NextRequest) {
 
         return {
           id: conv.id,
-          customer_id: conv.customer_id,
+          customer_id: conv.customerId,
           business_type_id: null,
           status: conv.status,
-          mode: conv.mode,
+          mode: 'ai',
           message_count: messages.length,
-          created_at: conv.created_at,
-          updated_at: conv.updated_at,
-          last_message_at: conv.last_message_at,
+          created_at: conv.createdAt.toISOString(),
+          updated_at: conv.updatedAt.toISOString(),
+          last_message_at: conv.lastMessageAt.toISOString(),
           customer: {
-            id: conv.customer_id,
-            full_name: conv.customer_name || conv.customer_email?.split('@')[0] || 'User',
-            email: conv.customer_email || '',
+            id: conv.customerId,
+            full_name: conv.customerEmail?.split('@')[0] || 'User',
+            email: conv.customerEmail || '',
           },
         }
       })
@@ -152,14 +152,14 @@ export async function POST(request: NextRequest) {
     // Transform to API format
     const response = {
       id: conversation.id,
-      customer_id: conversation.customer_id,
+      customer_id: conversation.customerId,
       business_type_id: null,
       status: conversation.status,
-      mode: conversation.mode,
+      mode: 'ai',
       message_count: initialMessage ? 1 : 0,
-      created_at: conversation.created_at,
-      updated_at: conversation.updated_at,
-      last_message_at: conversation.last_message_at,
+      created_at: conversation.createdAt.toISOString(),
+      updated_at: conversation.updatedAt.toISOString(),
+      last_message_at: conversation.lastMessageAt.toISOString(),
     }
 
     return successResponse(response, 201)

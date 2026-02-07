@@ -26,7 +26,7 @@ import {
   notFoundResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
-import { getConversation } from '@/lib/local-conversation-storage'
+import { getConversation } from '@/lib/ai-conversation-service'
 
 export async function POST(
   request: NextRequest,
@@ -44,7 +44,7 @@ export async function POST(
     }
 
     // Verify the user has access to this conversation
-    if (conversation.customer_email !== user.email && user.role === 'customer') {
+    if (conversation.customerEmail !== user.email && user.role === 'customer') {
       return notFoundResponse('Conversation not found')
     }
 

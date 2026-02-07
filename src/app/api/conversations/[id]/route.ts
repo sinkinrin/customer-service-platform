@@ -5,7 +5,7 @@
  * PUT /api/conversations/[id] - Update conversation
  * DELETE /api/conversations/[id] - Delete conversation
  *
- * Implementation: Uses local file storage for AI conversations only
+ * Implementation: Uses Prisma-based storage for AI conversations
  */
 
 import { NextRequest } from 'next/server'
@@ -24,7 +24,7 @@ import {
   updateConversation,
   deleteConversation,
   getConversationMessages,
-} from '@/lib/local-conversation-storage'
+} from '@/lib/ai-conversation-service'
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Verify access: customer can only access their own conversations
-    if (conversation.customer_email !== user.email) {
+    if (conversation.customerEmail !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -51,19 +51,19 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // Transform to API format
     const response = {
       id: conversation.id,
-      customer_id: conversation.customer_id,
-      customer_email: conversation.customer_email,
+      customer_id: conversation.customerId,
+      customer_email: conversation.customerEmail,
       business_type_id: null,
       status: conversation.status,
-      mode: conversation.mode,
+      mode: 'ai',
       message_count: messageCount,
-      created_at: conversation.created_at,
-      updated_at: conversation.updated_at,
-      last_message_at: conversation.last_message_at,
+      created_at: conversation.createdAt.toISOString(),
+      updated_at: conversation.updatedAt.toISOString(),
+      last_message_at: conversation.lastMessageAt.toISOString(),
       customer: {
-        id: conversation.customer_id,
-        full_name: conversation.customer_email?.split('@')[0] || 'Customer',
-        email: conversation.customer_email,
+        id: conversation.customerId,
+        full_name: conversation.customerEmail?.split('@')[0] || 'Customer',
+        email: conversation.customerEmail,
       },
     }
 
@@ -91,7 +91,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Verify access: customer can only update their own conversations
-    if (conversation.customer_email !== user.email) {
+    if (conversation.customerEmail !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -112,29 +112,29 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Get message count
-    const messages = await getConversationMessages(conversationId)
-    const messageCount = messages.length
+    const msgs = await getConversationMessages(conversationId)
+    const msgCount = msgs.length
 
     // Transform to API format
-    const response = {
+    const result = {
       id: updated.id,
-      customer_id: updated.customer_id,
-      customer_email: updated.customer_email,
+      customer_id: updated.customerId,
+      customer_email: updated.customerEmail,
       business_type_id: null,
       status: updated.status,
-      mode: updated.mode,
-      message_count: messageCount,
-      created_at: updated.created_at,
-      updated_at: updated.updated_at,
-      last_message_at: updated.last_message_at,
+      mode: 'ai',
+      message_count: msgCount,
+      created_at: updated.createdAt.toISOString(),
+      updated_at: updated.updatedAt.toISOString(),
+      last_message_at: updated.lastMessageAt.toISOString(),
       customer: {
-        id: updated.customer_id,
-        full_name: updated.customer_email?.split('@')[0] || 'Customer',
-        email: updated.customer_email,
+        id: updated.customerId,
+        full_name: updated.customerEmail?.split('@')[0] || 'Customer',
+        email: updated.customerEmail,
       },
     }
 
-    return successResponse(response)
+    return successResponse(result)
   } catch (error: any) {
     logger.error('Conversations', 'Failed to update conversation', { data: { error: error instanceof Error ? error.message : error } })
     if (error.message === 'Unauthorized') {
@@ -158,7 +158,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     }
 
     // Verify access: customer can only delete their own conversations
-    if (conversation.customer_email !== user.email) {
+    if (conversation.customerEmail !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 

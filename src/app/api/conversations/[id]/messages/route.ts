@@ -22,7 +22,7 @@ import {
   getConversation,
   getConversationMessages,
   addMessage,
-} from '@/lib/local-conversation-storage'
+} from '@/lib/ai-conversation-service'
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Verify access: customer can only access their own conversations
-    if (conversation.customer_email !== user.email) {
+    if (conversation.customerEmail !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -47,12 +47,12 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Get messages from local storage
+    // Get messages from database
     const allMessages = await getConversationMessages(conversationId)
 
     // Sort by created_at descending (newest first)
-    const sorted = allMessages.sort((a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    const sorted = [...allMessages].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
 
     // Apply pagination
@@ -62,30 +62,35 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     const messages = paginated.map((msg) => {
       // Determine sender name based on role
       let senderName = 'Unknown'
-      if (msg.sender_role === 'ai') {
+      if (msg.senderRole === 'ai') {
         senderName = 'AI Assistant'
       } else if (msg.metadata?.sender_name) {
         senderName = msg.metadata.sender_name
-      } else if (msg.sender_id === user.id) {
+      } else if (msg.senderId === user.id) {
         senderName = user.full_name || user.email
-      } else if (msg.sender_role === 'customer') {
-        senderName = conversation.customer_name || conversation.customer_email
+      } else if (msg.senderRole === 'customer') {
+        senderName = conversation.customerEmail
       }
 
       return {
         id: msg.id,
         conversation_id: conversationId,
-        sender_id: msg.sender_id,
-        sender_role: msg.sender_role,
+        sender_id: msg.senderId,
+        sender_role: msg.senderRole,
         content: msg.content,
-        message_type: msg.message_type || 'text',
+        message_type: msg.messageType || 'text',
         metadata: msg.metadata || {},
-        created_at: msg.created_at,
+        created_at: msg.createdAt instanceof Date ? msg.createdAt.toISOString() : msg.createdAt,
+        rating: msg.rating ? {
+          id: msg.rating.id,
+          rating: msg.rating.rating,
+          feedback: msg.rating.feedback,
+        } : null,
         sender: {
-          id: msg.sender_id,
+          id: msg.senderId,
           full_name: senderName,
           avatar_url: null,
-          role: msg.sender_role,
+          role: msg.senderRole,
         },
       }
     })
@@ -121,7 +126,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     }
 
     // Verify access: customer can only post to their own conversations
-    if (conversation.customer_email !== user.email) {
+    if (conversation.customerEmail !== user.email) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -151,7 +156,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       sender_name: senderRole === 'ai' ? 'AI Assistant' : (user.full_name || user.email),
     }
 
-    // Add message to local storage
+    // Add message to database
     const newMessage = await addMessage(
       conversationId,
       senderRole,
@@ -170,7 +175,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       content: newMessage.content,
       message_type: validation.data.message_type || 'text',
       metadata: messageMetadata,
-      created_at: newMessage.created_at,
+      created_at: newMessage.createdAt instanceof Date ? newMessage.createdAt.toISOString() : newMessage.createdAt,
       sender: {
         id: user.id,
         full_name: user.full_name || user.email,

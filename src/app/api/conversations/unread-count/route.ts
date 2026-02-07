@@ -17,7 +17,7 @@ import {
   unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
-import { getCustomerConversations, getConversationMessages } from '@/lib/local-conversation-storage'
+import { getCustomerConversations, getConversationMessages } from '@/lib/ai-conversation-service'
 
 export async function GET() {
   try {
@@ -37,7 +37,7 @@ export async function GET() {
       if (messages.length > 0) {
         const lastMessage = messages[messages.length - 1]
         // If the last message is from staff/AI, consider it unread
-        if (lastMessage.sender_role !== 'customer') {
+        if (lastMessage.senderRole !== 'customer') {
           unreadCount++
         }
       }

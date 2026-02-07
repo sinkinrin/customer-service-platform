@@ -470,6 +470,21 @@
         "total": "评分总数",
         "recentNegative": "近期负面反馈："
       },
+      "aiStats": {
+        "title": "AI 对话",
+        "conversations": "AI 对话",
+        "active": "活跃",
+        "closed": "已关闭",
+        "messages": "AI 消息",
+        "customerMessages": "用户消息",
+        "aiReplies": "AI 回复",
+        "ratingsTitle": "AI 满意度",
+        "positive": "好评",
+        "negative": "差评",
+        "satisfactionRate": "满意率",
+        "recentNegative": "近期差评",
+        "noNegativeFeedback": "暂无差评"
+      },
       "ticketTrends": {
         "title": "每日工单趋势",
         "description": "每日新增和关闭的工单",
@@ -2071,6 +2086,19 @@
       "noLongerHandle": "您无需再处理此工单。如有疑问，请联系您的管理员。",
       "closing": "此致，",
       "signature": "支持系统"
+    }
+  },
+  "aiChat": {
+    "rate": {
+      "helpful": "有帮助",
+      "notHelpful": "没帮助"
+    },
+    "feedback": {
+      "title": "哪里不对？",
+      "description": "请告诉我们这个回复有什么问题，帮助我们改进。",
+      "placeholder": "告诉我们可以改进的地方...（可选）",
+      "submit": "提交",
+      "skip": "跳过"
     }
   }
 }

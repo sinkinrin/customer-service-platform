@@ -470,6 +470,21 @@
         "total": "Total Ratings",
         "recentNegative": "Recent Negative Feedback:"
       },
+      "aiStats": {
+        "title": "AI Conversations",
+        "conversations": "AI Conversations",
+        "active": "active",
+        "closed": "closed",
+        "messages": "AI Messages",
+        "customerMessages": "user msgs",
+        "aiReplies": "AI replies",
+        "ratingsTitle": "AI Satisfaction",
+        "positive": "positive",
+        "negative": "negative",
+        "satisfactionRate": "Satisfaction Rate",
+        "recentNegative": "Recent Negative Feedback",
+        "noNegativeFeedback": "No negative feedback yet"
+      },
       "ticketTrends": {
         "title": "Daily Ticket Trends",
         "description": "Daily new and closed tickets",
@@ -2071,6 +2086,19 @@
       "noLongerHandle": "You no longer need to handle this ticket. If you have any questions, please contact your administrator.",
       "closing": "Best regards,",
       "signature": "Support System"
+    }
+  },
+  "aiChat": {
+    "rate": {
+      "helpful": "Helpful",
+      "notHelpful": "Not helpful"
+    },
+    "feedback": {
+      "title": "What went wrong?",
+      "description": "Help us improve by sharing what was wrong with this response.",
+      "placeholder": "Tell us what could be improved... (optional)",
+      "submit": "Submit",
+      "skip": "Skip"
     }
   }
 }

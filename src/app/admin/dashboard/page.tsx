@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Users, Ticket, Activity, Settings, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Users, Ticket, Activity, Settings, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown, Bot, MessageSquare } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,6 +49,18 @@ interface RatingStats {
   }>
 }
 
+interface AiConversationStats {
+  conversations: { total: number; active: number; closed: number }
+  messages: { total: number; customer: number; ai: number }
+  ratings: { positive: number; negative: number; satisfactionRate: number }
+  recentNegative: Array<{
+    messageId: string
+    content: string
+    feedback: string | null
+    createdAt: string
+  }>
+}
+
 const getActivityIcon = (state: string) => {
   const stateLower = state?.toLowerCase() || ''
   if (stateLower.includes('new')) {
@@ -88,6 +100,7 @@ export default function AdminDashboardPage() {
   const tRating = useTranslations('tickets.rating')
   const tRegions = useTranslations('common.regions')
   const tTime = useTranslations('common.time')
+  const tAiStats = useTranslations('admin.dashboard.aiStats')
   const adminName = user?.full_name || user?.email?.split('@')[0] || tCommon('layout.administrator')
   const [ticketStats, setTicketStats] = useState<TicketStats>({ total: 0, open: 0, pending: 0, closed: 0 })
   const [allTimeStats, setAllTimeStats] = useState<TicketStats>({ total: 0, open: 0, pending: 0, closed: 0 })
@@ -96,6 +109,12 @@ export default function AdminDashboardPage() {
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [ratingStats, setRatingStats] = useState<RatingStats>({ total: 0, positive: 0, negative: 0, satisfactionRate: 0, recentNegative: [] })
   const [totalUsers, setTotalUsers] = useState(0)
+  const [aiStats, setAiStats] = useState<AiConversationStats>({
+    conversations: { total: 0, active: 0, closed: 0 },
+    messages: { total: 0, customer: 0, ai: 0 },
+    ratings: { positive: 0, negative: 0, satisfactionRate: 0 },
+    recentNegative: [],
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -106,9 +125,10 @@ export default function AdminDashboardPage() {
     setLoading(true)
     try {
       // Use unified dashboard API for better performance
-      const [dashboardRes, ratingsRes] = await Promise.all([
+      const [dashboardRes, ratingsRes, aiStatsRes] = await Promise.all([
         fetch('/api/admin/stats/dashboard'),
         fetch('/api/admin/stats/ratings'),
+        fetch('/api/admin/stats/ai-conversations'),
       ])
 
       if (dashboardRes.ok) {
@@ -126,6 +146,13 @@ export default function AdminDashboardPage() {
         const data = await ratingsRes.json()
         if (data.success && data.data) {
           setRatingStats(data.data)
+        }
+      }
+
+      if (aiStatsRes.ok) {
+        const data = await aiStatsRes.json()
+        if (data.success && data.data) {
+          setAiStats(data.data)
         }
       }
     } catch (error) {
@@ -244,6 +271,96 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TicketTrendChart />
         <RegionDistributionChart data={regionStats} loading={loading} />
+      </div>
+
+      {/* AI Conversation Stats Section */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Bot className="h-5 w-5 text-violet-600" />
+          {tAiStats('title')}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {loading ? (
+            [1, 2, 3, 4].map((item) => (
+              <Card key={`ai-stat-skeleton-${item}`}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Skeleton className="h-7 w-16" />
+                  <Skeleton className="h-3 w-20" />
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <>
+              <Card className="animate-fade-in motion-reduce:animate-none">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{tAiStats('conversations')}</CardTitle>
+                  <Bot className="h-4 w-4 text-violet-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{aiStats.conversations.total}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {aiStats.conversations.active} {tAiStats('active')} / {aiStats.conversations.closed} {tAiStats('closed')}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '50ms' }}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{tAiStats('messages')}</CardTitle>
+                  <MessageSquare className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{aiStats.messages.total}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {aiStats.messages.customer} {tAiStats('customerMessages')} / {aiStats.messages.ai} {tAiStats('aiReplies')}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '90ms' }}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{tAiStats('ratingsTitle')}</CardTitle>
+                  <ThumbsUp className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{aiStats.ratings.satisfactionRate}%</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {aiStats.ratings.positive} {tAiStats('positive')} / {aiStats.ratings.negative} {tAiStats('negative')}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '130ms' }}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{tAiStats('recentNegative')}</CardTitle>
+                  <ThumbsDown className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                  {aiStats.recentNegative.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">{tAiStats('noNegativeFeedback')}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {aiStats.recentNegative.slice(0, 3).map((item, idx) => (
+                        <div key={idx} className="text-xs">
+                          <p className="text-red-600 truncate">
+                            {item.feedback || item.content}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {formatRelativeTime(item.createdAt, tTime)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Regional Details (text version) */}

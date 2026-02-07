@@ -9,7 +9,7 @@ vi.mock('@/lib/utils/auth', () => ({
   requireAuth: vi.fn(),
 }))
 
-vi.mock('@/lib/local-conversation-storage', () => ({
+vi.mock('@/lib/ai-conversation-service', () => ({
   getConversation: vi.fn(),
   updateConversation: vi.fn(),
   deleteConversation: vi.fn(),
@@ -24,20 +24,19 @@ import {
   deleteConversation,
   getConversationMessages,
   addMessage,
-} from '@/lib/local-conversation-storage'
+} from '@/lib/ai-conversation-service'
 
 import { GET as GET_CONVERSATION, PUT as PUT_CONVERSATION, DELETE as DELETE_CONVERSATION } from '@/app/api/conversations/[id]/route'
 import { GET as GET_MESSAGES, POST as POST_MESSAGES } from '@/app/api/conversations/[id]/messages/route'
 
 const baseConversation = {
   id: 'conv_1',
-  customer_id: 'cust_1',
-  customer_email: 'customer@test.com',
+  customerId: 'cust_1',
+  customerEmail: 'customer@test.com',
   status: 'active',
-  mode: 'ai',
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-  last_message_at: '2024-01-01T00:00:00Z',
+  createdAt: new Date('2024-01-01T00:00:00Z'),
+  updatedAt: new Date('2024-01-01T00:00:00Z'),
+  lastMessageAt: new Date('2024-01-01T00:00:00Z'),
 }
 
 function createRequest(url: string, options?: RequestInit): NextRequest {
@@ -72,7 +71,7 @@ describe('Conversation detail APIs', () => {
     it('returns 404 when accessing another customer conversation', async () => {
       vi.mocked(getConversation).mockResolvedValue({
         ...baseConversation,
-        customer_email: 'other@test.com',
+        customerEmail: 'other@test.com',
       } as any)
 
       const response = await GET_CONVERSATION(createRequest('http://localhost:3000/api/conversations/conv_1'), {
@@ -139,11 +138,13 @@ describe('Conversation detail APIs', () => {
       vi.mocked(getConversationMessages).mockResolvedValue([
         {
           id: 'msg_1',
-          sender_id: 'ai',
-          sender_role: 'ai',
+          senderId: 'ai',
+          senderRole: 'ai',
           content: 'Hello',
-          message_type: 'text',
-          created_at: '2024-01-01T00:00:00Z',
+          messageType: 'text',
+          metadata: null,
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+          rating: null,
         },
       ] as any)
 
@@ -175,7 +176,7 @@ describe('Conversation detail APIs', () => {
       vi.mocked(addMessage).mockResolvedValue({
         id: 'msg_2',
         content: 'AI reply',
-        created_at: '2024-01-01T01:00:00Z',
+        createdAt: new Date('2024-01-01T01:00:00Z'),
       } as any)
 
       const request = createRequest('http://localhost:3000/api/conversations/conv_1/messages', {

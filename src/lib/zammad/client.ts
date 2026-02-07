@@ -290,7 +290,10 @@ export class ZammadClient {
     sortBy?: string,
     orderBy?: 'asc' | 'desc'
   ): Promise<ZammadSearchResponse> {
-    const normalizedQuery = query.trim() || 'state:*'
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
+      throw new Error('Raw query must not be empty')
+    }
     logger.debug('ZammadClient', 'searchTicketsRawQuery - Query', { data: { normalizedQuery } })
     return this.searchTicketsByQuery(normalizedQuery, limit, onBehalfOf, page, sortBy, orderBy)
   }

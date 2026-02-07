@@ -14,7 +14,7 @@ import { logger } from '@/lib/utils/logger'
 // ============================================================================
 
 /** Safely parse a JSON string, returning null on failure */
-function safeJsonParse(value: string | null | undefined): any {
+function safeJsonParse(value: string | null | undefined): Record<string, unknown> | null {
   if (!value) return null
   try {
     return JSON.parse(value)
@@ -132,7 +132,7 @@ export async function deleteConversation(id: string): Promise<boolean> {
 }
 
 /**
- * Get message count for a conversation
+ * Get message count for a conversation (used for both detail views and pagination)
  */
 export async function getConversationMessageCount(conversationId: string) {
   return prisma.aiMessage.count({
@@ -204,13 +204,6 @@ export async function getConversationMessages(
 }
 
 /**
- * Get total message count for a conversation (for pagination)
- */
-export async function getConversationMessageTotal(conversationId: string) {
-  return prisma.aiMessage.count({ where: { conversationId } })
-}
-
-/**
  * Verify a message belongs to a conversation
  */
 export async function verifyMessageOwnership(messageId: string, conversationId: string) {
@@ -225,11 +218,15 @@ export async function verifyMessageOwnership(messageId: string, conversationId: 
  * Get conversation statistics for a customer
  */
 export async function getConversationStats(customerEmail: string) {
-  const [total, active, closed] = await Promise.all([
-    prisma.aiConversation.count({ where: { customerEmail } }),
-    prisma.aiConversation.count({ where: { customerEmail, status: 'active' } }),
-    prisma.aiConversation.count({ where: { customerEmail, status: 'closed' } }),
-  ])
+  const groups = await prisma.aiConversation.groupBy({
+    by: ['status'],
+    where: { customerEmail },
+    _count: true,
+  })
+
+  const active = groups.find(g => g.status === 'active')?._count ?? 0
+  const closed = groups.find(g => g.status === 'closed')?._count ?? 0
+  const total = groups.reduce((sum, g) => sum + g._count, 0)
 
   return { total, active, closed }
 }
@@ -241,6 +238,11 @@ export async function getConversationStats(customerEmail: string) {
 /**
  * Rate a message (upsert). Pass rating as null to remove the rating.
  * Uses messageId as the unique key (one rating per message).
+ *
+ * Note: The upsert uses `where: { messageId }` and overwrites userId in the update clause.
+ * This is safe because each conversation is scoped to a single customer, and ownership is
+ * verified at the API layer (verifyMessageOwnership). If multi-user conversations are ever
+ * introduced, this function must be updated to include a userId ownership check.
  */
 export async function rateMessage(
   messageId: string,
@@ -280,15 +282,6 @@ export async function rateMessage(
   })
 
   return result
-}
-
-/**
- * Get rating for a specific message
- */
-export async function getMessageRating(messageId: string) {
-  return prisma.aiMessageRating.findUnique({
-    where: { messageId },
-  })
 }
 
 // ============================================================================

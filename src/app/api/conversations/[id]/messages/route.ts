@@ -21,7 +21,7 @@ import { CreateMessageSchema } from '@/types/api.types'
 import {
   getConversation,
   getConversationMessages,
-  getConversationMessageTotal,
+  getConversationMessageCount,
   addMessage,
 } from '@/lib/ai-conversation-service'
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // Get messages with database-level pagination (newest first)
     const [messages, total] = await Promise.all([
       getConversationMessages(conversationId, { limit, offset, order: 'desc' }),
-      getConversationMessageTotal(conversationId),
+      getConversationMessageCount(conversationId),
     ])
 
     // Transform to API format
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       if (msg.senderRole === 'ai') {
         senderName = 'AI Assistant'
       } else if (msg.metadata?.sender_name) {
-        senderName = msg.metadata.sender_name
+        senderName = msg.metadata.sender_name as string
       } else if (msg.senderId === user.id) {
         senderName = user.full_name || user.email
       } else if (msg.senderRole === 'customer') {

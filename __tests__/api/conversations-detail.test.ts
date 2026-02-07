@@ -15,7 +15,6 @@ vi.mock('@/lib/ai-conversation-service', () => ({
   deleteConversation: vi.fn(),
   getConversationMessages: vi.fn(),
   getConversationMessageCount: vi.fn(),
-  getConversationMessageTotal: vi.fn(),
   addMessage: vi.fn(),
 }))
 
@@ -26,7 +25,6 @@ import {
   deleteConversation,
   getConversationMessages,
   getConversationMessageCount,
-  getConversationMessageTotal,
   addMessage,
 } from '@/lib/ai-conversation-service'
 
@@ -151,7 +149,7 @@ describe('Conversation detail APIs', () => {
           rating: null,
         },
       ] as any)
-      vi.mocked(getConversationMessageTotal).mockResolvedValue(1)
+      vi.mocked(getConversationMessageCount).mockResolvedValue(1)
 
       const request = createRequest('http://localhost:3000/api/conversations/conv_1/messages?limit=10&offset=0')
       const response = await GET_MESSAGES(request, { params: Promise.resolve({ id: 'conv_1' }) })

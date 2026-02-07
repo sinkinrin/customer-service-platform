@@ -362,14 +362,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (groupIdRaw) {
-      if (!/^\d+$/.test(groupIdRaw)) {
+      if (!/^[1-9]\d*$/.test(groupIdRaw)) {
         return validationErrorResponse([{ path: ['group_id'], message: 'group_id must be a positive integer' }])
       }
-      const parsedGroupId = Number(groupIdRaw)
-      if (parsedGroupId < 1) {
-        return validationErrorResponse([{ path: ['group_id'], message: 'group_id must be a positive integer' }])
-      }
-      groupId = parsedGroupId
+      groupId = Number(groupIdRaw)
     }
 
     // Build permission user object

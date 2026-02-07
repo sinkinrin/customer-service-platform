@@ -1,6 +1,6 @@
 # Database Schema
 
-> Prisma ORM with SQLite (current)
+> Prisma ORM with PostgreSQL
 
 **中文概览**: See [DATABASE.zh-CN.md](./DATABASE.zh-CN.md)
 
@@ -24,14 +24,13 @@ The platform uses Prisma ORM for database operations. Ticket data is stored in Z
 
 ## Database Configuration
 
-### SQLite (Current)
+### PostgreSQL (Current)
 
 ```env
-DATABASE_URL=file:./dev.db
+DATABASE_URL=postgresql://user:password@localhost:5432/customer_service
 ```
 
-> Note: The current Prisma schema uses `provider = "sqlite"` (see `prisma/schema.prisma`).
-> If you want to run PostgreSQL, you must update the Prisma datasource provider and generate/apply new migrations for PostgreSQL.
+> Note: The Prisma schema uses `provider = "postgresql"` (see `prisma/schema.prisma`).
 
 ---
 

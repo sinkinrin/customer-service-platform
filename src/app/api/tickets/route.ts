@@ -362,8 +362,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (groupIdRaw) {
-      const parsedGroupId = parseInt(groupIdRaw, 10)
-      if (!Number.isFinite(parsedGroupId) || parsedGroupId < 1) {
+      if (!/^\d+$/.test(groupIdRaw)) {
+        return validationErrorResponse([{ path: ['group_id'], message: 'group_id must be a positive integer' }])
+      }
+      const parsedGroupId = Number(groupIdRaw)
+      if (parsedGroupId < 1) {
         return validationErrorResponse([{ path: ['group_id'], message: 'group_id must be a positive integer' }])
       }
       groupId = parsedGroupId

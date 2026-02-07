@@ -23,7 +23,7 @@ import {
   getConversation,
   updateConversation,
   deleteConversation,
-  getConversationMessages,
+  getConversationMessageCount,
 } from '@/lib/ai-conversation-service'
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     const user = await requireAuth()
     const conversationId = params.id
 
-    // Get conversation from local storage
+    // Get conversation from database
     const conversation = await getConversation(conversationId)
 
     if (!conversation) {
@@ -44,9 +44,8 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       return notFoundResponse('Conversation not found')
     }
 
-    // Get message count
-    const messages = await getConversationMessages(conversationId)
-    const messageCount = messages.length
+    // Get message count efficiently
+    const messageCount = await getConversationMessageCount(conversationId)
 
     // Transform to API format
     const response = {
@@ -83,7 +82,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
     const user = await requireAuth()
     const conversationId = params.id
 
-    // Get conversation from local storage
+    // Get conversation from database
     const conversation = await getConversation(conversationId)
 
     if (!conversation) {
@@ -111,9 +110,8 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
       return notFoundResponse('Conversation not found')
     }
 
-    // Get message count
-    const msgs = await getConversationMessages(conversationId)
-    const msgCount = msgs.length
+    // Get message count efficiently
+    const msgCount = await getConversationMessageCount(conversationId)
 
     // Transform to API format
     const result = {

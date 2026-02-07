@@ -282,6 +282,21 @@ describe('ZammadClient', () => {
       expect(capturedUrl).toContain('order_by=asc')
     })
 
+    it('searchTicketsRawQuery should not auto-format pre-built DSL query', async () => {
+      let capturedQuery = ''
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/tickets/search`, ({ request }) => {
+          capturedQuery = new URL(request.url).searchParams.get('query') || ''
+          return HttpResponse.json([])
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      await client.searchTicketsRawQuery('state:* AND title:*login issue*', 20, undefined, 2, 'created_at', 'desc')
+
+      expect(capturedQuery).toBe('state:* AND title:*login issue*')
+    })
+
     it('searchTicketsTotalCount should request only_total_count', async () => {
       let capturedUrl = ''
       server.use(
@@ -296,6 +311,22 @@ describe('ZammadClient', () => {
 
       expect(capturedUrl).toContain('only_total_count=true')
       expect(total).toBe(93)
+    })
+
+    it('searchTicketsTotalCountRawQuery should keep pre-built DSL query', async () => {
+      let capturedQuery = ''
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/tickets/search`, ({ request }) => {
+          capturedQuery = new URL(request.url).searchParams.get('query') || ''
+          return HttpResponse.json({ total_count: 12 })
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      const total = await client.searchTicketsTotalCountRawQuery('state:* AND group_id:101')
+
+      expect(capturedQuery).toBe('state:* AND group_id:101')
+      expect(total).toBe(12)
     })
 
     it('createArticle should POST to /ticket_articles', async () => {

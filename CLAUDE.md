@@ -8,7 +8,7 @@ A **production-ready Customer Service Platform** built with Next.js 16 (App Rout
 
 ### Core Features
 - **NextAuth.js v5**: JWT-based authentication with role-based access control (Customer/Staff/Admin)
-- **Prisma Database**: SQLite (current) with full ORM support
+- **Prisma Database**: PostgreSQL with full ORM support
 - **Multi-portal Access**: Separate portals for customers, staff, and administrators
 - **Zammad Integration**: Complete ticketing system integration with X-On-Behalf-Of authentication
 - **Multilingual**: 6 languages (en, zh-CN, fr, es, ru, pt) via next-intl
@@ -20,7 +20,7 @@ A **production-ready Customer Service Platform** built with Next.js 16 (App Rout
 ### Tech Stack
 - **Frontend**: Next.js 16 (App Router), React 19, TypeScript
 - **Auth**: NextAuth.js v5 (JWT sessions, no database sessions)
-- **Database**: Prisma 6.19 (SQLite)
+- **Database**: Prisma 6.19 (PostgreSQL)
 - **UI**: Tailwind CSS, shadcn/ui, Lucide icons
 - **State**: Zustand with persistence
 - **Forms**: React Hook Form + Zod validation
@@ -54,9 +54,9 @@ npm run start            # Production server
 AUTH_SECRET=your_auth_secret_here_at_least_32_chars
 
 # Database
-DATABASE_URL=file:./dev.db  # SQLite (current)
+DATABASE_URL=postgresql://user:password@localhost:5432/customer_service  # PostgreSQL
 
-# Note: current Prisma schema uses SQLite provider; PostgreSQL requires schema + migrations changes
+# Note: Prisma schema uses PostgreSQL provider
 
 # Zammad Integration (Required)
 ZAMMAD_URL=http://your-zammad-server:8080/

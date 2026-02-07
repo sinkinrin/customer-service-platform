@@ -6,9 +6,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock Prisma
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
+// Mock Prisma - use vi.hoisted so mock is available in the hoisted vi.mock factory
+const prismaMock = vi.hoisted(() => {
+  const mock = {
     aiConversation: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -17,11 +17,14 @@ vi.mock('@/lib/prisma', () => ({
       updateMany: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
+      groupBy: vi.fn(),
     },
     aiMessage: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       count: vi.fn(),
+      groupBy: vi.fn(),
     },
     aiMessageRating: {
       upsert: vi.fn(),
@@ -29,11 +32,28 @@ vi.mock('@/lib/prisma', () => ({
       delete: vi.fn(),
       count: vi.fn(),
       findMany: vi.fn(),
+      groupBy: vi.fn(),
     },
-  },
+    $transaction: vi.fn(),
+  }
+
+  // $transaction supports interactive (callback) and batch (array) modes
+  mock.$transaction.mockImplementation((arg: any) => {
+    if (typeof arg === 'function') {
+      return arg(mock)
+    }
+    return Promise.all(arg)
+  })
+
+  return mock
+})
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: prismaMock,
 }))
 
-import { prisma } from '@/lib/prisma'
+// Use prismaMock directly (alias for readability in tests)
+const prisma = prismaMock
 
 describe('Customer journey: AI conversation', () => {
   const customer = {
@@ -126,5 +146,19 @@ describe('Customer journey: AI conversation', () => {
 
     expect(result?.rating).toBe('negative')
     expect(result?.feedback).toBe('Not accurate')
+    expect(prisma.aiMessageRating.upsert).toHaveBeenCalledWith({
+      where: { messageId: 'msg_2' },
+      update: {
+        userId: customer.id,
+        rating: 'negative',
+        feedback: 'Not accurate',
+      },
+      create: {
+        messageId: 'msg_2',
+        userId: customer.id,
+        rating: 'negative',
+        feedback: 'Not accurate',
+      },
+    })
   })
 })

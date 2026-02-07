@@ -18,6 +18,7 @@ import {
 import {
   getConversation,
   rateMessage,
+  verifyMessageOwnership,
 } from '@/lib/ai-conversation-service'
 import { z } from 'zod'
 
@@ -43,6 +44,12 @@ export async function PUT(
 
     if (conversation.customerEmail !== user.email) {
       return notFoundResponse('Conversation not found')
+    }
+
+    // Verify the message belongs to this conversation
+    const messageExists = await verifyMessageOwnership(messageId, conversationId)
+    if (!messageExists) {
+      return notFoundResponse('Message not found')
     }
 
     // Parse and validate request body

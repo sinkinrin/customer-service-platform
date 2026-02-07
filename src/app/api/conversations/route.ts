@@ -27,7 +27,7 @@
  *       200:
  *         description: A list of conversations
  *   post:
- *     description: Create a new AI conversation (local storage)
+ *     description: Create a new AI conversation (Prisma database)
  *     requestBody:
  *       required: false
  *       content:
@@ -55,7 +55,6 @@ import { CreateConversationSchema } from '@/types/api.types'
 import {
   createAIConversation,
   getCustomerConversations,
-  getConversationMessages,
   addMessage,
 } from '@/lib/ai-conversation-service'
 
@@ -72,19 +71,15 @@ export async function GET(request: NextRequest) {
     // Get customer's conversations only
     const conversations = await getCustomerConversations(user.email)
 
-    // Transform to API format
-    const transformedConversations = await Promise.all(
-      conversations.map(async (conv) => {
-        // Get actual message count
-        const messages = await getConversationMessages(conv.id)
-
+    // Transform to API format (message count included via _count)
+    const transformedConversations = conversations.map((conv) => {
         return {
           id: conv.id,
           customer_id: conv.customerId,
           business_type_id: null,
           status: conv.status,
           mode: 'ai',
-          message_count: messages.length,
+          message_count: conv._count.messages,
           created_at: conv.createdAt.toISOString(),
           updated_at: conv.updatedAt.toISOString(),
           last_message_at: conv.lastMessageAt.toISOString(),
@@ -94,8 +89,7 @@ export async function GET(request: NextRequest) {
             email: conv.customerEmail || '',
           },
         }
-      })
-    )
+    })
 
     // Apply filters
     let filteredConversations = transformedConversations

@@ -264,6 +264,19 @@ describe('Tickets API 集成测试', () => {
       )
     })
 
+    it('应拒绝脏 group_id 参数', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets?group_id=101abc')
+      const response = await GET(request)
+
+      expect(response.status).toBe(400)
+      expect(zammadClient.searchTickets).not.toHaveBeenCalled()
+    })
+
     it('staff 查询应排除 owner_id:null 以避免 total 虚高', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: {

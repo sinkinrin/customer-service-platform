@@ -211,10 +211,13 @@ model AiMessage {
   rating       AiMessageRating?
 
   @@index([conversationId])
+  @@index([conversationId, createdAt])
   @@map("ai_messages")
 }
 
 // AI Message Ratings (thumbs up/down on AI responses)
+// One-to-one with AiMessage: each AI message has at most one rating
+// (messages are only visible to the customer who owns the conversation)
 model AiMessageRating {
   id        String   @id @default(cuid())
   messageId String   @unique
@@ -226,7 +229,6 @@ model AiMessageRating {
 
   message AiMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
-  @@unique([messageId, userId])
   @@index([userId])
   @@index([rating])
   @@map("ai_message_ratings")

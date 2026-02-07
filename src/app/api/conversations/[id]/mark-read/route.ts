@@ -49,7 +49,7 @@ export async function POST(
     }
 
     // In a real implementation, we would update a read_at timestamp
-    // For now, we just return success as the local storage doesn't track read status
+    // For now, we just return success as the database doesn't track read status
     return successResponse({ success: true, conversation_id: id })
   } catch (error: any) {
     logger.error('Conversations', 'Failed to mark conversation as read', { data: { error: error instanceof Error ? error.message : error } })

@@ -276,11 +276,38 @@ export class ZammadClient {
     logger.debug('ZammadClient', 'searchTickets - Raw query', { data: { query } })
     const formattedQuery = this.formatSearchQuery(query)
     logger.debug('ZammadClient', 'searchTickets - Formatted query', { data: { formattedQuery } })
-    logger.debug('ZammadClient', 'searchTickets - Pagination', { data: { limit, page } })
-    logger.debug('ZammadClient', 'searchTickets - OnBehalfOf', { data: { onBehalfOf } })
+    return this.searchTicketsByQuery(formattedQuery, limit, onBehalfOf, page, sortBy, orderBy)
+  }
+
+  /**
+   * Search tickets using pre-built Zammad DSL query without auto-formatting.
+   */
+  async searchTicketsRawQuery(
+    query: string,
+    limit: number = 10,
+    onBehalfOf?: string,
+    page: number = 1,
+    sortBy?: string,
+    orderBy?: 'asc' | 'desc'
+  ): Promise<ZammadSearchResponse> {
+    const normalizedQuery = query.trim() || 'state:*'
+    logger.debug('ZammadClient', 'searchTicketsRawQuery - Query', { data: { normalizedQuery } })
+    return this.searchTicketsByQuery(normalizedQuery, limit, onBehalfOf, page, sortBy, orderBy)
+  }
+
+  private async searchTicketsByQuery(
+    query: string,
+    limit: number = 10,
+    onBehalfOf?: string,
+    page: number = 1,
+    sortBy?: string,
+    orderBy?: 'asc' | 'desc'
+  ): Promise<ZammadSearchResponse> {
+    logger.debug('ZammadClient', 'searchTicketsByQuery - Pagination', { data: { limit, page } })
+    logger.debug('ZammadClient', 'searchTicketsByQuery - OnBehalfOf', { data: { onBehalfOf } })
 
     const params = new URLSearchParams({
-      query: formattedQuery,
+      query,
       limit: limit.toString(),
       page: page.toString(),
     })
@@ -291,18 +318,18 @@ export class ZammadClient {
       params.set('order_by', orderBy)
     }
     const url = `/tickets/search?${params}`
-    logger.debug('ZammadClient', 'searchTickets - Full URL', { data: { url } })
+    logger.debug('ZammadClient', 'searchTicketsByQuery - Full URL', { data: { url } })
 
     // Zammad search API returns an array directly, not an object
     const tickets = await this.request<ZammadTicket[]>(url, {}, 0, onBehalfOf)
-    logger.debug('ZammadClient', 'searchTickets - Raw response from Zammad', { data: { tickets } })
+    logger.debug('ZammadClient', 'searchTicketsByQuery - Raw response from Zammad', { data: { tickets } })
 
     // Wrap the array in the expected response format
     const result: ZammadSearchResponse = {
       tickets: tickets || [],
       tickets_count: tickets?.length || 0
     }
-    logger.debug('ZammadClient', 'searchTickets - Wrapped response', { data: { result } })
+    logger.debug('ZammadClient', 'searchTicketsByQuery - Wrapped response', { data: { result } })
 
     return result
   }
@@ -313,8 +340,20 @@ export class ZammadClient {
    */
   async searchTicketsTotalCount(query: string, onBehalfOf?: string): Promise<number> {
     const formattedQuery = this.formatSearchQuery(query)
+    return this.searchTicketsTotalCountByQuery(formattedQuery, onBehalfOf)
+  }
+
+  /**
+   * Get total ticket count for a pre-built Zammad DSL query without auto-formatting.
+   */
+  async searchTicketsTotalCountRawQuery(query: string, onBehalfOf?: string): Promise<number> {
+    const normalizedQuery = query.trim() || 'state:*'
+    return this.searchTicketsTotalCountByQuery(normalizedQuery, onBehalfOf)
+  }
+
+  private async searchTicketsTotalCountByQuery(query: string, onBehalfOf?: string): Promise<number> {
     const params = new URLSearchParams({
-      query: formattedQuery,
+      query,
       only_total_count: 'true',
     })
     const url = `/tickets/search?${params}`

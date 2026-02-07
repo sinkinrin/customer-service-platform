@@ -1,12 +1,27 @@
 /**
  * AI Conversation Service
  *
- * Prisma-based storage for AI conversations, replacing file-based local storage.
+ * Prisma-based storage for AI conversations.
  * Provides CRUD operations for conversations, messages, and message ratings.
  */
 
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/utils/logger'
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/** Safely parse a JSON string, returning null on failure */
+function safeJsonParse(value: string | null | undefined): any {
+  if (!value) return null
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
+}
 
 // ============================================================================
 // Conversation Operations
@@ -15,28 +30,31 @@ import { logger } from '@/lib/utils/logger'
 /**
  * Create a new AI conversation.
  * Automatically closes all existing active conversations for the same customer.
+ * Wrapped in a transaction to ensure atomicity.
  */
 export async function createAIConversation(
   customerId: string,
   customerEmail: string
 ) {
-  // Close all existing active conversations for this customer
-  await prisma.aiConversation.updateMany({
-    where: {
-      customerId,
-      status: 'active',
-    },
-    data: {
-      status: 'closed',
-    },
-  })
+  const conversation = await prisma.$transaction(async (tx) => {
+    // Close all existing active conversations for this customer
+    await tx.aiConversation.updateMany({
+      where: {
+        customerId,
+        status: 'active',
+      },
+      data: {
+        status: 'closed',
+      },
+    })
 
-  const conversation = await prisma.aiConversation.create({
-    data: {
-      customerId,
-      customerEmail,
-      status: 'active',
-    },
+    return tx.aiConversation.create({
+      data: {
+        customerId,
+        customerEmail,
+        status: 'active',
+      },
+    })
   })
 
   logger.info('AiConversationService', 'Created new AI conversation', {
@@ -56,11 +74,12 @@ export async function getConversation(id: string) {
 }
 
 /**
- * Get conversations for a customer by email
+ * Get conversations for a customer by email, with message count
  */
 export async function getCustomerConversations(customerEmail: string) {
   return prisma.aiConversation.findMany({
     where: { customerEmail },
+    include: { _count: { select: { messages: true } } },
     orderBy: { lastMessageAt: 'desc' },
   })
 }
@@ -87,8 +106,11 @@ export async function updateConversation(
       data: updates,
     })
     return conversation
-  } catch {
-    return null
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return null
+    }
+    throw error
   }
 }
 
@@ -101,9 +123,21 @@ export async function deleteConversation(id: string): Promise<boolean> {
       where: { id },
     })
     return true
-  } catch {
-    return false
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return false
+    }
+    throw error
   }
+}
+
+/**
+ * Get message count for a conversation
+ */
+export async function getConversationMessageCount(conversationId: string) {
+  return prisma.aiMessage.count({
+    where: { conversationId },
+  })
 }
 
 // ============================================================================
@@ -112,7 +146,7 @@ export async function deleteConversation(id: string): Promise<boolean> {
 
 /**
  * Add a message to a conversation.
- * Updates the conversation's lastMessageAt timestamp.
+ * Updates the conversation's lastMessageAt timestamp atomically.
  */
 export async function addMessage(
   conversationId: string,
@@ -122,43 +156,69 @@ export async function addMessage(
   metadata?: Record<string, any>,
   messageType?: 'text' | 'image' | 'file' | 'system'
 ) {
-  const message = await prisma.aiMessage.create({
-    data: {
-      conversationId,
-      senderRole,
-      senderId,
-      content,
-      messageType: messageType || 'text',
-      metadata: metadata ? JSON.stringify(metadata) : null,
-    },
-  })
-
-  // Update conversation's lastMessageAt
-  await prisma.aiConversation.update({
-    where: { id: conversationId },
-    data: { lastMessageAt: new Date() },
-  })
+  const [message] = await prisma.$transaction([
+    prisma.aiMessage.create({
+      data: {
+        conversationId,
+        senderRole,
+        senderId,
+        content,
+        messageType: messageType || 'text',
+        metadata: metadata ? JSON.stringify(metadata) : null,
+      },
+    }),
+    prisma.aiConversation.update({
+      where: { id: conversationId },
+      data: { lastMessageAt: new Date() },
+    }),
+  ])
 
   return {
     ...message,
-    metadata: message.metadata ? JSON.parse(message.metadata) : null,
+    metadata: safeJsonParse(message.metadata),
   }
 }
 
 /**
- * Get messages for a conversation, including ratings
+ * Get messages for a conversation, including ratings.
+ * Supports database-level pagination.
  */
-export async function getConversationMessages(conversationId: string) {
+export async function getConversationMessages(
+  conversationId: string,
+  options?: { limit?: number; offset?: number; order?: 'asc' | 'desc' }
+) {
+  const { limit, offset, order = 'asc' } = options || {}
+
   const messages = await prisma.aiMessage.findMany({
     where: { conversationId },
     include: { rating: true },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: order },
+    ...(limit !== undefined && { take: limit }),
+    ...(offset !== undefined && { skip: offset }),
   })
 
   return messages.map((msg) => ({
     ...msg,
-    metadata: msg.metadata ? JSON.parse(msg.metadata) : null,
+    metadata: safeJsonParse(msg.metadata),
   }))
+}
+
+/**
+ * Get total message count for a conversation (for pagination)
+ */
+export async function getConversationMessageTotal(conversationId: string) {
+  return prisma.aiMessage.count({ where: { conversationId } })
+}
+
+/**
+ * Verify a message belongs to a conversation
+ */
+export async function verifyMessageOwnership(messageId: string, conversationId: string) {
+  const message = await prisma.aiMessage.findFirst({
+    where: { id: messageId, conversationId },
+    select: { id: true },
+  })
+  return !!message
 }
 
 /**
@@ -180,6 +240,7 @@ export async function getConversationStats(customerEmail: string) {
 
 /**
  * Rate a message (upsert). Pass rating as null to remove the rating.
+ * Uses messageId as the unique key (one rating per message).
  */
 export async function rateMessage(
   messageId: string,
@@ -191,21 +252,22 @@ export async function rateMessage(
     // Remove rating
     try {
       await prisma.aiMessageRating.delete({
-        where: {
-          messageId_userId: { messageId, userId },
-        },
+        where: { messageId },
       })
-    } catch {
-      // Rating didn't exist, that's fine
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        // Rating didn't exist, that's fine
+      } else {
+        throw error
+      }
     }
     return null
   }
 
   const result = await prisma.aiMessageRating.upsert({
-    where: {
-      messageId_userId: { messageId, userId },
-    },
+    where: { messageId },
     update: {
+      userId,
       rating,
       feedback: rating === 'positive' ? null : (feedback || null),
     },
@@ -221,13 +283,11 @@ export async function rateMessage(
 }
 
 /**
- * Get rating for a specific message by a specific user
+ * Get rating for a specific message
  */
-export async function getMessageRating(messageId: string, userId: string) {
+export async function getMessageRating(messageId: string) {
   return prisma.aiMessageRating.findUnique({
-    where: {
-      messageId_userId: { messageId, userId },
-    },
+    where: { messageId },
   })
 }
 
@@ -236,28 +296,28 @@ export async function getMessageRating(messageId: string, userId: string) {
 // ============================================================================
 
 /**
- * Get AI conversation dashboard statistics for admin
+ * Get AI conversation dashboard statistics for admin.
+ * Uses groupBy to reduce query count where possible.
  */
 export async function getAiConversationDashboardStats() {
   const [
-    totalConversations,
-    activeConversations,
-    closedConversations,
-    totalMessages,
-    customerMessages,
-    aiMessages,
-    positiveRatings,
-    negativeRatings,
+    conversationsByStatus,
+    messagesByRole,
+    ratingsByType,
     recentNegativeRaw,
   ] = await Promise.all([
-    prisma.aiConversation.count(),
-    prisma.aiConversation.count({ where: { status: 'active' } }),
-    prisma.aiConversation.count({ where: { status: 'closed' } }),
-    prisma.aiMessage.count(),
-    prisma.aiMessage.count({ where: { senderRole: 'customer' } }),
-    prisma.aiMessage.count({ where: { senderRole: 'ai' } }),
-    prisma.aiMessageRating.count({ where: { rating: 'positive' } }),
-    prisma.aiMessageRating.count({ where: { rating: 'negative' } }),
+    prisma.aiConversation.groupBy({
+      by: ['status'],
+      _count: true,
+    }),
+    prisma.aiMessage.groupBy({
+      by: ['senderRole'],
+      _count: true,
+    }),
+    prisma.aiMessageRating.groupBy({
+      by: ['rating'],
+      _count: true,
+    }),
     prisma.aiMessageRating.findMany({
       where: { rating: 'negative' },
       include: { message: true },
@@ -266,6 +326,19 @@ export async function getAiConversationDashboardStats() {
     }),
   ])
 
+  // Parse conversation stats
+  const activeConversations = conversationsByStatus.find(c => c.status === 'active')?._count ?? 0
+  const closedConversations = conversationsByStatus.find(c => c.status === 'closed')?._count ?? 0
+  const totalConversations = conversationsByStatus.reduce((sum, c) => sum + c._count, 0)
+
+  // Parse message stats
+  const customerMessages = messagesByRole.find(m => m.senderRole === 'customer')?._count ?? 0
+  const aiMessages = messagesByRole.find(m => m.senderRole === 'ai')?._count ?? 0
+  const totalMessages = messagesByRole.reduce((sum, m) => sum + m._count, 0)
+
+  // Parse rating stats
+  const positiveRatings = ratingsByType.find(r => r.rating === 'positive')?._count ?? 0
+  const negativeRatings = ratingsByType.find(r => r.rating === 'negative')?._count ?? 0
   const totalRatings = positiveRatings + negativeRatings
   const satisfactionRate =
     totalRatings > 0

@@ -4,7 +4,7 @@
  * GET /api/conversations/[id]/messages - Get messages for a conversation
  * POST /api/conversations/[id]/messages - Send a message in a conversation
  *
- * Implementation: Uses local file storage for AI conversations only
+ * Implementation: Uses Prisma-based storage for AI conversations
  */
 
 import { NextRequest } from 'next/server'
@@ -21,6 +21,7 @@ import { CreateMessageSchema } from '@/types/api.types'
 import {
   getConversation,
   getConversationMessages,
+  getConversationMessageTotal,
   addMessage,
 } from '@/lib/ai-conversation-service'
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     const user = await requireAuth()
     const conversationId = params.id
 
-    // Get conversation from local storage
+    // Get conversation from database
     const conversation = await getConversation(conversationId)
 
     if (!conversation) {
@@ -47,19 +48,14 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Get messages from database
-    const allMessages = await getConversationMessages(conversationId)
-
-    // Sort by created_at descending (newest first)
-    const sorted = [...allMessages].sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
-
-    // Apply pagination
-    const paginated = sorted.slice(offset, offset + limit)
+    // Get messages with database-level pagination (newest first)
+    const [messages, total] = await Promise.all([
+      getConversationMessages(conversationId, { limit, offset, order: 'desc' }),
+      getConversationMessageTotal(conversationId),
+    ])
 
     // Transform to API format
-    const messages = paginated.map((msg) => {
+    const transformedMessages = messages.map((msg) => {
       // Determine sender name based on role
       let senderName = 'Unknown'
       if (msg.senderRole === 'ai') {
@@ -96,11 +92,11 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     })
 
     return successResponse({
-      messages,
+      messages: transformedMessages,
       pagination: {
         limit,
         offset,
-        total: sorted.length,
+        total,
       },
     })
   } catch (error: any) {
@@ -118,7 +114,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     const user = await requireAuth()
     const conversationId = params.id
 
-    // Get conversation from local storage
+    // Get conversation from database
     const conversation = await getConversation(conversationId)
 
     if (!conversation) {

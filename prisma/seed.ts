@@ -1,7 +1,7 @@
 /**
  * Prisma Seed Script
  * 
- * Migrates mock FAQ data to SQLite database
+ * Seeds FAQ data into the database
  */
 
 import { PrismaClient } from '@prisma/client'

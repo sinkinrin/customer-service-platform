@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import DOMPurify from 'dompurify'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
@@ -228,6 +228,7 @@ interface ArticleCardProps {
 
 export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: ArticleCardProps) {
   const t = useTranslations('tickets.details')
+  const locale = useLocale()
   const senderStyle = getSenderStyle(article.sender, t)
   const isCustomerSender = article.sender === 'Customer'
   const isSystem = article.sender === 'System'
@@ -248,7 +249,7 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
               {senderStyle.label}
             </Badge>
             <time className="text-muted-foreground">
-              {new Date(article.created_at).toLocaleString('zh-CN')}
+              {new Date(article.created_at).toLocaleString(locale)}
             </time>
           </div>
           <ArticleContent
@@ -288,7 +289,7 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
                 {article.from?.split('<')[0]?.trim() || article.created_by}
               </span>
               <time className="text-muted-foreground">
-                {new Date(article.created_at).toLocaleString('zh-CN')}
+                {new Date(article.created_at).toLocaleString(locale)}
               </time>
             </div>
             {/* Show full email on second line if available */}
@@ -303,9 +304,9 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
         {/* Message bubble */}
         <div className={cn(
           'rounded-2xl px-4 py-3 shadow-sm',
-          isMyMessage 
-            ? 'bg-primary text-primary-foreground rounded-tr-sm' 
-            : 'bg-gray-100 dark:bg-gray-800 rounded-tl-sm',
+          isMyMessage
+            ? 'bg-blue-100 dark:bg-blue-900/60 text-foreground rounded-tr-sm'
+            : 'bg-muted rounded-tl-sm',
           article.internal && 'border-2 border-dashed border-yellow-400'
         )}>
           {article.internal && (
@@ -313,11 +314,10 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
               {t('internalNote')}
             </Badge>
           )}
-          <ArticleContent 
-            article={article} 
+          <ArticleContent
+            article={article}
             showAttachments={true}
             noBubbleStyle={true}
-            className={isMyMessage && !article.internal ? '[&_.prose]:text-primary-foreground [&_.prose_*]:text-primary-foreground' : ''}
           />
         </div>
       </div>

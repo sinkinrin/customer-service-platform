@@ -1085,7 +1085,9 @@
           "confirm": "关闭工单"
         },
         "attachFiles": "添加附件",
-        "maxFiles": "最多 {max} 个文件"
+        "maxFiles": "最多 {max} 个文件",
+        "ticketClosed": "工单已关闭",
+        "replyToTicket": "回复工单"
       },
       "statusLabels": {
         "new": "新建",

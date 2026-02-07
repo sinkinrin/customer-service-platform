@@ -279,6 +279,21 @@ export default function CustomerTicketDetailPage() {
         {/* Main Layout: Flex Row for Desktop */}
         <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
 
+          {/* Mobile-Only Ticket Info Summary */}
+          <div className="lg:hidden flex-shrink-0 rounded-lg border bg-muted/30 px-4 py-3">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <h2 className="text-base font-bold leading-tight line-clamp-2 break-words flex-1">{ticket.title}</h2>
+              <span className="text-xs text-muted-foreground font-mono flex-shrink-0">#{ticket.number}</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {getStatusBadge(ticket.state)}
+              {getPriorityBadge(ticket.priority_id)}
+              <span className="text-xs text-muted-foreground">
+                {ticket.owner_name || tDetail('unassigned')}
+              </span>
+            </div>
+          </div>
+
           {/* Left Column: Conversation (Flex-1) */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-background rounded-lg border shadow-sm">
             {/* Conversation Header (Minimal) */}
@@ -312,7 +327,7 @@ export default function CustomerTicketDetailPage() {
                 <div className="pt-8 pb-4 space-y-4">
                   <div className="flex items-center justify-center">
                     <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                      Ticket Closed
+                      {tDetail('ticketClosed')}
                     </span>
                   </div>
                   <TicketRating
@@ -505,7 +520,7 @@ export default function CustomerTicketDetailPage() {
               <div className="flex-shrink-0 flex flex-col bg-background rounded-lg border shadow-sm p-3 w-full">
                 <p className="text-xs font-medium mb-2 flex items-center gap-2 text-muted-foreground">
                   <Send className="h-3 w-3" />
-                  Reply to Ticket
+                  {tDetail('replyToTicket')}
                 </p>
                 <div className="flex flex-col relative w-full gap-2">
                   <Textarea

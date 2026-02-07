@@ -1099,6 +1099,8 @@
         },
         "closeTicket": "Cerrar ticket",
         "maxFiles": "Máximo {max} archivos",
+        "ticketClosed": "Ticket cerrado",
+        "replyToTicket": "Responder al ticket",
         "unassigned": "Sin asignar"
       },
       "statusLabels": {

@@ -256,6 +256,22 @@ export default function StaffTicketDetailPage() {
 
       {/* Main Content - Fixed actions + scrollable conversation */}
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 overflow-hidden">
+        {/* Mobile-Only Ticket Meta + Actions Summary */}
+        <div className="lg:hidden flex-shrink-0">
+          <Card className="p-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">{tDetails('customer')}:</span>
+                <p className="font-medium truncate">{ticket.customer}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{tDetails('group')}:</span>
+                <p className="font-medium truncate">{ticket.group || '-'}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
         {/* Left Column - Conversation */}
         <div className="flex flex-col flex-1 min-h-0 overflow-y-auto pr-2 gap-4 pb-6">
           {/* Compact Ticket Meta Info */}
@@ -306,7 +322,7 @@ export default function StaffTicketDetailPage() {
           </Card>
         </div>
 
-        {/* Right Column - Actions (Fixed) */}
+        {/* Right Column - Actions */}
         <div className="flex-shrink-0 lg:w-[450px]">
           <TicketActions
             ticket={ticket}

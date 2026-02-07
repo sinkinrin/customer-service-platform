@@ -207,7 +207,7 @@ export default function AdminTicketDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden gap-4">
       {/* Breadcrumb Navigation */}
       <Breadcrumb
         items={[
@@ -217,7 +217,7 @@ export default function AdminTicketDetailPage() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -274,7 +274,7 @@ export default function AdminTicketDetailPage() {
       </div>
 
       {/* AI Summary Placeholder */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800 flex-shrink-0">
         <CardContent className="py-3">
           <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
             <Activity className="h-4 w-4" />
@@ -285,18 +285,18 @@ export default function AdminTicketDetailPage() {
       </Card>
 
       {/* Main Content - Conversation focused layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 overflow-hidden">
         {/* Left Column - Conversation (Main Focus) */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Conversation */}
-          <Card>
-            <CardHeader className="pb-3">
+          <Card className="flex flex-col flex-1 min-h-0">
+            <CardHeader className="pb-3 flex-shrink-0">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <MessageSquare className="h-5 w-5" />
                 {t('conversation', { count: articles.length })}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 min-h-0 overflow-y-auto">
               {articles.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
                   {t('noArticles')}
@@ -314,9 +314,8 @@ export default function AdminTicketDetailPage() {
           </Card>
         </div>
 
-        {/* Right Column - Ticket Info & Actions (Sticky Sidebar) */}
-        <div className="lg:col-span-1">
-          <div className="lg:sticky lg:top-20 space-y-4">
+        {/* Right Column - Ticket Info & Actions */}
+        <div className="flex-shrink-0 lg:w-[380px] space-y-4 overflow-y-auto">
             {/* Compact Ticket Info */}
             <Card>
               <CardHeader className="pb-2">
@@ -355,14 +354,12 @@ export default function AdminTicketDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Ticket Actions */}
             <TicketActions
               ticket={ticket}
               onUpdate={handleUpdate}
               onAddNote={handleAddNote}
               isLoading={isLoading}
             />
-          </div>
         </div>
       </div>
 

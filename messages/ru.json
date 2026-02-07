@@ -1099,6 +1099,8 @@
         },
         "closeTicket": "Закрыть тикет",
         "maxFiles": "Максимум {max} файлов",
+        "ticketClosed": "Тикет закрыт",
+        "replyToTicket": "Ответить на тикет",
         "unassigned": "Еще не назначен"
       },
       "statusLabels": {

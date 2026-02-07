@@ -1099,7 +1099,9 @@
           "confirm": "Close Ticket"
         },
         "attachFiles": "Attach Files",
-        "maxFiles": "Maximum {max} files"
+        "maxFiles": "Maximum {max} files",
+        "ticketClosed": "Ticket Closed",
+        "replyToTicket": "Reply to Ticket"
       },
       "statusLabels": {
         "new": "New",

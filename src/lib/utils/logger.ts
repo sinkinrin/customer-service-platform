@@ -12,9 +12,12 @@
 
 import 'server-only'
 
-type FileLoggerModule = typeof import('./file-logger')
-
-let fileLoggerModulePromise: Promise<FileLoggerModule> | null = null
+// Lazy-loaded file logger – the import is hidden behind Function() so that
+// Turbopack / Webpack static analysis cannot trace into file-logger.ts.
+// file-logger.ts uses Node.js-only modules (fs, path) which are unavailable
+// in Edge Runtime (middleware). At runtime the guard in canWriteFileLogs()
+// prevents this code path from ever executing in Edge environments.
+let fileLoggerModulePromise: Promise<{ fileLogger: { write(entry: string): Promise<void> } }> | null = null
 
 function canWriteFileLogs(): boolean {
   if (typeof process === 'undefined') return false
@@ -27,7 +30,9 @@ async function writeLogToFile(entry: string): Promise<void> {
 
   try {
     if (!fileLoggerModulePromise) {
-      fileLoggerModulePromise = import('./file-logger')
+      // Hidden from Turbopack static analysis via Function() constructor.
+      // eslint-disable-next-line no-new-func
+      fileLoggerModulePromise = new Function('return import("./file-logger")')() as Promise<{ fileLogger: { write(entry: string): Promise<void> } }>
     }
     const { fileLogger } = await fileLoggerModulePromise
     await fileLogger.write(entry)

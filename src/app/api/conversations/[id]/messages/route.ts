@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     ])
 
     // Transform to API format
-    const transformedMessages = messages.map((msg) => {
+    const transformedMessages = messages.map((msg: (typeof messages)[number]) => {
       // Determine sender name based on role
       let senderName = 'Unknown'
       if (msg.senderRole === 'ai') {

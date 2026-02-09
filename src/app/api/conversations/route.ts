@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     const conversations = await getCustomerConversations(user.email)
 
     // Transform to API format (message count included via _count)
-    const transformedConversations = conversations.map((conv) => {
+    const transformedConversations = conversations.map((conv: (typeof conversations)[number]) => {
         return {
           id: conv.id,
           customer_id: conv.customerId,

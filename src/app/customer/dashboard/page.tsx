@@ -26,10 +26,6 @@ export default async function CustomerDashboardPage() {
         title: tQuick('myTickets.title'),
         description: tQuick('myTickets.description'),
       },
-      submitFeedback: {
-        title: tQuick('submitFeedback.title'),
-        description: tQuick('submitFeedback.description'),
-      },
     },
     getStarted: {
       title: tStart('title'),

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PageTransition } from '@/components/ui/page-transition'
-import { MessageSquare, FileText, HelpCircle, MessageCircle } from 'lucide-react'
+import { MessageSquare, FileText, HelpCircle } from 'lucide-react'
 
 interface DashboardTranslations {
   title: string
@@ -13,7 +13,6 @@ interface DashboardTranslations {
     liveChat: { title: string; description: string }
     knowledgeBase: { title: string; description: string }
     myTickets: { title: string; description: string }
-    submitFeedback: { title: string; description: string }
   }
   getStarted: {
     title: string
@@ -55,14 +54,6 @@ export function DashboardContent({ translations: t }: DashboardContentProps) {
       action: () => router.push('/customer/my-tickets'),
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
-    },
-    {
-      title: t.quickActions.submitFeedback.title,
-      description: t.quickActions.submitFeedback.description,
-      icon: MessageCircle,
-      action: () => router.push('/customer/feedback'),
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
     },
   ]
 

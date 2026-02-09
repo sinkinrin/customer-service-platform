@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3010 -H 0.0.0.0",
     "dev:turbo": "next dev -p 3010 -H 0.0.0.0 --turbo",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start -p 3010 -H 0.0.0.0",
     "lint": "eslint . --ignore-path .gitignore",
     "type-check": "tsc --noEmit",

@@ -76,9 +76,9 @@ export async function GET(request: NextRequest) {
         return {
           id: conv.id,
           customer_id: conv.customerId,
-          business_type_id: null,
+          business_type_id: null as null,
           status: conv.status,
-          mode: 'ai',
+          mode: 'ai' as const,
           message_count: conv._count.messages,
           created_at: conv.createdAt.toISOString(),
           updated_at: conv.updatedAt.toISOString(),
@@ -91,19 +91,16 @@ export async function GET(request: NextRequest) {
         }
     })
 
-    // Apply filters
-    let filteredConversations = transformedConversations
-    if (status) {
-      filteredConversations = filteredConversations.filter((c) => c.status === status)
-    }
+    // Apply filters, sort, and paginate
+    const filtered = status
+      ? transformedConversations.filter((c: (typeof transformedConversations)[number]) => c.status === status)
+      : transformedConversations
 
-    // Sort by last_message_at (desc)
-    filteredConversations.sort((a, b) =>
+    filtered.sort((a: (typeof transformedConversations)[number], b: (typeof transformedConversations)[number]) =>
       new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
     )
 
-    // Apply pagination
-    const paginatedConversations = filteredConversations.slice(offset, offset + limit)
+    const paginatedConversations = filtered.slice(offset, offset + limit)
 
     return successResponse(paginatedConversations)
   } catch (error: any) {

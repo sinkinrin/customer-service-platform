@@ -14,6 +14,10 @@ import { getRegionByGroupId } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { logger } from '@/lib/utils/logger'
 
+// Safety limit: max pages to scan during export to prevent runaway loops.
+// 200 pages × 100 users/page = 20,000 users max.
+const MAX_EXPORT_PAGES = 200
+
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
     if (roleIds.includes(ZAMMAD_ROLES.ADMIN)) return 'admin'
@@ -75,7 +79,8 @@ export async function GET(request: NextRequest) {
 
         const pageSize = 100
         let page = 1
-        while (true) {
+        let truncated = false
+        while (page <= MAX_EXPORT_PAGES) {
             const zammadUsers = await zammadClient.searchUsersPaginated('*', pageSize, page)
             if (zammadUsers.length === 0) {
                 break
@@ -111,9 +116,15 @@ export async function GET(request: NextRequest) {
             page++
         }
 
+        if (page > MAX_EXPORT_PAGES) {
+            truncated = true
+            logger.warning('UserExport', `Export truncated at ${MAX_EXPORT_PAGES} pages (${users.length} users). Increase MAX_EXPORT_PAGES if more are needed.`, {})
+        }
+
         // Generate CSV content
         const headers = ['ID', 'Email', 'Full Name', 'Role', 'Region', 'Phone', 'Status', 'Verified', 'Created At', 'Last Login']
         const csvRows = [
+            ...(truncated ? [`# WARNING: Export truncated at ${users.length} users due to safety limit`] : []),
             headers.join(','),
             ...users.map(user => [
                 escapeCSV(String(user.id)),

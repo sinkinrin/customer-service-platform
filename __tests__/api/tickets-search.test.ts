@@ -36,6 +36,10 @@ vi.mock('@/lib/cache/zammad-user-cache', () => ({
   setVerifiedZammadUser: vi.fn(),
 }))
 
+vi.mock('@/lib/zammad/ensure-user', () => ({
+  ensureZammadUser: vi.fn().mockResolvedValue({ id: 123 }),
+}))
+
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 

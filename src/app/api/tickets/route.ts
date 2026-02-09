@@ -100,10 +100,16 @@ import {
 } from '@/lib/utils/api-response'
 import { validateTicketCreation } from '@/lib/utils/region-auth'
 import { filterTicketsByPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
+import {
+  getStatusSearchQuery,
+  mapSortField,
+  mapSortOrder,
+  transformTicket,
+  buildStaffVisibilityQuery,
+} from '@/lib/utils/ticket-helpers'
+import { ensureZammadUser } from '@/lib/zammad/ensure-user'
 import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
-import { mapStateIdToString } from '@/lib/constants/zammad-states'
 import { z } from 'zod'
-import type { ZammadTicket as RawZammadTicket } from '@/lib/zammad/types'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 import { notifyTicketCreated } from '@/lib/notification'
 import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
@@ -112,51 +118,6 @@ import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/tick
 // Helper Functions
 // ============================================================================
 
-/**
- * Map priority_id to priority string for frontend compatibility
- */
-function mapPriorityIdToString(priorityId: number): string {
-  switch (priorityId) {
-    case 1:
-      return '1 low'
-    case 2:
-      return '2 normal'
-    case 3:
-      return '3 high'
-    default:
-      return '2 normal' // Default to normal if unknown
-  }
-}
-
-// mapStateIdToString is now imported from @/lib/constants/zammad-states
-
-/**
- * Transform Zammad ticket to include priority, state, and customer information
- */
-function transformTicket(
-  ticket: RawZammadTicket,
-  customerInfo?: { name?: string; email?: string },
-  ownerInfo?: { name?: string }
-) {
-  return {
-    ...ticket,
-    priority: mapPriorityIdToString(ticket.priority_id),
-    state: mapStateIdToString(ticket.state_id),
-    customer: customerInfo?.name || customerInfo?.email || `Customer #${ticket.customer_id}`,
-    customer_email: customerInfo?.email,
-    owner_name: ownerInfo?.name || (ticket.owner_id ? `Staff #${ticket.owner_id}` : undefined),
-  }
-}
-
-function getStatusSearchQuery(status?: string | null): string | null {
-  if (!status) return null
-  if (status === 'open') return '(state_id:1 OR state_id:2)'
-  if (status === 'closed') return 'state_id:4'
-  if (status === 'new') return 'state_id:1'
-  if (status === 'pending') return '(state_id:3 OR state_id:7)'
-  return null
-}
-
 function buildTicketsSearchQuery(options: {
   status?: string | null
   priority?: string | null
@@ -164,7 +125,7 @@ function buildTicketsSearchQuery(options: {
   customerEmail?: string | null
   staffConstraint?: string | null
 }): string {
-  const parts: string[] = ['state:*']
+  const parts: string[] = []
 
   const statusQuery = getStatusSearchQuery(options.status)
   if (statusQuery) {
@@ -190,107 +151,14 @@ function buildTicketsSearchQuery(options: {
     parts.push(options.staffConstraint)
   }
 
+  if (parts.length === 0) {
+    return 'state:*'
+  }
+
   return parts.join(' AND ')
 }
 
-function buildStaffVisibilityQuery(user: PermissionUser): string | null {
-  const clauses: string[] = []
-  const userZammadId = user.zammad_id
-
-  if (typeof userZammadId === 'number') {
-    clauses.push(`owner_id:${userZammadId}`)
-  }
-
-  const groupIds = (user.group_ids || []).filter((id): id is number => Number.isFinite(id))
-  if (groupIds.length === 1) {
-    clauses.push(`group_id:${groupIds[0]}`)
-  } else if (groupIds.length > 1) {
-    clauses.push(`group_id:(${groupIds.join(' OR ')})`)
-  }
-
-  if (clauses.length === 0) {
-    return null
-  }
-
-  // Keep staff visibility aligned with current permission semantics:
-  // - staff can see assigned tickets
-  // - staff can see regional tickets
-  // - staff cannot see unassigned (owner_id null/0/1)
-  return `(${clauses.join(' OR ')}) AND NOT owner_id:null AND NOT owner_id:0 AND NOT owner_id:1`
-}
-
-function mapSortField(sort: string): string {
-  if (sort === 'updated_at') return 'updated_at'
-  if (sort === 'priority') return 'priority_id'
-  return 'created_at'
-}
-
-function mapSortOrder(order: string): 'asc' | 'desc' {
-  return order === 'asc' ? 'asc' : 'desc'
-}
-
-// Helper function to ensure user exists in Zammad
-async function ensureZammadUser(
-  email: string,
-  fullName: string,
-  role: string,
-  region?: string,
-  requestId?: string
-) {
-  const { createApiLogger } = await import('@/lib/utils/api-logger')
-  const log = createApiLogger('TicketsAPI', requestId)
-
-  try {
-    // Try to search for user by email
-    const searchResult = await zammadClient.searchUsers(`email:${email}`)
-    if (searchResult && searchResult.length > 0) {
-      log.debug('User already exists in Zammad', { userId: searchResult[0].id })
-      return searchResult[0]
-    }
-
-    // User doesn't exist, create them
-    log.debug('Creating new user in Zammad', { email })
-    const [firstname, ...lastnameArr] = fullName.split(' ')
-    const lastname = lastnameArr.join(' ') || firstname
-
-    // Determine Zammad roles
-    let zammadRoles: string[]
-    if (role === 'admin') {
-      zammadRoles = ['Admin', 'Agent']
-    } else if (role === 'staff') {
-      zammadRoles = ['Agent']
-    } else {
-      zammadRoles = ['Customer']
-    }
-
-    // Prepare group_ids for staff (assign to region group)
-    let groupIds: Record<string, string[]> | undefined
-    if (role === 'staff' && region) {
-      const groupId = getGroupIdByRegion(region as RegionValue)
-      groupIds = {
-        [groupId.toString()]: ['full']  // Full permission for staff in their region
-      }
-      log.debug('Setting group_ids for staff user', { groupIds })
-    }
-
-    const newUser = await zammadClient.createUser({
-      login: email,
-      email,
-      firstname,
-      lastname,
-      roles: zammadRoles,
-      group_ids: groupIds,
-      active: true,
-      verified: true,
-    })
-
-    log.debug('Created new Zammad user', { userId: newUser.id })
-    return newUser
-  } catch (error) {
-    log.error('Failed to ensure Zammad user', { error: error instanceof Error ? error.message : error })
-    throw error
-  }
-}
+// ensureZammadUser imported from @/lib/zammad/ensure-user
 
 // ============================================================================
 // Validation Schemas
@@ -401,8 +269,8 @@ export async function GET(request: NextRequest) {
     const orderBy = mapSortOrder(order)
 
     const [searchResult, total] = await Promise.all([
-      zammadClient.searchTickets(query, limit, onBehalfOf, page, sortBy, orderBy),
-      zammadClient.searchTicketsTotalCount(query, onBehalfOf),
+      zammadClient.searchTicketsRawQuery(query, limit, onBehalfOf, page, sortBy, orderBy),
+      zammadClient.searchTicketsTotalCountRawQuery(query, onBehalfOf),
     ])
 
     log.debug('Fetched paged ticket candidates', {
@@ -415,10 +283,24 @@ export async function GET(request: NextRequest) {
     })
 
     // Keep region-auth / permission filter as final authority on ticket visibility.
+    const preFilterCount = searchResult.tickets?.length || 0
     const filteredTickets = filterTicketsByPermission(
       (searchResult.tickets || []) as unknown as PermissionTicket[],
       permissionUser
     )
+
+    // Log when post-filter removes tickets — indicates DSL query and permission
+    // filter are out of sync (e.g. Elasticsearch index lag).
+    const removedByFilter = preFilterCount - filteredTickets.length
+    if (removedByFilter > 0) {
+      log.warning('Permission filter removed tickets from search results', {
+        preFilterCount,
+        postFilterCount: filteredTickets.length,
+        removedByFilter,
+        role: user.role,
+        userId: user.id,
+      })
+    }
 
     // Collect unique customer IDs (to avoid duplicate fetches)
     const customerIds = [...new Set(filteredTickets.map((t: any) => t.customer_id))]

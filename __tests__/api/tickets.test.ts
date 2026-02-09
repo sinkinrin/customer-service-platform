@@ -24,7 +24,9 @@ vi.mock('@/lib/zammad/client', () => ({
     getTickets: vi.fn(),
     getAllTickets: vi.fn(),
     searchTickets: vi.fn(),
+    searchTicketsRawQuery: vi.fn(),
     searchTicketsTotalCount: vi.fn(),
+    searchTicketsTotalCountRawQuery: vi.fn(),
     getTicket: vi.fn(),
     createTicket: vi.fn(),
     updateTicket: vi.fn(),
@@ -57,10 +59,16 @@ vi.mock('@/lib/ticket/auto-assign', () => ({
   handleAssignmentNotification: vi.fn(),
 }))
 
+// Mock ensureZammadUser (extracted to shared module)
+vi.mock('@/lib/zammad/ensure-user', () => ({
+  ensureZammadUser: vi.fn().mockResolvedValue({ id: 100 }),
+}))
+
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { checkZammadHealth } from '@/lib/zammad/health-check'
 import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
+import { ensureZammadUser } from '@/lib/zammad/ensure-user'
 
 // Test users
 const mockCustomer = {
@@ -101,10 +109,11 @@ describe('Tickets API 集成测试', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(checkZammadHealth).mockResolvedValue({ isHealthy: true })
+    vi.mocked(ensureZammadUser).mockResolvedValue({ id: 100 } as any)
   })
 
   afterEach(() => {
-    vi.resetAllMocks()
+    vi.clearAllMocks()
   })
 
   // ============================================================================
@@ -129,11 +138,11 @@ describe('Tickets API 集成测试', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       } as any)
 
-      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+      vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
         tickets: [mockTicket],
         tickets_count: 1,
       } as any)
-      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(1)
+      vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(1)
       vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([{
         id: 100,
         email: 'customer@test.com',
@@ -157,11 +166,11 @@ describe('Tickets API 集成测试', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       } as any)
 
-      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+      vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
         tickets: [mockTicket],
         tickets_count: 1,
       } as any)
-      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(1)
+      vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(1)
       vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([{
         id: 100,
         email: 'customer@test.com',
@@ -173,8 +182,8 @@ describe('Tickets API 集成测试', () => {
       const response = await GET(request)
 
       expect(response.status).toBe(200)
-      // Verify searchTickets was called with customer email for X-On-Behalf-Of
-      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+      // Verify searchTicketsRawQuery was called with customer email for X-On-Behalf-Of
+      expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
         'state:*',
         50,
         mockCustomer.email,
@@ -190,11 +199,11 @@ describe('Tickets API 集成测试', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       } as any)
 
-      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+      vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
         tickets: [mockTicket],
         tickets_count: 1,
       } as any)
-      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(1)
+      vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(1)
       vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([{
         id: 100,
         email: 'customer@test.com',
@@ -206,7 +215,7 @@ describe('Tickets API 集成测试', () => {
       const response = await GET(request)
 
       expect(response.status).toBe(200)
-      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+      expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
         'state:*',
         10,
         undefined,
@@ -222,11 +231,11 @@ describe('Tickets API 集成测试', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       } as any)
 
-      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+      vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
         tickets: [mockTicket],
         tickets_count: 1,
       } as any)
-      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(1)
+      vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(1)
       vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([{
         id: 100,
         email: 'customer@test.com',
@@ -238,7 +247,7 @@ describe('Tickets API 集成测试', () => {
       const response = await GET(request)
 
       expect(response.status).toBe(200)
-      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+      expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
         expect.stringContaining('(state_id:1 OR state_id:2)'),
         20,
         undefined,
@@ -246,7 +255,7 @@ describe('Tickets API 集成测试', () => {
         'created_at',
         'desc'
       )
-      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+      expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
         expect.stringContaining('priority_id:3'),
         20,
         undefined,
@@ -254,7 +263,7 @@ describe('Tickets API 集成测试', () => {
         'created_at',
         'desc'
       )
-      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+      expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
         expect.stringContaining('group_id:101'),
         20,
         undefined,
@@ -274,7 +283,7 @@ describe('Tickets API 集成测试', () => {
       const response = await GET(request)
 
       expect(response.status).toBe(400)
-      expect(zammadClient.searchTickets).not.toHaveBeenCalled()
+      expect(zammadClient.searchTicketsRawQuery).not.toHaveBeenCalled()
     })
 
     it('staff 查询应排除 owner_id:null 以避免 total 虚高', async () => {
@@ -291,18 +300,18 @@ describe('Tickets API 集成测试', () => {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       } as any)
 
-      vi.mocked(zammadClient.searchTickets).mockResolvedValue({
+      vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
         tickets: [],
         tickets_count: 0,
       } as any)
-      vi.mocked(zammadClient.searchTicketsTotalCount).mockResolvedValue(0)
+      vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(0)
       vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
 
       const request = createMockRequest('http://localhost:3000/api/tickets?page=1&limit=5')
       const response = await GET(request)
 
       expect(response.status).toBe(200)
-      expect(zammadClient.searchTickets).toHaveBeenCalledWith(
+      expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
         expect.stringContaining('NOT owner_id:null'),
         5,
         undefined,
@@ -310,7 +319,7 @@ describe('Tickets API 集成测试', () => {
         'created_at',
         'desc'
       )
-      expect(zammadClient.searchTicketsTotalCount).toHaveBeenCalledWith(
+      expect(zammadClient.searchTicketsTotalCountRawQuery).toHaveBeenCalledWith(
         expect.stringContaining('NOT owner_id:null'),
         undefined
       )

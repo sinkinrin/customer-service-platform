@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 
         if (page > MAX_EXPORT_PAGES) {
             truncated = true
-            logger.warning('UserExport', `Export truncated at ${MAX_EXPORT_PAGES} pages (${users.length} users). Increase MAX_EXPORT_PAGES if more are needed.`, {})
+            logger.warning('UserExport', `Export truncated at ${MAX_EXPORT_PAGES} pages (${users.length} users). Increase MAX_EXPORT_PAGES if more are needed.`)
         }
 
         // Generate CSV content

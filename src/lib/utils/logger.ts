@@ -18,6 +18,7 @@ import 'server-only'
 // in Edge Runtime (middleware). At runtime the guard in canWriteFileLogs()
 // prevents this code path from ever executing in Edge environments.
 let fileLoggerModulePromise: Promise<{ fileLogger: { write(entry: string): Promise<void> } }> | null = null
+let fileLoggerLoadFailed = false
 
 function canWriteFileLogs(): boolean {
   if (typeof process === 'undefined') return false
@@ -26,7 +27,7 @@ function canWriteFileLogs(): boolean {
 }
 
 async function writeLogToFile(entry: string): Promise<void> {
-  if (!canWriteFileLogs()) return
+  if (!canWriteFileLogs() || fileLoggerLoadFailed) return
 
   try {
     if (!fileLoggerModulePromise) {
@@ -36,8 +37,13 @@ async function writeLogToFile(entry: string): Promise<void> {
     }
     const { fileLogger } = await fileLoggerModulePromise
     await fileLogger.write(entry)
-  } catch {
-    // Silently ignore file write errors to avoid log loops
+  } catch (err) {
+    // Log once then stop retrying to avoid noise
+    if (!fileLoggerLoadFailed) {
+      fileLoggerLoadFailed = true
+      fileLoggerModulePromise = null
+      console.debug('[Logger] File logger unavailable:', err instanceof Error ? err.message : err)
+    }
   }
 }
 

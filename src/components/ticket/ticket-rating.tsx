@@ -63,7 +63,7 @@ export function TicketRating({ ticketId, isVisible = true }: TicketRatingProps) 
 
       if (res.ok) {
         const data = await res.json()
-        setExistingRating(data.data ?? { ticketId, rating, reason: reason.trim() || undefined, createdAt: new Date().toISOString() })
+        setExistingRating(data.data ?? { id: 0, ticketId, rating, reason: reason.trim() || undefined, createdAt: new Date().toISOString() })
         setSubmitted(true)
         toast.success(t('submitSuccess'))
       } else {

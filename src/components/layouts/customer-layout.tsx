@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useState, useEffect } from "react"
+import { ReactNode, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
@@ -26,7 +26,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PageTransition } from "@/components/ui/page-transition"
 import { cn } from "@/lib/utils"
 import { LanguageSelector } from "@/components/language-selector"
-import { UnreadBadge } from "@/components/ui/unread-badge"
 import { Logo } from "@/components/ui/logo"
 import { NotificationCenter } from "@/components/notification/notification-center"
 
@@ -83,32 +82,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
   // Get navigation with translated names
   const navigation = getNavigation(tSidebar)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
-
-  // Fetch unread count for conversations (optional feature)
-  useEffect(() => {
-    const fetchUnreadCount = async () => {
-      try {
-        const response = await fetch('/api/conversations/unread-count')
-        // Only parse if request succeeded - endpoint may not exist
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            setUnreadCount(data.data.unreadCount || 0)
-          }
-        }
-      } catch {
-        // Silently ignore - conversations feature may not be enabled
-      }
-    }
-
-    fetchUnreadCount()
-
-    // Refresh unread count every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000)
-    return () => clearInterval(interval)
-  }, [])
 
   const toggleExpanded = (name: string) => {
     setExpandedItems((prev) =>
@@ -167,7 +141,6 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
     }
 
     const isActive = pathname === item.href
-    const isConversationsLink = item.href === "/customer/conversations"
 
     return (
       <Link
@@ -185,9 +158,6 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
           <Icon className="h-5 w-5" />
           <span>{item.name}</span>
         </div>
-        {isConversationsLink && unreadCount > 0 && (
-          <UnreadBadge count={unreadCount} dotOnly className="absolute top-2 right-2" />
-        )}
       </Link>
     )
   }

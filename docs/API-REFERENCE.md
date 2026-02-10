@@ -502,10 +502,6 @@ Send a message (triggers AI response).
 
 Mark conversation as read.
 
-### GET /api/conversations/unread-count
-
-Get unread conversation count.
-
 ---
 
 ## FAQ

@@ -276,7 +276,23 @@
     "contactDescription": "Contact our support team for personalized assistance",
     "contactSupport": "Contact Support",
     "viewCount": "views",
-    "helpfulCount": "helpful"
+    "helpfulCount": "helpful",
+    "categoryNames": {
+      "device-startup": "Device Startup",
+      "gps-location": "GPS & Location",
+      "network-platform": "Network & Platform",
+      "video-storage": "Video & Storage",
+      "alarm-upload": "Alarm & Upload",
+      "general-troubleshooting": "General Troubleshooting"
+    },
+    "categoryDescriptions": {
+      "device-startup": "Device boot issues, power problems, and loading failures",
+      "gps-location": "GPS signal, antenna, and positioning issues",
+      "network-platform": "Platform connection, SIM card, and dialing issues",
+      "video-storage": "Video loss, disk detection, and recording problems",
+      "alarm-upload": "Alarm video generation and upload issues",
+      "general-troubleshooting": "General problem diagnosis methodology and tips"
+    }
   },
   "tickets": {
     "title": "Tickets",

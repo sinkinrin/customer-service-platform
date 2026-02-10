@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { ChevronRight, Eye, ThumbsUp } from 'lucide-react'
 import { type FAQItem } from '@/lib/hooks/use-faq'
+import { useTranslations } from 'next-intl'
 
 interface ArticleCardProps {
   article: FAQItem
@@ -46,6 +47,7 @@ export const ArticleCard = memo(function ArticleCard({
   showStats = true,
   searchQuery = '',
 }: ArticleCardProps) {
+  const t = useTranslations('faq')
   const highlightedQuestion = highlightText(article.question, searchQuery)
   const highlightedAnswer = highlightText(article.answer, searchQuery)
 
@@ -74,7 +76,7 @@ export const ArticleCard = memo(function ArticleCard({
         <CardContent>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             {showCategory && article.category_name && (
-              <Badge variant="secondary">{article.category_name}</Badge>
+              <Badge variant="secondary">{t(`categoryNames.${article.category_name}`, { defaultValue: article.category_name })}</Badge>
             )}
             
             {showStats && (

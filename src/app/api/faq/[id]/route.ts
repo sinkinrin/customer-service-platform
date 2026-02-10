@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
-    const language = searchParams.get('language') || 'zh-CN'
+    const language = searchParams.get('language') || 'en'
 
     // Get article from database
     // FIX: Use findFirst instead of findUnique to avoid Prisma error with non-unique field isActive

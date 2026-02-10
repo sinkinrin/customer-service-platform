@@ -276,7 +276,23 @@
     "contactDescription": "Свяжитесь с нашей службой поддержки для получения персональной помощи",
     "contactSupport": "Связаться с поддержкой",
     "viewCount": "просмотров",
-    "helpfulCount": "полезно"
+    "helpfulCount": "полезно",
+    "categoryNames": {
+      "device-startup": "Запуск устройства",
+      "gps-location": "GPS и местоположение",
+      "network-platform": "Сеть и платформа",
+      "video-storage": "Видео и хранилище",
+      "alarm-upload": "Тревога и загрузка",
+      "general-troubleshooting": "Общее устранение неполадок"
+    },
+    "categoryDescriptions": {
+      "device-startup": "Проблемы запуска, питания и загрузки",
+      "gps-location": "Сигнал GPS, антенна и проблемы позиционирования",
+      "network-platform": "Подключение к платформе, SIM-карта и проблемы дозвона",
+      "video-storage": "Потеря видео, обнаружение диска и проблемы записи",
+      "alarm-upload": "Генерация и загрузка тревожного видео",
+      "general-troubleshooting": "Общая методология диагностики и советы"
+    }
   },
   "tickets": {
     "title": "Заявки",

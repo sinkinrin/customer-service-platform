@@ -276,7 +276,23 @@
     "contactDescription": "联系我们的支持团队获取专业协助",
     "contactSupport": "联系支持",
     "viewCount": "次浏览",
-    "helpfulCount": "次好评"
+    "helpfulCount": "次好评",
+    "categoryNames": {
+      "device-startup": "设备启动",
+      "gps-location": "GPS 与定位",
+      "network-platform": "网络与平台",
+      "video-storage": "视频与存储",
+      "alarm-upload": "报警与上传",
+      "general-troubleshooting": "通用故障排除"
+    },
+    "categoryDescriptions": {
+      "device-startup": "设备启动问题、电源故障和加载失败",
+      "gps-location": "GPS 信号、天线和定位问题",
+      "network-platform": "平台连接、SIM 卡和拨号问题",
+      "video-storage": "视频丢失、磁盘检测和录像问题",
+      "alarm-upload": "报警视频生成和上传问题",
+      "general-troubleshooting": "通用问题诊断方法和技巧"
+    }
   },
   "tickets": {
     "title": "工单",

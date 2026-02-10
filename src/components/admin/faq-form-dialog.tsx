@@ -37,10 +37,7 @@ interface FAQFormDialogProps {
   onSuccess: () => void
 }
 
-const LANGUAGES = [
-  { code: 'zh-CN', name: 'Simplified Chinese' },
-  { code: 'en', name: 'English' },
-]
+const LANGUAGES = ['en', 'zh-CN', 'fr', 'es', 'ru', 'pt'] as const
 
 interface Category {
   id: number
@@ -51,6 +48,8 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
   const t = useTranslations('admin.faq')
   const tToast = useTranslations('toast.admin.faq')
   const tCommon = useTranslations('common')
+  const tLocale = useTranslations('common.localeNames')
+  const tFaq = useTranslations('faq')
   const [loading, setLoading] = useState(false)
   const [loadingCategories, setLoadingCategories] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
@@ -60,10 +59,9 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
   const [activeLanguage, setActiveLanguage] = useState('en')
 
   // Translation data for each language
-  const [translations, setTranslations] = useState<Record<string, { title: string; content: string; keywords: string }>>({
-    'en': { title: '', content: '', keywords: '' },
-    'zh-CN': { title: '', content: '', keywords: '' },
-  })
+  const emptyTranslations = () =>
+    Object.fromEntries(LANGUAGES.map(l => [l, { title: '', content: '', keywords: '' }]))
+  const [translations, setTranslations] = useState<Record<string, { title: string; content: string; keywords: string }>>(emptyTranslations())
 
   // Fetch categories from API
   useEffect(() => {
@@ -89,10 +87,12 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
         console.error('Failed to fetch categories:', error)
         // Fallback to default categories if API fails
         setCategories([
-          { id: 1, name: 'Account & Login' },
-          { id: 2, name: 'Tickets & Support' },
-          { id: 3, name: 'Conversations' },
-          { id: 4, name: 'General' },
+          { id: 1, name: 'device-startup' },
+          { id: 2, name: 'gps-location' },
+          { id: 3, name: 'network-platform' },
+          { id: 4, name: 'video-storage' },
+          { id: 5, name: 'alarm-upload' },
+          { id: 6, name: 'general-troubleshooting' },
         ])
       } finally {
         setLoadingCategories(false)
@@ -112,10 +112,7 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
       setIsActive(article.is_active)
       
       // Populate translations
-      const newTranslations: Record<string, { title: string; content: string; keywords: string }> = {
-        'en': { title: '', content: '', keywords: '' },
-        'zh-CN': { title: '', content: '', keywords: '' },
-      }
+      const newTranslations = emptyTranslations()
       
       article.translations.forEach((t) => {
         newTranslations[t.locale] = {
@@ -131,10 +128,7 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
       setCategoryId(1)
       setSlug('')
       setIsActive(true)
-      setTranslations({
-        'en': { title: '', content: '', keywords: '' },
-        'zh-CN': { title: '', content: '', keywords: '' },
-      })
+      setTranslations(emptyTranslations())
     }
   }, [mode, article, open])
 
@@ -243,7 +237,7 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
                     ) : (
                       categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
-                          {cat.name}
+                          {tFaq(`categoryNames.${cat.name}`, { defaultValue: cat.name })}
                         </SelectItem>
                       ))
                     )}
@@ -280,45 +274,45 @@ export function FAQFormDialog({ open, onOpenChange, mode, article, onSuccess }: 
           <div className="space-y-4">
             <Label>{t('form.translations')}</Label>
             <Tabs value={activeLanguage} onValueChange={setActiveLanguage}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-6">
                 {LANGUAGES.map((lang) => (
-                  <TabsTrigger key={lang.code} value={lang.code}>
-                    {lang.name}
+                  <TabsTrigger key={lang} value={lang}>
+                    {tLocale(lang)}
                   </TabsTrigger>
                 ))}
               </TabsList>
 
               {LANGUAGES.map((lang) => (
-                <TabsContent key={lang.code} value={lang.code} className="space-y-4">
+                <TabsContent key={lang} value={lang} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor={`title-${lang.code}`}>{t('form.title')}</Label>
+                    <Label htmlFor={`title-${lang}`}>{t('form.title')}</Label>
                     <Input
-                      id={`title-${lang.code}`}
+                      id={`title-${lang}`}
                       placeholder={t('form.titlePlaceholder')}
-                      value={translations[lang.code].title}
-                      onChange={(e) => updateTranslation(lang.code, 'title', e.target.value)}
+                      value={translations[lang].title}
+                      onChange={(e) => updateTranslation(lang, 'title', e.target.value)}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`content-${lang.code}`}>{t('form.content')}</Label>
+                    <Label htmlFor={`content-${lang}`}>{t('form.content')}</Label>
                     <Textarea
-                      id={`content-${lang.code}`}
+                      id={`content-${lang}`}
                       placeholder={t('form.contentPlaceholderMarkdown')}
-                      value={translations[lang.code].content}
-                      onChange={(e) => updateTranslation(lang.code, 'content', e.target.value)}
+                      value={translations[lang].content}
+                      onChange={(e) => updateTranslation(lang, 'content', e.target.value)}
                       rows={10}
                       className="font-mono text-sm"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`keywords-${lang.code}`}>{t('form.keywordsLabel')}</Label>
+                    <Label htmlFor={`keywords-${lang}`}>{t('form.keywordsLabel')}</Label>
                     <Input
-                      id={`keywords-${lang.code}`}
+                      id={`keywords-${lang}`}
                       placeholder={t('form.keywordsPlaceholder')}
-                      value={translations[lang.code].keywords}
-                      onChange={(e) => updateTranslation(lang.code, 'keywords', e.target.value)}
+                      value={translations[lang].keywords}
+                      onChange={(e) => updateTranslation(lang, 'keywords', e.target.value)}
                     />
                   </div>
                 </TabsContent>

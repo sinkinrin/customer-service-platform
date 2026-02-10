@@ -8,8 +8,10 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import DOMPurify from 'dompurify'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useFAQ, type FAQItem } from '@/lib/hooks/use-faq'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,6 +34,7 @@ export default function FAQArticlePage() {
   const articleId = params.id as string
   const t = useTranslations('faq')
   const tToast = useTranslations('toast.customer.faq')
+  const locale = useLocale()
 
   const { submitFeedback } = useFAQ()
   const [article, setArticle] = useState<FAQItem | null>(null)
@@ -45,7 +48,7 @@ export default function FAQArticlePage() {
       setIsLoading(true)
 
       try {
-        const response = await fetch(`/api/faq/${articleId}`)
+        const response = await fetch(`/api/faq/${articleId}?language=${locale}`)
 
         if (!response.ok) {
           throw new Error('Failed to fetch article')
@@ -59,7 +62,7 @@ export default function FAQArticlePage() {
         if (fetchedArticle.category_id) {
           try {
             const relatedResponse = await fetch(
-              `/api/faq?categoryId=${fetchedArticle.category_id}&limit=3&language=zh-CN`
+              `/api/faq?categoryId=${fetchedArticle.category_id}&limit=3&language=${locale}`
             )
             if (relatedResponse.ok) {
               const relatedData = await relatedResponse.json()
@@ -85,7 +88,7 @@ export default function FAQArticlePage() {
     if (articleId) {
       fetchArticle()
     }
-  }, [articleId, router, tToast])
+  }, [articleId, router, tToast, locale])
 
   // Handle feedback
   const handleFeedback = async (helpful: boolean) => {
@@ -116,7 +119,7 @@ export default function FAQArticlePage() {
     const categoryHref = article.category_id
       ? `/customer/faq?categoryId=${article.category_id}`
       : undefined
-    breadcrumbItems.push({ label: article.category_name, href: categoryHref })
+    breadcrumbItems.push({ label: t(`categoryNames.${article.category_name}`, { defaultValue: article.category_name }), href: categoryHref })
   }
 
   if (article?.question) {
@@ -145,7 +148,7 @@ export default function FAQArticlePage() {
             <div className="flex-1">
               {article.category_name && (
                 <Badge variant="secondary" className="mb-2">
-                  {article.category_name}
+                  {t(`categoryNames.${article.category_name}`, { defaultValue: article.category_name })}
                 </Badge>
               )}
               <CardTitle className="text-2xl">{article.question}</CardTitle>
@@ -175,10 +178,9 @@ export default function FAQArticlePage() {
         <CardContent className="pt-6">
           {/* Answer */}
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <div
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.answer) }}
-              className="whitespace-pre-wrap"
-            />
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {article.answer}
+            </ReactMarkdown>
           </div>
           
           {/* Feedback */}

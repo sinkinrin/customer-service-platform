@@ -276,7 +276,23 @@
     "contactDescription": "Entre em contato com nossa equipe de suporte para assistência personalizada",
     "contactSupport": "Contatar suporte",
     "viewCount": "visualizações",
-    "helpfulCount": "útil"
+    "helpfulCount": "útil",
+    "categoryNames": {
+      "device-startup": "Inicialização do dispositivo",
+      "gps-location": "GPS e localização",
+      "network-platform": "Rede e plataforma",
+      "video-storage": "Vídeo e armazenamento",
+      "alarm-upload": "Alarme e envio",
+      "general-troubleshooting": "Solução geral de problemas"
+    },
+    "categoryDescriptions": {
+      "device-startup": "Problemas de inicialização, energia e carregamento",
+      "gps-location": "Sinal GPS, antena e problemas de posicionamento",
+      "network-platform": "Conexão com a plataforma, cartão SIM e problemas de discagem",
+      "video-storage": "Perda de vídeo, detecção de disco e problemas de gravação",
+      "alarm-upload": "Geração e envio de vídeos de alarme",
+      "general-troubleshooting": "Metodologia geral de diagnóstico e dicas"
+    }
   },
   "tickets": {
     "title": "Tickets",

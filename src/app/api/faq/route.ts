@@ -20,7 +20,7 @@
  *         name: language
  *         schema:
  *           type: string
- *           default: zh-CN
+ *           default: en
  *         description: Language code
  *       - in: query
  *         name: limit
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('query') || ''
-    const language = searchParams.get('language') || 'zh-CN'
+    const language = searchParams.get('language') || 'en'
     // Support both camelCase (categoryId) and snake_case (category_id) for backwards compatibility
     const categoryId = searchParams.get('categoryId') || searchParams.get('category_id')
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -84,6 +84,12 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = {
       isActive: true,
+      // Only return articles that have a translation for the requested language
+      translations: {
+        some: {
+          locale: language,
+        },
+      },
     }
 
     // Filter by category if provided

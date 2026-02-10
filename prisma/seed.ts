@@ -1,6 +1,6 @@
 /**
  * Prisma Seed Script
- * 
+ *
  * Seeds FAQ data into the database
  */
 
@@ -28,7 +28,7 @@ async function main() {
         name: category.name,
         description: category.description,
         icon: category.icon,
-        slug: category.name.toLowerCase().replace(/\s+/g, '-'),
+        slug: category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         sortOrder: category.id,
         isActive: true,
       },
@@ -36,10 +36,9 @@ async function main() {
   }
   console.log(`✅ Created ${mockFAQCategories.length} categories`)
 
-  // Seed articles
+  // Seed articles with translations
   console.log('Seeding articles...')
   for (const article of mockFAQArticles) {
-    // Create article
     const createdArticle = await prisma.faqArticle.create({
       data: {
         id: article.id,
@@ -50,27 +49,18 @@ async function main() {
       },
     })
 
-    // Create Chinese translation (default)
-    await prisma.faqArticleTranslation.create({
-      data: {
-        articleId: createdArticle.id,
-        locale: 'zh-CN',
-        title: article.title,
-        content: article.content,
-        keywords: JSON.stringify(article.keywords),
-      },
-    })
-
-    // Create English translation (simplified version)
-    await prisma.faqArticleTranslation.create({
-      data: {
-        articleId: createdArticle.id,
-        locale: 'en',
-        title: article.title, // In production, this would be translated
-        content: article.content, // In production, this would be translated
-        keywords: JSON.stringify(article.keywords),
-      },
-    })
+    // Create translations for each locale
+    for (const translation of article.translations) {
+      await prisma.faqArticleTranslation.create({
+        data: {
+          articleId: createdArticle.id,
+          locale: translation.locale,
+          title: translation.title,
+          content: translation.content,
+          keywords: JSON.stringify(translation.keywords),
+        },
+      })
+    }
   }
   console.log(`✅ Created ${mockFAQArticles.length} articles with translations`)
 
@@ -85,4 +75,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect()
   })
-

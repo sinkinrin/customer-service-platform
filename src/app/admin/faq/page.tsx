@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,6 +51,7 @@ interface FAQItem {
 export default function FAQManagementPage() {
   const t = useTranslations('admin.faq')
   const tToast = useTranslations('toast.admin.faq')
+  const tFaq = useTranslations('faq')
   const [items, setItems] = useState<FAQItem[]>([])
   const [filteredItems, setFilteredItems] = useState<FAQItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -276,7 +277,7 @@ export default function FAQManagementPage() {
                 <SelectItem value="all">{t('allCategories')}</SelectItem>
                 {categoryOptions.map((category) => (
                   <SelectItem key={category} value={category}>
-                    {category}
+                    {tFaq(`categoryNames.${category}`, { defaultValue: category })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -364,7 +365,7 @@ export default function FAQManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{item.category}</Badge>
+                        <Badge variant="outline">{tFaq(`categoryNames.${item.category}`, { defaultValue: item.category })}</Badge>
                       </TableCell>
                       <TableCell>
                         <Badge

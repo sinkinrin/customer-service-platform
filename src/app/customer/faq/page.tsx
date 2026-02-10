@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useFAQ } from '@/lib/hooks/use-faq'
 import { SearchBar } from '@/components/faq/search-bar'
 import { CategoryList } from '@/components/faq/category-list'
@@ -23,6 +23,7 @@ export default function FAQPage() {
   const router = useRouter()
   const t = useTranslations('faq')
   const tToast = useTranslations('toast.customer.faq')
+  const locale = useLocale()
 
   const {
     categories,
@@ -41,21 +42,21 @@ export default function FAQPage() {
 
   // Fetch categories on mount
   useEffect(() => {
-    fetchCategories('zh-CN').catch((error) => {
+    fetchCategories(locale).catch((error) => {
       console.error('Error fetching categories:', error)
       toast.error(tToast('categoriesError'))
     })
-  }, [fetchCategories, tToast])
+  }, [fetchCategories, tToast, locale])
 
   // Fetch popular FAQ on mount
   useEffect(() => {
     if (activeTab === 'search' && !searchQuery) {
-      getPopularFAQ('zh-CN', 10).catch((error) => {
+      getPopularFAQ(locale, 10).catch((error) => {
         console.error('Error fetching popular FAQ:', error)
         toast.error(tToast('popularError'))
       })
     }
-  }, [activeTab, searchQuery, getPopularFAQ, tToast])
+  }, [activeTab, searchQuery, getPopularFAQ, tToast, locale])
 
   // Handle search
   const handleSearch = async (query: string) => {
@@ -64,7 +65,7 @@ export default function FAQPage() {
     if (!query.trim()) {
       // Show popular FAQ when search is cleared
       try {
-        await getPopularFAQ('zh-CN', 10)
+        await getPopularFAQ(locale, 10)
       } catch (error) {
         console.error('Error fetching popular FAQ:', error)
         toast.error(tToast('popularError'))
@@ -73,7 +74,7 @@ export default function FAQPage() {
     }
 
     try {
-      await searchFAQ(query, 'zh-CN', undefined, 20)
+      await searchFAQ(query, locale, undefined, 20)
     } catch (error) {
       console.error('Error searching FAQ:', error)
       toast.error(tToast('searchError'))
@@ -87,7 +88,7 @@ export default function FAQPage() {
     if (!categoryId) {
       // Show popular FAQ when "All Categories" is selected
       try {
-        await getPopularFAQ('zh-CN', 20)
+        await getPopularFAQ(locale, 20)
       } catch (error) {
         console.error('Error fetching popular FAQ:', error)
         toast.error(tToast('loadError'))
@@ -96,7 +97,7 @@ export default function FAQPage() {
     }
 
     try {
-      await getFAQByCategory(categoryId, 'zh-CN')
+      await getFAQByCategory(categoryId, locale)
     } catch (error) {
       console.error('Error fetching FAQ by category:', error)
       toast.error(tToast('loadError'))
@@ -210,7 +211,10 @@ export default function FAQPage() {
             <div className="md:col-span-2">
               <h2 className="text-xl font-semibold mb-4">
                 {selectedCategory
-                  ? categories.find((c) => c.id === selectedCategory)?.name || t('articles')
+                  ? (() => {
+                      const cat = categories.find((c) => c.id === selectedCategory)
+                      return cat ? t(`categoryNames.${cat.name}`, { defaultValue: cat.name }) : t('articles')
+                    })()
                   : t('allArticles')}
               </h2>
 

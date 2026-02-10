@@ -130,7 +130,7 @@
     "businessTypes": "Types d'activité",
     "customer": {
       "helpCenter": "Centre d'aide",
-      "liveChat": "Chat en direct",
+      "liveChat": "Chat IA",
       "ticketManagement": "Gestion des tickets",
       "submitTicket": "Soumettre un ticket",
       "myTickets": "Mes tickets",
@@ -900,8 +900,8 @@
       "recentConversations": "Conversations récentes",
       "quickActions": {
         "liveChat": {
-          "title": "Chat en direct",
-          "description": "Discutez avec le support en temps réel"
+          "title": "Chat IA",
+          "description": "Discutez avec l'assistant IA pour une aide instantanée"
         },
         "knowledgeBase": {
           "title": "Base de connaissances",
@@ -920,8 +920,8 @@
         "title": "Commencer",
         "subtitle": "Choisissez comment vous souhaitez obtenir de l'aide",
         "liveChat": {
-          "title": "Chat en direct",
-          "description": "Obtenez une aide instantanée via le chat en direct. Notre assistant IA et nos agents humains sont prêts à vous aider.",
+          "title": "Chat IA",
+          "description": "Obtenez une aide instantanée via le chat IA. Notre assistant IA est prêt à vous aider 24h/24.",
           "button": "Démarrer le chat"
         },
         "knowledgeBase": {
@@ -1847,7 +1847,7 @@
       "Nous fournirons une première réponse dans les 24 heures suivant la réception de votre réclamation.",
       "Les réclamations urgentes sont prioritaires pour une résolution rapide.",
       "Vous pouvez vérifier les mises à jour et les réponses aux réclamations dans « Mes tickets ».",
-      "Si vous avez des questions, contactez-nous via le chat en direct à tout moment."
+      "Si vous avez des questions, contactez-nous via le chat IA à tout moment."
     ],
     "ticketPrefix": "[Réclamation]",
     "loginRequired": "Veuillez vous connecter pour soumettre une réclamation"
@@ -1862,7 +1862,7 @@
       "title": "Pas encore de tickets",
       "description": "Vous n'avez pas encore soumis de tickets",
       "noResults": "Aucun ticket correspondant trouvé",
-      "hint": "Veuillez créer un ticket via le chat en direct."
+      "hint": "Veuillez créer un ticket via le chat IA."
     },
     "toast": {
       "loadError": "Échec du chargement des tickets"
@@ -2097,7 +2097,9 @@
   "aiChat": {
     "rate": {
       "helpful": "Utile",
-      "notHelpful": "Pas utile"
+      "notHelpful": "Pas utile",
+      "copy": "Copier",
+      "copied": "Copié"
     },
     "feedback": {
       "title": "Que s'est-il passé ?",

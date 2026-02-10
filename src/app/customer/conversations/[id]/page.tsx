@@ -15,7 +15,7 @@ import { FeedbackDialog } from '@/components/ai/feedback-dialog'
 import { toast } from 'sonner'
 import { Loading } from '@/components/common/loading'
 import { useTranslations } from 'next-intl'
-import { ThumbsUp, ThumbsDown } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface AiMsg {
@@ -43,6 +43,7 @@ export default function ConversationDetailPage() {
   // Feedback dialog state
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false)
   const [pendingRatingMessageId, setPendingRatingMessageId] = useState<string | null>(null)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 
   // Load existing AI messages on mount
   useEffect(() => {
@@ -159,6 +160,27 @@ export default function ConversationDetailPage() {
       setPendingRatingMessageId(null)
     }
   }, [pendingRatingMessageId, submitRating])
+
+  // Handle copy message content
+  const handleCopy = useCallback(async (messageId: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea')
+      textarea.value = content
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    }
+  }, [])
 
   // Handle AI chat with duplicate prevention
   const handleAIMessage = async (content: string) => {
@@ -338,6 +360,22 @@ export default function ConversationDetailPage() {
                     title={tRate('notHelpful')}
                   >
                     <ThumbsDown className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleCopy(message.id, message.content)}
+                    className={cn(
+                      'p-1 rounded-md transition-colors hover:bg-muted',
+                      copiedMessageId === message.id
+                        ? 'text-green-600'
+                        : 'text-muted-foreground/50 hover:text-muted-foreground'
+                    )}
+                    title={copiedMessageId === message.id ? tRate('copied') : tRate('copy')}
+                  >
+                    {copiedMessageId === message.id ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
                   </button>
                 </div>
               )

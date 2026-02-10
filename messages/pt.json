@@ -130,7 +130,7 @@
     "businessTypes": "Tipos de negócio",
     "customer": {
       "helpCenter": "Central de ajuda",
-      "liveChat": "Chat ao vivo",
+      "liveChat": "Chat de IA",
       "ticketManagement": "Gerenciamento de tickets",
       "submitTicket": "Enviar ticket",
       "myTickets": "Meus tickets",
@@ -900,8 +900,8 @@
       "recentConversations": "Conversas recentes",
       "quickActions": {
         "liveChat": {
-          "title": "Chat ao vivo",
-          "description": "Converse com o suporte em tempo real"
+          "title": "Chat de IA",
+          "description": "Converse com o assistente de IA para ajuda instantânea"
         },
         "knowledgeBase": {
           "title": "Base de conhecimento",
@@ -920,8 +920,8 @@
         "title": "Comece agora",
         "subtitle": "Escolha como você quer obter ajuda",
         "liveChat": {
-          "title": "Chat ao vivo",
-          "description": "Obtenha ajuda instantânea via chat ao vivo. Nosso assistente de IA e agentes humanos estão prontos para ajudar.",
+          "title": "Chat de IA",
+          "description": "Obtenha ajuda instantânea via chat de IA. Nosso assistente de IA está pronto para ajudá-lo 24 horas por dia.",
           "button": "Iniciar chat"
         },
         "knowledgeBase": {
@@ -1847,7 +1847,7 @@
       "Forneceremos uma resposta inicial em até 24 horas após receber sua reclamação.",
       "Reclamações urgentes são priorizadas para resolução rápida.",
       "Você pode verificar atualizações e respostas da reclamação em \"Meus Tickets\".",
-      "Se tiver alguma dúvida, entre em contato pelo chat ao vivo a qualquer momento."
+      "Se tiver alguma dúvida, entre em contato pelo chat de IA a qualquer momento."
     ],
     "ticketPrefix": "[Reclamação]",
     "loginRequired": "Por favor, faça login para enviar uma reclamação"
@@ -1862,7 +1862,7 @@
       "title": "Nenhum ticket ainda",
       "description": "Você ainda não enviou nenhum ticket",
       "noResults": "Nenhum ticket correspondente encontrado",
-      "hint": "Por favor, crie um ticket pelo chat ao vivo."
+      "hint": "Por favor, crie um ticket pelo chat de IA."
     },
     "toast": {
       "loadError": "Falha ao carregar tickets"
@@ -2097,7 +2097,9 @@
   "aiChat": {
     "rate": {
       "helpful": "Útil",
-      "notHelpful": "Não útil"
+      "notHelpful": "Não útil",
+      "copy": "Copiar",
+      "copied": "Copiado"
     },
     "feedback": {
       "title": "O que deu errado?",

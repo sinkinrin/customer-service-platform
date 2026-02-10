@@ -130,7 +130,7 @@
     "businessTypes": "业务类型",
     "customer": {
       "helpCenter": "帮助中心",
-      "liveChat": "在线聊天",
+      "liveChat": "AI 对话",
       "ticketManagement": "工单管理",
       "submitTicket": "提交工单",
       "myTickets": "我的工单",
@@ -900,8 +900,8 @@
       "recentConversations": "最近对话",
       "quickActions": {
         "liveChat": {
-          "title": "在线聊天",
-          "description": "实时与客服聊天"
+          "title": "AI 对话",
+          "description": "与 AI 助手对话获得即时帮助"
         },
         "knowledgeBase": {
           "title": "知识库",
@@ -920,8 +920,8 @@
         "title": "开始使用",
         "subtitle": "选择您需要的帮助方式",
         "liveChat": {
-          "title": "在线聊天",
-          "description": "通过在线聊天获得即时帮助。我们的 AI 助手和人工客服随时为您服务。",
+          "title": "AI 对话",
+          "description": "通过 AI 对话获得即时帮助。我们的 AI 助手全天候为您服务。",
           "button": "开始聊天"
         },
         "knowledgeBase": {
@@ -1847,7 +1847,7 @@
       "我们将在收到投诉后 24 小时内提供初步回复。",
       "紧急投诉将优先处理并快速解决。",
       "您可以在\"我的工单\"下查看投诉更新和回复。",
-      "如有任何疑问，随时通过在线聊天联系我们。"
+      "如有任何疑问，随时通过 AI 对话联系我们。"
     ],
     "ticketPrefix": "[投诉]",
     "loginRequired": "请登录以提交投诉"
@@ -1862,7 +1862,7 @@
       "title": "暂无工单",
       "description": "您还没有提交任何工单",
       "noResults": "未找到匹配的工单",
-      "hint": "请通过在线聊天创建工单。"
+      "hint": "请通过 AI 对话创建工单。"
     },
     "toast": {
       "loadError": "加载工单失败"
@@ -2093,7 +2093,9 @@
   "aiChat": {
     "rate": {
       "helpful": "有帮助",
-      "notHelpful": "没帮助"
+      "notHelpful": "没帮助",
+      "copy": "复制",
+      "copied": "已复制"
     },
     "feedback": {
       "title": "哪里不对？",

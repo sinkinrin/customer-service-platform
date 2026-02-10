@@ -130,7 +130,7 @@
     "businessTypes": "Business Types",
     "customer": {
       "helpCenter": "Help Center",
-      "liveChat": "Live Chat",
+      "liveChat": "AI Chat",
       "ticketManagement": "Ticket Management",
       "submitTicket": "Submit Ticket",
       "myTickets": "My Tickets",
@@ -900,8 +900,8 @@
       "recentConversations": "Recent Conversations",
       "quickActions": {
         "liveChat": {
-          "title": "Live chat",
-          "description": "Chat with support in real time"
+          "title": "AI Chat",
+          "description": "Chat with AI assistant for instant help"
         },
         "knowledgeBase": {
           "title": "Knowledge base",
@@ -920,8 +920,8 @@
         "title": "Get started",
         "subtitle": "Choose how you want to get help",
         "liveChat": {
-          "title": "Live chat",
-          "description": "Get instant help via live chat. Our AI assistant and human agents are ready to assist.",
+          "title": "AI Chat",
+          "description": "Get instant help via AI chat. Our AI assistant is ready to assist you 24/7.",
           "button": "Start chat"
         },
         "knowledgeBase": {
@@ -1847,7 +1847,7 @@
       "We will provide an initial response within 24 hours of receiving your complaint.",
       "Urgent complaints are prioritized for rapid resolution.",
       "You can check complaint updates and replies under \"My Tickets.\"",
-      "If you have any questions, contact us via live chat at any time."
+      "If you have any questions, contact us via AI chat at any time."
     ],
     "ticketPrefix": "[Complaint]",
     "loginRequired": "Please login to submit a complaint"
@@ -1862,7 +1862,7 @@
       "title": "No tickets yet",
       "description": "You have not submitted any tickets yet",
       "noResults": "No matching tickets found",
-      "hint": "Please create a ticket via live chat."
+      "hint": "Please create a ticket via AI chat."
     },
     "toast": {
       "loadError": "Failed to load tickets"
@@ -2093,7 +2093,9 @@
   "aiChat": {
     "rate": {
       "helpful": "Helpful",
-      "notHelpful": "Not helpful"
+      "notHelpful": "Not helpful",
+      "copy": "Copy",
+      "copied": "Copied"
     },
     "feedback": {
       "title": "What went wrong?",

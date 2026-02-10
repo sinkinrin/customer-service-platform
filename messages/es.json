@@ -1564,6 +1564,35 @@
       "actions": {
         "refresh": "Actualizar"
       }
+    },
+    "ai": {
+      "title": "Asistente IA",
+      "error": "La solicitud de IA falló. Por favor, inténtelo de nuevo.",
+      "inserted": "Respuesta insertada en el cuadro de texto",
+      "copied": "Copiado",
+      "copy": "Copiar",
+      "tabs": {
+        "suggest": "Respuesta",
+        "chat": "Chat",
+        "summary": "Resumen"
+      },
+      "suggest": {
+        "description": "La IA analizará la conversación del ticket y redactará una respuesta profesional para usted.",
+        "generate": "Generar respuesta",
+        "generating": "Generando respuesta...",
+        "insert": "Insertar en respuesta",
+        "regenerate": "Regenerar"
+      },
+      "chat": {
+        "placeholder": "Pregunte a la IA sobre este ticket o su base de conocimientos...",
+        "inputPlaceholder": "Haga una pregunta..."
+      },
+      "summary": {
+        "description": "La IA resumirá la conversación del ticket, los puntos clave y sugerirá los próximos pasos.",
+        "generate": "Generar resumen",
+        "generating": "Generando resumen...",
+        "regenerate": "Regenerar"
+      }
     }
   },
   "settings": {

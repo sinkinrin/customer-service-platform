@@ -39,6 +39,8 @@ interface TicketActionsProps {
   isLoading?: boolean
   customerEmail?: string  // Customer email for sending email replies
   compact?: boolean
+  /** Expose a setter so external components (e.g. AI panel) can insert text into the reply textarea */
+  onNoteRef?: (setter: (text: string) => void) => void
 }
 
 const STATE_KEYS = [
@@ -61,6 +63,7 @@ export function TicketActions({
   onAddNote,
   isLoading,
   compact = false,
+  onNoteRef,
 }: TicketActionsProps) {
   const t = useTranslations('tickets.details')
   const tCommon = useTranslations('common')
@@ -95,6 +98,23 @@ export function TicketActions({
       noteTextareaRef.current.style.height = `${Math.min(noteTextareaRef.current.scrollHeight, maxHeight)}px`
     }
   }
+
+  // Expose note setter for external AI insert
+  useEffect(() => {
+    if (onNoteRef) {
+      onNoteRef((text: string) => {
+        setNote(text)
+        // Trigger auto-resize after setting text
+        setTimeout(() => {
+          if (noteTextareaRef.current) {
+            const maxHeight = compact ? 300 : 700
+            noteTextareaRef.current.style.height = 'auto'
+            noteTextareaRef.current.style.height = `${Math.min(noteTextareaRef.current.scrollHeight, maxHeight)}px`
+          }
+        }, 0)
+      })
+    }
+  }, [onNoteRef, compact])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {

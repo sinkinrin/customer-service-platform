@@ -1564,6 +1564,35 @@
       "actions": {
         "refresh": "Actualiser"
       }
+    },
+    "ai": {
+      "title": "Assistant IA",
+      "error": "La requête IA a échoué. Veuillez réessayer.",
+      "inserted": "Réponse insérée dans la zone de texte",
+      "copied": "Copié",
+      "copy": "Copier",
+      "tabs": {
+        "suggest": "Réponse",
+        "chat": "Chat",
+        "summary": "Résumé"
+      },
+      "suggest": {
+        "description": "L'IA analysera la conversation du ticket et rédigera une réponse professionnelle pour vous.",
+        "generate": "Générer une réponse",
+        "generating": "Génération de la réponse...",
+        "insert": "Insérer dans la réponse",
+        "regenerate": "Régénérer"
+      },
+      "chat": {
+        "placeholder": "Posez une question à l'IA sur ce ticket ou votre base de connaissances...",
+        "inputPlaceholder": "Posez une question..."
+      },
+      "summary": {
+        "description": "L'IA résumera la conversation du ticket, les points clés et suggérera les prochaines étapes.",
+        "generate": "Générer un résumé",
+        "generating": "Génération du résumé...",
+        "regenerate": "Régénérer"
+      }
     }
   },
   "settings": {

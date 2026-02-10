@@ -1564,6 +1564,35 @@
         "noArticles": "暂无文章",
         "internalBadge": "内部"
       }
+    },
+    "ai": {
+      "title": "AI 助手",
+      "error": "AI 请求失败，请重试。",
+      "inserted": "回复已插入文本框",
+      "copied": "已复制",
+      "copy": "复制",
+      "tabs": {
+        "suggest": "生成回复",
+        "chat": "问答",
+        "summary": "摘要"
+      },
+      "suggest": {
+        "description": "AI 将分析工单对话，为您起草专业回复。",
+        "generate": "生成回复",
+        "generating": "正在生成回复...",
+        "insert": "插入回复框",
+        "regenerate": "重新生成"
+      },
+      "chat": {
+        "placeholder": "向 AI 提问关于此工单或知识库的任何问题...",
+        "inputPlaceholder": "输入问题..."
+      },
+      "summary": {
+        "description": "AI 将总结工单对话要点，并建议下一步操作。",
+        "generate": "生成摘要",
+        "generating": "正在生成摘要...",
+        "regenerate": "重新生成"
+      }
     }
   },
   "settings": {

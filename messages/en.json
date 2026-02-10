@@ -1564,6 +1564,35 @@
         "noArticles": "No articles yet",
         "internalBadge": "Internal"
       }
+    },
+    "ai": {
+      "title": "AI Assistant",
+      "error": "AI request failed. Please try again.",
+      "inserted": "Reply inserted into text box",
+      "copied": "Copied",
+      "copy": "Copy",
+      "tabs": {
+        "suggest": "Reply",
+        "chat": "Chat",
+        "summary": "Summary"
+      },
+      "suggest": {
+        "description": "AI will analyze the ticket conversation and draft a professional reply for you.",
+        "generate": "Generate Reply",
+        "generating": "Generating reply...",
+        "insert": "Insert to Reply",
+        "regenerate": "Regenerate"
+      },
+      "chat": {
+        "placeholder": "Ask AI anything about this ticket or your knowledge base...",
+        "inputPlaceholder": "Ask a question..."
+      },
+      "summary": {
+        "description": "AI will summarize the ticket conversation, key points, and suggest next steps.",
+        "generate": "Generate Summary",
+        "generating": "Generating summary...",
+        "regenerate": "Regenerate"
+      }
     }
   },
   "settings": {

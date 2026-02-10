@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -12,11 +12,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { ArrowLeft, MessageSquare } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Bot } from 'lucide-react'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { TicketActions } from '@/components/ticket/ticket-actions'
 import { ArticleCard } from '@/components/ticket/article-content'
 import { RatingIndicator } from '@/components/ticket/ticket-rating'
+import { AiAssistantPanel } from '@/components/staff/ai-assistant-panel'
 import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useUnreadStore } from '@/lib/stores/unread-store'
@@ -79,6 +80,8 @@ export default function StaffTicketDetailPage() {
   const [ticket, setTicket] = useState<ZammadTicket | null>(null)
   const [articles, setArticles] = useState<TicketArticle[]>([])
   const [rating, setRating] = useState<'positive' | 'negative' | null>(null)
+  const [showAiPanel, setShowAiPanel] = useState(false)
+  const noteSetterRef = useRef<((text: string) => void) | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { fetchTicketById, updateTicket, addArticle, fetchArticles, isLoading } = useTicket()
   const { markAsRead } = useUnreadStore()
@@ -189,6 +192,16 @@ export default function StaffTicketDetailPage() {
     }
   }
 
+  const handleAiInsertReply = useCallback((text: string) => {
+    if (noteSetterRef.current) {
+      noteSetterRef.current(text)
+    }
+  }, [])
+
+  const handleNoteRef = useCallback((setter: (text: string) => void) => {
+    noteSetterRef.current = setter
+  }, [])
+
   if (isLoading && !ticket) {
     return (
       <div className="space-y-6">
@@ -252,6 +265,15 @@ export default function StaffTicketDetailPage() {
             </Tooltip>
           </TooltipProvider>
         </div>
+        <Button
+          variant={showAiPanel ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5 flex-shrink-0"
+          onClick={() => setShowAiPanel(!showAiPanel)}
+        >
+          <Bot className="h-4 w-4" />
+          <span className="hidden sm:inline">AI</span>
+        </Button>
       </div>
 
       {/* Main Content - Fixed actions + scrollable conversation */}
@@ -322,14 +344,35 @@ export default function StaffTicketDetailPage() {
           </Card>
         </div>
 
-        {/* Right Column - Actions */}
-        <div className="flex-shrink-0 lg:w-[450px]">
+        {/* Right Column - Actions + AI Panel */}
+        <div className="flex-shrink-0 lg:w-[450px] flex flex-col gap-4 overflow-y-auto">
           <TicketActions
             ticket={ticket}
             onUpdate={handleUpdate}
             onAddNote={handleAddNote}
             isLoading={isLoading}
+            onNoteRef={handleNoteRef}
           />
+
+          {showAiPanel && (
+            <div className="min-h-[400px]">
+              <AiAssistantPanel
+                ticketTitle={ticket.title}
+                ticketState={ticket.state}
+                ticketPriority={ticket.priority}
+                customerName={ticket.customer}
+                articles={articles.map(a => ({
+                  id: a.id,
+                  sender: a.sender,
+                  body: a.body,
+                  internal: a.internal,
+                  created_at: a.created_at,
+                }))}
+                onInsertReply={handleAiInsertReply}
+                onClose={() => setShowAiPanel(false)}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

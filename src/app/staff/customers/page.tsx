@@ -264,6 +264,7 @@ export default function StaffCustomersPage() {
           userId={selectedCustomer.user_id}
           userName={selectedCustomer.full_name}
           userEmail={selectedCustomer.email}
+          ticketBasePath="/staff/tickets"
         />
       )}
     </div>

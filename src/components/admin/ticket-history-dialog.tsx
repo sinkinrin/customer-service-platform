@@ -33,6 +33,8 @@ interface TicketHistoryDialogProps {
   userId: string | number
   userName: string
   userEmail: string
+  /** Base path for ticket detail links (e.g. '/staff/tickets' or '/admin/tickets') */
+  ticketBasePath?: string
 }
 
 const getStateColor = (state: string) => {
@@ -56,6 +58,7 @@ export function TicketHistoryDialog({
   userId,
   userName,
   userEmail,
+  ticketBasePath = '/admin/tickets',
 }: TicketHistoryDialogProps) {
   const t = useTranslations('admin.users.ticketHistory')
   const tCommon = useTranslations('common')
@@ -151,7 +154,7 @@ export function TicketHistoryDialog({
                         </span>
                       </div>
                     </div>
-                    <Link href={`/admin/tickets/${ticket.id}`}>
+                    <Link href={`${ticketBasePath}/${ticket.id}`}>
                       <Button variant="ghost" size="sm">
                         <ExternalLink className="h-4 w-4" />
                       </Button>

@@ -1,4 +1,7 @@
 import { AISettings } from '@/lib/utils/ai-config'
+import { FastGPTProvider } from './fastgpt'
+import { OpenAICompatProvider } from './openai-compat'
+import { YuxiLegacyProvider } from './yuxi-legacy'
 
 export interface ChatRequest {
   conversationId: string
@@ -29,6 +32,11 @@ export interface AIProvider {
   testConnection(settings: AISettings): Promise<TestConnectionResult>
 }
 
-export { FastGPTProvider } from './fastgpt'
-export { OpenAICompatProvider } from './openai-compat'
-export { YuxiLegacyProvider } from './yuxi-legacy'
+export { FastGPTProvider, OpenAICompatProvider, YuxiLegacyProvider }
+
+/** Shared provider registry – import this instead of instantiating providers in each route */
+export const aiProviders = {
+  fastgpt: new FastGPTProvider(),
+  openai: new OpenAICompatProvider(),
+  'yuxi-legacy': new YuxiLegacyProvider(),
+} as const

@@ -12,7 +12,7 @@ import { z } from 'zod'
 import { requireRole } from '@/lib/utils/auth'
 import { readAISettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
-import { FastGPTProvider, OpenAICompatProvider, YuxiLegacyProvider } from '@/lib/ai/providers'
+import { aiProviders } from '@/lib/ai/providers'
 
 const SuggestReplySchema = z.object({
   ticketTitle: z.string(),
@@ -29,12 +29,6 @@ const SuggestReplySchema = z.object({
   ),
   language: z.string().optional(),
 })
-
-const providers = {
-  fastgpt: new FastGPTProvider(),
-  openai: new OpenAICompatProvider(),
-  'yuxi-legacy': new YuxiLegacyProvider(),
-}
 
 export async function POST(request: NextRequest) {
   const log = getApiLogger('StaffAISuggestReply', request)
@@ -58,7 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'AI is disabled' }, { status: 403 })
     }
 
-    const provider = providers[settings.provider]
+    const provider = aiProviders[settings.provider]
     if (!provider) {
       log.error('Unknown provider', { provider: settings.provider })
       return NextResponse.json({ success: false, error: 'Unknown AI provider' }, { status: 500 })

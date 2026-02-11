@@ -141,7 +141,19 @@ export function AiAssistantPanel({
   }
 
   const handleCopyReply = async () => {
-    await navigator.clipboard.writeText(suggestedReply)
+    try {
+      await navigator.clipboard.writeText(suggestedReply)
+    } catch {
+      // Fallback for older browsers or unfocused document
+      const textarea = document.createElement('textarea')
+      textarea.value = suggestedReply
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
     setReplyCopied(true)
     setTimeout(() => setReplyCopied(false), 2000)
   }

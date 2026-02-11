@@ -355,7 +355,7 @@ export default function StaffTicketDetailPage() {
           />
 
           {showAiPanel && (
-            <div className="min-h-[400px]">
+            <div className="h-[600px] lg:h-[calc(100vh-140px)] flex-shrink-0">
               <AiAssistantPanel
                 ticketTitle={ticket.title}
                 ticketState={ticket.state}

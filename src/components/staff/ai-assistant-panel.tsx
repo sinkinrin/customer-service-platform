@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useId } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -77,16 +77,27 @@ export function AiAssistantPanel({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [isChatLoading, setIsChatLoading] = useState(false)
-  const chatEndRef = useRef<HTMLDivElement>(null)
+  const chatScrollRef = useRef<HTMLDivElement>(null)
+  const msgIdCounter = useRef(0)
+  const idPrefix = useId()
 
   // Summary state
   const [summary, setSummary] = useState('')
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
 
-  // Auto-scroll chat
+  // Auto-scroll chat via ScrollArea viewport
+  const scrollChatToBottom = useCallback(() => {
+    const viewport = chatScrollRef.current?.querySelector('[data-radix-scroll-area-viewport]')
+    if (viewport) {
+      requestAnimationFrame(() => {
+        viewport.scrollTop = viewport.scrollHeight
+      })
+    }
+  }, [])
+
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatMessages.length, isChatLoading])
+    scrollChatToBottom()
+  }, [chatMessages.length, isChatLoading, scrollChatToBottom])
 
   const buildArticlesPayload = useCallback(() => {
     return articles.map(a => ({
@@ -141,7 +152,7 @@ export function AiAssistantPanel({
     if (!msg || isChatLoading) return
 
     const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `${idPrefix}-user-${++msgIdCounter.current}`,
       role: 'user',
       content: msg,
     }
@@ -167,7 +178,7 @@ export function AiAssistantPanel({
       if (!data.success) throw new Error(data.error || 'Failed')
 
       const aiMsg: ChatMessage = {
-        id: `ai-${Date.now()}`,
+        id: `${idPrefix}-ai-${++msgIdCounter.current}`,
         role: 'assistant',
         content: data.data.message,
       }
@@ -247,9 +258,9 @@ export function AiAssistantPanel({
         </TabsList>
 
         {/* ──── Suggest Reply Tab ──── */}
-        <TabsContent value="suggest" className="flex-1 flex flex-col min-h-0 px-3 pb-3 mt-2">
+        <TabsContent value="suggest" className="flex-1 flex-col min-h-0 mt-0 data-[state=active]:flex">
           {!suggestedReply && !isGeneratingReply ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 px-4">
+            <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 p-4">
               <div className="p-3 rounded-full bg-violet-500/10">
                 <Sparkles className="h-6 w-6 text-violet-500" />
               </div>
@@ -262,19 +273,21 @@ export function AiAssistantPanel({
           ) : (
             <div className="flex-1 flex flex-col min-h-0">
               <ScrollArea className="flex-1 min-h-0">
-                {isGeneratingReply ? (
-                  <div className="flex items-center gap-2 p-4">
-                    <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
-                    <span className="text-sm text-muted-foreground">{t('suggest.generating')}</span>
-                  </div>
-                ) : (
-                  <div className="p-2">
-                    <MarkdownMessage content={suggestedReply} className="text-sm" />
-                  </div>
-                )}
+                <div className="p-4">
+                  {isGeneratingReply ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
+                      <span className="text-sm text-muted-foreground">{t('suggest.generating')}</span>
+                    </div>
+                  ) : (
+                    <div className="min-h-[200px] bg-slate-50 dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                      <MarkdownMessage content={suggestedReply} className="text-sm" />
+                    </div>
+                  )}
+                </div>
               </ScrollArea>
               {suggestedReply && (
-                <div className="flex gap-2 pt-2 border-t mt-2">
+                <div className="flex gap-2 p-3 border-t bg-background">
                   <Button size="sm" className="flex-1 gap-1.5" onClick={handleInsertReply}>
                     <ArrowDownToLine className="h-3.5 w-3.5" />
                     {t('suggest.insert')}
@@ -293,9 +306,9 @@ export function AiAssistantPanel({
         </TabsContent>
 
         {/* ──── Chat Tab ──── */}
-        <TabsContent value="chat" className="flex-1 flex flex-col min-h-0 px-3 pb-3 mt-2">
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="space-y-3 pr-2">
+        <TabsContent value="chat" className="flex-1 flex-col min-h-0 mt-0 data-[state=active]:flex">
+          <ScrollArea className="flex-1 min-h-0" ref={chatScrollRef}>
+            <div className="space-y-4 p-4">
               {chatMessages.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   {t('chat.placeholder')}
@@ -314,11 +327,17 @@ export function AiAssistantPanel({
                       'max-w-[85%] rounded-lg px-3 py-2 text-sm',
                       msg.role === 'user'
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
+                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100'
                     )}
                   >
                     {msg.role === 'assistant' ? (
-                      <MarkdownMessage content={msg.content} className="text-sm" />
+                      <div className="markdown-container">
+                        {msg.content ? (
+                          <MarkdownMessage content={msg.content} className="text-sm" />
+                        ) : (
+                          <span className="text-muted-foreground italic text-xs">(Empty message)</span>
+                        )}
+                      </div>
                     ) : (
                       msg.content
                     )}
@@ -336,10 +355,9 @@ export function AiAssistantPanel({
                   </div>
                 </div>
               )}
-              <div ref={chatEndRef} />
             </div>
           </ScrollArea>
-          <div className="flex gap-2 pt-2 border-t mt-2">
+          <div className="flex gap-2 p-3 border-t bg-background">
             <Textarea
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
@@ -360,7 +378,7 @@ export function AiAssistantPanel({
         </TabsContent>
 
         {/* ──── Summary Tab ──── */}
-        <TabsContent value="summary" className="flex-1 flex flex-col min-h-0 px-3 pb-3 mt-2">
+        <TabsContent value="summary" className="flex-1 flex-col min-h-0 mt-0 data-[state=active]:flex">
           {!summary && !isGeneratingSummary ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 px-4">
               <div className="p-3 rounded-full bg-violet-500/10">
@@ -381,13 +399,13 @@ export function AiAssistantPanel({
                     <span className="text-sm text-muted-foreground">{t('summary.generating')}</span>
                   </div>
                 ) : (
-                  <div className="p-2">
+                  <div className="p-4">
                     <MarkdownMessage content={summary} className="text-sm" />
                   </div>
                 )}
               </ScrollArea>
               {summary && (
-                <div className="flex gap-2 pt-2 border-t mt-2">
+                <div className="flex gap-2 p-3 border-t bg-background">
                   <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSummarize}>
                     <RefreshCw className="h-3.5 w-3.5" />
                     {t('summary.regenerate')}

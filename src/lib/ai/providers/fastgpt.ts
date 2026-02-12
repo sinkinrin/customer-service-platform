@@ -1,23 +1,28 @@
 import { AISettings } from '@/lib/utils/ai-config'
-import { ChatRequest, ChatResponse, AIProvider, TestConnectionResult } from './index'
+import { ChatRequest, ChatResponse, ChatStreamResponse, AIProvider, TestConnectionResult } from './index'
 import { logger } from '@/lib/utils/logger'
 
 export class FastGPTProvider implements AIProvider {
-  async chat(request: ChatRequest, settings: AISettings): Promise<ChatResponse> {
+  private buildMessages(request: ChatRequest) {
     const { message, history = [] } = request
-
-    if (!settings.fastgptUrl || !settings.fastgptApiKey) {
-      return { success: false, error: 'FastGPT is not configured' }
-    }
-
-    const messages = [
+    return [
       ...history.map((msg) => ({ role: msg.role, content: msg.content })),
       { role: 'user' as const, content: message },
     ]
+  }
 
-    const fastgptUrl = settings.fastgptUrl.endsWith('/')
+  private buildChatUrl(settings: AISettings) {
+    return settings.fastgptUrl.endsWith('/')
       ? `${settings.fastgptUrl}api/v1/chat/completions`
       : `${settings.fastgptUrl}/api/v1/chat/completions`
+  }
+
+  async chat(request: ChatRequest, settings: AISettings): Promise<ChatResponse> {
+    if (!settings.fastgptUrl || !settings.fastgptApiKey) {
+      return { success: false, error: 'FastGPT is not configured' }
+    }
+    const messages = this.buildMessages(request)
+    const fastgptUrl = this.buildChatUrl(settings)
 
     try {
       const response = await fetch(fastgptUrl, {
@@ -49,6 +54,51 @@ export class FastGPTProvider implements AIProvider {
       }
     } catch (error) {
       logger.error('FastGPT', 'Request failed', { data: { error: error instanceof Error ? error.message : error } })
+      return { success: false, error: 'Request failed' }
+    }
+  }
+
+  async chatStream(request: ChatRequest, settings: AISettings): Promise<ChatStreamResponse> {
+    if (!settings.fastgptUrl || !settings.fastgptApiKey) {
+      return { success: false, error: 'FastGPT is not configured' }
+    }
+    const messages = this.buildMessages(request)
+    const fastgptUrl = this.buildChatUrl(settings)
+
+    try {
+      const response = await fetch(fastgptUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${settings.fastgptApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId: request.conversationId,
+          stream: true,
+          detail: true,
+          messages,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        logger.error('FastGPT', 'Stream API error', { data: { status: response.status, error: errorText.slice(0, 200) } })
+        return { success: false, error: 'Failed to get AI response' }
+      }
+
+      if (!response.body) {
+        return { success: false, error: 'No response body' }
+      }
+
+      return {
+        success: true,
+        data: {
+          stream: response.body as ReadableStream<Uint8Array>,
+          model: settings.model || 'FastGPT',
+        },
+      }
+    } catch (error) {
+      logger.error('FastGPT', 'Stream request failed', { data: { error: error instanceof Error ? error.message : error } })
       return { success: false, error: 'Request failed' }
     }
   }

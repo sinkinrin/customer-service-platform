@@ -13,6 +13,7 @@ import { requireRole } from '@/lib/utils/auth'
 import { readAISettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import { aiProviders } from '@/lib/ai/providers'
+import { createStreamResponse } from '@/lib/ai/stream-helpers'
 
 const StaffChatSchema = z.object({
   message: z.string().min(1),
@@ -39,7 +40,20 @@ const StaffChatSchema = z.object({
         .optional(),
     })
     .optional(),
+  stream: z.boolean().optional(),
 })
+
+/** Deterministic string hash (djb2) — used to build a stable conversationId */
+function djb2Hash(str: string): string {
+  let hash = 5381
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0
+  }
+  return hash.toString(36)
+}
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   const log = getApiLogger('StaffAIChat', request)
@@ -69,7 +83,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unknown AI provider' }, { status: 500 })
     }
 
-    const { message, history, ticketContext } = parsed.data
+    const { message, history, ticketContext, stream } = parsed.data
 
     // Build context-enhanced message
     let contextPrefix = ''
@@ -88,16 +102,36 @@ export async function POST(request: NextRequest) {
       messageLength: message.length,
       hasContext: !!ticketContext,
       historyLength: history?.length || 0,
+      stream: !!stream,
     })
 
-    const result = await provider.chat(
-      {
-        conversationId: `staff-chat-${Date.now()}`,
-        message: fullMessage,
-        history: history || [],
-      },
-      settings
-    )
+    // Use a stable conversationId so FastGPT can maintain conversation context
+    const stableId = ticketContext
+      ? `staff-ticket-${djb2Hash(ticketContext.ticketTitle)}`
+      : `staff-chat-${Date.now()}`
+
+    const chatRequest = {
+      conversationId: stableId,
+      message: fullMessage,
+      history: history || [],
+    }
+
+    if (stream && 'chatStream' in provider && typeof provider.chatStream === 'function') {
+      const streamResult = await provider.chatStream(chatRequest, settings)
+
+      log.info('Staff AI chat stream response', {
+        success: streamResult.success,
+        latencyMs: Date.now() - startedAt,
+      })
+
+      if (!streamResult.success || !streamResult.data?.stream) {
+        return NextResponse.json({ success: false, error: streamResult.error || 'Failed to get AI response' }, { status: 500 })
+      }
+
+      return createStreamResponse(streamResult.data.stream)
+    }
+
+    const result = await provider.chat(chatRequest, settings)
 
     log.info('Staff AI chat response', {
       success: result.success,

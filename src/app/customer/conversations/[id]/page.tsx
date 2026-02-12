@@ -17,6 +17,7 @@ import { Loading } from '@/components/common/loading'
 import { useTranslations } from 'next-intl'
 import { ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useStreamingChat } from '@/hooks/use-streaming-chat'
 
 interface AiMsg {
   id: string
@@ -37,13 +38,43 @@ export default function ConversationDetailPage() {
   const conversationId = params.id as string
 
   const [aiMessages, setAiMessages] = useState<AiMsg[]>([])
-  const [isAiLoading, setIsAiLoading] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
 
   // Feedback dialog state
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false)
   const [pendingRatingMessageId, setPendingRatingMessageId] = useState<string | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+
+  const { isLoading: isAiLoading, isWaitingFirstToken, toolStatus, sendStreamingRequest } = useStreamingChat({
+    onAddMessage: (id, content) => {
+      setAiMessages(prev => [
+        ...prev,
+        {
+          id,
+          role: 'assistant',
+          content,
+          timestamp: new Date().toISOString(),
+        },
+      ])
+    },
+    onUpdateMessage: (id, content) => {
+      setAiMessages(prev =>
+        prev.map(msg => (msg.id === id ? { ...msg, content } : msg))
+      )
+    },
+    onRemoveMessage: (id) => {
+      setAiMessages(prev => prev.filter(msg => msg.id !== id))
+    },
+    onError: (error: any) => {
+      if (error?.message?.includes('FastGPT')) {
+        toast.error(tToast('aiUnavailable'))
+      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
+        toast.error(tToast('networkError'))
+      } else {
+        toast.error(tToast('aiError'))
+      }
+    },
+  })
 
   // Load existing AI messages on mount
   useEffect(() => {
@@ -100,10 +131,10 @@ export default function ConversationDetailPage() {
       prev.map(msg =>
         msg.id === messageId
           ? {
-              ...msg,
-              rating,
-              feedback: rating === 'positive' ? null : (feedback || null),
-            }
+            ...msg,
+            rating,
+            feedback: rating === 'positive' ? null : (feedback || null),
+          }
           : msg
       )
     )
@@ -187,107 +218,87 @@ export default function ConversationDetailPage() {
     // Prevent duplicate submissions
     if (isAiLoading) return
 
+    // Trim and validate content
+    const trimmedContent = content.trim()
+    if (!trimmedContent) return
+
+    const newUserMessage: AiMsg = {
+      id: `temp-user-${Date.now()}`,
+      role: 'user',
+      content: trimmedContent,
+      timestamp: new Date().toISOString(),
+    }
+    setAiMessages(prev => [...prev, newUserMessage])
+
+    // Persist user message
+    let persistedUserMsgId: string | null = null
     try {
-      setIsAiLoading(true)
-
-      // Trim and validate content
-      const trimmedContent = content.trim()
-      if (!trimmedContent) return
-
-      const newUserMessage: AiMsg = {
-        id: `temp-user-${Date.now()}`,
-        role: 'user',
-        content: trimmedContent,
-        timestamp: new Date().toISOString(),
-      }
-      setAiMessages(prev => [...prev, newUserMessage])
-
-      // Persist user message
-      let persistedUserMsgId: string | null = null
-      try {
-        const persistRes = await fetch(`/api/conversations/${conversationId}/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: trimmedContent,
-            message_type: 'text',
-            metadata: { aiMode: true, role: 'customer' }
-          }),
-        })
-        const persistData = await persistRes.json()
-        if (persistData.success && persistData.data?.id) {
-          persistedUserMsgId = persistData.data.id
-          // Update the temp id with the real one
-          setAiMessages(prev =>
-            prev.map(msg =>
-              msg.id === newUserMessage.id
-                ? { ...msg, id: persistedUserMsgId! }
-                : msg
-            )
-          )
-        }
-      } catch (error) {
-        console.error('Failed to persist user AI message:', error)
-      }
-
-      // Get AI response
-      const response = await fetch('/api/ai/chat', {
+      const persistRes = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          conversationId,
-          message: trimmedContent,
-          history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
+          content: trimmedContent,
+          message_type: 'text',
+          metadata: { aiMode: true, role: 'customer' }
         }),
       })
-
-      const data = await response.json()
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to get AI response')
+      const persistData = await persistRes.json()
+      if (persistData.success && persistData.data?.id) {
+        persistedUserMsgId = persistData.data.id
+        setAiMessages(prev =>
+          prev.map(msg =>
+            msg.id === newUserMessage.id
+              ? { ...msg, id: persistedUserMsgId! }
+              : msg
+          )
+        )
       }
-
-      // Persist AI response and get the real message id
-      let aiMsgId = `temp-ai-${Date.now()}`
-      try {
-        const aiPersistRes = await fetch(`/api/conversations/${conversationId}/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: data.data.message,
-            message_type: 'text',
-            metadata: { aiMode: true, role: 'ai' }
-          }),
-        })
-        const aiPersistData = await aiPersistRes.json()
-        if (aiPersistData.success && aiPersistData.data?.id) {
-          aiMsgId = aiPersistData.data.id
-        }
-      } catch (error) {
-        console.error('Failed to persist AI response:', error)
-      }
-
-      const aiResponse: AiMsg = {
-        id: aiMsgId,
-        role: 'assistant',
-        content: data.data.message,
-        timestamp: new Date().toISOString(),
-      }
-      setAiMessages(prev => [...prev, aiResponse])
-
-    } catch (error: any) {
-      console.error('AI chat error:', error)
-
-      if (error.message?.includes('FastGPT')) {
-        toast.error(tToast('aiUnavailable'))
-      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        toast.error(tToast('networkError'))
-      } else {
-        toast.error(tToast('aiError'))
-      }
-    } finally {
-      setIsAiLoading(false)
+    } catch (error) {
+      console.error('Failed to persist user AI message:', error)
     }
+
+    const tempAiMessageId = `temp-ai-${Date.now()}`
+
+    // Send streaming AI request via hook
+    const aiContent = await sendStreamingRequest(
+      '/api/ai/chat',
+      {
+        conversationId,
+        message: trimmedContent,
+        history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
+      },
+      tempAiMessageId,
+    )
+
+    if (!aiContent) return // aborted or error (hook already handled cleanup)
+
+    // Persist AI response and get the real message id
+    let aiMsgId = tempAiMessageId
+    try {
+      const aiPersistRes = await fetch(`/api/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: aiContent,
+          message_type: 'text',
+          metadata: { aiMode: true, role: 'ai' }
+        }),
+      })
+      const aiPersistData = await aiPersistRes.json()
+      if (aiPersistData.success && aiPersistData.data?.id) {
+        aiMsgId = aiPersistData.data.id
+      }
+    } catch (error) {
+      console.error('Failed to persist AI response:', error)
+    }
+
+    setAiMessages(prev =>
+      prev.map(msg =>
+        msg.id === tempAiMessageId
+          ? { ...msg, id: aiMsgId, content: aiContent }
+          : msg
+      )
+    )
   }
 
   if (isInitialLoading) {
@@ -329,7 +340,8 @@ export default function ConversationDetailPage() {
             isLoading={false}
             isTyping={false}
             typingUser={null}
-            isAiLoading={isAiLoading}
+            isAiLoading={isWaitingFirstToken}
+            aiToolStatus={toolStatus}
             renderMessageActions={(message) => {
               // Only show rating buttons for AI messages
               const aiMsg = aiMessages.find(m => m.id === message.id)

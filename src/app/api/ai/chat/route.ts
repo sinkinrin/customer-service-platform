@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { readAISettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import { aiProviders } from '@/lib/ai/providers'
+import { createStreamResponse } from '@/lib/ai/stream-helpers'
 
 const ChatRequestSchema = z.object({
   conversationId: z.string(),
@@ -15,7 +16,11 @@ const ChatRequestSchema = z.object({
       })
     )
     .optional(),
+  stream: z.boolean().optional(),
 })
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   const log = getApiLogger('AIChatAPI', request)
@@ -43,14 +48,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unknown AI provider' }, { status: 500 })
     }
 
+    const { conversationId, message, history, stream } = parsed.data
+
     log.info('Chat request', {
       provider: settings.provider,
-      conversationId: parsed.data.conversationId,
-      messageLength: parsed.data.message.length,
-      historyLength: parsed.data.history?.length || 0,
+      conversationId,
+      messageLength: message.length,
+      historyLength: history?.length || 0,
+      stream: !!stream,
     })
 
-    const result = await provider.chat(parsed.data, settings)
+    const chatRequest = {
+      conversationId,
+      message,
+      history,
+    }
+
+    if (stream && 'chatStream' in provider && typeof provider.chatStream === 'function') {
+      const streamResult = await provider.chatStream(chatRequest, settings)
+
+      log.info('Chat stream response', {
+        provider: settings.provider,
+        success: streamResult.success,
+        latencyMs: Date.now() - startedAt,
+      })
+
+      if (!streamResult.success || !streamResult.data?.stream) {
+        return NextResponse.json({ success: false, error: streamResult.error || 'Failed to get AI response' }, { status: 500 })
+      }
+
+      return createStreamResponse(streamResult.data.stream)
+    }
+
+    const result = await provider.chat(chatRequest, settings)
 
     log.info('Chat response', {
       provider: settings.provider,

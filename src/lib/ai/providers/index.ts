@@ -18,6 +18,15 @@ export interface ChatResponse {
   error?: string
 }
 
+export interface ChatStreamResponse {
+  success: boolean
+  data?: {
+    stream: ReadableStream<Uint8Array>
+    model?: string
+  }
+  error?: string
+}
+
 export interface TestConnectionResult {
   success: boolean
   connectivity: boolean // Server reachable?
@@ -29,6 +38,7 @@ export interface TestConnectionResult {
 
 export interface AIProvider {
   chat(request: ChatRequest, settings: AISettings): Promise<ChatResponse>
+  chatStream?(request: ChatRequest, settings: AISettings): Promise<ChatStreamResponse>
   testConnection(settings: AISettings): Promise<TestConnectionResult>
 }
 

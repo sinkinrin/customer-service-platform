@@ -106,6 +106,45 @@ describe('AI APIs', () => {
       expect(payload.success).toBe(true)
       expect(payload.data.message).toBe('hello there')
     })
+
+    it('returns event stream when stream mode is requested', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        model: 'FastGPT',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'app',
+        fastgptApiKey: 'key',
+      } as any)
+
+      const encoder = new TextEncoder()
+      const upstreamStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('event: answer\ndata: {"choices":[{"delta":{"content":"hello"}}]}\n\n'))
+          controller.enqueue(encoder.encode('event: done\ndata: {}\n\n'))
+          controller.close()
+        },
+      })
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        body: upstreamStream,
+      })
+      global.fetch = fetchMock as any
+
+      const response = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', stream: true }),
+        })
+      )
+      const text = await response.text()
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-type')).toContain('text/event-stream')
+      expect(text).toContain('event: answer')
+      expect(text).toContain('"hello"')
+    })
   })
 
   describe('GET /api/ai/health', () => {

@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bot } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-export function AIThinkingIndicator() {
+export function AIThinkingIndicator({ toolStatus }: { toolStatus?: string }) {
   const t = useTranslations('components.conversation.messageList')
 
   return (
@@ -32,7 +32,7 @@ export function AIThinkingIndicator() {
               <span className="w-2 h-2 bg-violet-500/60 rounded-full animate-pulse [animation-delay:300ms]" />
             </div>
             <span className="text-sm text-muted-foreground ml-1">
-              {t('aiThinking')}
+              {toolStatus ? `🔧 ${toolStatus}...` : t('aiThinking')}
             </span>
           </div>
         </div>

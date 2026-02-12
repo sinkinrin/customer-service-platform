@@ -23,6 +23,7 @@ interface MessageListProps {
   isTyping?: boolean
   typingUser?: string | null
   isAiLoading?: boolean
+  aiToolStatus?: string
   renderMessageActions?: (message: Message) => React.ReactNode | null
 }
 
@@ -30,6 +31,7 @@ export function MessageList({
   messages,
   isLoading = false,
   isAiLoading = false,
+  aiToolStatus,
   renderMessageActions,
 }: MessageListProps) {
   const t = useTranslations('components.conversation.messageList')
@@ -313,20 +315,32 @@ export function MessageList({
                   "px-4 py-2.5 rounded-2xl",
                   isCustomerMessage
                     ? cn(
-                        "bg-primary text-primary-foreground",
-                        group.isFirst && "rounded-tr-md",
-                        !group.isFirst && !group.isLast && "rounded-r-md",
-                        group.isLast && !group.isFirst && "rounded-tr-md"
-                      )
+                      "bg-primary text-primary-foreground",
+                      group.isFirst && "rounded-tr-md",
+                      !group.isFirst && !group.isLast && "rounded-r-md",
+                      group.isLast && !group.isFirst && "rounded-tr-md"
+                    )
                     : cn(
-                        "bg-muted/60",
-                        group.isFirst && "rounded-tl-md",
-                        !group.isFirst && !group.isLast && "rounded-l-md",
-                        group.isLast && !group.isFirst && "rounded-tl-md"
-                      )
+                      "bg-muted/60",
+                      group.isFirst && "rounded-tl-md",
+                      !group.isFirst && !group.isLast && "rounded-l-md",
+                      group.isLast && !group.isFirst && "rounded-tl-md"
+                    )
                 )}
               >
                 {renderMessageContent(message, isCustomerMessage, isAI)}
+                {/* Mid-stream tool status: show inline in the last AI message */}
+                {isAI && !isAiLoading && aiToolStatus &&
+                  message === messages[messages.length - 1] && (
+                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-muted-foreground/10">
+                      <span className="w-1.5 h-1.5 bg-violet-500/60 rounded-full animate-pulse" />
+                      <span className="w-1.5 h-1.5 bg-violet-500/60 rounded-full animate-pulse [animation-delay:150ms]" />
+                      <span className="w-1.5 h-1.5 bg-violet-500/60 rounded-full animate-pulse [animation-delay:300ms]" />
+                      <span className="text-xs text-muted-foreground">
+                        🔧 {aiToolStatus}...
+                      </span>
+                    </div>
+                  )}
               </div>
 
               {/* Message actions (e.g., thumbs up/down for AI messages) */}
@@ -361,7 +375,7 @@ export function MessageList({
       })}
 
       {/* AI Thinking indicator */}
-      {isAiLoading && <AIThinkingIndicator />}
+      {isAiLoading && <AIThinkingIndicator toolStatus={aiToolStatus} />}
 
       <div ref={bottomRef} className="h-4" />
     </div>

@@ -18,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card } from '@/components/ui/card'
 import { MarkdownMessage } from '@/components/conversation/markdown-message'
 import { cn } from '@/lib/utils'
+import { useStreamingChat } from '@/hooks/use-streaming-chat'
 import {
   Bot,
   Sparkles,
@@ -76,10 +77,29 @@ export function AiAssistantPanel({
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
-  const [isChatLoading, setIsChatLoading] = useState(false)
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const msgIdCounter = useRef(0)
   const idPrefix = useId()
+
+  const { isLoading: isChatLoading, isWaitingFirstToken, toolStatus, sendStreamingRequest } = useStreamingChat({
+    onAddMessage: (id, content) => {
+      setChatMessages(prev => [
+        ...prev,
+        { id, role: 'assistant', content },
+      ])
+    },
+    onUpdateMessage: (id, content) => {
+      setChatMessages(prev =>
+        prev.map(m => (m.id === id ? { ...m, content } : m))
+      )
+    },
+    onRemoveMessage: (id) => {
+      setChatMessages(prev => prev.filter(m => m.id !== id))
+    },
+    onError: () => {
+      toast.error(t('error'))
+    },
+  })
 
   // Summary state
   const [summary, setSummary] = useState('')
@@ -97,7 +117,7 @@ export function AiAssistantPanel({
 
   useEffect(() => {
     scrollChatToBottom()
-  }, [chatMessages.length, isChatLoading, scrollChatToBottom])
+  }, [chatMessages, isChatLoading, scrollChatToBottom])
 
   const buildArticlesPayload = useCallback(() => {
     return articles.map(a => ({
@@ -170,41 +190,26 @@ export function AiAssistantPanel({
     }
     setChatMessages(prev => [...prev, userMsg])
     setChatInput('')
-    setIsChatLoading(true)
 
-    try {
-      const res = await fetch('/api/staff/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: msg,
-          history: chatMessages.map(m => ({ role: m.role, content: m.content })),
-          ticketContext: {
-            ticketTitle,
-            customerName,
-            articles: buildArticlesPayload().slice(-5), // Last 5 articles for context
-          },
-        }),
-      })
-      const data = await res.json()
-      if (!data.success) throw new Error(data.error || 'Failed')
+    const aiMessageId = `${idPrefix}-ai-${++msgIdCounter.current}`
 
-      const aiMsg: ChatMessage = {
-        id: `${idPrefix}-ai-${++msgIdCounter.current}`,
-        role: 'assistant',
-        content: data.data.message,
-      }
-      setChatMessages(prev => [...prev, aiMsg])
-    } catch (error) {
-      toast.error(t('error'))
-      console.error('Chat error:', error)
-    } finally {
-      setIsChatLoading(false)
-    }
+    await sendStreamingRequest(
+      '/api/staff/ai/chat',
+      {
+        message: msg,
+        history: chatMessages.map(m => ({ role: m.role, content: m.content })),
+        ticketContext: {
+          ticketTitle,
+          customerName,
+          articles: buildArticlesPayload().slice(-5),
+        },
+      },
+      aiMessageId,
+    )
   }
 
   const handleChatKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       handleChatSend()
     }
@@ -349,6 +354,18 @@ export function AiAssistantPanel({
                         ) : (
                           <span className="text-muted-foreground italic text-xs">(Empty message)</span>
                         )}
+                        {/* Mid-stream tool status: show inline below content */}
+                        {isChatLoading && !isWaitingFirstToken && toolStatus &&
+                          msg === chatMessages[chatMessages.length - 1] && (
+                            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                              <span className="w-1.5 h-1.5 bg-violet-500/60 rounded-full animate-pulse" />
+                              <span className="w-1.5 h-1.5 bg-violet-500/60 rounded-full animate-pulse [animation-delay:150ms]" />
+                              <span className="w-1.5 h-1.5 bg-violet-500/60 rounded-full animate-pulse [animation-delay:300ms]" />
+                              <span className="text-xs text-muted-foreground">
+                                🔧 {toolStatus}...
+                              </span>
+                            </div>
+                          )}
                       </div>
                     ) : (
                       msg.content
@@ -356,13 +373,18 @@ export function AiAssistantPanel({
                   </div>
                 </div>
               ))}
-              {isChatLoading && (
+              {isChatLoading && isWaitingFirstToken && (
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-lg px-3 py-2">
                     <div className="flex gap-1.5 items-center h-5">
                       <span className="w-2 h-2 bg-violet-500/60 rounded-full animate-pulse" />
                       <span className="w-2 h-2 bg-violet-500/60 rounded-full animate-pulse [animation-delay:150ms]" />
                       <span className="w-2 h-2 bg-violet-500/60 rounded-full animate-pulse [animation-delay:300ms]" />
+                      {toolStatus && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          🔧 {toolStatus}...
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

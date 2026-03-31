@@ -17,6 +17,7 @@ import { getApiLogger } from '@/lib/utils/api-logger'
 import type { ZammadWebhookPayload } from '@/lib/zammad/types'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { webhookLimiter } from '@/lib/utils/rate-limit'
 import {
   notifyTicketAssigned,
   notifyTicketReply,
@@ -26,6 +27,7 @@ import {
 import { sseEmitter } from '@/lib/sse/emitter'
 import { handleEmailTicketRoutingFromWebhookPayload } from '@/lib/ticket/email-ticket-routing'
 import { handleEmailUserWelcomeFromWebhookPayload } from '@/lib/ticket/email-user-welcome'
+import { maybeRunCleanup } from '@/lib/utils/cleanup'
 
 // Event types for TicketUpdate
 type TicketUpdateEvent = 'article_created' | 'status_changed' | 'assigned' | 'created'
@@ -80,19 +82,29 @@ export async function POST(request: NextRequest) {
   let rawBody = ''
 
   try {
+    // Rate limiting on webhook endpoint
+    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const { allowed } = webhookLimiter.check(`webhook:${clientIp}`)
+    if (!allowed) {
+      log.warning('Webhook rate limit exceeded', { clientIp })
+      return errorResponse('RATE_LIMITED', 'Too many requests', undefined, 429)
+    }
+
     // Get raw body for signature verification
     rawBody = await request.text()
     webhookPayload = JSON.parse(rawBody)
 
-    // Verify webhook signature (optional - can be disabled for testing)
-    // Zammad uses X-Hub-Signature header with sha1=<hex> format
+    // Verify webhook signature
+    // When ZAMMAD_WEBHOOK_SECRET is configured, signature is mandatory
     const signature = request.headers.get('X-Hub-Signature') ?? request.headers.get('X-Zammad-Signature')
     const webhookSecret = process.env.ZAMMAD_WEBHOOK_SECRET
 
-    if (webhookSecret && signature) {
-      // Verify signature if both secret and signature are present
+    if (webhookSecret) {
+      if (!signature) {
+        log.error('Missing webhook signature header when secret is configured')
+        return errorResponse('MISSING_SIGNATURE', 'Webhook signature required', undefined, 401)
+      }
       const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret)
-
       if (!isValid) {
         log.error('Invalid webhook signature')
         return errorResponse('INVALID_SIGNATURE', 'Invalid webhook signature', undefined, 401)
@@ -287,6 +299,9 @@ export async function POST(request: NextRequest) {
         void handleEmailUserWelcomeFromWebhookPayload(webhookPayload!, log.requestId)
       }
     }
+
+    // Non-blocking: periodic database cleanup (M16+L11)
+    maybeRunCleanup()
 
     return successResponse({
       message: 'Webhook processed successfully',

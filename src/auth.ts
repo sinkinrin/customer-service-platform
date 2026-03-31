@@ -345,7 +345,9 @@ const authConfig: NextAuthConfig = {
       return session
     },
 
-    // Control route access via middleware
+    // Route access control (NextAuth layer — works together with middleware.ts)
+    // Note: middleware.ts provides the primary enforcement with detailed error responses;
+    // this callback acts as defense-in-depth using the same shared route constants.
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user
       const pathname = nextUrl.pathname
@@ -382,7 +384,8 @@ const authConfig: NextAuthConfig = {
 
   session: {
     strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 24 * 60 * 60, // 1 day (reduced from 7 days for M20)
+    updateAge: 12 * 60 * 60, // Refresh token every 12 hours (JWT rotation)
   },
 
   // Secret for JWT signing
@@ -391,9 +394,8 @@ const authConfig: NextAuthConfig = {
   // Trust host header (required for reverse proxy/frp)
   trustHost: true,
 
-  // Disable secure cookies for HTTP proxy (frp)
-  // When false, cookies work over HTTP (not just HTTPS)
-  useSecureCookies: false,
+  // Use secure cookies in production (HTTPS), allow HTTP in development
+  useSecureCookies: process.env.NODE_ENV === "production",
 
   // Debug mode in development
   debug: process.env.NODE_ENV === "development",

@@ -46,11 +46,15 @@ function getRegionFromNote(note?: string): string {
     return match?.[1] || ''
 }
 
-// Escape CSV field
+// Escape CSV field with formula injection protection
 function escapeCSV(value: string | null | undefined): string {
     if (value == null) return ''
-    const str = String(value)
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    let str = String(value)
+    // Prevent formula injection: prefix dangerous leading characters with a single quote
+    if (/^[=+\-@\t\r]/.test(str)) {
+        str = `'${str}`
+    }
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes("'")) {
         return `"${str.replace(/"/g, '""')}"`
     }
     return str

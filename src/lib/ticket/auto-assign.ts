@@ -48,17 +48,19 @@ export async function autoAssignSingleTicket(
     const allAgents = Array.isArray(agentsRaw) ? agentsRaw : []
     log.debug('Fetched active agents from Zammad', { count: allAgents.length })
 
-    // 2. Get all tickets for load calculation
-    const ticketsRaw = await zammadClient.getAllTickets()
-    const allTickets = Array.isArray(ticketsRaw) ? ticketsRaw : []
-    log.debug('Fetched total tickets from Zammad', { count: allTickets.length })
-
-    // 3. Calculate current ticket count per agent
-    // Only count active tickets (defined in zammad-states.ts)
+    // 2. Calculate ticket load per agent using targeted search (M6 optimization)
+    // Only search active tickets in the target group instead of fetching ALL tickets
     const activeStateIds = getActiveStateIds()
+    const stateQuery = activeStateIds.map(id => `state_id:${id}`).join(' OR ')
+    const groupQuery = `group_id:${groupId} AND (${stateQuery})`
+    const groupTickets = await zammadClient.searchTicketsRawQuery(groupQuery, 500)
+    const allTickets = groupTickets?.tickets ?? []
+    log.debug('Fetched group tickets for load calculation', { groupId, count: allTickets.length })
+
+    // 3. Calculate current ticket count per agent in this group
     const ticketCountByAgent: Record<number, number> = {}
     for (const ticket of allTickets) {
-      if (ticket.owner_id && ticket.owner_id !== 1 && activeStateIds.includes(ticket.state_id)) {
+      if (ticket.owner_id && ticket.owner_id !== 1) {
         ticketCountByAgent[ticket.owner_id] = (ticketCountByAgent[ticket.owner_id] || 0) + 1
       }
     }
@@ -214,8 +216,8 @@ export async function handleAssignmentNotification(
       log.info('Notified staff for ticket assignment', { staffEmail: result.assignedTo.email, ticketNumber })
     } else {
       // Assignment failed -> notify all Admins
-      // Get admin users from Zammad (users with role_id 1)
-      const allUsers = await zammadClient.searchUsers('*')
+      // Get admin users from Zammad using paginated search (M7 fix)
+      const allUsers = await zammadClient.searchUsersPaginated('*', 100, 1)
       const adminUsers = allUsers.filter(user => user.role_ids?.includes(1) && user.active)
 
       let notifiedCount = 0

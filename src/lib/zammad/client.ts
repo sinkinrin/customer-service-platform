@@ -248,12 +248,17 @@ export class ZammadClient {
     }
 
     // If query already contains Zammad syntax (contains ':'), use as-is
+    // (internal callers like auto-assign use this path with trusted input)
     if (trimmed.includes(':')) {
       return trimmed
     }
 
-    // Otherwise, search by title with wildcard
-    return `title:*${trimmed}*`
+    // Escape special Zammad query characters to prevent search injection (M8)
+    const escaped = trimmed.replace(/[:\\/*?"<>|(){}[\]^~!&+\-]/g, ' ').trim()
+    if (!escaped) return 'title:*'
+
+    // Search by title with wildcard
+    return `title:*${escaped}*`
   }
 
   /**

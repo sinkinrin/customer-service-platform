@@ -103,7 +103,7 @@ export function ArticleContent({ article, showAttachments = true, className, noB
   const sanitizedBody = useMemo(() => {
     if (article.content_type === 'text/html' || article.content_type?.includes('html')) {
       // 配置 DOMPurify 允许的标签和属性
-      return DOMPurify.sanitize(article.body, {
+      const clean = DOMPurify.sanitize(article.body, {
         ALLOWED_TAGS: [
           'p', 'br', 'div', 'span', 'strong', 'b', 'em', 'i', 'u', 's',
           'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -120,7 +120,13 @@ export function ArticleContent({ article, showAttachments = true, className, noB
         ADD_ATTR: ['target'],
         // 转换所有链接为安全链接
         FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input'],
+        // M9: Block remote images (tracking pixels) — only allow data: URIs
+        ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
       })
+      // M9: Strip remote image src to prevent tracking pixels
+      // Replace remote img src with empty (keeps alt text visible)
+      return clean.replace(/<img\s+([^>]*?)src\s*=\s*["']https?:\/\/[^"']*["']([^>]*?)>/gi,
+        '<img $1src="" $2 title="[remote image blocked]">')
     }
     return null
   }, [article.body, article.content_type])

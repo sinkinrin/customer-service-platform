@@ -118,11 +118,11 @@ export function validateEnv(): void {
       throw new Error("AUTH_SECRET (or NEXTAUTH_SECRET) must be at least 32 characters in production")
     }
 
-    // Ensure mock auth is not accidentally enabled in production
+    // Block mock auth in production — hard fail to prevent credential bypass
     if (process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === "true") {
-      console.warn(
-        "[SECURITY WARNING] Mock authentication is enabled in production. " +
-          "This should only be used for testing purposes."
+      throw new Error(
+        "[SECURITY] Mock authentication MUST NOT be enabled in production. " +
+          "Remove NEXT_PUBLIC_ENABLE_MOCK_AUTH from production environment."
       )
     }
   }
@@ -179,7 +179,8 @@ export function isMockAuthEnabled(): boolean {
   if (process.env.NODE_ENV !== "production") {
     return true
   }
-  return process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === "true"
+  // Never allow mock auth in production — validateEnv() throws if this is set
+  return false
 }
 
 // Export singleton instance for easy access

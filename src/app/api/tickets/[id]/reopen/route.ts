@@ -52,9 +52,20 @@ export async function PUT(
     // For customers, verify they own the ticket by customer_id
     if (session.user.role === 'customer') {
       const userZammadId = session.user.zammad_id
-      if (userZammadId && ticket.customer_id !== userZammadId) {
+      if (!userZammadId || ticket.customer_id !== userZammadId) {
         return NextResponse.json(
           { success: false, error: { code: 'FORBIDDEN', message: 'You can only reopen your own tickets' } },
+          { status: 403 }
+        )
+      }
+    }
+
+    // For staff, verify ticket belongs to their region (group)
+    if (session.user.role === 'staff') {
+      const userGroupIds = session.user.group_ids
+      if (userGroupIds && userGroupIds.length > 0 && !userGroupIds.includes(ticket.group_id)) {
+        return NextResponse.json(
+          { success: false, error: { code: 'FORBIDDEN', message: 'You can only reopen tickets in your region' } },
           { status: 403 }
         )
       }

@@ -18,6 +18,7 @@ import { zammadClient } from '@/lib/zammad/client'
 import { mockUsers, mockPasswords } from '@/lib/mock-auth'
 import { getGroupIdByRegion, isValidRegion } from '@/lib/constants/regions'
 import { logger } from '@/lib/utils/logger'
+import crypto from 'crypto'
 
 interface ParsedUser {
     email: string
@@ -33,6 +34,11 @@ interface ImportResult {
     email: string
     error?: string
     zammad_id?: number
+}
+
+// Sanitize CSV field value: strip formula injection characters
+function sanitizeCSVField(value: string): string {
+    return value.replace(/^[=+\-@\t\r]+/, '')
 }
 
 // Parse CSV content into user objects
@@ -72,11 +78,11 @@ function parseCSV(content: string): { users: ParsedUser[], errors: string[] } {
         // Simple CSV parsing (handles basic quoted fields)
         const values = parseCSVLine(line)
 
-        const email = values[emailIdx]?.trim()
-        const full_name = values[nameIdx]?.trim()
-        const role = (values[roleIdx]?.trim().toLowerCase() || 'customer') as 'customer' | 'staff' | 'admin'
-        const region = values[regionIdx]?.trim() || 'asia-pacific'
-        const phone = values[phoneIdx]?.trim()
+        const email = sanitizeCSVField(values[emailIdx]?.trim() || '')
+        const full_name = sanitizeCSVField(values[nameIdx]?.trim() || '')
+        const role = (sanitizeCSVField(values[roleIdx]?.trim().toLowerCase() || '') || 'customer') as 'customer' | 'staff' | 'admin'
+        const region = sanitizeCSVField(values[regionIdx]?.trim() || '') || 'asia-pacific'
+        const phone = sanitizeCSVField(values[phoneIdx]?.trim() || '')
         const password = values[passwordIdx]?.trim() || generatePassword()
 
         // Validate
@@ -126,12 +132,13 @@ function parseCSVLine(line: string): string[] {
     return values
 }
 
-// Generate a random password
+// Generate a cryptographically secure random password
 function generatePassword(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$'
+    const randomBytes = crypto.randomBytes(12)
     let password = ''
     for (let i = 0; i < 12; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length))
+        password += chars.charAt(randomBytes[i] % chars.length)
     }
     return password
 }
@@ -222,7 +229,7 @@ export async function POST(request: NextRequest) {
 
                 // Store in mock data for auth
                 mockUsers[user.email] = {
-                    id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    id: `user-${Date.now()}-${crypto.randomBytes(6).toString('hex')}`,
                     email: user.email,
                     role: user.role,
                     full_name: user.full_name,

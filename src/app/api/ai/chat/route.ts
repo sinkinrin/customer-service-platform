@@ -4,6 +4,8 @@ import { readAISettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import { aiProviders } from '@/lib/ai/providers'
 import { createStreamResponse } from '@/lib/ai/stream-helpers'
+import { requireRole } from '@/lib/utils/auth'
+import { aiChatLimiter } from '@/lib/utils/rate-limit'
 
 const ChatRequestSchema = z.object({
   conversationId: z.string(),
@@ -27,6 +29,19 @@ export async function POST(request: NextRequest) {
   const startedAt = Date.now()
 
   try {
+    // Defense-in-depth: explicit auth + role check (M10+M19)
+    const user = await requireRole(['staff', 'admin'])
+
+    // Rate limiting (H7+M11)
+    const rateLimitKey = `ai-chat:${user.id}`
+    const { allowed, remaining, resetAt } = aiChatLimiter.check(rateLimitKey)
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((resetAt - Date.now()) / 1000)), 'X-RateLimit-Remaining': '0' } }
+      )
+    }
+
     const body = await request.json()
     const parsed = ChatRequestSchema.safeParse(body)
 
@@ -98,6 +113,12 @@ export async function POST(request: NextRequest) {
       data: result.data,
     })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+    if (error instanceof Error && error.message === 'Forbidden') {
+      return NextResponse.json({ success: false, error: 'Staff or admin access required' }, { status: 403 })
+    }
     log.error('AI chat error', {
       latencyMs: Date.now() - startedAt,
       error: error instanceof Error ? error.message : error,

@@ -8,7 +8,7 @@ import { getGroupIdByRegion } from '@/lib/constants/regions'
 
 vi.mock('@/lib/zammad/client', () => ({
   zammadClient: {
-    getAllTickets: vi.fn(),
+    searchTicketsRawQuery: vi.fn(),
     getAgents: vi.fn(),
     updateTicket: vi.fn(),
   },
@@ -28,7 +28,7 @@ describe('autoAssignSingleTicket', () => {
   })
 
   it('assigns ticket to available agent in the same region', async () => {
-    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([])
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({ tickets: [], total_count: 0 } as any)
     vi.mocked(zammadClient.getAgents).mockResolvedValue([
       {
         id: 100,
@@ -58,7 +58,7 @@ describe('autoAssignSingleTicket', () => {
   })
 
   it('returns error when no agents available for region', async () => {
-    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([])
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({ tickets: [], total_count: 0 } as any)
     vi.mocked(zammadClient.getAgents).mockResolvedValue([])
 
     const result = await autoAssignSingleTicket(1, '10001', 'Test Ticket', asiaGroupId)
@@ -71,7 +71,7 @@ describe('autoAssignSingleTicket', () => {
   it('excludes agents without access to the ticket group', async () => {
     const europeGroupId = getGroupIdByRegion('europe-zone-1')
 
-    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([])
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({ tickets: [], total_count: 0 } as any)
     vi.mocked(zammadClient.getAgents).mockResolvedValue([
       {
         id: 100,
@@ -96,7 +96,7 @@ describe('autoAssignSingleTicket', () => {
     const startDate = new Date(now.getTime() - 86400000).toISOString() // Yesterday
     const endDate = new Date(now.getTime() + 86400000).toISOString() // Tomorrow
 
-    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([])
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({ tickets: [], total_count: 0 } as any)
     vi.mocked(zammadClient.getAgents).mockResolvedValue([
       {
         id: 100,
@@ -119,7 +119,7 @@ describe('autoAssignSingleTicket', () => {
   })
 
   it('excludes admin role agents', async () => {
-    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([])
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({ tickets: [], total_count: 0 } as any)
     vi.mocked(zammadClient.getAgents).mockResolvedValue([
       {
         id: 100,
@@ -140,7 +140,7 @@ describe('autoAssignSingleTicket', () => {
   })
 
   it('excludes system accounts', async () => {
-    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([])
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({ tickets: [], total_count: 0 } as any)
     vi.mocked(zammadClient.getAgents).mockResolvedValue([
       {
         id: 100,
@@ -160,11 +160,14 @@ describe('autoAssignSingleTicket', () => {
   })
 
   it('selects agent with lowest ticket load', async () => {
-    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([
-      { id: 1, owner_id: 100, state_id: 2 }, // Agent 100 has 1 ticket
-      { id: 2, owner_id: 100, state_id: 2 }, // Agent 100 has 2 tickets
-      { id: 3, owner_id: 101, state_id: 2 }, // Agent 101 has 1 ticket
-    ] as any)
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [
+        { id: 1, owner_id: 100, state_id: 2 }, // Agent 100 has 1 ticket
+        { id: 2, owner_id: 100, state_id: 2 }, // Agent 100 has 2 tickets
+        { id: 3, owner_id: 101, state_id: 2 }, // Agent 101 has 1 ticket
+      ],
+      total_count: 3,
+    } as any)
     vi.mocked(zammadClient.getAgents).mockResolvedValue([
       {
         id: 100,
@@ -196,7 +199,7 @@ describe('autoAssignSingleTicket', () => {
   })
 
   it('handles Zammad API errors gracefully', async () => {
-    vi.mocked(zammadClient.getAllTickets).mockRejectedValue(new Error('API timeout'))
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockRejectedValue(new Error('API timeout'))
 
     const result = await autoAssignSingleTicket(1, '10001', 'Test Ticket', asiaGroupId)
 

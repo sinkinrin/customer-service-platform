@@ -28,6 +28,14 @@ export async function GET(request: NextRequest) {
   const encoder = new TextEncoder()
   let isConnected = true
 
+  // Pre-check connection limit before creating stream
+  const unsubscribe = sseEmitter.subscribe(userId, userRole, () => {})
+  if (!unsubscribe) {
+    return new Response('Too many connections', { status: 429 })
+  }
+  // Remove the placeholder subscription, we'll create a real one inside the stream
+  unsubscribe()
+
   const stream = new ReadableStream({
     start(controller) {
       // Send initial connection event
@@ -52,7 +60,7 @@ export async function GET(request: NextRequest) {
       }, 30000) // 30 second heartbeat
 
       // Subscribe to ticket updates
-      const unsubscribe = sseEmitter.subscribe(userId, userRole, (update) => {
+      const unsub = sseEmitter.subscribe(userId, userRole, (update) => {
         if (!isConnected) return
         try {
           const eventData = `event: ticket-update\ndata: ${JSON.stringify(update)}\n\n`
@@ -66,7 +74,7 @@ export async function GET(request: NextRequest) {
       request.signal.addEventListener('abort', () => {
         isConnected = false
         clearInterval(heartbeatInterval)
-        unsubscribe()
+        if (unsub) unsub()
       })
     },
     cancel() {

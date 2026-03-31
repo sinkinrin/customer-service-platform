@@ -67,8 +67,13 @@ const DEFAULT_SETTINGS: AISettings = {
   systemPrompt: 'You are a helpful customer service assistant.',
 }
 
+// Sensitive fields that should be read from env vars, not stored in JSON
+const SENSITIVE_FIELDS = ['fastgptApiKey', 'openaiApiKey', 'yuxiPassword', 'yuxiUsername'] as const
+
 /**
- * Read AI settings from config file
+ * Read AI settings from config file + environment variables.
+ * Sensitive fields (API keys, passwords) are sourced from env vars;
+ * the JSON config only stores non-sensitive settings.
  */
 export function readAISettings(): AISettings {
   try {
@@ -82,8 +87,11 @@ export function readAISettings(): AISettings {
     return {
       ...DEFAULT_SETTINGS,
       ...fileSettings,
-      // Fallback to env for backwards compatibility
-      fastgptApiKey: fileSettings.fastgptApiKey || process.env.FASTGPT_API_KEY || '',
+      // Sensitive fields: env vars take priority, then fall back to file (migration period)
+      fastgptApiKey: process.env.FASTGPT_API_KEY || process.env.AI_FASTGPT_API_KEY || fileSettings.fastgptApiKey || '',
+      openaiApiKey: process.env.AI_OPENAI_API_KEY || fileSettings.openaiApiKey || '',
+      yuxiUsername: process.env.AI_YUXI_USERNAME || fileSettings.yuxiUsername || '',
+      yuxiPassword: process.env.AI_YUXI_PASSWORD || fileSettings.yuxiPassword || '',
     }
   } catch (error) {
     logger.error('AIConfig', 'Error reading settings', {
@@ -94,7 +102,9 @@ export function readAISettings(): AISettings {
 }
 
 /**
- * Write AI settings to config file
+ * Write AI settings to config file.
+ * Sensitive fields (API keys, passwords) are stripped before writing —
+ * they must be configured via environment variables.
  */
 export function writeAISettings(settings: Partial<AISettings>): void {
   try {
@@ -106,7 +116,13 @@ export function writeAISettings(settings: Partial<AISettings>): void {
     const currentSettings = readAISettings()
     const newSettings = { ...currentSettings, ...settings }
 
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(newSettings, null, 2), 'utf-8')
+    // Strip sensitive fields — they belong in env vars, not on disk
+    const safeSettings = { ...newSettings }
+    for (const field of SENSITIVE_FIELDS) {
+      delete (safeSettings as Record<string, unknown>)[field]
+    }
+
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(safeSettings, null, 2), 'utf-8')
     logger.info('AIConfig', 'Settings saved', { data: { provider: newSettings.provider } })
   } catch (error) {
     logger.error('AIConfig', 'Error writing settings', {

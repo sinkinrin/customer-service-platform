@@ -1,7 +1,11 @@
 /**
- * Public Avatar Download API
- * 
- * GET /api/avatars/[id] - Get avatar image (public, no auth required)
+ * Avatar Download API
+ *
+ * GET /api/avatars/[id] - Get avatar image
+ *
+ * Avatars are intentionally accessible to all authenticated users (profile pictures
+ * are visible in ticket views, user lists, etc.). IDs are CUIDs which are not
+ * sequentially enumerable. No ownership check is applied by design (M14 acknowledged).
  */
 
 import { NextRequest, NextResponse } from 'next/server'

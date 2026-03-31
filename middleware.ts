@@ -133,11 +133,8 @@ export default auth((req) => {
     return redirectResponse(new URL("/unauthorized", req.url), requestId)
   }
 
-  // Add custom headers for tracing and debugging
-  const response = nextResponseWithRequestId(req, requestId)
-  response.headers.set("x-user-role", userRole || "anonymous")
-
-  return response
+  // Add request ID for tracing (removed x-user-role to prevent information leak — M3)
+  return nextResponseWithRequestId(req, requestId)
 })
 
 export const config = {

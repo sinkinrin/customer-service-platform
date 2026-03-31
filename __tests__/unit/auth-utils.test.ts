@@ -52,12 +52,12 @@ describe('Auth Utils', () => {
       expect(role).toBe('admin')
     })
 
-    it('should return customer (default) for null session', async () => {
+    it('should return null for null session', async () => {
       vi.mocked(auth).mockResolvedValue(null)
-      
+
       const { getUserRole } = await import('@/lib/utils/auth')
       const role = await getUserRole()
-      expect(role).toBe('customer')
+      expect(role).toBeNull()
     })
   })
 

@@ -9,6 +9,18 @@ vi.mock('@/lib/utils/ai-config', () => ({
   readAISettings: vi.fn(),
 }))
 
+const mockStaffUser = {
+  id: 'staff-1',
+  email: 'staff@test.com',
+  role: 'staff',
+  full_name: 'Test Staff',
+}
+
+vi.mock('@/lib/utils/auth', () => ({
+  requireRole: vi.fn(),
+}))
+
+import { requireRole } from '@/lib/utils/auth'
 import { readAISettings } from '@/lib/utils/ai-config'
 
 import { POST as POST_CHAT } from '@/app/api/ai/chat/route'
@@ -23,6 +35,7 @@ describe('AI APIs', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(requireRole).mockResolvedValue(mockStaffUser as any)
   })
 
   afterEach(() => {

@@ -76,15 +76,15 @@ export async function requireAuth(): Promise<AuthUser> {
 }
 
 /**
- * Get user role
+ * Get user role — returns null if not authenticated (M4 fix)
  */
 export async function getUserRole(
   _userId?: string
-): Promise<"customer" | "staff" | "admin"> {
+): Promise<"customer" | "staff" | "admin" | null> {
   const user = await getCurrentUser()
 
   if (!user) {
-    return "customer" // Default role
+    return null
   }
 
   return user.role

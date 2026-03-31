@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { requireAuth } from '@/lib/utils/auth'
+import { requireRole } from '@/lib/utils/auth'
 import { successResponse, errorResponse, unauthorizedResponse, forbiddenResponse, serverErrorResponse } from '@/lib/utils/api-response'
 import { mockUpdateUserRole, mockGetUserById } from '@/lib/mock-auth'
 import { notifyAccountRoleChanged } from '@/lib/notification'
@@ -22,11 +22,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return badRequestResponse('Invalid body: role must be one of customer|staff|admin')
     }
 
-    // Verify current user is authenticated and is admin
-    const currentUser = await requireAuth()
-    if (currentUser.role !== 'admin') {
-      return forbiddenResponse('Admin access required')
-    }
+    // Verify current user is admin (M13: use requireRole for consistency)
+    const currentUser = await requireRole(['admin'])
 
     const targetUserId = id
     const nextRole = parsed.data.role

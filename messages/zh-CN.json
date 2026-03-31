@@ -1948,6 +1948,7 @@
         "aiMode": "AI 对话",
         "humanMode": "人工客服",
         "aiDescription": "智能助手为您服务",
+        "newTopicTip": "每个问题建议开启新对话，效果更好",
         "online": "在线",
         "status": {
           "waiting": "等待客服接入",

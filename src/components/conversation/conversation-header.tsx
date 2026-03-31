@@ -96,6 +96,7 @@ export function ConversationHeader({ mode: _mode = 'ai', currentConversationId }
         </div>
         <p className="text-sm text-muted-foreground mt-0.5">
           {t('aiDescription')}
+          <span className="hidden sm:inline text-muted-foreground/60"> · {t('newTopicTip', { defaultMessage: 'Start a new conversation for each topic for best results' })}</span>
         </p>
       </div>
 

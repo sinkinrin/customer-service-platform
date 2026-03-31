@@ -14,6 +14,12 @@ import { MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
+// Threshold for auto-creating a new conversation when user returns.
+// If the user left the conversation page more than this many ms ago,
+// we treat it as a "return" and start fresh. Otherwise it's a "page switch"
+// and we reuse the existing conversation.
+const NEW_CONVERSATION_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
+
 export default function ConversationsPage() {
   const t = useTranslations('customer.conversations.starting')
   const tToast = useTranslations('toast.customer.conversations')
@@ -59,13 +65,26 @@ export default function ConversationsPage() {
           (conv) => conv.status !== 'closed'
         )
 
-        if (activeConversation) {
-          // R3: Reuse existing active conversation
+        // Check how long the user has been away from the conversation page
+        const lastVisit = sessionStorage.getItem('conversationLastVisitAt')
+        const elapsed = lastVisit ? Date.now() - parseInt(lastVisit, 10) : Infinity
+
+        if (activeConversation && elapsed < NEW_CONVERSATION_THRESHOLD_MS) {
+          // Quick page switch — reuse existing conversation
           console.log('[Conversations] Reusing existing conversation:', activeConversation.id)
           router.replace(`/customer/conversations/${activeConversation.id}`)
         } else {
-          // R3: Only create new conversation if no active one exists
-          console.log('[Conversations] No active conversation found, creating new one')
+          // User returned after a while (or no active conversation) — start fresh
+          if (activeConversation) {
+            // Close the stale conversation before creating a new one
+            console.log('[Conversations] Closing stale conversation:', activeConversation.id)
+            await fetch(`/api/conversations/${activeConversation.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'closed' }),
+            }).catch(() => {})
+          }
+          console.log('[Conversations] Creating new conversation')
           const newConversation = await createConversation()
           router.replace(`/customer/conversations/${newConversation.id}`)
         }

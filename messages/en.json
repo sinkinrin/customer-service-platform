@@ -1948,6 +1948,7 @@
         "aiMode": "AI Chat",
         "humanMode": "Human Agent",
         "aiDescription": "Smart assistant at your service",
+        "newTopicTip": "Start a new conversation for each topic for best results",
         "online": "Online",
         "status": {
           "waiting": "Waiting for agent",

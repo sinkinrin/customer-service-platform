@@ -1964,6 +1964,7 @@
           "creatingNew": "Creando..."
         },
         "aiDescription": "Asistente inteligente a tu servicio",
+        "newTopicTip": "Inicie una nueva conversación para cada tema para obtener mejores resultados",
         "online": "En línea",
         "status": {
           "waiting": "En espera de agente",

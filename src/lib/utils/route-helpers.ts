@@ -71,7 +71,7 @@ export function getNavigationItemsForRole(role: UserRole): Array<{
       return [
         { labelKey: 'dashboard', href: '/staff/dashboard' },
         { labelKey: 'tickets', href: '/staff/tickets' },
-        { labelKey: 'knowledgeBase', href: '/staff/knowledge-base' },
+        { labelKey: 'knowledgeBase', href: '/staff/knowledge' },
       ]
     case 'admin':
       return [

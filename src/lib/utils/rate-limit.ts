@@ -1,7 +1,7 @@
 /**
  * In-memory Rate Limiter
  *
- * Simple sliding-window rate limiter for API routes.
+ * Fixed-window rate limiter for API routes.
  * For horizontal scaling, replace with Redis-based implementation.
  */
 

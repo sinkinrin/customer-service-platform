@@ -17,14 +17,14 @@ interface Subscriber {
   userId: string
   userRole: string
   callback: SubscriberCallback
-  connectedAt: number
+  lastActivity: number
 }
 
 // Connection limits
 const MAX_CONNECTIONS_PER_USER = 5
 const MAX_GLOBAL_CONNECTIONS = 500
-// Stale connection threshold: 5 minutes without heartbeat confirmation
-const STALE_CONNECTION_MS = 5 * 60 * 1000
+// Stale connection threshold: 10 minutes without any activity (broadcast delivery or heartbeat)
+const STALE_CONNECTION_MS = 10 * 60 * 1000
 
 class SSEEmitter {
   private subscribers: Map<string, Subscriber> = new Map()
@@ -72,7 +72,7 @@ class SSEEmitter {
       userId,
       userRole,
       callback,
-      connectedAt: Date.now(),
+      lastActivity: Date.now(),
     })
 
     logger.info('SSE', 'Subscriber added', {
@@ -92,16 +92,21 @@ class SSEEmitter {
     let sentCount = 0
     this.subscribers.forEach((subscriber, subscriberId) => {
       try {
+        let shouldSend = false
+
         // Admin receives all updates
         if (subscriber.userRole === 'admin') {
-          subscriber.callback(update)
-          sentCount++
-          return
+          shouldSend = true
+        }
+        // Staff/Customer: only deliver when explicitly targeted.
+        else if (targetUserIds && targetUserIds.includes(subscriber.userId)) {
+          shouldSend = true
         }
 
-        // Staff/Customer: only deliver when explicitly targeted.
-        if (targetUserIds && targetUserIds.includes(subscriber.userId)) {
+        if (shouldSend) {
           subscriber.callback(update)
+          // Refresh activity timestamp on successful delivery
+          subscriber.lastActivity = Date.now()
           sentCount++
         }
       } catch (error) {
@@ -132,7 +137,7 @@ class SSEEmitter {
     const now = Date.now()
     let removedCount = 0
     for (const [subscriberId, subscriber] of this.subscribers) {
-      if (now - subscriber.connectedAt > STALE_CONNECTION_MS) {
+      if (now - subscriber.lastActivity > STALE_CONNECTION_MS) {
         this.subscribers.delete(subscriberId)
         removedCount++
       }
@@ -141,16 +146,6 @@ class SSEEmitter {
       logger.info('SSE', 'Cleaned up stale connections', {
         data: { removed: removedCount, remaining: this.subscribers.size },
       })
-    }
-  }
-
-  /**
-   * Refresh connection timestamp (called on heartbeat success)
-   */
-  refreshConnection(subscriberId: string): void {
-    const subscriber = this.subscribers.get(subscriberId)
-    if (subscriber) {
-      subscriber.connectedAt = Date.now()
     }
   }
 

@@ -27,17 +27,28 @@ export async function GET(request: NextRequest) {
   // Create SSE stream
   const encoder = new TextEncoder()
   let isConnected = true
-
-  // Pre-check connection limit before creating stream
-  const unsubscribe = sseEmitter.subscribe(userId, userRole, () => {})
-  if (!unsubscribe) {
-    return new Response('Too many connections', { status: 429 })
-  }
-  // Remove the placeholder subscription, we'll create a real one inside the stream
-  unsubscribe()
+  let unsub: (() => void) | null = null
 
   const stream = new ReadableStream({
     start(controller) {
+      // Subscribe to ticket updates (checks connection limits)
+      unsub = sseEmitter.subscribe(userId, userRole, (update) => {
+        if (!isConnected) return
+        try {
+          const eventData = `event: ticket-update\ndata: ${JSON.stringify(update)}\n\n`
+          controller.enqueue(encoder.encode(eventData))
+        } catch {
+          isConnected = false
+        }
+      })
+
+      if (!unsub) {
+        // Connection limit exceeded — close the stream immediately
+        controller.enqueue(encoder.encode('event: error\ndata: {"error":"Too many connections"}\n\n'))
+        controller.close()
+        return
+      }
+
       // Send initial connection event
       const connectEvent = `event: connected\ndata: ${JSON.stringify({
         userId,
@@ -59,17 +70,6 @@ export async function GET(request: NextRequest) {
         }
       }, 30000) // 30 second heartbeat
 
-      // Subscribe to ticket updates
-      const unsub = sseEmitter.subscribe(userId, userRole, (update) => {
-        if (!isConnected) return
-        try {
-          const eventData = `event: ticket-update\ndata: ${JSON.stringify(update)}\n\n`
-          controller.enqueue(encoder.encode(eventData))
-        } catch {
-          isConnected = false
-        }
-      })
-
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
         isConnected = false
@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
     },
     cancel() {
       isConnected = false
+      if (unsub) unsub()
     }
   })
 

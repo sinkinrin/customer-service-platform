@@ -26,6 +26,7 @@ import { zammadClient } from "@/lib/zammad/client"
 import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, type RegionValue } from "@/lib/constants/regions"
 import { ZAMMAD_ROLES } from "@/lib/constants/zammad"
 import { logger } from "@/lib/utils/logger"
+import { loginLimiter } from "@/lib/utils/rate-limit"
 
 // Import mock auth for development/fallback mode
 import { mockUsers, mockPasswords, type MockUser } from "@/lib/mock-auth"
@@ -277,13 +278,21 @@ const authConfig: NextAuthConfig = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
 
         const email = credentials.email as string
         const password = credentials.password as string
+
+        // Rate limiting on login attempts (H7)
+        const rateLimitKey = `login:${email.trim().toLowerCase()}`
+        const { allowed } = loginLimiter.check(rateLimitKey)
+        if (!allowed) {
+          logger.warning('Auth', 'Login rate limit exceeded', { data: { email } })
+          throw new Error("RATE_LIMIT_EXCEEDED")
+        }
 
         const user = await validateCredentials(email, password)
         if (!user) {

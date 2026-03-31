@@ -122,11 +122,7 @@ export async function isStaff(_userId?: string): Promise<boolean> {
 }
 
 /**
- * Check if mock authentication is enabled
+ * Check if mock authentication is enabled.
+ * Re-exports from @/lib/env for convenience. Never returns true in production.
  */
-export function isMockAuthEnabled(): boolean {
-  if (process.env.NODE_ENV !== "production") {
-    return true
-  }
-  return process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === "true"
-}
+export { isMockAuthEnabled } from "@/lib/env"

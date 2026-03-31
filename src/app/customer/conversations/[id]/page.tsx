@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl'
 import { ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStreamingChat } from '@/hooks/use-streaming-chat'
+import { CONVERSATION_LAST_VISIT_KEY } from '@/lib/constants/conversation'
 
 interface AiMsg {
   id: string
@@ -79,9 +80,9 @@ export default function ConversationDetailPage() {
   // Track visit timestamp for the auto-new-conversation logic
   useEffect(() => {
     // Update timestamp on mount and periodically while the page is active
-    sessionStorage.setItem('conversationLastVisitAt', String(Date.now()))
+    sessionStorage.setItem(CONVERSATION_LAST_VISIT_KEY, String(Date.now()))
     const interval = setInterval(() => {
-      sessionStorage.setItem('conversationLastVisitAt', String(Date.now()))
+      sessionStorage.setItem(CONVERSATION_LAST_VISIT_KEY, String(Date.now()))
     }, 60_000) // refresh every minute
     return () => clearInterval(interval)
   }, [])

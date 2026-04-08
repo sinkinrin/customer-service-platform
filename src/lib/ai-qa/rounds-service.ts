@@ -15,7 +15,8 @@ import type { QaRound, QaStats, QaRoundsResponse, RoundsQueryParams, FilterStatu
  */
 function buildReviewFilter(status: FilterStatus) {
   if (status === 'unreviewed') {
-    return { review: { is: null } }
+    // Match both: no review record at all, OR retest-only record (status is null)
+    return { OR: [{ review: { is: null } }, { review: { status: null } }] }
   }
   if (status === 'correct' || status === 'incorrect') {
     return { review: { is: { status } } }

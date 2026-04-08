@@ -146,13 +146,14 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     })
-  } catch (error: any) {
-    if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (message === 'Unauthorized' || message === 'Forbidden') {
       return unauthorizedResponse()
     }
     logger.error('AIExport', 'Failed to export AI Q&A data', {
-      data: { error: error instanceof Error ? error.message : error },
+      data: { error: message },
     })
-    return serverErrorResponse('Failed to export AI Q&A data', error.message)
+    return serverErrorResponse('Failed to export AI Q&A data')
   }
 }

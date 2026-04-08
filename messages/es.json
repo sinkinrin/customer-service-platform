@@ -124,6 +124,7 @@
     "logout": "Cerrar sesión",
     "profile": "Perfil",
     "customers": "Clientes",
+    "aiQa": "QA IA",
     "myTickets": "Mis tickets",
     "feedback": "Comentarios",
     "complaints": "Quejas",
@@ -499,7 +500,11 @@
         "negative": "negativos",
         "satisfactionRate": "Tasa de satisfacción",
         "recentNegative": "Comentarios negativos recientes",
-        "noNegativeFeedback": "Sin comentarios negativos"
+        "noNegativeFeedback": "Sin comentarios negativos",
+        "exportButton": "Exportar Q&A IA",
+        "exportStarted": "Exportando datos de Q&A IA...",
+        "exportDone": "Datos de Q&A IA exportados con éxito",
+        "exportFailed": "Error al exportar datos de Q&A IA"
       },
       "ticketTrends": {
         "title": "Tendencias diarias de tickets",
@@ -1399,6 +1404,68 @@
       "cancelSuccess": "Vacaciones canceladas",
       "currentlyOnVacation": "Actualmente estás de vacaciones desde {start} hasta {end}",
       "replacement": "Reemplazo"
+    },
+    "aiQa": {
+      "title": "Revisión QA IA",
+      "filters": {
+        "status": "Estado",
+        "all": "Todos",
+        "unreviewed": "Sin revisar",
+        "correct": "Correcto",
+        "incorrect": "Incorrecto",
+        "dateRange": "Rango de fechas"
+      },
+      "stats": {
+        "total": "Total",
+        "unreviewed": "Sin revisar",
+        "correct": "Correcto",
+        "incorrect": "Incorrecto"
+      },
+      "list": {
+        "loading": "Cargando registros de P&R...",
+        "empty": "No se encontraron registros de P&R",
+        "prev": "Anterior",
+        "next": "Siguiente"
+      },
+      "detail": {
+        "title": "Detalle",
+        "question": "Pregunta del cliente",
+        "answer": "Respuesta de IA",
+        "customerRating": "Valoración del cliente",
+        "ratingPositive": "Positiva",
+        "ratingNegative": "Negativa",
+        "noRating": "Sin valoración",
+        "reviewStatus": "Revisión",
+        "correct": "Correcto",
+        "incorrect": "Incorrecto",
+        "unreviewed": "Sin revisar",
+        "source": "Fuente",
+        "platform": "Plataforma",
+        "noQuestion": "(Pregunta no encontrada)",
+        "selectHint": "Seleccione un registro de P&R de la lista para revisarlo",
+        "retestTitle": "Re-test",
+        "originalAnswer": "Respuesta original",
+        "retestAnswer": "Respuesta del re-test",
+        "retestTime": "Hora del re-test"
+      },
+      "actions": {
+        "markCorrect": "Correcto",
+        "markIncorrect": "Incorrecto",
+        "notePlaceholder": "Agregar nota de revisión (opcional)...",
+        "save": "Guardar",
+        "retest": "Re-probar",
+        "export": "Exportar CSV",
+        "refresh": "Actualizar"
+      },
+      "toast": {
+        "loadError": "Error al cargar registros de P&R",
+        "reviewSuccess": "Revisión guardada",
+        "reviewError": "Error al guardar la revisión",
+        "retestSuccess": "Re-test completado",
+        "retestError": "Error en el re-test",
+        "exportSuccess": "Exportación iniciada",
+        "exportError": "Error en la exportación"
+      }
     },
     "conversations": {
       "pageTitle": "Gestión de conversaciones",

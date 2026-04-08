@@ -124,6 +124,7 @@
     "logout": "Déconnexion",
     "profile": "Profil",
     "customers": "Clients",
+    "aiQa": "QA IA",
     "myTickets": "Mes tickets",
     "feedback": "Commentaires",
     "complaints": "Réclamations",
@@ -499,7 +500,11 @@
         "negative": "négatifs",
         "satisfactionRate": "Taux de satisfaction",
         "recentNegative": "Retours négatifs récents",
-        "noNegativeFeedback": "Aucun retour négatif"
+        "noNegativeFeedback": "Aucun retour négatif",
+        "exportButton": "Exporter Q&R IA",
+        "exportStarted": "Exportation des Q&R IA en cours...",
+        "exportDone": "Q&R IA exportées avec succès",
+        "exportFailed": "Échec de l'exportation des Q&R IA"
       },
       "ticketTrends": {
         "title": "Tendances quotidiennes des tickets",
@@ -1399,6 +1404,68 @@
       "cancelSuccess": "Congés annulés",
       "currentlyOnVacation": "Vous êtes actuellement en congés du {start} au {end}",
       "replacement": "Remplaçant"
+    },
+    "aiQa": {
+      "title": "Revue QA IA",
+      "filters": {
+        "status": "Statut",
+        "all": "Tous",
+        "unreviewed": "Non examiné",
+        "correct": "Correct",
+        "incorrect": "Incorrect",
+        "dateRange": "Période"
+      },
+      "stats": {
+        "total": "Total",
+        "unreviewed": "Non examiné",
+        "correct": "Correct",
+        "incorrect": "Incorrect"
+      },
+      "list": {
+        "loading": "Chargement des enregistrements Q&R...",
+        "empty": "Aucun enregistrement Q&R trouvé",
+        "prev": "Précédent",
+        "next": "Suivant"
+      },
+      "detail": {
+        "title": "Détails",
+        "question": "Question du client",
+        "answer": "Réponse IA",
+        "customerRating": "Évaluation du client",
+        "ratingPositive": "Positive",
+        "ratingNegative": "Négative",
+        "noRating": "Aucune évaluation",
+        "reviewStatus": "Revue",
+        "correct": "Correct",
+        "incorrect": "Incorrect",
+        "unreviewed": "Non examiné",
+        "source": "Source",
+        "platform": "Plateforme",
+        "noQuestion": "(Question introuvable)",
+        "selectHint": "Sélectionnez un enregistrement Q&R dans la liste pour le réviser",
+        "retestTitle": "Re-test",
+        "originalAnswer": "Réponse originale",
+        "retestAnswer": "Réponse du re-test",
+        "retestTime": "Heure du re-test"
+      },
+      "actions": {
+        "markCorrect": "Correct",
+        "markIncorrect": "Incorrect",
+        "notePlaceholder": "Ajouter une note de revue (optionnel)...",
+        "save": "Enregistrer",
+        "retest": "Re-tester",
+        "export": "Exporter CSV",
+        "refresh": "Actualiser"
+      },
+      "toast": {
+        "loadError": "Échec du chargement des enregistrements Q&R",
+        "reviewSuccess": "Revue enregistrée",
+        "reviewError": "Échec de l'enregistrement de la revue",
+        "retestSuccess": "Re-test terminé",
+        "retestError": "Échec du re-test",
+        "exportSuccess": "Exportation lancée",
+        "exportError": "Échec de l'exportation"
+      }
     },
     "conversations": {
       "pageTitle": "Gestion des conversations",

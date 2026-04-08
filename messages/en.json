@@ -124,6 +124,7 @@
     "logout": "Logout",
     "profile": "Profile",
     "customers": "Customers",
+    "aiQa": "AI QA",
     "myTickets": "My Tickets",
     "feedback": "Feedback",
     "complaints": "Complaints",
@@ -499,7 +500,11 @@
         "negative": "negative",
         "satisfactionRate": "Satisfaction Rate",
         "recentNegative": "Recent Negative Feedback",
-        "noNegativeFeedback": "No negative feedback yet"
+        "noNegativeFeedback": "No negative feedback yet",
+        "exportButton": "Export AI Q&A",
+        "exportStarted": "Exporting AI Q&A data...",
+        "exportDone": "AI Q&A data exported successfully",
+        "exportFailed": "Failed to export AI Q&A data"
       },
       "ticketTrends": {
         "title": "Daily Ticket Trends",
@@ -1399,6 +1404,68 @@
       "cancelSuccess": "Vacation cancelled",
       "currentlyOnVacation": "You are currently on vacation from {start} to {end}",
       "replacement": "Replacement"
+    },
+    "aiQa": {
+      "title": "AI QA Review",
+      "filters": {
+        "status": "Status",
+        "all": "All",
+        "unreviewed": "Unreviewed",
+        "correct": "Correct",
+        "incorrect": "Incorrect",
+        "dateRange": "Date Range"
+      },
+      "stats": {
+        "total": "Total",
+        "unreviewed": "Unreviewed",
+        "correct": "Correct",
+        "incorrect": "Incorrect"
+      },
+      "list": {
+        "loading": "Loading Q&A records...",
+        "empty": "No Q&A records found",
+        "prev": "Previous",
+        "next": "Next"
+      },
+      "detail": {
+        "title": "Detail",
+        "question": "Customer Question",
+        "answer": "AI Answer",
+        "customerRating": "Customer Rating",
+        "ratingPositive": "Positive",
+        "ratingNegative": "Negative",
+        "noRating": "No rating",
+        "reviewStatus": "Review",
+        "correct": "Correct",
+        "incorrect": "Incorrect",
+        "unreviewed": "Unreviewed",
+        "source": "Source",
+        "platform": "Platform",
+        "noQuestion": "(No question found)",
+        "selectHint": "Select a Q&A record from the list to review",
+        "retestTitle": "Retest",
+        "originalAnswer": "Original Answer",
+        "retestAnswer": "Retest Answer",
+        "retestTime": "Retest Time"
+      },
+      "actions": {
+        "markCorrect": "Correct",
+        "markIncorrect": "Incorrect",
+        "notePlaceholder": "Add review note (optional)...",
+        "save": "Save",
+        "retest": "Retest",
+        "export": "Export CSV",
+        "refresh": "Refresh"
+      },
+      "toast": {
+        "loadError": "Failed to load Q&A records",
+        "reviewSuccess": "Review saved",
+        "reviewError": "Failed to save review",
+        "retestSuccess": "Retest completed",
+        "retestError": "Retest failed",
+        "exportSuccess": "Export started",
+        "exportError": "Export failed"
+      }
     },
     "conversations": {
       "pageTitle": "Conversation Management",

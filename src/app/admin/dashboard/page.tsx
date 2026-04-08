@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Users, Ticket, Activity, Settings, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown, Bot, MessageSquare } from 'lucide-react'
+import { Users, Ticket, Activity, Settings, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown, Bot, MessageSquare, Download } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ import { PageTransition } from '@/components/ui/page-transition'
 import { TicketTrendChart } from '@/components/admin/charts/ticket-trend-chart'
 import { RegionDistributionChart } from '@/components/admin/charts/region-distribution-chart'
 import { isValidRegion, type RegionValue } from '@/lib/constants/regions'
+import { toast } from 'sonner'
 
 interface TicketStats {
   total: number
@@ -162,6 +163,32 @@ export default function AdminDashboardPage() {
     }
   }
 
+  const exportAiQA = useCallback(async () => {
+    try {
+      toast.info(tAiStats('exportStarted'))
+      const response = await fetch('/api/admin/ai-export')
+      if (!response.ok) throw new Error('Export failed')
+
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || 'ai-qa-export.csv'
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast.success(tAiStats('exportDone'))
+    } catch (error) {
+      console.error('AI Q&A export error:', error)
+      toast.error(tAiStats('exportFailed'))
+    }
+  }, [tAiStats])
+
   return (
     <PageTransition className="space-y-6">
       {/* Welcome Section */}
@@ -275,10 +302,16 @@ export default function AdminDashboardPage() {
 
       {/* AI Conversation Stats Section */}
       <div>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Bot className="h-5 w-5 text-violet-600" />
-          {tAiStats('title')}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Bot className="h-5 w-5 text-violet-600" />
+            {tAiStats('title')}
+          </h2>
+          <Button variant="outline" size="sm" onClick={exportAiQA} disabled={loading}>
+            <Download className="h-4 w-4 mr-1.5" />
+            {tAiStats('exportButton')}
+          </Button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {loading ? (
             [1, 2, 3, 4].map((item) => (

@@ -13,6 +13,7 @@ import {
   LogOut,
   Globe,
   ChevronDown,
+  ClipboardCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -75,6 +76,11 @@ export function StaffLayout({
       name: tNav('customers'),
       href: "/staff/customers",
       icon: Users,
+    },
+    {
+      name: tNav('aiQa'),
+      href: "/staff/ai-qa",
+      icon: ClipboardCheck,
     },
     {
       name: tNav('settings'),

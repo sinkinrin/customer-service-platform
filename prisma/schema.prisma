@@ -209,6 +209,7 @@ model AiMessage {
 
   conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   rating       AiMessageRating?
+  review       AiQaReview?
 
   @@index([conversationId])
   @@index([conversationId, createdAt])
@@ -232,4 +233,36 @@ model AiMessageRating {
   @@index([userId])
   @@index([rating])
   @@map("ai_message_ratings")
+}
+
+// AI QA Review (staff review of AI responses)
+model AiQaReview {
+  id             String    @id @default(cuid())
+  messageId      String    @unique  // 关联 AiMessage.id
+  status         String?   // 'correct' | 'incorrect' | null（null = 未审核/仅重测）
+  reviewNote     String?   // 审核备注
+  reviewedBy     String?   // 审核人 user ID
+  reviewedAt     DateTime?
+  retestAnswer   String?   // 一键重测后的新答案
+  retestAppId    String?   // 重测使用的 FastGPT App ID
+  retestAt       DateTime? // 重测时间
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // ── 预留字段（FastGPT 同步用，当前不使用）──
+  source         String    @default("platform") // 'platform' | 'fastgpt'
+  appId          String?   // FastGPT App ID
+  externalId     String?   // FastGPT 消息原始 ID
+  question       String?   // FastGPT 来源时存原文（platform 来源为 null，直查 AiMessage）
+  answer         String?   // 同上
+  customerEmail  String?   // FastGPT 来源为 null（匿名）
+  conversationId String?   // FastGPT chatId
+  qaTime         DateTime? // FastGPT 来源的原始时间
+
+  message        AiMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+
+  @@unique([source, appId, externalId]) // 预留：FastGPT 数据防重复
+  @@index([status])
+  @@index([messageId])
+  @@map("ai_qa_reviews")
 }

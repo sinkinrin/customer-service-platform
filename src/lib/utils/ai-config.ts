@@ -37,6 +37,16 @@ export interface AISettings {
   model: string
   temperature: number
   systemPrompt: string
+
+  // QA Review - Retest
+  qaRetestAppId: string  // 重测用的 FastGPT App ID
+
+  // QA Review - Reserved for future FastGPT sync
+  qaApps: Array<{
+    id: string       // 内部标识，也用于 env var 名构建: AI_QA_APP_{ID}_KEY
+    name: string     // 显示名称
+    appId: string    // FastGPT App ID
+  }>
 }
 
 const CONFIG_PATH = path.join(process.cwd(), 'config', 'ai-settings.json')
@@ -65,6 +75,10 @@ const DEFAULT_SETTINGS: AISettings = {
   model: 'GPT-4o-mini',
   temperature: 0.7,
   systemPrompt: 'You are a helpful customer service assistant.',
+
+  // QA Review
+  qaRetestAppId: '',
+  qaApps: [],
 }
 
 // Sensitive fields that should be read from env vars, not stored in JSON

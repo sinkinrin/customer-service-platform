@@ -124,6 +124,7 @@
     "logout": "Выход",
     "profile": "Профиль",
     "customers": "Клиенты",
+    "aiQa": "QA ИИ",
     "myTickets": "Мои заявки",
     "feedback": "Отзывы",
     "complaints": "Жалобы",
@@ -499,7 +500,11 @@
         "negative": "отрицательных",
         "satisfactionRate": "Уровень удовлетворённости",
         "recentNegative": "Недавние негативные отзывы",
-        "noNegativeFeedback": "Нет негативных отзывов"
+        "noNegativeFeedback": "Нет негативных отзывов",
+        "exportButton": "Экспорт Q&A ИИ",
+        "exportStarted": "Экспорт данных Q&A ИИ...",
+        "exportDone": "Данные Q&A ИИ успешно экспортированы",
+        "exportFailed": "Не удалось экспортировать данные Q&A ИИ"
       },
       "ticketTrends": {
         "title": "Дневная статистика тикетов",
@@ -1399,6 +1404,68 @@
       "cancelSuccess": "Отпуск отменён",
       "currentlyOnVacation": "Вы сейчас в отпуске с {start} по {end}",
       "replacement": "Замещающий"
+    },
+    "aiQa": {
+      "title": "Проверка качества ИИ",
+      "filters": {
+        "status": "Статус",
+        "all": "Все",
+        "unreviewed": "Не проверено",
+        "correct": "Правильно",
+        "incorrect": "Неправильно",
+        "dateRange": "Период"
+      },
+      "stats": {
+        "total": "Всего",
+        "unreviewed": "Не проверено",
+        "correct": "Правильно",
+        "incorrect": "Неправильно"
+      },
+      "list": {
+        "loading": "Загрузка записей вопросов и ответов...",
+        "empty": "Записи вопросов и ответов не найдены",
+        "prev": "Назад",
+        "next": "Далее"
+      },
+      "detail": {
+        "title": "Детали",
+        "question": "Вопрос клиента",
+        "answer": "Ответ ИИ",
+        "customerRating": "Оценка клиента",
+        "ratingPositive": "Положительная",
+        "ratingNegative": "Отрицательная",
+        "noRating": "Нет оценки",
+        "reviewStatus": "Проверка",
+        "correct": "Правильно",
+        "incorrect": "Неправильно",
+        "unreviewed": "Не проверено",
+        "source": "Источник",
+        "platform": "Платформа",
+        "noQuestion": "(Вопрос не найден)",
+        "selectHint": "Выберите запись из списка для проверки",
+        "retestTitle": "Повторный тест",
+        "originalAnswer": "Исходный ответ",
+        "retestAnswer": "Ответ повторного теста",
+        "retestTime": "Время повторного теста"
+      },
+      "actions": {
+        "markCorrect": "Правильно",
+        "markIncorrect": "Неправильно",
+        "notePlaceholder": "Добавить заметку к проверке (необязательно)...",
+        "save": "Сохранить",
+        "retest": "Перетестировать",
+        "export": "Экспорт CSV",
+        "refresh": "Обновить"
+      },
+      "toast": {
+        "loadError": "Ошибка загрузки записей",
+        "reviewSuccess": "Проверка сохранена",
+        "reviewError": "Ошибка сохранения проверки",
+        "retestSuccess": "Повторный тест завершён",
+        "retestError": "Ошибка повторного теста",
+        "exportSuccess": "Экспорт начат",
+        "exportError": "Ошибка экспорта"
+      }
     },
     "conversations": {
       "pageTitle": "Управление беседами",

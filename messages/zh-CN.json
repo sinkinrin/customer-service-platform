@@ -124,6 +124,7 @@
     "logout": "退出登录",
     "profile": "个人资料",
     "customers": "客户",
+    "aiQa": "AI 质检",
     "myTickets": "我的工单",
     "feedback": "反馈建议",
     "complaints": "投诉",
@@ -499,7 +500,11 @@
         "negative": "差评",
         "satisfactionRate": "满意率",
         "recentNegative": "近期差评",
-        "noNegativeFeedback": "暂无差评"
+        "noNegativeFeedback": "暂无差评",
+        "exportButton": "导出 AI 问答",
+        "exportStarted": "正在导出 AI 问答数据...",
+        "exportDone": "AI 问答数据导出成功",
+        "exportFailed": "AI 问答数据导出失败"
       },
       "ticketTrends": {
         "title": "每日工单趋势",
@@ -1400,8 +1405,70 @@
       "currentlyOnVacation": "您当前处于假期中，从 {start} 至 {end}",
       "replacement": "代班人员"
     },
+    "aiQa": {
+      "title": "AI 问答质检",
+      "filters": {
+        "status": "状态",
+        "all": "全部",
+        "unreviewed": "未审核",
+        "correct": "正确",
+        "incorrect": "错误",
+        "dateRange": "日期范围"
+      },
+      "stats": {
+        "total": "总计",
+        "unreviewed": "未审核",
+        "correct": "正确",
+        "incorrect": "错误"
+      },
+      "list": {
+        "loading": "加载问答记录中...",
+        "empty": "暂无问答记录",
+        "prev": "上一页",
+        "next": "下一页"
+      },
+      "detail": {
+        "title": "详情",
+        "question": "客户问题",
+        "answer": "AI 回答",
+        "customerRating": "客户评价",
+        "ratingPositive": "好评",
+        "ratingNegative": "差评",
+        "noRating": "未评价",
+        "reviewStatus": "审核",
+        "correct": "正确",
+        "incorrect": "错误",
+        "unreviewed": "未审核",
+        "source": "来源",
+        "platform": "平台",
+        "noQuestion": "（未找到问题）",
+        "selectHint": "从左侧列表选择一条问答记录进行审核",
+        "retestTitle": "重测",
+        "originalAnswer": "原始回答",
+        "retestAnswer": "重测回答",
+        "retestTime": "重测时间"
+      },
+      "actions": {
+        "markCorrect": "正确",
+        "markIncorrect": "错误",
+        "notePlaceholder": "添加审核备注（可选）...",
+        "save": "保存",
+        "retest": "重测",
+        "export": "导出 CSV",
+        "refresh": "刷新"
+      },
+      "toast": {
+        "loadError": "加载问答记录失败",
+        "reviewSuccess": "审核已保存",
+        "reviewError": "保存审核失败",
+        "retestSuccess": "重测完成",
+        "retestError": "重测失败",
+        "exportSuccess": "导出已开始",
+        "exportError": "导出失败"
+      }
+    },
     "conversations": {
-      "pageTitle": "对话管理",
+      "pageTitle": "��话管理",
       "pageDescription": "管理客户对话并提供支持",
       "stats": {
         "total": "全部对话",

@@ -57,12 +57,20 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     // Encode filename for Content-Disposition header (handle non-ASCII characters)
     const encodedFilename = encodeURIComponent(filename).replace(/['()]/g, escape)
 
+    // Support ?inline=true for image/video preview in browser
+    const url = new URL(_request.url)
+    const wantsInline = url.searchParams.get('inline') === 'true'
+    const isInlineableType = contentType.startsWith('image/') || contentType.startsWith('video/')
+    const disposition = (wantsInline && isInlineableType)
+      ? `inline; filename*=UTF-8''${encodedFilename}`
+      : `attachment; filename*=UTF-8''${encodedFilename}`
+
     return new NextResponse(arrayBuffer, {
       status: 200,
       headers: {
         'Content-Type': contentType,
         'Content-Length': arrayBuffer.byteLength.toString(),
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodedFilename}`,
+        'Content-Disposition': disposition,
         'Cache-Control': 'private, max-age=3600',
       },
     })

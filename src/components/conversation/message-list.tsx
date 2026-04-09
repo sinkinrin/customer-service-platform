@@ -6,7 +6,7 @@
 
 'use client'
 
-import React, { useEffect, useRef, useMemo } from 'react'
+import React, { useEffect, useRef, useMemo, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Download, Bot } from 'lucide-react'
@@ -16,6 +16,9 @@ import { SystemMessage } from './system-message'
 import { MarkdownMessage } from './markdown-message'
 import { AIThinkingIndicator } from './ai-thinking-indicator'
 import { useTranslations } from 'next-intl'
+import { isImageType, isVideoType } from '@/lib/constants/attachments'
+import { MediaRenderer } from '@/components/ui/media-renderer'
+import { ImageLightbox } from '@/components/ui/image-lightbox'
 
 interface MessageListProps {
   messages: Message[]
@@ -36,6 +39,9 @@ export function MessageList({
 }: MessageListProps) {
   const t = useTranslations('components.conversation.messageList')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const [lightbox, setLightbox] = useState<{ open: boolean; src: string; alt: string }>({
+    open: false, src: '', alt: '',
+  })
 
   // Auto-scroll to bottom when new messages arrive or AI is loading
   useEffect(() => {
@@ -123,10 +129,15 @@ export function MessageList({
     if (message.message_type === 'image' && message.metadata?.file_url) {
       return (
         <div className="space-y-2">
-          <img
-            src={message.metadata.file_url}
-            alt={message.metadata.file_name || 'Image'}
-            className="max-w-[280px] rounded-xl"
+          <MediaRenderer
+            mimeType={message.metadata.mime_type as string || 'image/jpeg'}
+            src={message.metadata.file_url as string}
+            filename={message.metadata.file_name as string || 'Image'}
+            onImageClick={() => setLightbox({
+              open: true,
+              src: message.metadata!.file_url as string,
+              alt: (message.metadata!.file_name as string) || 'Image',
+            })}
           />
           {message.content && (
             <p className={cn(
@@ -141,10 +152,51 @@ export function MessageList({
     }
 
     if (message.message_type === 'file' && message.metadata?.file_url) {
+      const mime = (message.metadata.mime_type as string) || ''
+
+      if (isVideoType(mime)) {
+        return (
+          <div className="space-y-2">
+            <MediaRenderer
+              mimeType={mime}
+              src={message.metadata.file_url as string}
+              filename={(message.metadata.file_name as string) || 'Video'}
+            />
+            {message.content && (
+              <p className={cn("text-[15px] leading-relaxed whitespace-pre-wrap break-words",
+                isCustomer ? "text-white" : "text-foreground"
+              )}>{message.content}</p>
+            )}
+          </div>
+        )
+      }
+
+      if (isImageType(mime)) {
+        return (
+          <div className="space-y-2">
+            <MediaRenderer
+              mimeType={mime}
+              src={message.metadata.file_url as string}
+              filename={(message.metadata.file_name as string) || 'Image'}
+              onImageClick={() => setLightbox({
+                open: true,
+                src: message.metadata!.file_url as string,
+                alt: (message.metadata!.file_name as string) || 'Image',
+              })}
+            />
+            {message.content && (
+              <p className={cn("text-[15px] leading-relaxed whitespace-pre-wrap break-words",
+                isCustomer ? "text-white" : "text-foreground"
+              )}>{message.content}</p>
+            )}
+          </div>
+        )
+      }
+
       return (
         <div className="space-y-2">
           <a
-            href={message.metadata.file_url}
+            href={message.metadata.file_url as string}
             download={message.metadata.file_name}
             className={cn(
               "flex items-center gap-3 p-3 rounded-xl transition-colors",
@@ -167,14 +219,14 @@ export function MessageList({
                 "text-sm font-medium truncate",
                 isCustomer ? "text-white" : "text-foreground"
               )}>
-                {message.metadata.file_name || 'File'}
+                {message.metadata.file_name as string || 'File'}
               </p>
               {message.metadata.file_size && (
                 <p className={cn(
                   "text-xs",
                   isCustomer ? "text-white/70" : "text-muted-foreground"
                 )}>
-                  {(message.metadata.file_size / 1024).toFixed(1)} KB
+                  {((message.metadata.file_size as number) / 1024).toFixed(1)} KB
                 </p>
               )}
             </div>
@@ -376,6 +428,14 @@ export function MessageList({
 
       {/* AI Thinking indicator */}
       {isAiLoading && <AIThinkingIndicator toolStatus={aiToolStatus} />}
+
+      {/* Image lightbox */}
+      <ImageLightbox
+        open={lightbox.open}
+        onClose={() => setLightbox({ open: false, src: '', alt: '' })}
+        slides={[{ src: lightbox.src, alt: lightbox.alt }]}
+        index={0}
+      />
 
       <div ref={bottomRef} className="h-4" />
     </div>

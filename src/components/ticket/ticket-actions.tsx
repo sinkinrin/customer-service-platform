@@ -26,6 +26,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { ATTACHMENT_LIMITS, FILE_ACCEPT, formatFileSize } from '@/lib/constants/attachments'
 import { useFileUpload } from '@/lib/hooks/use-file-upload'
+import { useDragDrop } from '@/lib/hooks/use-drag-drop'
 
 interface TicketActionsProps {
   ticket: ZammadTicket
@@ -87,6 +88,15 @@ export function TicketActions({
     getFormId,
   } = useFileUpload({
     onError: (msg) => toast.error(msg),
+  })
+
+  const tDragDrop = useTranslations('components.dragDrop')
+
+  const { isDragging, dragProps } = useDragDrop({
+    onFiles: async (files) => {
+      await addFiles(files)
+    },
+    disabled: isLoading || isUploading || uploadedFiles.length >= ATTACHMENT_LIMITS.MAX_COUNT,
   })
 
   // Auto-resize textarea based on content
@@ -363,7 +373,12 @@ export function TicketActions({
             )}
           </div>
 
-          <div className="flex-1 min-h-0 relative">
+          <div {...dragProps} className={cn("flex-1 min-h-0 relative", isDragging && "ring-2 ring-primary/20 rounded-lg")}>
+            {isDragging && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-primary/5">
+                <p className="text-sm font-medium text-primary">{tDragDrop('release')}</p>
+              </div>
+            )}
             <Textarea
               id="note"
               ref={noteTextareaRef}

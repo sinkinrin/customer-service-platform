@@ -24,6 +24,8 @@
 | Click-to-fullsize | Thumbnail click → lightbox loads original | Reduce unnecessary large downloads |
 | Video no-autoload | `preload="metadata"` loads only metadata (~KB), play on user click | Video doesn't consume initial bandwidth |
 
+**GIF policy:** Animated GIFs render via `<img>` and autoplay as browsers natively do. The 10MB upload limit already constrains GIF file size. No special freeze-frame treatment — the bandwidth impact is acceptable given the size cap and lazy loading.
+
 **Not doing:** Server-side thumbnails (sharp dependency), image CDN, base64 inline.
 
 ## 2. Shared Components
@@ -54,6 +56,10 @@ Rendering:
   isImage(mime) → <img loading="lazy"> + click triggers onImageClick
   isVideo(mime) → <video preload="metadata" controls>
   other         → existing download link style (Paperclip + filename + Download)
+
+Error handling:
+  <img onError> / <video onError> → fallback to download link style (filename + download icon)
+  Prevents broken image icons and unplayable video placeholders.
 ```
 
 Consumed by: `article-content.tsx`, `message-list.tsx`.
@@ -61,10 +67,11 @@ Consumed by: `article-content.tsx`, `message-list.tsx`.
 ### 2.3 `src/components/ui/image-lightbox.tsx`
 
 ```
-Props: { open, onClose, src, alt }
+Props: { open, onClose, slides: { src, alt }[], index }
 
 Thin wrapper around yet-another-react-lightbox.
-Features: fullscreen, zoom, Esc close, keyboard nav.
+Features: fullscreen, zoom, Esc close, keyboard nav, left/right arrow between images.
+Single-image case: pass slides array with one element.
 ```
 
 Triggered by `media-renderer`'s `onImageClick`.
@@ -90,7 +97,8 @@ Split `displayAttachments` into:
   - Image click → open lightbox
 - `otherAttachments` → keep existing download link style
 
-Component maintains `lightboxState: { open, src, alt }`.
+Component maintains `lightboxState: { open, slides[], index }`.
+Clicking any image opens lightbox at that index; user can arrow between all images in the article.
 
 ### 3.2 `message-list.tsx` — Conversation message rendering
 
@@ -108,6 +116,7 @@ No new `video` message_type — MIME detection within `file` branch.
 - Selected image → `URL.createObjectURL()` thumbnail preview (`max-h-32 rounded-xl`)
 - Selected non-image → keep existing icon + filename style
 - On send/remove → `URL.revokeObjectURL()` to release memory
+- On component unmount → cleanup any remaining object URLs
 
 ### 3.4 Customer ticket reply (`my-tickets/[id]/page.tsx`)
 
@@ -115,11 +124,13 @@ No new `video` message_type — MIME detection within `file` branch.
 - `isDragging` → overlay hint
 - `onFiles` → call existing `addFiles()`
 - Uploaded image files show thumbnail in file list instead of plain filename
+- `URL.revokeObjectURL()` on file remove, send success, and component unmount
 
 ### 3.5 Staff ticket actions (`ticket-actions.tsx`)
 
 - Reply textarea area binds `dragProps`
-- Same logic as 3.4
+- Same logic as 3.4 (including `revokeObjectURL` cleanup)
+- Admin ticket page (`admin/tickets/[id]`) reuses `TicketActions` component — automatically covered
 
 ## 4. API Changes
 

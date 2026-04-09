@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import DOMPurify from 'dompurify'
 import { useTranslations, useLocale } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,9 @@ import {
 import { Paperclip, Download } from 'lucide-react'
 import type { TicketArticle, TicketArticleAttachment } from '@/lib/hooks/use-ticket'
 import { cn } from '@/lib/utils'
+import { isImageType, isVideoType } from '@/lib/constants/attachments'
+import { MediaRenderer } from '@/components/ui/media-renderer'
+import { ImageLightbox } from '@/components/ui/image-lightbox'
 
 interface ArticleContentProps {
   article: TicketArticle
@@ -139,6 +142,8 @@ export function ArticleContent({ article, showAttachments = true, className, noB
 
   const senderStyle = getSenderStyle(article.sender, t)
 
+  const [lightbox, setLightbox] = useState({ open: false, index: 0 })
+
   return (
     <div className={cn('space-y-3', className)}>
       {/* 发送者标签 - 仅在非气泡模式显示 */}
@@ -183,37 +188,93 @@ export function ArticleContent({ article, showAttachments = true, className, noB
       </div>
 
       {/* 附件列表 */}
-      {showAttachments && displayAttachments.length > 0 && (
-        <TooltipProvider>
-          <div className="flex flex-wrap gap-2">
-            {displayAttachments.map((att) => (
-              <Tooltip key={att.id}>
-                <TooltipTrigger asChild>
-                  <a
-                    href={`/api/tickets/${article.ticket_id}/articles/${article.id}/attachments/${att.id}`}
-                    download={att.filename}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm
-                      bg-gray-100 dark:bg-gray-800 rounded-md
-                      hover:bg-gray-200 dark:hover:bg-gray-700
-                      transition-colors group"
-                  >
-                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="max-w-[200px] truncate text-foreground">{att.filename}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ({formatFileSize(att.size)})
-                    </span>
-                    <Download className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[300px]">
-                  <p className="break-all">{att.filename}</p>
-                  <p className="text-xs text-muted-foreground">{formatFileSize(att.size)}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </TooltipProvider>
-      )}
+      {showAttachments && displayAttachments.length > 0 && (() => {
+        const getMimeType = (att: TicketArticleAttachment) =>
+          att.preferences?.['Content-Type'] || att.preferences?.['Mime-Type'] || ''
+
+        const mediaAtts = displayAttachments.filter(att => {
+          const mime = getMimeType(att)
+          return isImageType(mime) || isVideoType(mime)
+        })
+        const imageAtts = mediaAtts.filter(att => isImageType(getMimeType(att)))
+        const otherAtts = displayAttachments.filter(att => {
+          const mime = getMimeType(att)
+          return !isImageType(mime) && !isVideoType(mime)
+        })
+
+        return (
+          <>
+            {/* Inline media preview */}
+            {mediaAtts.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {mediaAtts.map((att) => {
+                  const src = `/api/tickets/${article.ticket_id}/articles/${article.id}/attachments/${att.id}?inline=true`
+                  const mime = getMimeType(att)
+                  const imageIndex = imageAtts.findIndex(a => a.id === att.id)
+
+                  return (
+                    <MediaRenderer
+                      key={att.id}
+                      mimeType={mime}
+                      src={src}
+                      filename={att.filename}
+                      size={formatFileSize(att.size)}
+                      onImageClick={imageIndex >= 0 ? () => setLightbox({
+                        open: true,
+                        index: imageIndex,
+                      }) : undefined}
+                    />
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Non-media download links */}
+            {otherAtts.length > 0 && (
+              <TooltipProvider>
+                <div className="flex flex-wrap gap-2">
+                  {otherAtts.map((att) => (
+                    <Tooltip key={att.id}>
+                      <TooltipTrigger asChild>
+                        <a
+                          href={`/api/tickets/${article.ticket_id}/articles/${article.id}/attachments/${att.id}`}
+                          download={att.filename}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm
+                            bg-gray-100 dark:bg-gray-800 rounded-md
+                            hover:bg-gray-200 dark:hover:bg-gray-700
+                            transition-colors group"
+                        >
+                          <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="max-w-[200px] truncate text-foreground">{att.filename}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({formatFileSize(att.size)})
+                          </span>
+                          <Download className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[300px]">
+                        <p className="break-all">{att.filename}</p>
+                        <p className="text-xs text-muted-foreground">{formatFileSize(att.size)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </TooltipProvider>
+            )}
+
+            {/* Lightbox for images */}
+            <ImageLightbox
+              open={lightbox.open}
+              onClose={() => setLightbox({ open: false, index: 0 })}
+              index={lightbox.index}
+              slides={imageAtts.map(att => ({
+                src: `/api/tickets/${article.ticket_id}/articles/${article.id}/attachments/${att.id}?inline=true`,
+                alt: att.filename,
+              }))}
+            />
+          </>
+        )
+      })()}
     </div>
   )
 }

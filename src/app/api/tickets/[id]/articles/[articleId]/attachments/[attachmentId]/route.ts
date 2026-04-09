@@ -58,8 +58,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const encodedFilename = encodeURIComponent(filename).replace(/['()]/g, escape)
 
     // Support ?inline=true for image/video preview in browser
-    const url = new URL(_request.url)
-    const wantsInline = url.searchParams.get('inline') === 'true'
+    const wantsInline = _request.url
+      ? new URL(_request.url).searchParams.get('inline') === 'true'
+      : false
     const isInlineableType = contentType.startsWith('image/') || contentType.startsWith('video/')
     const disposition = (wantsInline && isInlineableType)
       ? `inline; filename*=UTF-8''${encodedFilename}`

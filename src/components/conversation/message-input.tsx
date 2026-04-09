@@ -1,17 +1,19 @@
 /**
  * Message Input Component
  *
- * Modern ChatGPT/Gemini-inspired design
+ * Modern ChatGPT/Gemini-inspired design with drag-and-drop support
  */
 
 'use client'
 
-import { useState, useRef, KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, KeyboardEvent } from 'react'
 import { Textarea } from '@/components/ui/textarea'
-import { ArrowUp, Paperclip, X, Image, FileText, Loader2 } from 'lucide-react'
+import { ArrowUp, Paperclip, X, FileText, Loader2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import { useDragDrop } from '@/lib/hooks/use-drag-drop'
+import { FILE_ACCEPT } from '@/lib/constants/attachments'
 
 interface MessageInputProps {
   onSend: (content: string, messageType?: 'text' | 'image' | 'file', metadata?: Record<string, unknown>) => Promise<void>
@@ -34,13 +36,42 @@ export function MessageInput({
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
+  // Track if currently processing to prevent double submission
+  const [isProcessing, setIsProcessing] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const actualPlaceholder = placeholder || t('placeholder')
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  // Track if currently processing to prevent double submission
-  const [isProcessing, setIsProcessing] = useState(false)
+  // IMPORTANT: isDisabled must be computed BEFORE the useDragDrop hook call
+  const isDisabled = disabled || isSending || isUploading || isProcessing
+
+  const tDragDrop = useTranslations('components.dragDrop')
+
+  const { isDragging, dragProps } = useDragDrop({
+    onFiles: (files) => {
+      const file = files[0]
+      if (!file) return
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(tToast('fileSizeError'))
+        return
+      }
+      setSelectedFile(file)
+    },
+    disabled: isDisabled,
+  })
+
+  // Generate/revoke preview URL for image files
+  useEffect(() => {
+    if (selectedFile && selectedFile.type.startsWith('image/')) {
+      const url = URL.createObjectURL(selectedFile)
+      setPreviewUrl(url)
+      return () => URL.revokeObjectURL(url)
+    }
+    setPreviewUrl(null)
+  }, [selectedFile])
+
+  const actualPlaceholder = placeholder || t('placeholder')
 
   // Handle send message
   const handleSend = async () => {
@@ -156,50 +187,72 @@ export function MessageInput({
     }
   }
 
-  const isDisabled = disabled || isSending || isUploading || isProcessing
   const canSend = (message.trim() || selectedFile) && !isDisabled
-  const isImage = selectedFile?.type.startsWith('image/')
 
   return (
     <div className="w-full">
       {/* Main input container - ChatGPT/Gemini style */}
       <div
+        {...dragProps}
         className={cn(
           "relative flex flex-col w-full rounded-3xl border bg-background/80 backdrop-blur-sm transition-all duration-300",
-          isFocused
-            ? "border-border shadow-lg ring-1 ring-border/50"
-            : "border-border/50 shadow-md hover:border-border hover:shadow-lg"
+          isDragging
+            ? "border-primary border-dashed shadow-lg ring-2 ring-primary/20"
+            : isFocused
+              ? "border-border shadow-lg ring-1 ring-border/50"
+              : "border-border/50 shadow-md hover:border-border hover:shadow-lg"
         )}
       >
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-primary/5 backdrop-blur-[1px]">
+            <div className="flex flex-col items-center gap-2 text-primary">
+              <Upload className="h-8 w-8" />
+              <p className="text-sm font-medium">{tDragDrop('release')}</p>
+            </div>
+          </div>
+        )}
         {/* File preview - inside the input box */}
         {selectedFile && (
           <div className="px-4 pt-3">
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/80 border border-border/50 max-w-xs">
-              <div className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                isImage ? "bg-violet-500/15" : "bg-blue-500/15"
-              )}>
-                {isImage ? (
-                  <Image className="h-4 w-4 text-violet-600" />
-                ) : (
+            {previewUrl ? (
+              <div className="relative inline-block">
+                <img
+                  src={previewUrl}
+                  alt={selectedFile.name}
+                  className="max-h-32 max-w-[200px] rounded-xl object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveFile}
+                  disabled={isDisabled}
+                  className="absolute -top-2 -right-2 p-1 rounded-full bg-background border shadow-sm
+                    hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/80 border border-border/50 max-w-xs">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-500/15">
                   <FileText className="h-4 w-4 text-blue-600" />
-                )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveFile}
+                  disabled={isDisabled}
+                  className="p-1 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{selectedFile.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(selectedFile.size / 1024).toFixed(1)} KB
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleRemoveFile}
-                disabled={isDisabled}
-                className="p-1 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+            )}
           </div>
         )}
 
@@ -211,7 +264,7 @@ export function MessageInput({
             type="file"
             className="hidden"
             onChange={handleFileSelect}
-            accept="image/*,.pdf,.doc,.docx,.txt"
+            accept={FILE_ACCEPT}
             disabled={isDisabled}
           />
 

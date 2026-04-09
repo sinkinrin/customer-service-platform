@@ -13,6 +13,8 @@ import { ArrowLeft, Send, Loader2, Upload, X, CheckCircle } from 'lucide-react'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { ATTACHMENT_LIMITS, FILE_ACCEPT, formatFileSize } from '@/lib/constants/attachments'
 import { useFileUpload } from '@/lib/hooks/use-file-upload'
+import { useDragDrop } from '@/lib/hooks/use-drag-drop'
+import { cn } from '@/lib/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +69,15 @@ export default function CustomerTicketDetailPage() {
     getFormId,
   } = useFileUpload({
     onError: (msg) => toast.error(msg),
+  })
+
+  const tDragDrop = useTranslations('components.dragDrop')
+
+  const { isDragging, dragProps } = useDragDrop({
+    onFiles: async (files) => {
+      await addFiles(files)
+    },
+    disabled: submitting || isUploading,
   })
 
   const { fetchTicketById, fetchArticles, isLoading } = useTicket()
@@ -351,7 +362,18 @@ export default function CustomerTicketDetailPage() {
             {ticket.state !== 'closed' && (
               <div className="lg:hidden flex-shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-[env(safe-area-inset-bottom)]">
                 <div className="p-2">
-                  <div className="relative flex flex-col gap-2 rounded-lg border bg-background p-2 focus-within:ring-1 focus-within:ring-ring transition-all duration-200">
+                  <div
+                    {...dragProps}
+                    className={cn(
+                      "relative flex flex-col gap-2 rounded-lg border bg-background p-2 focus-within:ring-1 focus-within:ring-ring transition-all duration-200",
+                      isDragging && "border-primary border-dashed ring-2 ring-primary/20"
+                    )}
+                  >
+                    {isDragging && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-primary/5">
+                        <p className="text-sm font-medium text-primary">{tDragDrop('release')}</p>
+                      </div>
+                    )}
                     <Textarea
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
@@ -522,7 +544,15 @@ export default function CustomerTicketDetailPage() {
                   <Send className="h-3 w-3" />
                   {tDetail('replyToTicket')}
                 </p>
-                <div className="flex flex-col relative w-full gap-2">
+                <div {...dragProps} className={cn(
+                  "flex flex-col relative w-full gap-2",
+                  isDragging && "ring-2 ring-primary/20 rounded-lg"
+                )}>
+                  {isDragging && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-primary/5">
+                      <p className="text-sm font-medium text-primary">{tDragDrop('release')}</p>
+                    </div>
+                  )}
                   <Textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}

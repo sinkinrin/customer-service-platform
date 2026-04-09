@@ -66,37 +66,38 @@ export function isImageType(mimeType: string): boolean {
  * Check if a MIME type is a video type suitable for inline playback.
  */
 export function isVideoType(mimeType: string): boolean {
-  return /^video\/(mp4|quicktime|x-msvideo|x-ms-wmv|x-matroska|webm)$/.test(mimeType)
+  return /^video\/(mp4|quicktime|x-msvideo|x-ms-wmv|x-matroska)$/.test(mimeType)
 }
 ```
 
 - [ ] **Step 3: Fix MIME whitelist in `/api/files/upload/route.ts`**
 
-In `src/app/api/files/upload/route.ts`, replace the `ALLOWED_MIME_TYPES` array (lines 63-80) with:
+In `src/app/api/files/upload/route.ts`, replace the local `ALLOWED_MIME_TYPES` array (lines 63-80) with an import from the shared constants, then use it:
 
+Replace:
 ```ts
+// P2 Fix: Server-side file validation constants
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const ALLOWED_MIME_TYPES = [
-  // Images (no SVG — XSS risk)
+  // Images
   'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  // Documents
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/plain',
-  'text/csv',
-  // Archives
-  'application/zip',
-  // Videos
-  'video/mp4',
-  'video/quicktime',
-  'video/x-msvideo',
+  ...
 ]
 ```
+
+With:
+```ts
+import { ALLOWED_MIME_TYPES as SHARED_ALLOWED_MIME_TYPES } from '@/lib/constants/attachments'
+
+// P2 Fix: Server-side file validation constants
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+// Use shared whitelist but exclude SVG (XSS risk) and add video types
+const ALLOWED_MIME_TYPES = SHARED_ALLOWED_MIME_TYPES.filter(t => t !== 'image/svg+xml')
+```
+
+Also remove `'image/svg+xml'` from the shared `ALLOWED_MIME_TYPES` in `attachments.ts` if present (it is NOT present there currently — only in the files/upload route). So the only change is removing `'image/svg+xml'` from the local array and importing the shared one.
+
+This preserves all existing types (bmp, PowerPoint, RAR, 7z, WMV, MKV) while removing SVG.
 
 - [ ] **Step 4: Verify TypeScript compiles**
 
@@ -993,6 +994,10 @@ Inside the component, after the `fileInputRef` declaration (after line 38), add:
 ```tsx
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
+  // IMPORTANT: isDisabled must be computed BEFORE the useDragDrop hook call.
+  // Move this line from its original location (line 159) to here:
+  const isDisabled = disabled || isSending || isUploading || isProcessing
+
   const { isDragging, dragProps } = useDragDrop({
     onFiles: (files) => {
       const file = files[0]
@@ -1017,7 +1022,7 @@ Inside the component, after the `fileInputRef` declaration (after line 38), add:
   }, [selectedFile])
 ```
 
-Note: move the `isDisabled` const (line 159) to before the hook usage, or use `disabled || isSending || isUploading || isProcessing` directly in the hook.
+Also **delete** the original `const isDisabled = ...` line (line 159) to avoid duplication.
 
 - [ ] **Step 3: Replace the file preview section**
 
@@ -1140,10 +1145,9 @@ Add to the imports section of the file:
 
 ```tsx
 import { useDragDrop } from '@/lib/hooks/use-drag-drop'
-import { useTranslations as useDragDropTranslations } from 'next-intl'
 ```
 
-Note: `useTranslations` is likely already imported. Just add the `useDragDrop` import.
+Note: `useTranslations` is already imported in this file. Only add the `useDragDrop` import.
 
 - [ ] **Step 2: Add drag-drop hook**
 

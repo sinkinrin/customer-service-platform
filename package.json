@@ -76,6 +76,7 @@
     "swr": "^2.3.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "yet-another-react-lightbox": "^3.30.1",
     "zod": "^3.22.0",
     "zustand": "^5.0.8"
   },

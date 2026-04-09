@@ -51,6 +51,7 @@ import {
 } from '@/lib/utils/api-response'
 import { FileUploadSchema } from '@/types/api.types'
 import { uploadFile } from '@/lib/file-storage'
+import { ALLOWED_MIME_TYPES as SHARED_ALLOWED_MIME_TYPES } from '@/lib/constants/attachments'
 
 const BUCKET_MAP = {
   message: process.env.STORAGE_BUCKET_MESSAGE_ATTACHMENTS || 'message-attachments',
@@ -60,24 +61,7 @@ const BUCKET_MAP = {
 
 // P2 Fix: Server-side file validation constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-const ALLOWED_MIME_TYPES = [
-  // Images
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  // Documents
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/plain',
-  'text/csv',
-  // Archives (optional, can be removed for security)
-  'application/zip',
-]
+const ALLOWED_MIME_TYPES = SHARED_ALLOWED_MIME_TYPES.filter(t => t !== 'image/svg+xml')
 
 // TODO: Replace with real file storage when implemented
 export async function POST(request: NextRequest) {

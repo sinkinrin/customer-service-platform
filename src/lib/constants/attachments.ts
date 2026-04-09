@@ -86,3 +86,18 @@ export function sanitizeFilename(filename: string): string {
     // Ensure we have a valid filename
     || 'unnamed_file'
 }
+
+/**
+ * Check if a MIME type is an image type suitable for inline preview.
+ * Excludes SVG due to XSS risk.
+ */
+export function isImageType(mimeType: string): boolean {
+  return /^image\/(jpeg|png|gif|webp|bmp)$/.test(mimeType)
+}
+
+/**
+ * Check if a MIME type is a video type suitable for inline playback.
+ */
+export function isVideoType(mimeType: string): boolean {
+  return /^video\/(mp4|quicktime|x-msvideo|x-ms-wmv|x-matroska)$/.test(mimeType)
+}

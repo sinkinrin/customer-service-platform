@@ -2092,6 +2092,11 @@
         "submitSuccess": "感谢您的反馈！",
         "submitError": "提交评价失败"
       }
+    },
+    "dragDrop": {
+      "hint": "拖拽文件到此处上传",
+      "hintImage": "拖拽图片到此处上传",
+      "release": "松开以上传"
     }
   },
   "marketing": {

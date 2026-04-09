@@ -2092,6 +2092,11 @@
         "submitSuccess": "Merci pour votre retour !",
         "submitError": "?chec de l'envoi de l'?valuation"
       }
+    },
+    "dragDrop": {
+      "hint": "Déposez les fichiers ici pour les télécharger",
+      "hintImage": "Déposez les images ici pour les télécharger",
+      "release": "Relâchez pour télécharger"
     }
   },
   "marketing": {

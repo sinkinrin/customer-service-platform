@@ -2092,6 +2092,11 @@
         "submitSuccess": "Thank you for your feedback!",
         "submitError": "Failed to submit rating"
       }
+    },
+    "dragDrop": {
+      "hint": "Drop files here to upload",
+      "hintImage": "Drop images here to upload",
+      "release": "Release to upload"
     }
   },
   "marketing": {

@@ -2092,6 +2092,11 @@
         "submitSuccess": "?Gracias por tus comentarios!",
         "submitError": "Error al enviar la calificación"
       }
+    },
+    "dragDrop": {
+      "hint": "Suelta los archivos aquí para subirlos",
+      "hintImage": "Suelta las imágenes aquí para subirlas",
+      "release": "Suelta para subir"
     }
   },
   "marketing": {

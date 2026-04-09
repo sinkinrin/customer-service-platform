@@ -2092,6 +2092,11 @@
         "submitSuccess": "Obrigado pelo seu feedback!",
         "submitError": "Falha ao enviar avaliação"
       }
+    },
+    "dragDrop": {
+      "hint": "Solte os arquivos aqui para enviar",
+      "hintImage": "Solte as imagens aqui para enviar",
+      "release": "Solte para enviar"
     }
   },
   "marketing": {

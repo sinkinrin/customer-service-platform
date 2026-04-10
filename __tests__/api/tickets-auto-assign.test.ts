@@ -19,8 +19,15 @@ vi.mock('@/lib/zammad/client', () => ({
   },
 }))
 
+vi.mock('@/lib/ticket/customer-binding', () => ({
+  findActiveBinding: vi.fn().mockResolvedValue(null),
+  findOrCreateBinding: vi.fn().mockResolvedValue({}),
+  deactivateBindingByCustomer: vi.fn().mockResolvedValue(0),
+}))
+
 import { requireRole } from '@/lib/utils/auth'
 import { zammadClient } from '@/lib/zammad/client'
+import { findActiveBinding } from '@/lib/ticket/customer-binding'
 
 function createRequestWithSecret(secret?: string) {
   const headers = new Headers()
@@ -31,6 +38,7 @@ function createRequestWithSecret(secret?: string) {
 describe('Ticket Auto-Assign API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(findActiveBinding).mockResolvedValue(null)
   })
 
   afterEach(() => {
@@ -43,7 +51,6 @@ describe('Ticket Auto-Assign API', () => {
     const request = createRequestWithSecret('wrong')
     const response = await POST(request)
 
-    // Invalid cron secret should return 403 immediately without checking session
     expect(response.status).toBe(403)
     expect(requireRole).not.toHaveBeenCalled()
   })
@@ -71,6 +78,7 @@ describe('Ticket Auto-Assign API', () => {
         number: '10001',
         title: 'Unassigned',
         owner_id: 1,
+        customer_id: 50,
         group_id: asiaGroupId,
         state_id: 1,
       },
@@ -82,6 +90,8 @@ describe('Ticket Auto-Assign API', () => {
         email: 'agent@test.com',
         firstname: 'Agent',
         lastname: 'One',
+        active: true,
+        role_ids: [2],
         group_ids: { [asiaGroupId.toString()]: ['full'] },
         out_of_office: false,
       },
@@ -92,5 +102,59 @@ describe('Ticket Auto-Assign API', () => {
 
     expect(response.status).toBe(200)
     expect(zammadClient.updateTicket).toHaveBeenCalledWith(1, { owner_id: 20 })
+  })
+
+  it('assigns to bound staff when binding exists', async () => {
+    process.env.CRON_SECRET = 'secret'
+
+    const asiaGroupId = getGroupIdByRegion('asia-pacific')
+    vi.mocked(findActiveBinding).mockResolvedValue({
+      id: 1, customerZammadId: 50, staffZammadId: 30,
+      region: 'asia-pacific', source: 'auto', isActive: true,
+      createdAt: new Date(), updatedAt: new Date(), deactivatedAt: null,
+    })
+
+    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([
+      {
+        id: 1,
+        number: '10001',
+        title: 'Unassigned',
+        owner_id: 1,
+        customer_id: 50,
+        group_id: asiaGroupId,
+        state_id: 1,
+      },
+    ] as any)
+
+    vi.mocked(zammadClient.getAgents).mockResolvedValue([
+      {
+        id: 20,
+        email: 'other@test.com',
+        firstname: 'Other',
+        lastname: 'Agent',
+        active: true,
+        role_ids: [2],
+        group_ids: { [asiaGroupId.toString()]: ['full'] },
+        out_of_office: false,
+      },
+      {
+        id: 30,
+        email: 'bound@test.com',
+        firstname: 'Bound',
+        lastname: 'Agent',
+        active: true,
+        role_ids: [2],
+        group_ids: { [asiaGroupId.toString()]: ['full'] },
+        out_of_office: false,
+      },
+    ] as any)
+
+    const request = createRequestWithSecret('secret')
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(zammadClient.updateTicket).toHaveBeenCalledWith(1, { owner_id: 30 })
+    expect(data.data.results[0].assignedTo.id).toBe(30)
   })
 })

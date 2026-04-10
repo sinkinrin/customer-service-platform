@@ -18,11 +18,10 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
-import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
-
-// Excluded system accounts that shouldn't receive ticket assignments
-const EXCLUDED_EMAILS = ['support@howentech.com', 'howensupport@howentech.com']
+import { isAgentEligible, checkIsOnVacation, getAgentDisplayName } from '@/lib/ticket/agent-helpers'
+import { findActiveBinding, findOrCreateBinding, deactivateBindingByCustomer } from '@/lib/ticket/customer-binding'
+import { EXCLUDED_EMAILS } from '@/lib/ticket/auto-assign'
 
 interface AssignmentResult {
     ticketId: number
@@ -94,55 +93,68 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        const now = new Date()
         const results: AssignmentResult[] = []
 
         // Process each unassigned ticket
         for (const ticket of unassignedTickets) {
             const groupId = ticket.group_id
 
-            // Filter available agents for this group
-            const availableAgents = allAgents.filter(agent => {
-                // Exclude system/dispatcher accounts
-                if (EXCLUDED_EMAILS.some(email => agent.email?.toLowerCase() === email.toLowerCase())) {
-                    return false
-                }
+            // ★ Binding-first: check for dedicated staff
+            if (ticket.customer_id) {
+                try {
+                    const binding = await findActiveBinding(ticket.customer_id)
+                    if (binding) {
+                        const boundStaff = allAgents.find(a => a.id === binding.staffZammadId)
 
-                // Exclude Admin accounts from auto-assignment
-                if (agent.role_ids?.includes(ZAMMAD_ROLES.ADMIN)) {
-                    return false
-                }
-
-                // Check if agent has access to this group
-                const agentGroupIds = agent.group_ids || {}
-                const hasGroupAccess = Object.keys(agentGroupIds).includes(String(groupId))
-
-                // Check if on vacation
-                if (agent.out_of_office) {
-                    const startDate = agent.out_of_office_start_at ? new Date(agent.out_of_office_start_at) : null
-                    const endDate = agent.out_of_office_end_at ? new Date(agent.out_of_office_end_at) : null
-
-                    // Handle different OOO scenarios:
-                    // 1. Both dates set: check if currently within the range
-                    // 2. Only start date: open-ended vacation, on vacation if past start date
-                    // 3. Only end date: on vacation until end date
-                    if (startDate && endDate) {
-                        if (now >= startDate && now <= endDate) {
-                            return false // On vacation (bounded period)
+                        if (boundStaff && isAgentEligible(boundStaff, groupId, EXCLUDED_EMAILS)) {
+                            // Bound staff available — assign directly
+                            try {
+                                await zammadClient.updateTicket(ticket.id, { owner_id: boundStaff.id })
+                                ticketCountByAgent[boundStaff.id] = (ticketCountByAgent[boundStaff.id] || 0) + 1
+                                results.push({
+                                    ticketId: ticket.id,
+                                    ticketNumber: ticket.number,
+                                    assignedTo: { id: boundStaff.id, name: getAgentDisplayName(boundStaff), email: boundStaff.email },
+                                })
+                                log.info('Batch: assigned to bound staff', { ticketNumber: ticket.number, agentId: boundStaff.id })
+                                continue
+                            } catch (err) {
+                                log.error('Batch: failed to assign to bound staff', { ticketId: ticket.id, error: err instanceof Error ? err.message : err })
+                            }
                         }
-                    } else if (startDate && !endDate) {
-                        if (now >= startDate) {
-                            return false // On vacation (open-ended)
+
+                        // Bound staff on vacation — try replacement
+                        if (boundStaff && checkIsOnVacation(boundStaff) && boundStaff.out_of_office_replacement_id) {
+                            const replacement = allAgents.find(a => a.id === boundStaff.out_of_office_replacement_id)
+                            if (replacement && isAgentEligible(replacement, groupId, EXCLUDED_EMAILS)) {
+                                try {
+                                    await zammadClient.updateTicket(ticket.id, { owner_id: replacement.id })
+                                    ticketCountByAgent[replacement.id] = (ticketCountByAgent[replacement.id] || 0) + 1
+                                    results.push({
+                                        ticketId: ticket.id,
+                                        ticketNumber: ticket.number,
+                                        assignedTo: { id: replacement.id, name: getAgentDisplayName(replacement), email: replacement.email },
+                                    })
+                                    log.info('Batch: assigned to vacation replacement', { ticketNumber: ticket.number, agentId: replacement.id })
+                                    continue
+                                } catch (err) {
+                                    log.error('Batch: failed to assign to replacement', { ticketId: ticket.id, error: err instanceof Error ? err.message : err })
+                                }
+                            }
                         }
-                    } else if (!startDate && endDate) {
-                        if (now <= endDate) {
-                            return false // On vacation until end date
+
+                        // Bound staff inactive/missing — deactivate stale binding
+                        if (!boundStaff || !boundStaff.active) {
+                            deactivateBindingByCustomer(ticket.customer_id).catch(() => {})
                         }
                     }
+                } catch {
+                    // Binding lookup failed — fall through to load-balancing
                 }
+            }
 
-                return hasGroupAccess
-            })
+            // Load-balancing fallback (using shared helper)
+            const availableAgents = allAgents.filter(agent => isAgentEligible(agent, groupId, EXCLUDED_EMAILS))
 
             if (availableAgents.length === 0) {
                 const region = GROUP_REGION_MAPPING[groupId] || 'unknown'
@@ -155,7 +167,7 @@ export async function POST(request: NextRequest) {
                 continue
             }
 
-            // Sort by ticket count (ascending) and pick the one with lowest load
+            // Sort by ticket count (ascending) and pick lowest load
             availableAgents.sort((a, b) => {
                 const loadA = ticketCountByAgent[a.id] || 0
                 const loadB = ticketCountByAgent[b.id] || 0
@@ -165,42 +177,32 @@ export async function POST(request: NextRequest) {
             const selectedAgent = availableAgents[0]
 
             try {
-                // Assign ticket to this agent
                 await zammadClient.updateTicket(ticket.id, { owner_id: selectedAgent.id })
-
-                // Update local count for next assignment
                 ticketCountByAgent[selectedAgent.id] = (ticketCountByAgent[selectedAgent.id] || 0) + 1
-
-                const agentName = selectedAgent.firstname && selectedAgent.lastname
-                    ? `${selectedAgent.firstname} ${selectedAgent.lastname}`.trim()
-                    : selectedAgent.login || selectedAgent.email
-
-                const agentNameForLog = selectedAgent.firstname && selectedAgent.lastname
-                    ? `${selectedAgent.firstname} ${selectedAgent.lastname}`.trim()
-                    : selectedAgent.login || `agent#${selectedAgent.id}`
 
                 results.push({
                     ticketId: ticket.id,
                     ticketNumber: ticket.number,
                     assignedTo: {
                         id: selectedAgent.id,
-                        name: agentName,
+                        name: getAgentDisplayName(selectedAgent),
                         email: selectedAgent.email,
                     },
                 })
 
+                // Auto-create binding for first-time customers (non-blocking)
+                if (ticket.customer_id) {
+                    const region = GROUP_REGION_MAPPING[groupId] || 'unknown'
+                    findOrCreateBinding(ticket.customer_id, selectedAgent.id, region, 'auto').catch(() => {})
+                }
+
                 log.info('Ticket auto-assigned', {
-                    ticketId: ticket.id,
-                    ticketNumber: ticket.number,
-                    groupId,
-                    agentId: selectedAgent.id,
-                    agentName: agentNameForLog,
+                    ticketId: ticket.id, ticketNumber: ticket.number,
+                    groupId, agentId: selectedAgent.id,
                 })
             } catch (error) {
                 log.error('Failed to auto-assign ticket', {
-                    ticketId: ticket.id,
-                    ticketNumber: ticket.number,
-                    groupId,
+                    ticketId: ticket.id, ticketNumber: ticket.number,
                     error: error instanceof Error ? error.message : error,
                 })
                 results.push({

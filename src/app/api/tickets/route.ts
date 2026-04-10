@@ -521,9 +521,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Send notifications asynchronously (don't block response)
-    const notifyPromise = requestId
-      ? handleAssignmentNotification(assignResult, ticket.id, ticket.number, ticket.title, region, requestId)
-      : handleAssignmentNotification(assignResult, ticket.id, ticket.number, ticket.title, region)
+    const notifyPromise = handleAssignmentNotification(
+      assignResult, ticket.id, ticket.number, ticket.title, region, log.requestId
+    )
 
     notifyPromise.catch(err => log.error('Assignment notification error', { error: err instanceof Error ? err.message : err }))
 

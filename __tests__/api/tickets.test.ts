@@ -437,10 +437,12 @@ describe('Tickets API 集成测试', () => {
 
         expect(response.status).toBe(201)
         expect(autoAssignSingleTicket).toHaveBeenCalledWith(
-          expect.any(Number),
-          expect.any(String),
-          expect.any(String),
-          expect.any(Number)
+          expect.any(Number),  // ticketId
+          expect.any(String),  // ticketNumber
+          expect.any(String),  // ticketTitle
+          expect.any(Number),  // groupId
+          undefined,           // requestId (no request ID in test context)
+          expect.any(Number)   // customerId (zammadUser.id)
         )
       })
 
@@ -505,7 +507,8 @@ describe('Tickets API 集成测试', () => {
           expect.any(Number),
           expect.any(String),
           expect.any(String),
-          expect.any(String)
+          expect.any(String),
+          undefined // requestId
         )
       })
     })

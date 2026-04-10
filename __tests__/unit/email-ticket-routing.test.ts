@@ -79,7 +79,7 @@ describe('Email ticket routing', () => {
     } as any)
 
     expect(mockUpdateTicket).toHaveBeenCalledWith(100, { group_id: 4 })
-    expect(mockAutoAssignSingleTicket).toHaveBeenCalledWith(100, '100', 'Help', 4, undefined)
+    expect(mockAutoAssignSingleTicket).toHaveBeenCalledWith(100, '100', 'Help', 4, undefined, 1)
     expect(mockHandleAssignmentNotification).not.toHaveBeenCalled()
   })
 

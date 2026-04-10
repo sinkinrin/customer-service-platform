@@ -509,11 +509,10 @@ export async function POST(request: NextRequest) {
       log.error('Failed to create in-app notification for ticket creation', { error: notifyError instanceof Error ? notifyError.message : notifyError })
     }
 
-    // Auto-assign to available Staff in the ticket's region
-    const requestId = log.requestId
-    const assignResult = requestId
-      ? await autoAssignSingleTicket(ticket.id, ticket.number, ticket.title, groupId, requestId)
-      : await autoAssignSingleTicket(ticket.id, ticket.number, ticket.title, groupId)
+    // Auto-assign to available Staff in the ticket's region (with binding support)
+    const assignResult = await autoAssignSingleTicket(
+      ticket.id, ticket.number, ticket.title, groupId, log.requestId, zammadUser.id
+    )
 
     if (assignResult.success) {
       log.info('Ticket auto-assigned', { ticketNumber: ticket.number, assignedTo: assignResult.assignedTo?.name })

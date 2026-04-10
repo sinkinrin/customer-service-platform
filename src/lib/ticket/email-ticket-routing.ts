@@ -143,7 +143,8 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
       ticket.number,
       ticket.title,
       targetGroupId,
-      requestId
+      requestId,
+      customerId
     )
 
     if (!result.success) {

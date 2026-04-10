@@ -16,7 +16,7 @@ import { SystemMessage } from './system-message'
 import { MarkdownMessage } from './markdown-message'
 import { AIThinkingIndicator } from './ai-thinking-indicator'
 import { useTranslations } from 'next-intl'
-import { isImageType, isVideoType } from '@/lib/constants/attachments'
+import { isImageType, isVideoType, formatFileSize } from '@/lib/constants/attachments'
 import { MediaRenderer } from '@/components/ui/media-renderer'
 import { ImageLightbox } from '@/components/ui/image-lightbox'
 
@@ -226,7 +226,7 @@ export function MessageList({
                   "text-xs",
                   isCustomer ? "text-white/70" : "text-muted-foreground"
                 )}>
-                  {((message.metadata.file_size as number) / 1024).toFixed(1)} KB
+                  {formatFileSize(message.metadata.file_size as number)}
                 </p>
               )}
             </div>

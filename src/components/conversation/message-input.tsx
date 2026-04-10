@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import { useDragDrop } from '@/lib/hooks/use-drag-drop'
-import { FILE_ACCEPT } from '@/lib/constants/attachments'
+import { FILE_ACCEPT, ATTACHMENT_LIMITS, formatFileSize, isImageType } from '@/lib/constants/attachments'
 
 interface MessageInputProps {
   onSend: (content: string, messageType?: 'text' | 'image' | 'file', metadata?: Record<string, unknown>) => Promise<void>
@@ -43,7 +43,6 @@ export function MessageInput({
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  // IMPORTANT: isDisabled must be computed BEFORE the useDragDrop hook call
   const isDisabled = disabled || isSending || isUploading || isProcessing
 
   const tDragDrop = useTranslations('components.dragDrop')
@@ -52,7 +51,7 @@ export function MessageInput({
     onFiles: (files) => {
       const file = files[0]
       if (!file) return
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > ATTACHMENT_LIMITS.MAX_SIZE) {
         toast.error(tToast('fileSizeError'))
         return
       }
@@ -61,9 +60,8 @@ export function MessageInput({
     disabled: isDisabled,
   })
 
-  // Generate/revoke preview URL for image files
   useEffect(() => {
-    if (selectedFile && selectedFile.type.startsWith('image/')) {
+    if (selectedFile && isImageType(selectedFile.type)) {
       const url = URL.createObjectURL(selectedFile)
       setPreviewUrl(url)
       return () => URL.revokeObjectURL(url)
@@ -106,7 +104,7 @@ export function MessageInput({
         const fileData = uploadData.data
 
         // Determine message type based on MIME type
-        if (fileData.mime_type?.startsWith('image/')) {
+        if (fileData.mime_type && isImageType(fileData.mime_type)) {
           messageType = 'image'
         } else {
           messageType = 'file'
@@ -156,8 +154,7 @@ export function MessageInput({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > ATTACHMENT_LIMITS.MAX_SIZE) {
       toast.error(tToast('fileSizeError'))
       return
     }
@@ -240,7 +237,7 @@ export function MessageInput({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{selectedFile.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {(selectedFile.size / 1024).toFixed(1)} KB
+                    {formatFileSize(selectedFile.size)}
                   </p>
                 </div>
                 <button

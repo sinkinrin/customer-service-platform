@@ -13,7 +13,7 @@ import {
 import { Paperclip, Download } from 'lucide-react'
 import type { TicketArticle, TicketArticleAttachment } from '@/lib/hooks/use-ticket'
 import { cn } from '@/lib/utils'
-import { isImageType, isVideoType } from '@/lib/constants/attachments'
+import { isImageType, isVideoType, formatFileSize as formatFileSizeBytes } from '@/lib/constants/attachments'
 import { MediaRenderer } from '@/components/ui/media-renderer'
 import { ImageLightbox } from '@/components/ui/image-lightbox'
 
@@ -24,15 +24,11 @@ interface ArticleContentProps {
   noBubbleStyle?: boolean // Skip sender-specific background in content
 }
 
-/**
- * 格式化文件大小
- */
+/** Parse size string from Zammad API and format using shared utility */
 function formatFileSize(sizeStr: string): string {
   const bytes = parseInt(sizeStr, 10)
   if (isNaN(bytes)) return sizeStr
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return formatFileSizeBytes(bytes)
 }
 
 /**

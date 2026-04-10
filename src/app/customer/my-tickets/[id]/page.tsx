@@ -15,6 +15,7 @@ import { ATTACHMENT_LIMITS, FILE_ACCEPT, formatFileSize } from '@/lib/constants/
 import { useFileUpload } from '@/lib/hooks/use-file-upload'
 import { useDragDrop } from '@/lib/hooks/use-drag-drop'
 import { cn } from '@/lib/utils'
+import { DragOverlay } from '@/components/ui/drag-overlay'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,8 +71,6 @@ export default function CustomerTicketDetailPage() {
   } = useFileUpload({
     onError: (msg) => toast.error(msg),
   })
-
-  const tDragDrop = useTranslations('components.dragDrop')
 
   const { isDragging, dragProps } = useDragDrop({
     onFiles: async (files) => {
@@ -369,11 +368,7 @@ export default function CustomerTicketDetailPage() {
                       isDragging && "border-primary border-dashed ring-2 ring-primary/20"
                     )}
                   >
-                    {isDragging && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-primary/5">
-                        <p className="text-sm font-medium text-primary">{tDragDrop('release')}</p>
-                      </div>
-                    )}
+                    {isDragging && <DragOverlay className="rounded-lg" />}
                     <Textarea
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
@@ -548,11 +543,7 @@ export default function CustomerTicketDetailPage() {
                   "flex flex-col relative w-full gap-2",
                   isDragging && "ring-2 ring-primary/20 rounded-lg"
                 )}>
-                  {isDragging && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-primary/5">
-                      <p className="text-sm font-medium text-primary">{tDragDrop('release')}</p>
-                    </div>
-                  )}
+                  {isDragging && <DragOverlay className="rounded-lg" />}
                   <Textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}

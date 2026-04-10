@@ -71,15 +71,6 @@ LOG_LEVEL=info
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=true  # Enable test users (dev only)
 ```
 
-## Test Accounts (Development)
-
-When `NEXT_PUBLIC_ENABLE_MOCK_AUTH=true`:
-- **Customer**: `customer@test.com` (password: `password123`)
-- **Staff**: `staff@test.com` (password: `password123`)
-- **Admin**: `admin@test.com` (password: `password123`)
-
-Regional test users also available (asia-pacific@test.com, middle-east@test.com, etc.)
-
 ## Architecture Notes
 
 ### Authentication Flow

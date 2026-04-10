@@ -266,3 +266,23 @@ model AiQaReview {
   @@index([messageId])
   @@map("ai_qa_reviews")
 }
+
+// Customer-Staff Fixed Binding (persistent assignment relationship)
+// Each customer is bound to one dedicated staff member for ticket assignment.
+// When a customer creates a ticket, the system assigns it to their bound staff first.
+model CustomerStaffBinding {
+  id               Int       @id @default(autoincrement())
+  customerZammadId Int       @unique // Zammad customer user ID (one binding per customer)
+  staffZammadId    Int       // Zammad staff user ID (dedicated support person)
+  region           String    // Region at time of binding (for change detection)
+  source           String    // 'auto' = first-ticket auto-bind, 'manual' = admin-set
+  isActive         Boolean   @default(true)
+  deactivatedAt    DateTime? // Audit: when binding was deactivated (null = active)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([staffZammadId])
+  @@index([isActive, staffZammadId])
+  @@index([isActive, region])
+  @@map("customer_staff_bindings")
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, type DragEvent } from 'react'
+import { useState, useCallback, useRef, useEffect, type DragEvent } from 'react'
 
 interface UseDragDropOptions {
   /** Callback when files are dropped */
@@ -33,6 +33,8 @@ interface UseDragDropReturn {
 export function useDragDrop({ onFiles, disabled = false, accept }: UseDragDropOptions): UseDragDropReturn {
   const [isDragging, setIsDragging] = useState(false)
   const dragCounter = useRef(0)
+  const onFilesRef = useRef(onFiles)
+  useEffect(() => { onFilesRef.current = onFiles }, [onFiles])
 
   const onDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault()
@@ -75,9 +77,9 @@ export function useDragDrop({ onFiles, disabled = false, accept }: UseDragDropOp
       : droppedFiles
 
     if (filtered.length > 0) {
-      onFiles(filtered)
+      onFilesRef.current(filtered)
     }
-  }, [disabled, accept, onFiles])
+  }, [disabled, accept])
 
   return {
     isDragging,

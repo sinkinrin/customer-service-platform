@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { ATTACHMENT_LIMITS, FILE_ACCEPT, formatFileSize } from '@/lib/constants/attachments'
 import { useFileUpload } from '@/lib/hooks/use-file-upload'
 import { useDragDrop } from '@/lib/hooks/use-drag-drop'
+import { DragOverlay } from '@/components/ui/drag-overlay'
 
 interface TicketActionsProps {
   ticket: ZammadTicket
@@ -89,8 +90,6 @@ export function TicketActions({
   } = useFileUpload({
     onError: (msg) => toast.error(msg),
   })
-
-  const tDragDrop = useTranslations('components.dragDrop')
 
   const { isDragging, dragProps } = useDragDrop({
     onFiles: async (files) => {
@@ -374,11 +373,7 @@ export function TicketActions({
           </div>
 
           <div {...dragProps} className={cn("flex-1 min-h-0 relative", isDragging && "ring-2 ring-primary/20 rounded-lg")}>
-            {isDragging && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-primary/5">
-                <p className="text-sm font-medium text-primary">{tDragDrop('release')}</p>
-              </div>
-            )}
+            {isDragging && <DragOverlay className="rounded-lg" />}
             <Textarea
               id="note"
               ref={noteTextareaRef}

@@ -6,10 +6,14 @@ import {
     XAxis,
     YAxis,
     CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    type ChartConfig,
+} from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isValidRegion, type RegionValue } from '@/lib/constants/regions'
 
@@ -29,6 +33,12 @@ interface RegionDistributionChartProps {
 export function RegionDistributionChart({ data, loading, className }: RegionDistributionChartProps) {
     const t = useTranslations('admin.dashboard')
     const tRegions = useTranslations('common.regions')
+
+    const chartConfig = {
+        open: { label: t('regionalDistribution.open'), color: 'hsl(var(--warning))' },
+        closed: { label: t('regionalDistribution.closed'), color: 'hsl(var(--success))' },
+    } satisfies ChartConfig
+
     if (loading) {
         return (
             <Card className={className}>
@@ -78,7 +88,7 @@ export function RegionDistributionChart({ data, loading, className }: RegionDist
                 <CardDescription>{t('regionalDistribution.description')}</CardDescription>
             </CardHeader>
             <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
                     <BarChart
                         data={sortedData}
                         layout="vertical"
@@ -97,17 +107,11 @@ export function RegionDistributionChart({ data, loading, className }: RegionDist
                             tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                             tickLine={{ stroke: 'hsl(var(--muted))' }}
                         />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '0.5rem',
-                            }}
-                        />
-                        <Bar dataKey="open" name={t('regionalDistribution.open')} stackId="a" fill="#f59e0b" />
-                        <Bar dataKey="closed" name={t('regionalDistribution.closed')} stackId="a" fill="#22c55e" />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="open" stackId="a" fill="var(--color-open)" />
+                        <Bar dataKey="closed" stackId="a" fill="var(--color-closed)" />
                     </BarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
             </CardContent>
         </Card>
     )

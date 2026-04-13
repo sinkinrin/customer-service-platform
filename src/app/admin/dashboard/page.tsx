@@ -65,15 +65,15 @@ interface AiConversationStats {
 const getActivityIcon = (state: string) => {
   const stateLower = state?.toLowerCase() || ''
   if (stateLower.includes('new')) {
-    return <Ticket className="h-4 w-4 text-blue-600" />
+    return <Ticket className="h-4 w-4 text-info" />
   } else if (stateLower.includes('open')) {
-    return <Ticket className="h-4 w-4 text-orange-600" />
+    return <Ticket className="h-4 w-4 text-warning" />
   } else if (stateLower.includes('pending')) {
-    return <Ticket className="h-4 w-4 text-yellow-600" />
+    return <Ticket className="h-4 w-4 text-warning" />
   } else if (stateLower.includes('closed')) {
-    return <CheckCircle2 className="h-4 w-4 text-green-600" />
+    return <CheckCircle2 className="h-4 w-4 text-success" />
   }
-  return <Activity className="h-4 w-4 text-gray-600" />
+  return <Activity className="h-4 w-4 text-muted-foreground" />
 }
 
 const formatRelativeTime = (
@@ -193,8 +193,8 @@ export default function AdminDashboardPage() {
     <PageTransition className="space-y-6">
       {/* Welcome Section */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t('welcome', { name: adminName })}</h1>
-        <p className="text-gray-600 mt-2">{t('overview')}</p>
+        <h1 className="text-3xl font-bold text-foreground">{t('welcome', { name: adminName })}</h1>
+        <p className="text-muted-foreground mt-2">{t('overview')}</p>
       </div>
 
       {/* Statistics Cards with Toggle */}
@@ -510,11 +510,11 @@ export default function AdminDashboardPage() {
                   href={`/admin/tickets/${activity.id}`}
                   className="block"
                 >
-                  <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                    <div className="mt-1">{getActivityIcon(activity.state || '')}</div>
+                  <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-md bg-muted shrink-0">{getActivityIcon(activity.state || '')}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                        <p className="font-medium text-foreground truncate">
                           #{activity.ticketNumber} - {activity.title}
                         </p>
                       </div>
@@ -522,7 +522,7 @@ export default function AdminDashboardPage() {
                         <Badge variant="outline" className="text-xs">
                           {activity.state}
                         </Badge>
-                        <p className="text-xs text-gray-500">{formatRelativeTime(activity.timestamp, tTime)}</p>
+                        <p className="text-xs text-muted-foreground">{formatRelativeTime(activity.timestamp, tTime)}</p>
                       </div>
                     </div>
                   </div>
@@ -542,19 +542,19 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('systemHealth.apiStatus')}</span>
+              <span className="text-sm text-muted-foreground">{t('systemHealth.apiStatus')}</span>
               <Badge variant="default" className="bg-green-600">{tCommon('status.operational')}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('systemHealth.database')}</span>
+              <span className="text-sm text-muted-foreground">{t('systemHealth.database')}</span>
               <Badge variant="default" className="bg-green-600">{tCommon('status.healthy')}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('systemHealth.zammadIntegration')}</span>
+              <span className="text-sm text-muted-foreground">{t('systemHealth.zammadIntegration')}</span>
               <Badge variant="default" className="bg-green-600">{tCommon('status.connected')}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('systemHealth.fastgpt')}</span>
+              <span className="text-sm text-muted-foreground">{t('systemHealth.fastgpt')}</span>
               <Badge variant="outline" className="text-xs">{tCommon('status.notConfigured')}</Badge>
             </div>
           </CardContent>
@@ -570,23 +570,23 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('platformMetrics.customerSatisfaction')}</span>
+              <span className="text-sm text-muted-foreground">{t('platformMetrics.customerSatisfaction')}</span>
               <span className="text-sm font-medium text-green-600">{ratingStats.satisfactionRate}%</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 flex items-center gap-1">
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
                 <ThumbsUp className="h-3 w-3" /> {tRating('positive')}
               </span>
               <span className="text-sm font-medium text-green-600">{ratingStats.positive}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 flex items-center gap-1">
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
                 <ThumbsDown className="h-3 w-3" /> {tRating('negative')}
               </span>
               <span className="text-sm font-medium text-red-600">{ratingStats.negative}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('ratings.total')}</span>
+              <span className="text-sm text-muted-foreground">{t('ratings.total')}</span>
               <span className="text-sm font-medium">{ratingStats.total}</span>
             </div>
             {ratingStats.recentNegative.length > 0 && (

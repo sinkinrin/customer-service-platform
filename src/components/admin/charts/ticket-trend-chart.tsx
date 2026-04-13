@@ -8,11 +8,16 @@ import {
     XAxis,
     YAxis,
     CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Legend,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    ChartLegend,
+    ChartLegendContent,
+    type ChartConfig,
+} from '@/components/ui/chart'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -32,6 +37,11 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
     const [range, setRange] = useState('7d')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+
+    const chartConfig = {
+        new: { label: t('ticketTrends.series.new'), color: 'hsl(var(--info))' },
+        closed: { label: t('ticketTrends.series.closed'), color: 'hsl(var(--success))' },
+    } satisfies ChartConfig
 
     useEffect(() => {
         loadData()
@@ -89,16 +99,16 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
                         {error}
                     </div>
                 ) : (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ChartContainer config={chartConfig} className="h-[300px] w-full">
                         <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="var(--color-new)" stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor="var(--color-new)" stopOpacity={0} />
                                 </linearGradient>
                                 <linearGradient id="colorClosed" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="var(--color-closed)" stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor="var(--color-closed)" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -112,33 +122,27 @@ export function TicketTrendChart({ className }: TicketTrendChartProps) {
                                 tick={{ fill: 'hsl(var(--muted-foreground))' }}
                                 tickLine={{ stroke: 'hsl(var(--muted))' }}
                             />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: 'hsl(var(--card))',
-                                    border: '1px solid hsl(var(--border))',
-                                    borderRadius: '0.5rem',
-                                }}
+                            <ChartTooltip
+                                content={<ChartTooltipContent />}
                                 labelFormatter={formatDate}
                             />
-                            <Legend />
+                            <ChartLegend content={<ChartLegendContent />} />
                             <Area
                                 type="monotone"
                                 dataKey="new"
-                                name={t('ticketTrends.series.new')}
-                                stroke="#3b82f6"
+                                stroke="var(--color-new)"
                                 fillOpacity={1}
                                 fill="url(#colorNew)"
                             />
                             <Area
                                 type="monotone"
                                 dataKey="closed"
-                                name={t('ticketTrends.series.closed')}
-                                stroke="#22c55e"
+                                stroke="var(--color-closed)"
                                 fillOpacity={1}
                                 fill="url(#colorClosed)"
                             />
                         </AreaChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                 )}
             </CardContent>
         </Card>

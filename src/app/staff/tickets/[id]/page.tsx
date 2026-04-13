@@ -33,6 +33,7 @@ const statusStyles: Record<string, string> = {
   'pending reminder': 'bg-amber-400 text-gray-900 hover:bg-amber-400',
   'pending close': 'bg-orange-500 text-white hover:bg-orange-500',
   closed: 'bg-gray-400 text-white hover:bg-gray-400',
+  merged: 'bg-violet-500 text-white hover:bg-violet-500',
 }
 
 function TicketStatusBadge({ state }: { state?: string }) {

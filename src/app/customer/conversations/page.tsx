@@ -130,9 +130,9 @@ export default function ConversationsPage() {
         <CardContent>
           <div className="flex justify-center">
             <div className="flex space-x-2">
-              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none" style={{ animationDelay: '0ms' }} />
-              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none" style={{ animationDelay: '150ms' }} />
-              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none" style={{ animationDelay: '300ms' }} />
+              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none" />
+              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none [animation-delay:150ms]" />
+              <div className="h-2 w-2 bg-primary rounded-full animate-bounce motion-reduce:animate-none [animation-delay:300ms]" />
             </div>
           </div>
         </CardContent>

@@ -27,45 +27,30 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 
 // Compact status badge component
-function TicketStatusBadge({ state }: { state?: string }) {
-  if (!state) return null
-  const stateLower = state.toLowerCase()
-
-  let className = 'text-xs '
-  if (stateLower === 'new') {
-    className += 'bg-green-500 text-white hover:bg-green-500'
-  } else if (stateLower === 'open') {
-    className += 'bg-blue-500 text-white hover:bg-blue-500'
-  } else if (stateLower === 'pending reminder') {
-    className += 'bg-amber-400 text-gray-900 hover:bg-amber-400'
-  } else if (stateLower === 'pending close') {
-    className += 'bg-orange-500 text-white hover:bg-orange-500'
-  } else if (stateLower === 'closed') {
-    className += 'bg-gray-400 text-white hover:bg-gray-400'
-  } else {
-    className += 'bg-gray-400 text-white hover:bg-gray-400'
-  }
-
-  return <Badge className={className}>{state}</Badge>
+const statusStyles: Record<string, string> = {
+  new: 'bg-green-500 text-white hover:bg-green-500',
+  open: 'bg-blue-500 text-white hover:bg-blue-500',
+  'pending reminder': 'bg-amber-400 text-gray-900 hover:bg-amber-400',
+  'pending close': 'bg-orange-500 text-white hover:bg-orange-500',
+  closed: 'bg-gray-400 text-white hover:bg-gray-400',
 }
 
-// Compact priority badge component
+function TicketStatusBadge({ state }: { state?: string }) {
+  if (!state) return null
+  const style = statusStyles[state.toLowerCase()] ?? statusStyles.closed
+  return <Badge className={`text-xs ${style}`}>{state}</Badge>
+}
+
+const priorityStyles: Record<string, string> = {
+  '1 low': 'bg-indigo-300 text-gray-800 hover:bg-indigo-300',
+  '2 normal': 'bg-indigo-500 text-white hover:bg-indigo-500',
+  '3 high': 'bg-red-500 text-white hover:bg-red-500',
+}
+
 function TicketPriorityBadge({ priority }: { priority?: string }) {
   if (!priority) return null
-  const priorityLower = priority.toLowerCase()
-
-  let className = 'text-xs '
-  if (priorityLower === '1 low') {
-    className += 'bg-indigo-200 text-gray-800 hover:bg-indigo-200'
-  } else if (priorityLower === '2 normal') {
-    className += 'bg-indigo-500 text-white hover:bg-indigo-500'
-  } else if (priorityLower === '3 high') {
-    className += 'bg-red-500 text-white hover:bg-red-500'
-  } else {
-    className += 'bg-indigo-500 text-white hover:bg-indigo-500'
-  }
-
-  return <Badge className={className}>{priority}</Badge>
+  const style = priorityStyles[priority.toLowerCase()] ?? priorityStyles['2 normal']
+  return <Badge className={`text-xs ${style}`}>{priority}</Badge>
 }
 
 export default function StaffTicketDetailPage() {

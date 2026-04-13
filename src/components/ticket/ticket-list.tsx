@@ -45,57 +45,24 @@ const getStatusIcon = (state: string | undefined) => {
 }
 
 const getStatusColor = (state: string | undefined) => {
-  if (!state) {
-    return 'bg-[#9CA3AF] text-white'
-  }
+  if (!state) return 'bg-gray-400 text-white'
   const stateLower = state.toLowerCase()
-  // New (新建) - Bright Green for attention
-  if (stateLower === 'new') {
-    return 'bg-[#22C55E] text-white'
-  }
-  // Open (进行中) - Bright Blue
-  if (stateLower === 'open') {
-    return 'bg-[#3B82F6] text-white'
-  }
-  // Pending Reminder (等待提醒) - Amber Yellow
-  if (stateLower === 'pending reminder') {
-    return 'bg-[#FBBF24] text-gray-900'
-  }
-  // Pending Close (待关闭) - Orange
-  if (stateLower === 'pending close') {
-    return 'bg-[#F97316] text-white'
-  }
-  // Closed (已关闭) - Neutral Gray
-  if (stateLower === 'closed') {
-    return 'bg-[#9CA3AF] text-white'
-  }
-  // Merged (已合并) - Purple
-  if (stateLower === 'merged') {
-    return 'bg-[#8B5CF6] text-white'
-  }
-  // Default fallback
-  return 'bg-[#9CA3AF] text-white'
+  if (stateLower === 'new') return 'bg-green-500 text-white'
+  if (stateLower === 'open') return 'bg-blue-500 text-white'
+  if (stateLower === 'pending reminder') return 'bg-amber-400 text-gray-900'
+  if (stateLower === 'pending close') return 'bg-orange-500 text-white'
+  if (stateLower === 'closed') return 'bg-gray-400 text-white'
+  if (stateLower === 'merged') return 'bg-violet-500 text-white'
+  return 'bg-gray-400 text-white'
 }
 
 const getPriorityColor = (priority: string | undefined) => {
-  if (!priority) {
-    return 'bg-[#6366F1] text-white'
-  }
+  if (!priority) return 'bg-indigo-500 text-white'
   const priorityLower = priority.toLowerCase()
-  // Low (低) - Light Blue-Gray
-  if (priorityLower === '1 low') {
-    return 'bg-[#A5B4FC] text-gray-800'
-  }
-  // Normal (普通) - Neutral Blue-Gray
-  if (priorityLower === '2 normal') {
-    return 'bg-[#6366F1] text-white'
-  }
-  // High (高) - Bright Red
-  if (priorityLower === '3 high') {
-    return 'bg-[#EF4444] text-white'
-  }
-  // Default fallback
-  return 'bg-[#6366F1] text-white'
+  if (priorityLower === '1 low') return 'bg-indigo-300 text-gray-800'
+  if (priorityLower === '2 normal') return 'bg-indigo-500 text-white'
+  if (priorityLower === '3 high') return 'bg-red-500 text-white'
+  return 'bg-indigo-500 text-white'
 }
 
 export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {

@@ -117,7 +117,7 @@ describe('TicketDetail', () => {
       render(<TicketDetail ticket={ticket} />)
 
       const badge = screen.getByText('open')
-      expect(badge).toHaveClass('bg-[#3B82F6]')
+      expect(badge).toHaveClass('bg-blue-500')
     })
 
     it('closed 状态应该有灰色背景', () => {
@@ -125,7 +125,7 @@ describe('TicketDetail', () => {
       render(<TicketDetail ticket={ticket} />)
 
       const badge = screen.getByText('closed')
-      expect(badge).toHaveClass('bg-[#9CA3AF]')
+      expect(badge).toHaveClass('bg-gray-400')
     })
 
     it('pending reminder 状态应该有黄色背景', () => {
@@ -133,7 +133,7 @@ describe('TicketDetail', () => {
       render(<TicketDetail ticket={ticket} />)
 
       const badge = screen.getByText('pending reminder')
-      expect(badge).toHaveClass('bg-[#FBBF24]')
+      expect(badge).toHaveClass('bg-amber-400')
     })
   })
 
@@ -143,7 +143,7 @@ describe('TicketDetail', () => {
       render(<TicketDetail ticket={ticket} />)
 
       const badge = screen.getByText('3 high')
-      expect(badge).toHaveClass('bg-[#EF4444]')
+      expect(badge).toHaveClass('bg-red-500')
     })
 
     it('1 low 优先级应该有浅蓝色背景', () => {
@@ -151,7 +151,7 @@ describe('TicketDetail', () => {
       render(<TicketDetail ticket={ticket} />)
 
       const badge = screen.getByText('1 low')
-      expect(badge).toHaveClass('bg-[#A5B4FC]')
+      expect(badge).toHaveClass('bg-indigo-300')
     })
   })
 })

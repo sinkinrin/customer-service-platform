@@ -39,17 +39,18 @@ interface TicketHistoryDialogProps {
 
 const getStateColor = (state: string) => {
   const stateLower = state?.toLowerCase() || ''
-  if (stateLower.includes('open') || stateLower.includes('new')) return 'bg-blue-500'
+  if (stateLower.includes('new')) return 'bg-green-500'
+  if (stateLower.includes('open')) return 'bg-blue-500'
   if (stateLower.includes('pending close')) return 'bg-orange-500'
-  if (stateLower.includes('pending')) return 'bg-yellow-500'
+  if (stateLower.includes('pending')) return 'bg-amber-400'
   if (stateLower.includes('closed')) return 'bg-gray-400'
   return 'bg-gray-400'
 }
 
 const getPriorityColor = (priority: string) => {
-  if (priority?.includes('high') || priority?.includes('3')) return 'text-red-600'
-  if (priority?.includes('low') || priority?.includes('1')) return 'text-gray-500'
-  return 'text-blue-600'
+  if (priority?.includes('high') || priority?.includes('3')) return 'text-destructive'
+  if (priority?.includes('low') || priority?.includes('1')) return 'text-muted-foreground'
+  return 'text-info'
 }
 
 export function TicketHistoryDialog({

@@ -439,30 +439,32 @@ export function TicketActions({
                   <div
                     key={index}
                     className={`flex items-center justify-between py-1 px-2 rounded border transition-colors group ${
-                      uploadedFile.error ? 'bg-red-50 border-red-200' :
-                      uploadedFile.uploading ? 'bg-yellow-50 border-yellow-200' :
-                      'bg-green-50 border-green-200'
+                      uploadedFile.error ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800' :
+                      uploadedFile.uploading ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800' :
+                      'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800'
                     }`}
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       {uploadedFile.uploading ? (
-                        <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin text-yellow-600" />
+                        <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin text-warning" />
                       ) : uploadedFile.error ? (
-                        <X className="h-3 w-3 flex-shrink-0 text-red-600" />
+                        <X className="h-3 w-3 flex-shrink-0 text-destructive" />
                       ) : (
-                        <CheckCircle className="h-3 w-3 flex-shrink-0 text-green-600" />
+                        <CheckCircle className="h-3 w-3 flex-shrink-0 text-success" />
                       )}
                       <span className="text-xs truncate max-w-[180px]">{uploadedFile.file.name}</span>
                       <span className="text-[10px] text-muted-foreground flex-shrink-0">
                         ({formatFileSize(uploadedFile.file.size)})
                       </span>
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleRemoveFile(index)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-destructive transition-all"
+                      className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0.5 text-muted-foreground hover:text-destructive"
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>

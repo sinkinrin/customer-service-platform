@@ -246,7 +246,7 @@ export default function AdminDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '50ms' }}>
+            <Card className="animate-fade-in motion-reduce:animate-none [animation-delay:50ms]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('stats.totalTickets')}</CardTitle>
                 <Ticket className="h-4 w-4 text-muted-foreground" />
@@ -261,13 +261,13 @@ export default function AdminDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '90ms' }}>
+            <Card className="animate-fade-in motion-reduce:animate-none [animation-delay:90ms]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('stats.openTickets')}</CardTitle>
-                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <AlertCircle className="h-4 w-4 text-warning" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-2xl font-bold text-warning">
                   {statsMode === 'today' ? ticketStats.open : allTimeStats.open}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -276,13 +276,13 @@ export default function AdminDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '130ms' }}>
+            <Card className="animate-fade-in motion-reduce:animate-none [animation-delay:130ms]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('stats.closedTickets')}</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-success">
                   {statsMode === 'today' ? ticketStats.closed : allTimeStats.closed}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -341,10 +341,10 @@ export default function AdminDashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '50ms' }}>
+              <Card className="animate-fade-in motion-reduce:animate-none [animation-delay:50ms]">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{tAiStats('messages')}</CardTitle>
-                  <MessageSquare className="h-4 w-4 text-blue-600" />
+                  <MessageSquare className="h-4 w-4 text-info" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{aiStats.messages.total}</div>
@@ -354,23 +354,23 @@ export default function AdminDashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '90ms' }}>
+              <Card className="animate-fade-in motion-reduce:animate-none [animation-delay:90ms]">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{tAiStats('ratingsTitle')}</CardTitle>
-                  <ThumbsUp className="h-4 w-4 text-green-600" />
+                  <ThumbsUp className="h-4 w-4 text-success" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{aiStats.ratings.satisfactionRate}%</div>
+                  <div className="text-2xl font-bold text-success">{aiStats.ratings.satisfactionRate}%</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {aiStats.ratings.positive} {tAiStats('positive')} / {aiStats.ratings.negative} {tAiStats('negative')}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="animate-fade-in motion-reduce:animate-none" style={{ animationDelay: '130ms' }}>
+              <Card className="animate-fade-in motion-reduce:animate-none [animation-delay:130ms]">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{tAiStats('recentNegative')}</CardTitle>
-                  <ThumbsDown className="h-4 w-4 text-red-600" />
+                  <ThumbsDown className="h-4 w-4 text-destructive" />
                 </CardHeader>
                 <CardContent>
                   {aiStats.recentNegative.length === 0 ? (

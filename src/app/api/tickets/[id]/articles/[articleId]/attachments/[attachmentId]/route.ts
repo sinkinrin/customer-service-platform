@@ -15,6 +15,38 @@ import {
 } from '@/lib/utils/api-response'
 import { logger } from '@/lib/utils/logger'
 
+/**
+ * Short-lived in-memory cache for getArticle results.
+ * When a ticket article has N attachments, the browser fires N concurrent
+ * requests — without this cache each one would call getArticle separately.
+ * TTL is 60 s (plenty for concurrent image loads, short enough to stay fresh).
+ */
+const articleCache = new Map<number, { promise: Promise<any>; expiry: number }>()
+const ARTICLE_CACHE_TTL = 60_000
+const ARTICLE_CACHE_MAX = 50
+
+async function getCachedArticle(articleId: number, email: string) {
+  const now = Date.now()
+  const cached = articleCache.get(articleId)
+  if (cached && cached.expiry > now) {
+    return cached.promise
+  }
+
+  const promise = zammadClient.getArticle(articleId, email).catch(err => {
+    articleCache.delete(articleId)
+    throw err
+  })
+
+  // Evict oldest entries if at capacity
+  if (articleCache.size >= ARTICLE_CACHE_MAX) {
+    const oldest = articleCache.keys().next().value!
+    articleCache.delete(oldest)
+  }
+
+  articleCache.set(articleId, { promise, expiry: now + ARTICLE_CACHE_TTL })
+  return promise
+}
+
 interface RouteParams {
   params: Promise<{
     id: string
@@ -36,9 +68,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return notFoundResponse('Invalid ID parameters')
     }
 
-    // Get article to find attachment filename
-    // All roles use X-On-Behalf-Of for unified permission control via Zammad
-    const article = await zammadClient.getArticle(artId, user.email)
+    // Get article to find attachment filename (cached to avoid N identical
+    // calls when the browser loads N attachments from the same article)
+    const article = await getCachedArticle(artId, user.email)
 
     // Find the attachment metadata to get the filename
     const attachmentMeta = article.attachments?.find((att: { id: number }) => att.id === attId)
@@ -48,8 +80,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     // All roles use X-On-Behalf-Of - Zammad validates user has access to this ticket
     const blob = await zammadClient.downloadAttachment(ticketId, artId, attId, user.email)
 
-    // Get content type from blob or default to octet-stream
-    const contentType = blob.type || 'application/octet-stream'
+    // Prefer Zammad's stored MIME metadata (most authoritative),
+    // then blob.type from the HTTP response, then fallback
+    const contentType = attachmentMeta?.preferences?.['Content-Type']
+      || attachmentMeta?.preferences?.['Mime-Type']
+      || blob.type
+      || 'application/octet-stream'
 
     // Convert blob to ArrayBuffer
     const arrayBuffer = await blob.arrayBuffer()

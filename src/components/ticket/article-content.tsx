@@ -41,7 +41,7 @@ export function getSenderStyle(sender: string, t?: (key: string) => string): {
   labelColor: string
 } {
   const getLabel = (key: string, fallback: string) => t ? t(key) : fallback
-  
+
   switch (sender) {
     case 'Customer':
       return {
@@ -97,7 +97,7 @@ function filterInlineAttachments(attachments: TicketArticleAttachment[]): Ticket
  */
 export function ArticleContent({ article, showAttachments = true, className, noBubbleStyle = false }: ArticleContentProps) {
   const t = useTranslations('tickets.details')
-  
+
   // 安全处理 HTML 内容
   const sanitizedBody = useMemo(() => {
     if (article.content_type === 'text/html' || article.content_type?.includes('html')) {
@@ -124,8 +124,19 @@ export function ArticleContent({ article, showAttachments = true, className, noB
       })
       // M9: Strip remote image src to prevent tracking pixels
       // Replace remote img src with empty (keeps alt text visible)
-      return clean.replace(/<img\s+([^>]*?)src\s*=\s*["']https?:\/\/[^"']*["']([^>]*?)>/gi,
+      let html = clean.replace(/<img\s+([^>]*?)src\s*=\s*["']https?:\/\/[^"']*["']([^>]*?)>/gi,
         '<img $1src="" $2 title="[remote image blocked]">')
+
+      // Rewrite Zammad's internal attachment URLs to our Next.js proxy route.
+      // We explicitly limit this regex to match only URLs within "src=" or "href=" attributes.
+      // This prevents corrupting any plain text discussions about Zammad API routes in the ticket body.
+      // Example match: src="/api/v1/ticket_attachment/186/677/647" 
+      html = html.replace(
+        /(src|href)\s*=\s*(["'])(?:[^"']*?)\/api\/v1\/ticket_attachment\/(\d+)\/(\d+)\/(\d+)(?:\?[^"']*)?\2/gi,
+        '$1=$2/api/tickets/$3/articles/$4/attachments/$5?inline=true$2'
+      )
+
+      return html
     }
     return null
   }, [article.body, article.content_type])
@@ -296,12 +307,12 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
   const isCustomerSender = article.sender === 'Customer'
   const isSystem = article.sender === 'System'
   const isAgentSender = article.sender === 'Agent'
-  
+
   // Determine if this message should be on the right ("my message")
   // - For customer viewer: customer messages are on the right
   // - For staff/admin viewer: agent messages are on the right
   const isMyMessage = viewerRole === 'customer' ? isCustomerSender : isAgentSender
-  
+
   // System messages: centered, full width
   if (isSystem) {
     return (
@@ -325,7 +336,7 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
       </div>
     )
   }
-  
+
   return (
     <div className={cn(
       'flex',
@@ -363,7 +374,7 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
             )}
           </div>
         )}
-        
+
         {/* Message bubble */}
         <div className={cn(
           'rounded-2xl px-4 py-3 shadow-sm',

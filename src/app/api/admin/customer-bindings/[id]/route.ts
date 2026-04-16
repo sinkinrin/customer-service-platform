@@ -11,16 +11,22 @@ import {
   validationErrorResponse,
   notFoundResponse,
   serverErrorResponse,
+  serviceUnavailableResponse,
 } from '@/lib/utils/api-response'
 import { deactivateBinding } from '@/lib/ticket/customer-binding'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/utils/logger'
+import { isServiceGroupAssignmentCutoverActive } from '@/lib/service-groups/cutover'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     await requireRole(['admin'])
+
+    if (isServiceGroupAssignmentCutoverActive()) {
+      return serviceUnavailableResponse('Legacy customer binding mutations are disabled during service-group cutover')
+    }
 
     const { id } = await params
     const bindingId = parseInt(id)

@@ -16,6 +16,7 @@ import {
 } from '@/lib/notification'
 import { checkIsOnVacation, getAgentDisplayName, isAgentEligible } from '@/lib/ticket/agent-helpers'
 import { findActiveBinding, findOrCreateBinding, deactivateBindingByCustomer } from '@/lib/ticket/customer-binding'
+import { isServiceGroupAssignmentCutoverActive } from '@/lib/service-groups/cutover'
 
 // Excluded system accounts that shouldn't receive ticket assignments
 export const EXCLUDED_EMAILS = ['support@howentech.com', 'howensupport@howentech.com']
@@ -152,7 +153,7 @@ export async function autoAssignSingleTicket(
     const agentName = getAgentDisplayName(selectedAgent)
 
     // ★ 9. Auto-create binding for first-time customers
-    if (customerId && !bindingExists) {
+    if (customerId && !bindingExists && !isServiceGroupAssignmentCutoverActive()) {
       const region = GROUP_REGION_MAPPING[groupId] || 'unknown'
       findOrCreateBinding(customerId, selectedAgent.id, region, 'auto').catch(err => {
         log.warning('Failed to auto-create binding (non-blocking)', {

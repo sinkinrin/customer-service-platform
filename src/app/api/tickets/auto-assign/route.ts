@@ -15,6 +15,7 @@ import {
     successResponse,
     serverErrorResponse,
     errorResponse,
+    serviceUnavailableResponse,
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
@@ -22,6 +23,7 @@ import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/not
 import { isAgentEligible, checkIsOnVacation, getAgentDisplayName } from '@/lib/ticket/agent-helpers'
 import { findActiveBinding, findOrCreateBinding, deactivateBindingByCustomer } from '@/lib/ticket/customer-binding'
 import { EXCLUDED_EMAILS } from '@/lib/ticket/auto-assign'
+import { isServiceGroupAssignmentCutoverActive } from '@/lib/service-groups/cutover'
 
 interface AssignmentResult {
     ticketId: number
@@ -56,6 +58,11 @@ export async function POST(request: NextRequest) {
         } else {
             // No cron secret provided - require admin role via session
             await requireRole(['admin'])
+        }
+
+        if (isServiceGroupAssignmentCutoverActive()) {
+            log.warning('Auto-assign skipped: service-group cutover active')
+            return serviceUnavailableResponse('Batch auto-assignment is disabled during service-group cutover')
         }
 
         log.info('Auto-assign started', { mode: cronSecret ? 'cron' : 'session' })

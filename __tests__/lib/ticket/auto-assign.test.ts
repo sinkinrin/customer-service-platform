@@ -316,6 +316,25 @@ describe('autoAssignSingleTicket', () => {
       expect(findOrCreateBinding).toHaveBeenCalledWith(50, 100, 'asia-pacific', 'auto')
     })
 
+    it('does not auto-create binding while service-group cutover is active', async () => {
+      process.env.SERVICE_GROUP_ASSIGNMENT_CUTOVER = 'true'
+      vi.mocked(findActiveBinding).mockResolvedValue(null)
+      vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({ tickets: [], total_count: 0 } as any)
+      vi.mocked(zammadClient.getAgents).mockResolvedValue([
+        {
+          id: 100, email: 'agent@test.com', firstname: 'Test', lastname: 'Agent',
+          active: true, role_ids: [2], group_ids: { [asiaGroupId]: ['full'] }, out_of_office: false,
+        },
+      ] as any)
+      vi.mocked(zammadClient.updateTicket).mockResolvedValue({} as any)
+
+      const result = await autoAssignSingleTicket(1, '10001', 'Test', asiaGroupId, undefined, 50)
+
+      expect(result.success).toBe(true)
+      expect(findOrCreateBinding).not.toHaveBeenCalled()
+      delete process.env.SERVICE_GROUP_ASSIGNMENT_CUTOVER
+    })
+
     it('skips binding logic when customerId is not provided (backward compat)', async () => {
       vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({ tickets: [], total_count: 0 } as any)
       vi.mocked(zammadClient.getAgents).mockResolvedValue([

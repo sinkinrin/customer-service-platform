@@ -10,11 +10,13 @@ import {
   forbiddenResponse,
   validationErrorResponse,
   serverErrorResponse,
+  serviceUnavailableResponse,
 } from '@/lib/utils/api-response'
 import { transferBindings } from '@/lib/ticket/customer-binding'
 import { zammadClient } from '@/lib/zammad/client'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
+import { isServiceGroupAssignmentCutoverActive } from '@/lib/service-groups/cutover'
 
 const TransferSchema = z.object({
   fromStaffZammadId: z.number().int().positive(),
@@ -24,6 +26,10 @@ const TransferSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     await requireRole(['admin'])
+
+    if (isServiceGroupAssignmentCutoverActive()) {
+      return serviceUnavailableResponse('Legacy customer binding mutations are disabled during service-group cutover')
+    }
 
     const body = await request.json()
     const validation = TransferSchema.safeParse(body)

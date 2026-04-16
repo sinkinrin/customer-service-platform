@@ -20,7 +20,7 @@ import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, REGIONS, type Re
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
-import { getCustomerAssignmentRegion } from '@/lib/service-groups/customer-assignment-service'
+import { findCustomerServiceGroup, getCustomerAssignmentRegion } from '@/lib/service-groups/customer-assignment-service'
 
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
@@ -91,6 +91,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const region = role === 'customer'
       ? await getCustomerAssignmentRegion(zammadUser.id)
       : getRegionFromGroupIds(zammadUser.group_ids)
+    const assignment = role === 'customer' ? await findCustomerServiceGroup(zammadUser.id) : null
     const mockUser = mockUsers[zammadUser.email]
 
     const user = {
@@ -114,6 +115,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       last_login: zammadUser.last_login,
       tickets_open: zammadUser.preferences?.tickets_open || 0,
       tickets_closed: zammadUser.preferences?.tickets_closed || 0,
+      service_group: assignment ? {
+        id: assignment.serviceGroup.id,
+        name: assignment.serviceGroup.name,
+        owner_name: undefined,
+      } : null,
     }
 
     return successResponse({ user })

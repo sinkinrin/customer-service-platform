@@ -7,6 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import {
     ArrowLeft,
     User,
     Mail,
@@ -19,6 +26,7 @@ import {
     CheckCircle,
     XCircle,
     Edit,
+    Users,
 } from 'lucide-react'
 import { isValidRegion, type RegionValue } from '@/lib/constants/regions'
 import { TicketHistoryDialog } from '@/components/admin/ticket-history-dialog'
@@ -45,6 +53,11 @@ interface UserDetails {
     last_login?: string
     tickets_open: number
     tickets_closed: number
+    service_group?: {
+        id: number
+        name: string
+        owner_name?: string
+    } | null
 }
 
 export default function UserDetailsPage() {
@@ -60,6 +73,9 @@ export default function UserDetailsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [ticketHistoryOpen, setTicketHistoryOpen] = useState(false)
+    const [serviceGroups, setServiceGroups] = useState<Array<{ id: number; name: string }>>([])
+    const [selectedServiceGroupId, setSelectedServiceGroupId] = useState<string>('')
+    const [assigningGroup, setAssigningGroup] = useState(false)
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -72,6 +88,17 @@ export default function UserDetailsPage() {
 
                 if (data.success && data.data?.user) {
                     setUser(data.data.user)
+                    setSelectedServiceGroupId(data.data.user.service_group?.id ? String(data.data.user.service_group.id) : '')
+                    if (data.data.user.role === 'customer') {
+                        const groupsResponse = await fetch('/api/admin/service-groups')
+                        const groupsData = await groupsResponse.json()
+                        if (groupsData.success) {
+                            setServiceGroups((groupsData.data.serviceGroups || []).map((group: any) => ({
+                                id: group.id,
+                                name: group.name,
+                            })))
+                        }
+                    }
                 } else {
                     setError(data.error || t('detail.notFoundDescription'))
                 }
@@ -99,6 +126,29 @@ export default function UserDetailsPage() {
             case 'admin': return 'destructive'
             case 'staff': return 'default'
             default: return 'secondary'
+        }
+    }
+
+    const handleAssignServiceGroup = async () => {
+        if (!user || user.role !== 'customer' || !selectedServiceGroupId) return
+        setAssigningGroup(true)
+        try {
+            const response = await fetch(`/api/admin/customers/${userId}/service-group`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ serviceGroupId: Number(selectedServiceGroupId) }),
+            })
+            const data = await response.json()
+            if (data.success) {
+                const refreshed = await fetch(`/api/admin/users/${userId}`)
+                const refreshedData = await refreshed.json()
+                if (refreshedData.success && refreshedData.data?.user) {
+                    setUser(refreshedData.data.user)
+                    setSelectedServiceGroupId(refreshedData.data.user.service_group?.id ? String(refreshedData.data.user.service_group.id) : '')
+                }
+            }
+        } finally {
+            setAssigningGroup(false)
         }
     }
 
@@ -201,6 +251,44 @@ export default function UserDetailsPage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                {user.role === 'customer' && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="h-5 w-5" />
+                                serviceGroupTitle
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <p className="text-sm text-muted-foreground">currentServiceGroup</p>
+                                <p className="font-medium">{user.service_group?.name || '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">serviceGroupOwner</p>
+                                <p className="font-medium">{user.service_group?.owner_name || '-'}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Select value={selectedServiceGroupId} onValueChange={setSelectedServiceGroupId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="serviceGroupPlaceholder" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {serviceGroups.map((group) => (
+                                            <SelectItem key={group.id} value={String(group.id)}>
+                                                {group.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button onClick={handleAssignServiceGroup} disabled={assigningGroup || !selectedServiceGroupId}>
+                                    {assigningGroup ? 'assigningServiceGroup' : 'assignServiceGroup'}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Account Status */}
                 <Card>

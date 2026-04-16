@@ -19,6 +19,7 @@ import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { REGIONS } from '@/lib/constants/regions'
+import { Users } from 'lucide-react'
 
 interface UserData {
     id: number
@@ -30,6 +31,10 @@ interface UserData {
     region?: string
     phone?: string
     active: boolean
+    service_group?: {
+        id: number
+        name: string
+    } | null
 }
 
 export default function EditUserPage() {
@@ -189,6 +194,7 @@ export default function EditUserPage() {
                             <Select
                                 value={formData.region}
                                 onValueChange={(value) => setFormData({ ...formData, region: value })}
+                                disabled={user.role === 'customer'}
                             >
                                 <SelectTrigger id="region">
                                     <SelectValue placeholder={t('editDialog.regionPlaceholder')} />
@@ -205,6 +211,20 @@ export default function EditUserPage() {
                                 {t('roles.staffRegionHint')}
                             </p>
                         </div>
+
+                        {user.role === 'customer' && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Users className="h-5 w-5" />
+                                        serviceGroupTitle
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="font-medium">{user.service_group?.name || '-'}</p>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">

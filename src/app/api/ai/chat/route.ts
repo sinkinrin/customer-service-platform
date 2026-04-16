@@ -4,7 +4,7 @@ import { readAISettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import { aiProviders } from '@/lib/ai/providers'
 import { createStreamResponse } from '@/lib/ai/stream-helpers'
-import { requireRole } from '@/lib/utils/auth'
+import { requireAuth } from '@/lib/utils/auth'
 import { aiChatLimiter } from '@/lib/utils/rate-limit'
 
 const ChatRequestSchema = z.object({
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
   const startedAt = Date.now()
 
   try {
-    // Defense-in-depth: explicit auth + role check (M10+M19)
-    const user = await requireRole(['staff', 'admin'])
+    // Explicit auth: direct AI chat supports authenticated customers and staff.
+    const user = await requireAuth()
 
     // Rate limiting (H7+M11)
     const rateLimitKey = `ai-chat:${user.id}`
@@ -115,9 +115,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-    if (error instanceof Error && error.message === 'Forbidden') {
-      return NextResponse.json({ success: false, error: 'Staff or admin access required' }, { status: 403 })
     }
     log.error('AI chat error', {
       latencyMs: Date.now() - startedAt,

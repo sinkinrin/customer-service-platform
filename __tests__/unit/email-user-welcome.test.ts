@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   generateSecurePassword,
-  isFirstTimeEmailUser,
   hasPasswordBeenSet,
   hasWelcomeEmailSent,
   buildNoteWithPasswordMarker,
   buildNoteWithWelcomeMarker,
   handleEmailUserWelcomeFromWebhookPayload,
 } from '@/lib/ticket/email-user-welcome'
+import {
+  getEmailUserWelcomeState,
+  isFirstTimeEmailUserByState,
+} from '@/lib/ticket/email-user-welcome-state'
 
 const {
   mockGetUser,
@@ -79,23 +82,28 @@ describe('generateSecurePassword', () => {
   })
 })
 
-describe('isFirstTimeEmailUser', () => {
-  it('returns true for empty or null note (no Region)', () => {
-    expect(isFirstTimeEmailUser(null)).toBe(true)
-    expect(isFirstTimeEmailUser(undefined)).toBe(true)
-    expect(isFirstTimeEmailUser('')).toBe(true)
+describe('email welcome state', () => {
+  it('treats empty note as a new email user state', () => {
+    expect(getEmailUserWelcomeState(null)).toBe('new_email_user')
+    expect(getEmailUserWelcomeState(undefined)).toBe('new_email_user')
+    expect(getEmailUserWelcomeState('')).toBe('new_email_user')
+    expect(isFirstTimeEmailUserByState(null)).toBe(true)
   })
 
-  it('returns false when user has valid Region', () => {
-    expect(isFirstTimeEmailUser('Region: asia-pacific')).toBe(false)
-    expect(isFirstTimeEmailUser('Region: europe-zone-1')).toBe(false)
-    expect(isFirstTimeEmailUser('Some prefix\nRegion: middle-east')).toBe(false)
+  it('does not use note region presence as the first-time trigger', () => {
+    expect(getEmailUserWelcomeState('Region: asia-pacific')).toBe('unknown')
+    expect(getEmailUserWelcomeState('Some prefix\nRegion: middle-east')).toBe('unknown')
+    expect(isFirstTimeEmailUserByState('Region: asia-pacific')).toBe(false)
   })
 
-  it('returns true when Region is invalid or missing', () => {
-    expect(isFirstTimeEmailUser('Some other note')).toBe(true)
-    expect(isFirstTimeEmailUser('WelcomePasswordSet: 2024-01-01T00:00:00Z')).toBe(true)
-    expect(isFirstTimeEmailUser('Region: invalid-region')).toBe(true) // Invalid region value
+  it('tracks explicit welcome progress from markers', () => {
+    expect(getEmailUserWelcomeState('WelcomePasswordSet: 2024-01-01T00:00:00Z')).toBe('password_set')
+    expect(getEmailUserWelcomeState('WelcomeEmailSent: 2024-01-01T00:00:00Z')).toBe('completed')
+  })
+
+  it('treats unrelated or invalid region note content as unknown state', () => {
+    expect(getEmailUserWelcomeState('Some other note')).toBe('unknown')
+    expect(getEmailUserWelcomeState('Region: invalid-region')).toBe('unknown')
   })
 })
 
@@ -180,7 +188,7 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     expect(mockGetUser).not.toHaveBeenCalled()
   })
 
-  it('skips when user has Region (existing user)', async () => {
+  it('skips when welcome state is unknown rather than using Region as existing-user signal', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
@@ -196,11 +204,11 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     expect(mockCreateArticle).not.toHaveBeenCalled()
   })
 
-  it('skips when user already has WelcomePasswordSet marker (but no Region)', async () => {
+  it('does not reinitialize password when welcome state is already password_set', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
-      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z\nWelcomeEmailSent: 2024-01-01T00:00:00Z',
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z',
     })
 
     await handleEmailUserWelcomeFromWebhookPayload({
@@ -208,17 +216,19 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       article: { id: 1, type: 'email' },
     } as any)
 
-    expect(mockUpdateUser).not.toHaveBeenCalled()
+    expect(mockUpdateUser).not.toHaveBeenCalledWith(1, expect.objectContaining({
+      password: expect.any(String),
+    }))
     expect(mockCreateArticle).not.toHaveBeenCalled()
   })
 
-  it('sets password and sends welcome email for first-time email user', async () => {
+  it('sets password and sends welcome email for new email user state', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
       firstname: 'John',
       lastname: 'Doe',
-      note: '', // No Region = first-time email user
+      note: '',
     })
     mockUpdateUser.mockResolvedValue({ id: 1 })
     mockCreateArticle.mockResolvedValue({ id: 10 })

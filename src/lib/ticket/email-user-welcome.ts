@@ -14,12 +14,14 @@ import {
   generateWelcomeEmailHtml,
   generateWelcomeEmailSubject,
 } from '@/lib/constants/email-templates'
-import { parseRegionFromNote } from '@/lib/ticket/email-ticket-routing'
-
-// Markers used in user.note to track welcome flow status
-// Two separate markers ensure idempotency even if email send fails after password is set
-const WELCOME_PASSWORD_MARKER = 'WelcomePasswordSet:'
-const WELCOME_EMAIL_MARKER = 'WelcomeEmailSent:'
+import {
+  getEmailUserWelcomeState,
+  hasPasswordBeenSet,
+  hasWelcomeEmailSent,
+  isFirstTimeEmailUserByState,
+  WELCOME_EMAIL_MARKER,
+  WELCOME_PASSWORD_MARKER,
+} from '@/lib/ticket/email-user-welcome-state'
 
 // Character set for password generation (excludes confusing characters: 0/O, 1/l/I)
 const PASSWORD_CHARS = {
@@ -62,41 +64,7 @@ export function generateSecurePassword(length: number = 12): string {
   return password.slice(0, length)
 }
 
-/**
- * Check if user is a first-time email user (no Region = auto-created by Zammad)
- *
- * Web-registered or admin-created users always have "Region: xxx" in their note.
- * Zammad auto-creates users from inbound email with empty/null note.
- *
- * @param note - User's note field from Zammad
- * @returns true if user has no Region (first-time email user)
- */
-export function isFirstTimeEmailUser(note?: string | null): boolean {
-  const { region } = parseRegionFromNote(note)
-  return !region
-}
-
-/**
- * Check if password has already been set for this user
- *
- * @param note - User's note field from Zammad
- * @returns true if password marker is present
- */
-export function hasPasswordBeenSet(note?: string | null): boolean {
-  if (!note) return false
-  return note.includes(WELCOME_PASSWORD_MARKER)
-}
-
-/**
- * Check if welcome email has already been sent to a user
- *
- * @param note - User's note field from Zammad
- * @returns true if welcome email marker is present
- */
-export function hasWelcomeEmailSent(note?: string | null): boolean {
-  if (!note) return false
-  return note.includes(WELCOME_EMAIL_MARKER)
-}
+export { hasPasswordBeenSet, hasWelcomeEmailSent }
 
 /**
  * Build updated note field with password set marker
@@ -263,10 +231,11 @@ async function markWelcomeEmailSent(
  * and should not throw errors that block the webhook response.
  *
  * Flow:
- * 1. Check if user has Region (existing user) -> skip
- * 2. Check if password already set (WelcomePasswordSet marker) -> skip to email step
- * 3. Generate and set password, mark WelcomePasswordSet
- * 4. If email enabled and not sent, send email and mark WelcomeEmailSent
+ * 1. Resolve explicit welcome state from note markers / empty-note state
+ * 2. Unknown note state -> skip conservatively
+ * 3. Check if password already set (WelcomePasswordSet marker) -> skip to email step
+ * 4. Generate and set password, mark WelcomePasswordSet
+ * 5. If email enabled and not sent, send email and mark WelcomeEmailSent
  *
  * @param payload - Zammad webhook payload
  * @param requestId - Request ID for logging correlation
@@ -312,13 +281,14 @@ export async function handleEmailUserWelcomeFromWebhookPayload(
       return
     }
 
-    // Check if this is a first-time email user (no Region = auto-created by Zammad)
-    // Users with Region were registered via web or created by admin, skip them
-    if (!isFirstTimeEmailUser(customer.note)) {
-      log.info('User has Region (existing user), skipping welcome flow', {
+    const welcomeState = getEmailUserWelcomeState(customer.note)
+
+    if (welcomeState === 'unknown') {
+      log.info('User welcome state is unknown; skipping welcome flow conservatively', {
         ticketId: ticket.id,
         customerId,
         email: customer.email,
+        notePreview: customer.note?.substring(0, 50),
       })
       return
     }
@@ -328,7 +298,7 @@ export async function handleEmailUserWelcomeFromWebhookPayload(
 
     // Step 1: Set password if not already done
     let password: string | null = null
-    if (!hasPasswordBeenSet(currentNote)) {
+    if (isFirstTimeEmailUserByState(currentNote)) {
       password = generateSecurePassword(12)
 
       try {
@@ -347,6 +317,7 @@ export async function handleEmailUserWelcomeFromWebhookPayload(
       log.info('Password already set for user, skipping password generation', {
         ticketId: ticket.id,
         customerId,
+        welcomeState,
       })
     }
 

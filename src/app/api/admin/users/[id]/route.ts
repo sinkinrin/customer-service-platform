@@ -20,6 +20,7 @@ import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, REGIONS, type Re
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
+import { getCustomerAssignmentRegion } from '@/lib/service-groups/customer-assignment-service'
 
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const role = getRoleFromZammad(zammadUser.role_ids || [])
     // For staff/admin: get region from group_ids; for customers: get from note field
     const region = role === 'customer'
-      ? getRegionFromNote(zammadUser.note)
+      ? await getCustomerAssignmentRegion(zammadUser.id)
       : getRegionFromGroupIds(zammadUser.group_ids)
     const mockUser = mockUsers[zammadUser.email]
 
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       firstname: zammadUser.firstname || '',
       lastname: zammadUser.lastname || '',
       role,
-      region: region || mockUser?.region,
+      region: region || (role !== 'customer' ? mockUser?.region : undefined),
       phone: zammadUser.phone || mockUser?.phone || '',
       language: mockUser?.language || 'en',
       active: zammadUser.active,
@@ -170,7 +171,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Handle region change
     // - Staff/Admin: update group_ids in Zammad AND note field (note is fallback for regions without dedicated groups)
     // - Customer: update note field only (Zammad ignores group_ids for customers)
-    if (region) {
+    if (region && currentRole !== 'customer') {
       // Always update note field with region (works for all roles, and serves as fallback)
       const existingNote = currentUser.note || ''
       const regionPattern = /Region:\s*\S+/
@@ -186,7 +187,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         updateData.group_ids = { [groupId.toString()]: ['full'] }
       }
 
-      // Also update mockUsers if exists (for local auth)
       if (mockUsers[currentUser.email]) {
         mockUsers[currentUser.email].region = region
       }
@@ -214,7 +214,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Get region based on user role
     const updatedRole = role || currentRole
     const updatedRegion = updatedRole === 'customer'
-      ? getRegionFromNote(updatedUser.note)
+      ? await getCustomerAssignmentRegion(updatedUser.id)
       : getRegionFromGroupIds(updatedUser.group_ids)
 
     return successResponse({
@@ -224,7 +224,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         email: updatedUser.email,
         full_name: `${updatedUser.firstname || ''} ${updatedUser.lastname || ''}`.trim(),
         active: updatedUser.active,
-        region: updatedRegion || region,
+        region: updatedRole === 'customer' ? updatedRegion : (updatedRegion || region),
         updated_at: updatedUser.updated_at,
       },
       message: 'User updated successfully',

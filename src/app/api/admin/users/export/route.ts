@@ -13,6 +13,7 @@ import { zammadClient } from '@/lib/zammad/client'
 import { getRegionByGroupId } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { logger } from '@/lib/utils/logger'
+import { getCustomerAssignmentRegion } from '@/lib/service-groups/customer-assignment-service'
 
 // Safety limit: max pages to scan during export to prevent runaway loops.
 // 200 pages × 100 users/page = 20,000 users max.
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
                 }
 
                 const region = role === 'customer'
-                    ? getRegionFromNote(user.note)
+                    ? (await getCustomerAssignmentRegion(user.id) || '')
                     : (getRegionFromGroupIds(user.group_ids) || getRegionFromNote(user.note))
 
                 users.push({

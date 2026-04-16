@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
                     password: user.password!,
                     roles: zammadRoles,
                     phone: user.phone || '',
-                    note: `Region: ${user.region}`,
+                    ...(user.role !== 'customer' ? { note: `Region: ${user.region}` } : {}),
                     group_ids: groupIds,
                     active: true,
                     verified: true,
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
                     full_name: user.full_name,
                     phone: user.phone,
                     language: 'zh-CN',
-                    region: user.region,
+                    region: user.role === 'customer' ? undefined : user.region,
                     zammad_id: zammadUser.id,
                     created_at: new Date().toISOString(),
                 }

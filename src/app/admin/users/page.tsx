@@ -138,8 +138,8 @@ export default function UsersPage() {
         phone: editingUser.phone,
         language: editingUser.language,
       }
-      // Only include region if it has a valid value
-      if (editingUser.region) {
+      // Customer region is no longer a direct admin business control.
+      if (editingUser.region && editingUser.role !== 'customer') {
         updateData.region = editingUser.region
       }
 
@@ -469,6 +469,7 @@ export default function UsersPage() {
                 <Select
                   value={editingUser.region || ''}
                   onValueChange={(value) => setEditingUser({ ...editingUser, region: value })}
+                  disabled={editingUser.role === 'customer'}
                 >
                     <SelectTrigger>
                       <SelectValue placeholder={t('editDialog.regionPlaceholder')} />

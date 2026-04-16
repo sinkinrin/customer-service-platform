@@ -75,6 +75,7 @@ import { getGroupIdByRegion, isValidRegion, getRegionByGroupId } from '@/lib/con
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
+import { getCustomerAssignmentRegion, listCustomerAssignmentRegions } from '@/lib/service-groups/customer-assignment-service'
 
 // Validation schema for creating a new user
 const CreateUserSchema = z.object({
@@ -123,11 +124,11 @@ function getRegionFromNote(note?: string): string | undefined {
 const ZAMMAD_USERS_PAGE_SIZE = 100
 const ZAMMAD_USERS_MAX_SCAN_PAGES = 50
 
-function mapZammadUser(user: any) {
+function mapZammadUser(user: any, customerAssignmentRegion?: string) {
   const role = getRoleFromZammad(user.role_ids || [])
   const regionFromGroups = getRegionFromGroupIds(user.group_ids)
   const regionFromNote = getRegionFromNote(user.note)
-  const region = role === 'customer' ? regionFromNote : (regionFromGroups || regionFromNote)
+  const region = role === 'customer' ? customerAssignmentRegion : (regionFromGroups || regionFromNote)
   const mockUser = mockUsers[user.email]
 
   return {
@@ -138,7 +139,7 @@ function mapZammadUser(user: any) {
     firstname: user.firstname || '',
     lastname: user.lastname || '',
     role,
-    region: region || mockUser?.region,
+    region: region || (role !== 'customer' ? mockUser?.region : undefined),
     phone: user.phone || mockUser?.phone || '',
     language: mockUser?.language || 'en',
     active: user.active,
@@ -216,7 +217,12 @@ export async function GET(request: NextRequest) {
             zammadClient.searchUsersTotalCount(query),
           ])
 
-          const users = zammadUsers.map(mapZammadUser)
+          const customerAssignmentRegions = await listCustomerAssignmentRegions(
+            zammadUsers
+              .filter((user) => getRoleFromZammad(user.role_ids || []) === 'customer')
+              .map((user) => user.id)
+          )
+          const users = zammadUsers.map((user) => mapZammadUser(user, customerAssignmentRegions.get(user.id)))
           return successResponse({
             users,
             pagination: {
@@ -244,7 +250,12 @@ export async function GET(request: NextRequest) {
           }
 
           for (const item of batch) {
-            const mapped = mapZammadUser(item)
+            const mapped = mapZammadUser(
+              item,
+              getRoleFromZammad(item.role_ids || []) === 'customer'
+                ? await getCustomerAssignmentRegion(item.id)
+                : undefined
+            )
             if (!matchesLocalFilters(mapped, search, roleFilter, regionFilter, statusFilter)) {
               continue
             }
@@ -378,7 +389,7 @@ export async function POST(request: NextRequest) {
       password,
       roles: zammadRoles,
       phone: phone || '',
-      note: `Region: ${region}`,
+      ...(role !== 'customer' ? { note: `Region: ${region}` } : {}),
       group_ids: groupIds,
       active: true,
       verified: true,
@@ -392,7 +403,7 @@ export async function POST(request: NextRequest) {
       full_name,
       phone,
       language: language || 'zh-CN',
-      region,
+      region: role === 'customer' ? undefined : region,
       zammad_id: zammadUser.id,
       created_at: new Date().toISOString(),
     }

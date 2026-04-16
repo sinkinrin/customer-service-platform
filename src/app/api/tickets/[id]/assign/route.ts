@@ -130,16 +130,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         const staffGroupIds = staffMember.group_ids ? Object.keys(staffMember.group_ids).map(Number).sort((a, b) => a - b) : []
         const hasGroupPermission = staffGroupIds.includes(ticketGroupId)
 
-        // If staff doesn't have permission for ticket's group, we need to change the ticket's group
-        // This allows admin to assign cross-region tickets
-        let targetGroupIdForAutoChange: number | null = null
+        // If staff doesn't have permission for ticket's group, require explicit group change.
         if (!hasGroupPermission && !group_id) {
             // Check if staff is admin (admins have access to all groups)
             const isStaffAdmin = staffMember.role_ids?.includes(1) || staffMember.roles?.includes('Admin')
 
             if (!isStaffAdmin) {
-                // Staff is not admin and doesn't have permission for this group
-                // Auto-change ticket to staff's first available group (sorted by ID for predictability)
                 if (staffGroupIds.length === 0) {
                     return validationErrorResponse(
                         `User ${staff_id} (${staffMember.email}) has no group permissions and cannot be assigned tickets. ` +
@@ -147,18 +143,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                     )
                 }
 
-                // Use staff's smallest group_id (most predictable choice)
-                targetGroupIdForAutoChange = staffGroupIds[0]
-                log.info('Auto-changing ticket group for staff assignment', {
-                    ticketId,
-                    fromGroupId: ticketGroupId,
-                    toGroupId: targetGroupIdForAutoChange,
-                    staff_id,
-                })
-                log.info('Staff group access', {
-                    staff_id,
-                    groupIds: staffGroupIds,
-                })
+                return validationErrorResponse(
+                    `User ${staff_id} (${staffMember.email}) does not have permission for ticket group ${ticketGroupId}. ` +
+                    `Provide an explicit group_id to move the ticket before assignment.`
+                )
             }
         }
 
@@ -205,17 +193,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             const group = await zammadClient.getGroup(group_id)
             updateData.group = group.name
         }
-        // If auto-changing group (staff doesn't have permission for current group), use target group
-        else if (targetGroupIdForAutoChange !== null) {
-            const group = await zammadClient.getGroup(targetGroupIdForAutoChange)
-            updateData.group = group.name
-            log.info('Moving ticket to group to enable assignment', {
-                ticketId,
-                groupName: group.name,
-                groupId: targetGroupIdForAutoChange,
-            })
-        }
-
         const updatedTicket = await zammadClient.updateTicket(ticketId, updateData)
 
         try {

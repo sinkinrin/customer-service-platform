@@ -154,4 +154,38 @@ describe('Ticket Assignment API', () => {
       })
     )
   })
+
+  it('does not auto-move ticket to staff smallest group without explicit group_id', async () => {
+    const asiaGroupId = getGroupIdByRegion('asia-pacific')
+    const europeGroupId = getGroupIdByRegion('europe-zone-1')
+
+    vi.mocked(zammadClient.getTicket).mockResolvedValue({
+      id: 3,
+      number: '10003',
+      title: 'Cross region assign',
+      state_id: 2,
+      group_id: asiaGroupId,
+      owner_id: null,
+    } as any)
+
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 7,
+      email: 'agent@test.com',
+      active: true,
+      role_ids: [2],
+      roles: ['Agent'],
+      group_ids: { [europeGroupId.toString()]: ['full'] },
+      firstname: 'Agent',
+      lastname: 'Two',
+    } as any)
+
+    const request = createMockRequest('http://localhost:3000/api/tickets/3/assign', {
+      staff_id: 7,
+    })
+    const response = await PUT(request, { params: Promise.resolve({ id: '3' }) })
+
+    expect(response.status).toBe(400)
+    expect(zammadClient.getGroup).not.toHaveBeenCalled()
+    expect(zammadClient.updateTicket).not.toHaveBeenCalled()
+  })
 })

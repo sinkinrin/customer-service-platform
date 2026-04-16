@@ -2,9 +2,12 @@ import type { ZammadWebhookPayload } from '@/lib/zammad/types'
 import { STAGING_GROUP_ID, getGroupIdByRegion, isValidRegion, type RegionValue } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { zammadClient } from '@/lib/zammad/client'
-import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
+import { EXCLUDED_EMAILS, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
 import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 import { createApiLogger } from '@/lib/utils/api-logger'
+import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
+import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
+import { getAgentDisplayName, isAgentEligible } from '@/lib/ticket/agent-helpers'
 
 export function parseRegionFromNote(note?: string | null): { raw?: string; region?: RegionValue } {
   if (!note) return {}
@@ -87,12 +90,10 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
 
     const customerId = ticket.customer_id
     let customerEmail: string | undefined
-    let note: string | undefined
 
     try {
       const customer = await zammadClient.getUser(customerId)
       customerEmail = customer.email
-      note = customer.note
     } catch (error) {
       log.error('Failed to fetch customer from Zammad; skipping routing', {
         ticketId: ticket.id,
@@ -102,21 +103,44 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
       return
     }
 
-    const { raw, region } = parseRegionFromNote(note)
-    if (!region) {
+    const assignment = await findCustomerServiceGroup(customerId)
+    if (!assignment) {
       await notifyAdminsAboutUnroutedTicket({
         ticketId: ticket.id,
         ticketNumber: ticket.number,
         ticketTitle: ticket.title,
         customerEmail,
-        reason: raw ? `无效Region值：${raw}` : '客户未设置Region',
+        reason: '客户未分配服务分组',
         requestId,
       })
       return
     }
 
+    const region = mapServiceBaseRegionToRegionValue(assignment.serviceGroup.baseRegion)
     const targetGroupId = getGroupIdByRegion(region)
-    if (targetGroupId === ticket.group_id) return
+
+    let assignedOwner
+    try {
+      assignedOwner = await zammadClient.getUser(assignment.serviceGroup.staffZammadId)
+    } catch (error) {
+      log.error('Failed to fetch assigned owner from Zammad; keeping ticket in staging', {
+        ticketId: ticket.id,
+        ownerId: assignment.serviceGroup.staffZammadId,
+        error: error instanceof Error ? error.message : error,
+      })
+    }
+
+    if (!assignedOwner || !isAgentEligible(assignedOwner, targetGroupId, EXCLUDED_EMAILS)) {
+      await notifyAdminsAboutUnroutedTicket({
+        ticketId: ticket.id,
+        ticketNumber: ticket.number,
+        ticketTitle: ticket.title,
+        customerEmail,
+        reason: '负责人不可用',
+        requestId,
+      })
+      return
+    }
 
     try {
       await zammadClient.updateTicket(ticket.id, { group_id: targetGroupId })
@@ -138,17 +162,33 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
       return
     }
 
-    const result = await autoAssignSingleTicket(
-      ticket.id,
-      ticket.number,
-      ticket.title,
-      targetGroupId,
-      requestId,
-      customerId
-    )
+    await zammadClient.updateTicket(ticket.id, {
+      owner_id: assignedOwner.id,
+      state: 'open',
+    })
 
-    if (!result.success) {
-      await handleAssignmentNotification(result, ticket.id, ticket.number, ticket.title, region, requestId)
+    try {
+      await handleAssignmentNotification(
+        {
+          success: true,
+          assignedTo: {
+            id: assignedOwner.id,
+            name: getAgentDisplayName(assignedOwner),
+            email: assignedOwner.email,
+          },
+        },
+        ticket.id,
+        ticket.number,
+        ticket.title,
+        region,
+        requestId
+      )
+    } catch (error) {
+      log.error('Failed to notify assigned owner after email routing', {
+        ticketId: ticket.id,
+        ownerId: assignedOwner.id,
+        error: error instanceof Error ? error.message : error,
+      })
     }
   } catch (error) {
     log.error('Email ticket routing failed (non-blocking)', { error: error instanceof Error ? error.message : error })

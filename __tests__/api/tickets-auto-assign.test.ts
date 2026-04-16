@@ -159,4 +159,29 @@ describe('Ticket Auto-Assign API', () => {
     expect(data.data.results[0].assignedTo).toBeNull()
     expect(findActiveBinding).not.toHaveBeenCalled()
   })
+
+  it('skips staging tickets instead of retrying them', async () => {
+    process.env.CRON_SECRET = 'secret'
+
+    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([
+      {
+        id: 1,
+        number: '10001',
+        title: 'Staging',
+        owner_id: 1,
+        customer_id: 50,
+        group_id: 9,
+        state_id: 1,
+      },
+    ] as any)
+    vi.mocked(zammadClient.getAgents).mockResolvedValue([] as any)
+
+    const request = createRequestWithSecret('secret')
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(zammadClient.updateTicket).not.toHaveBeenCalled()
+    expect(data.data.results[0].error).toContain('staging')
+  })
 })

@@ -162,10 +162,39 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
       return
     }
 
-    await zammadClient.updateTicket(ticket.id, {
-      owner_id: assignedOwner.id,
-      state: 'open',
-    })
+    try {
+      await zammadClient.updateTicket(ticket.id, {
+        owner_id: assignedOwner.id,
+        state: 'open',
+      })
+    } catch (error) {
+      log.error('Failed to assign owner after regional group move; attempting to revert to staging', {
+        ticketId: ticket.id,
+        ticketNumber: ticket.number,
+        ownerId: assignedOwner.id,
+        error: error instanceof Error ? error.message : error,
+      })
+
+      try {
+        await zammadClient.updateTicket(ticket.id, { group_id: STAGING_GROUP_ID })
+      } catch (revertError) {
+        log.error('Failed to revert ticket back to staging after owner assignment failure', {
+          ticketId: ticket.id,
+          ticketNumber: ticket.number,
+          error: revertError instanceof Error ? revertError.message : revertError,
+        })
+      }
+
+      await notifyAdminsAboutUnroutedTicket({
+        ticketId: ticket.id,
+        ticketNumber: ticket.number,
+        ticketTitle: ticket.title,
+        customerEmail,
+        reason: '负责人分配失败，需管理员处理',
+        requestId,
+      })
+      return
+    }
 
     try {
       await handleAssignmentNotification(

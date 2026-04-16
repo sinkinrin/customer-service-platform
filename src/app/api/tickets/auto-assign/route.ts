@@ -18,7 +18,7 @@ import {
     serviceUnavailableResponse,
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
-import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
+import { GROUP_REGION_MAPPING, STAGING_GROUP_ID } from '@/lib/constants/regions'
 import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 import { isAgentEligible, getAgentDisplayName } from '@/lib/ticket/agent-helpers'
 import { EXCLUDED_EMAILS } from '@/lib/ticket/auto-assign'
@@ -96,6 +96,16 @@ export async function POST(request: NextRequest) {
         // Process each unassigned ticket
         for (const ticket of unassignedTickets) {
             const groupId = ticket.group_id
+
+            if (groupId === STAGING_GROUP_ID) {
+                results.push({
+                    ticketId: ticket.id,
+                    ticketNumber: ticket.number,
+                    assignedTo: null,
+                    error: 'Ticket is in staging and requires manual admin handling',
+                })
+                continue
+            }
 
             if (!ticket.customer_id) {
                 const region = GROUP_REGION_MAPPING[groupId] || 'unknown'

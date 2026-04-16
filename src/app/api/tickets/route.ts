@@ -615,7 +615,7 @@ export async function POST(request: NextRequest) {
 
     // Auto-assign to available Staff in the ticket's region (with binding support)
     const assignResult = await autoAssignSingleTicket(
-      ticket.id, ticket.number, ticket.title, groupId, log.requestId, zammadUser.id
+      ticket.id, ticket.number, ticket.title, groupId, log.requestId, isCustomer ? zammadUser.id : undefined
     )
 
     if (assignResult.success) {

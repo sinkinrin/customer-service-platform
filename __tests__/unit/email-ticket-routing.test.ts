@@ -175,4 +175,49 @@ describe('Email ticket routing', () => {
       })
     )
   })
+
+  it('reverts to staging and notifies admins when owner assignment fails after group move', async () => {
+    mockFindCustomerServiceGroup.mockResolvedValue({
+      customerZammadId: 1,
+      serviceGroup: {
+        id: 1,
+        name: '亚太 1',
+        baseRegion: 'ASIA_PACIFIC',
+        staffZammadId: 2,
+      },
+    })
+    mockGetUser.mockResolvedValueOnce({ id: 1, email: 'customer@example.com', note: '' })
+    mockGetUser.mockResolvedValueOnce({
+      id: 2,
+      email: 'agent@example.com',
+      firstname: 'Fixed',
+      lastname: 'Owner',
+      active: true,
+      role_ids: [2],
+      group_ids: { '4': ['full'] },
+      out_of_office: false,
+    })
+    mockUpdateTicket
+      .mockResolvedValueOnce({ id: 100 })
+      .mockRejectedValueOnce(new Error('owner update failed'))
+      .mockResolvedValueOnce({ id: 100 })
+    mockSearchUsers.mockResolvedValue([{ id: 10, role_ids: [ZAMMAD_ROLES.ADMIN], active: true }])
+    mockResolveLocalUserIdsForZammadUserId.mockResolvedValue(['admin-local-1'])
+    mockNotifySystemAlert.mockResolvedValue(undefined)
+
+    await handleEmailTicketRoutingFromWebhookPayload({
+      ticket: { id: 100, group_id: STAGING_GROUP_ID, customer_id: 1, number: '100', title: 'Help' },
+      article: { id: 1, type: 'email' },
+    } as any)
+
+    expect(mockUpdateTicket).toHaveBeenNthCalledWith(1, 100, { group_id: 4 })
+    expect(mockUpdateTicket).toHaveBeenNthCalledWith(2, 100, { owner_id: 2, state: 'open' })
+    expect(mockUpdateTicket).toHaveBeenNthCalledWith(3, 100, { group_id: STAGING_GROUP_ID })
+    expect(mockNotifySystemAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserId: 'admin-local-1',
+        body: expect.stringContaining('负责人分配失败'),
+      })
+    )
+  })
 })

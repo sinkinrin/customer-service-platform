@@ -414,7 +414,7 @@ describe('Tickets API 集成测试', () => {
     describe('auto-assignment on creation', () => {
       it('calls autoAssignSingleTicket after ticket creation', async () => {
         vi.mocked(auth).mockResolvedValue({
-          user: mockCustomer,
+          user: mockAdmin,
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         } as any)
 
@@ -442,7 +442,41 @@ describe('Tickets API 集成测试', () => {
           expect.any(String),  // ticketTitle
           expect.any(Number),  // groupId
           undefined,           // requestId (no request ID in test context)
-          expect.any(Number)   // customerId (zammadUser.id)
+          undefined            // no customer assignment key for staff/admin-created tickets
+        )
+      })
+
+      it('does not pass staff/admin zammad user id as customer assignment key', async () => {
+        vi.mocked(auth).mockResolvedValue({
+          user: mockAdmin,
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        } as any)
+
+        vi.mocked(zammadClient.searchUsers).mockResolvedValue([{ id: 100 }] as any)
+        vi.mocked(zammadClient.createTicket).mockResolvedValue(mockTicket as any)
+        vi.mocked(autoAssignSingleTicket).mockResolvedValue({
+          success: true,
+          assignedTo: { id: 100, name: 'Test Agent', email: 'agent@test.com' },
+        })
+        vi.mocked(handleAssignmentNotification).mockResolvedValue(undefined)
+
+        const request = createMockRequest('http://localhost:3000/api/tickets', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: 'Admin Ticket',
+            article: { subject: 'Test Subject', body: 'Test body content' },
+          }),
+        })
+        const response = await POST(request)
+
+        expect(response.status).toBe(201)
+        expect(autoAssignSingleTicket).toHaveBeenCalledWith(
+          expect.any(Number),
+          expect.any(String),
+          expect.any(String),
+          expect.any(Number),
+          undefined,
+          undefined
         )
       })
 
@@ -478,7 +512,7 @@ describe('Tickets API 集成测试', () => {
 
       it('calls handleAssignmentNotification after auto-assign attempt', async () => {
         vi.mocked(auth).mockResolvedValue({
-          user: mockCustomer,
+          user: mockAdmin,
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         } as any)
 

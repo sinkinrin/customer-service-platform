@@ -15,8 +15,8 @@ import {
   resolveLocalUserIdsForZammadUserId,
 } from '@/lib/notification'
 import { checkIsOnVacation, getAgentDisplayName, isAgentEligible } from '@/lib/ticket/agent-helpers'
-import { findActiveBinding, findOrCreateBinding, deactivateBindingByCustomer } from '@/lib/ticket/customer-binding'
 import { isServiceGroupAssignmentCutoverActive } from '@/lib/service-groups/cutover'
+import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
 
 // Excluded system accounts that shouldn't receive ticket assignments
 export const EXCLUDED_EMAILS = ['support@howentech.com', 'howensupport@howentech.com']
@@ -33,8 +33,9 @@ export interface SingleAssignResult {
 }
 
 /**
- * Auto-assign a single ticket to the available agent with lowest load in the ticket's region.
- * If customerId is provided, checks for a dedicated staff binding first.
+ * Auto-assign a single ticket.
+ * If customerId is provided, uses ServiceGroup ownership truth and assigns only
+ * the explicit service-group owner when available. Otherwise returns failure.
  */
 export async function autoAssignSingleTicket(
   ticketId: number,
@@ -54,51 +55,47 @@ export async function autoAssignSingleTicket(
     const allAgents = Array.isArray(agentsRaw) ? agentsRaw : []
     log.debug('Fetched active agents from Zammad', { count: allAgents.length })
 
-    // ★ 2. Binding-first: check if customer has a dedicated staff member
-    let bindingExists = false
     if (customerId) {
       try {
-        const binding = await findActiveBinding(customerId)
-        if (binding) {
-          bindingExists = true
-          log.debug('Found active binding', { customerId, staffZammadId: binding.staffZammadId })
-
-          const boundStaff = allAgents.find(a => a.id === binding.staffZammadId)
-
-          if (boundStaff && isAgentEligible(boundStaff, groupId, EXCLUDED_EMAILS)) {
-            // ✅ Bound staff is available — assign directly
-            await zammadClient.updateTicket(ticketId, { owner_id: boundStaff.id, state: 'open' })
-            const name = getAgentDisplayName(boundStaff)
-            log.info('Assigned to bound staff', { ticketNumber, assignedTo: name })
-            return { success: true, assignedTo: { id: boundStaff.id, name, email: boundStaff.email } }
-          }
-
-          // Bound staff on vacation — try their replacement
-          if (boundStaff && checkIsOnVacation(boundStaff) && boundStaff.out_of_office_replacement_id) {
-            const replacement = allAgents.find(a => a.id === boundStaff.out_of_office_replacement_id)
-            if (replacement && isAgentEligible(replacement, groupId, EXCLUDED_EMAILS)) {
-              await zammadClient.updateTicket(ticketId, { owner_id: replacement.id, state: 'open' })
-              const name = getAgentDisplayName(replacement)
-              log.info('Assigned to vacation replacement', { ticketNumber, assignedTo: name, boundStaffId: boundStaff.id })
-              return { success: true, assignedTo: { id: replacement.id, name, email: replacement.email } }
-            }
-          }
-
-          // Bound staff inactive or not found — auto-deactivate stale binding
-          if (!boundStaff || !boundStaff.active) {
-            log.warning('Bound staff inactive/missing, deactivating stale binding', {
-              ticketNumber, staffZammadId: binding.staffZammadId,
-            })
-            deactivateBindingByCustomer(customerId).catch(() => {})
-            bindingExists = false
-          } else {
-            log.info('Bound staff unavailable, falling back to load-balancing', { ticketNumber, boundStaffId: boundStaff.id })
-          }
+        const assignment = await findCustomerServiceGroup(customerId)
+        if (!assignment) {
+          log.warning('Customer has no service-group assignment', { customerId, ticketNumber })
+          return { success: false, error: 'Customer has no service group assignment' }
         }
-      } catch (bindingError) {
-        log.warning('Binding lookup failed, falling back to load-balancing', {
-          ticketNumber, error: bindingError instanceof Error ? bindingError.message : bindingError,
+
+        const assignedOwner = allAgents.find((agent) => agent.id === assignment.serviceGroup.staffZammadId)
+
+        if (!assignedOwner) {
+          log.warning('Assigned service-group owner not found among active agents', {
+            customerId,
+            ticketNumber,
+            staffZammadId: assignment.serviceGroup.staffZammadId,
+          })
+          return { success: false, error: 'Assigned service group owner is unavailable' }
+        }
+
+        if (!isAgentEligible(assignedOwner, groupId, EXCLUDED_EMAILS)) {
+          log.warning('Assigned service-group owner is not eligible for assignment', {
+            customerId,
+            ticketNumber,
+            staffZammadId: assignment.serviceGroup.staffZammadId,
+            outOfOffice: checkIsOnVacation(assignedOwner),
+            active: assignedOwner.active,
+          })
+          return { success: false, error: 'Assigned service group owner is unavailable' }
+        }
+
+        await zammadClient.updateTicket(ticketId, { owner_id: assignedOwner.id, state: 'open' })
+        const name = getAgentDisplayName(assignedOwner)
+        log.info('Assigned to service-group owner', { ticketNumber, assignedTo: name, agentId: assignedOwner.id })
+        return { success: true, assignedTo: { id: assignedOwner.id, name, email: assignedOwner.email } }
+      } catch (assignmentError) {
+        log.warning('Service-group lookup failed', {
+          ticketNumber,
+          customerId,
+          error: assignmentError instanceof Error ? assignmentError.message : assignmentError,
         })
+        return { success: false, error: assignmentError instanceof Error ? assignmentError.message : 'Service group lookup failed' }
       }
     }
 
@@ -151,16 +148,6 @@ export async function autoAssignSingleTicket(
     })
 
     const agentName = getAgentDisplayName(selectedAgent)
-
-    // ★ 9. Auto-create binding for first-time customers
-    if (customerId && !bindingExists && !isServiceGroupAssignmentCutoverActive()) {
-      const region = GROUP_REGION_MAPPING[groupId] || 'unknown'
-      findOrCreateBinding(customerId, selectedAgent.id, region, 'auto').catch(err => {
-        log.warning('Failed to auto-create binding (non-blocking)', {
-          error: err instanceof Error ? err.message : err,
-        })
-      })
-    }
 
     log.info('Auto-assign successful', { ticketNumber, assignedTo: agentName, agentId: selectedAgent.id })
     return {

@@ -20,10 +20,10 @@ import {
 import { zammadClient } from '@/lib/zammad/client'
 import { GROUP_REGION_MAPPING } from '@/lib/constants/regions'
 import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
-import { isAgentEligible, checkIsOnVacation, getAgentDisplayName } from '@/lib/ticket/agent-helpers'
-import { findActiveBinding, findOrCreateBinding, deactivateBindingByCustomer } from '@/lib/ticket/customer-binding'
+import { isAgentEligible, getAgentDisplayName } from '@/lib/ticket/agent-helpers'
 import { EXCLUDED_EMAILS } from '@/lib/ticket/auto-assign'
 import { isServiceGroupAssignmentCutoverActive } from '@/lib/service-groups/cutover'
+import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
 
 interface AssignmentResult {
     ticketId: number
@@ -91,124 +91,76 @@ export async function POST(request: NextRequest) {
         // Get all agents
         const allAgents = await zammadClient.getAgents(true)
 
-        // Calculate current ticket count per agent
-        // Exclude owner_id=1 (unassigned) from counting
-        const ticketCountByAgent: Record<number, number> = {}
-        for (const ticket of allTickets) {
-            if (ticket.owner_id && ticket.owner_id !== 1 && [1, 2, 3, 7].includes(ticket.state_id)) {
-                ticketCountByAgent[ticket.owner_id] = (ticketCountByAgent[ticket.owner_id] || 0) + 1
-            }
-        }
-
         const results: AssignmentResult[] = []
 
         // Process each unassigned ticket
         for (const ticket of unassignedTickets) {
             const groupId = ticket.group_id
 
-            // ★ Binding-first: check for dedicated staff
-            if (ticket.customer_id) {
-                try {
-                    const binding = await findActiveBinding(ticket.customer_id)
-                    if (binding) {
-                        const boundStaff = allAgents.find(a => a.id === binding.staffZammadId)
-
-                        if (boundStaff && isAgentEligible(boundStaff, groupId, EXCLUDED_EMAILS)) {
-                            // Bound staff available — assign directly
-                            try {
-                                await zammadClient.updateTicket(ticket.id, { owner_id: boundStaff.id })
-                                ticketCountByAgent[boundStaff.id] = (ticketCountByAgent[boundStaff.id] || 0) + 1
-                                results.push({
-                                    ticketId: ticket.id,
-                                    ticketNumber: ticket.number,
-                                    assignedTo: { id: boundStaff.id, name: getAgentDisplayName(boundStaff), email: boundStaff.email },
-                                })
-                                log.info('Batch: assigned to bound staff', { ticketNumber: ticket.number, agentId: boundStaff.id })
-                                continue
-                            } catch (err) {
-                                log.error('Batch: failed to assign to bound staff', { ticketId: ticket.id, error: err instanceof Error ? err.message : err })
-                            }
-                        }
-
-                        // Bound staff on vacation — try replacement
-                        if (boundStaff && checkIsOnVacation(boundStaff) && boundStaff.out_of_office_replacement_id) {
-                            const replacement = allAgents.find(a => a.id === boundStaff.out_of_office_replacement_id)
-                            if (replacement && isAgentEligible(replacement, groupId, EXCLUDED_EMAILS)) {
-                                try {
-                                    await zammadClient.updateTicket(ticket.id, { owner_id: replacement.id })
-                                    ticketCountByAgent[replacement.id] = (ticketCountByAgent[replacement.id] || 0) + 1
-                                    results.push({
-                                        ticketId: ticket.id,
-                                        ticketNumber: ticket.number,
-                                        assignedTo: { id: replacement.id, name: getAgentDisplayName(replacement), email: replacement.email },
-                                    })
-                                    log.info('Batch: assigned to vacation replacement', { ticketNumber: ticket.number, agentId: replacement.id })
-                                    continue
-                                } catch (err) {
-                                    log.error('Batch: failed to assign to replacement', { ticketId: ticket.id, error: err instanceof Error ? err.message : err })
-                                }
-                            }
-                        }
-
-                        // Bound staff inactive/missing — deactivate stale binding
-                        if (!boundStaff || !boundStaff.active) {
-                            deactivateBindingByCustomer(ticket.customer_id).catch(() => {})
-                        }
-                    }
-                } catch {
-                    // Binding lookup failed — fall through to load-balancing
-                }
-            }
-
-            // Load-balancing fallback (using shared helper)
-            const availableAgents = allAgents.filter(agent => isAgentEligible(agent, groupId, EXCLUDED_EMAILS))
-
-            if (availableAgents.length === 0) {
+            if (!ticket.customer_id) {
                 const region = GROUP_REGION_MAPPING[groupId] || 'unknown'
                 results.push({
                     ticketId: ticket.id,
                     ticketNumber: ticket.number,
                     assignedTo: null,
-                    error: `No available agents for group ${groupId} (region: ${region})`,
+                    error: `No customer id on ticket for group ${groupId} (region: ${region})`,
                 })
                 continue
             }
 
-            // Sort by ticket count (ascending) and pick lowest load
-            availableAgents.sort((a, b) => {
-                const loadA = ticketCountByAgent[a.id] || 0
-                const loadB = ticketCountByAgent[b.id] || 0
-                return loadA - loadB
-            })
-
-            const selectedAgent = availableAgents[0]
-
             try {
-                await zammadClient.updateTicket(ticket.id, { owner_id: selectedAgent.id })
-                ticketCountByAgent[selectedAgent.id] = (ticketCountByAgent[selectedAgent.id] || 0) + 1
-
-                results.push({
-                    ticketId: ticket.id,
-                    ticketNumber: ticket.number,
-                    assignedTo: {
-                        id: selectedAgent.id,
-                        name: getAgentDisplayName(selectedAgent),
-                        email: selectedAgent.email,
-                    },
-                })
-
-                // Auto-create binding for first-time customers (non-blocking)
-                if (ticket.customer_id) {
-                    const region = GROUP_REGION_MAPPING[groupId] || 'unknown'
-                    findOrCreateBinding(ticket.customer_id, selectedAgent.id, region, 'auto').catch(() => {})
+                const assignment = await findCustomerServiceGroup(ticket.customer_id)
+                if (!assignment) {
+                    results.push({
+                        ticketId: ticket.id,
+                        ticketNumber: ticket.number,
+                        assignedTo: null,
+                        error: 'Customer has no service group assignment',
+                    })
+                    continue
                 }
 
-                log.info('Ticket auto-assigned', {
-                    ticketId: ticket.id, ticketNumber: ticket.number,
-                    groupId, agentId: selectedAgent.id,
-                })
+                const assignedOwner = allAgents.find((agent) => agent.id === assignment.serviceGroup.staffZammadId)
+                if (!assignedOwner || !isAgentEligible(assignedOwner, groupId, EXCLUDED_EMAILS)) {
+                    results.push({
+                        ticketId: ticket.id,
+                        ticketNumber: ticket.number,
+                        assignedTo: null,
+                        error: 'Assigned service group owner is unavailable',
+                    })
+                    continue
+                }
+
+                try {
+                    await zammadClient.updateTicket(ticket.id, { owner_id: assignedOwner.id })
+                    results.push({
+                        ticketId: ticket.id,
+                        ticketNumber: ticket.number,
+                        assignedTo: {
+                            id: assignedOwner.id,
+                            name: getAgentDisplayName(assignedOwner),
+                            email: assignedOwner.email,
+                        },
+                    })
+
+                    log.info('Ticket auto-assigned to service-group owner', {
+                        ticketId: ticket.id, ticketNumber: ticket.number,
+                        groupId, agentId: assignedOwner.id,
+                    })
+                } catch (error) {
+                    log.error('Failed to auto-assign ticket to service-group owner', {
+                        ticketId: ticket.id, ticketNumber: ticket.number,
+                        error: error instanceof Error ? error.message : error,
+                    })
+                    results.push({
+                        ticketId: ticket.id,
+                        ticketNumber: ticket.number,
+                        assignedTo: null,
+                        error: error instanceof Error ? error.message : 'Assignment failed',
+                    })
+                }
             } catch (error) {
-                log.error('Failed to auto-assign ticket', {
+                log.error('Failed to resolve service-group assignment during batch auto-assign', {
                     ticketId: ticket.id, ticketNumber: ticket.number,
                     error: error instanceof Error ? error.message : error,
                 })
@@ -216,7 +168,7 @@ export async function POST(request: NextRequest) {
                     ticketId: ticket.id,
                     ticketNumber: ticket.number,
                     assignedTo: null,
-                    error: error instanceof Error ? error.message : 'Assignment failed',
+                    error: error instanceof Error ? error.message : 'Service group lookup failed',
                 })
             }
         }

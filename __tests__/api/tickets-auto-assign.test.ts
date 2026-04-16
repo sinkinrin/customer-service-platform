@@ -25,9 +25,14 @@ vi.mock('@/lib/ticket/customer-binding', () => ({
   deactivateBindingByCustomer: vi.fn().mockResolvedValue(0),
 }))
 
+vi.mock('@/lib/service-groups/customer-assignment-service', () => ({
+  findCustomerServiceGroup: vi.fn().mockResolvedValue(null),
+}))
+
 import { requireRole } from '@/lib/utils/auth'
 import { zammadClient } from '@/lib/zammad/client'
-import { findActiveBinding } from '@/lib/ticket/customer-binding'
+import { findActiveBinding, findOrCreateBinding } from '@/lib/ticket/customer-binding'
+import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
 
 function createRequestWithSecret(secret?: string) {
   const headers = new Headers()
@@ -39,6 +44,7 @@ describe('Ticket Auto-Assign API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(findActiveBinding).mockResolvedValue(null)
+    vi.mocked(findCustomerServiceGroup).mockResolvedValue(null)
   })
 
   afterEach(() => {
@@ -68,10 +74,19 @@ describe('Ticket Auto-Assign API', () => {
     expect(requireRole).not.toHaveBeenCalled()
   })
 
-  it('assigns unassigned tickets to available agents', async () => {
+  it('assigns unassigned tickets to service-group owner when available', async () => {
     process.env.CRON_SECRET = 'secret'
 
     const asiaGroupId = getGroupIdByRegion('asia-pacific')
+    vi.mocked(findCustomerServiceGroup).mockResolvedValue({
+      customerZammadId: 50,
+      serviceGroup: {
+        id: 1,
+        name: '亚太 1',
+        baseRegion: 'ASIA_PACIFIC',
+        staffZammadId: 20,
+      },
+    } as any)
     vi.mocked(zammadClient.getAllTickets).mockResolvedValue([
       {
         id: 1,
@@ -102,18 +117,13 @@ describe('Ticket Auto-Assign API', () => {
 
     expect(response.status).toBe(200)
     expect(zammadClient.updateTicket).toHaveBeenCalledWith(1, { owner_id: 20 })
+    expect(findOrCreateBinding).not.toHaveBeenCalled()
   })
 
-  it('assigns to bound staff when binding exists', async () => {
+  it('returns failure when no service-group assignment exists', async () => {
     process.env.CRON_SECRET = 'secret'
 
     const asiaGroupId = getGroupIdByRegion('asia-pacific')
-    vi.mocked(findActiveBinding).mockResolvedValue({
-      id: 1, customerZammadId: 50, staffZammadId: 30,
-      region: 'asia-pacific', source: 'auto', isActive: true,
-      createdAt: new Date(), updatedAt: new Date(), deactivatedAt: null,
-    })
-
     vi.mocked(zammadClient.getAllTickets).mockResolvedValue([
       {
         id: 1,
@@ -129,18 +139,8 @@ describe('Ticket Auto-Assign API', () => {
     vi.mocked(zammadClient.getAgents).mockResolvedValue([
       {
         id: 20,
-        email: 'other@test.com',
-        firstname: 'Other',
-        lastname: 'Agent',
-        active: true,
-        role_ids: [2],
-        group_ids: { [asiaGroupId.toString()]: ['full'] },
-        out_of_office: false,
-      },
-      {
-        id: 30,
-        email: 'bound@test.com',
-        firstname: 'Bound',
+        email: 'available@test.com',
+        firstname: 'Available',
         lastname: 'Agent',
         active: true,
         role_ids: [2],
@@ -154,7 +154,9 @@ describe('Ticket Auto-Assign API', () => {
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    expect(zammadClient.updateTicket).toHaveBeenCalledWith(1, { owner_id: 30 })
-    expect(data.data.results[0].assignedTo.id).toBe(30)
+    expect(zammadClient.updateTicket).not.toHaveBeenCalled()
+    expect(data.data.failed).toBe(1)
+    expect(data.data.results[0].assignedTo).toBeNull()
+    expect(findActiveBinding).not.toHaveBeenCalled()
   })
 })

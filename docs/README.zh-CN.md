@@ -2,7 +2,7 @@
 
 > Customer Service Platform 文档（中文入口）。当前仓库的详细技术文档多为英文，本文件提供中文导航与关键实现位置索引。
 
-**最后更新**：2026-01-22
+**最后更新**：2026-04-15
 
 ---
 
@@ -64,3 +64,22 @@ python -c "open('docs/ARCHITECTURE.zh-CN.md','r',encoding='utf-8').read(); print
 - 实时：SSE（`/api/tickets/updates/stream`）+ 轮询兜底
 - 本地数据：Prisma + SQLite（FAQ、通知、评分、模板、更新追踪等）
 - i18n：next-intl（6 语言）
+
+---
+
+## 文档状态（2026-04-15 整理）
+
+### 当前保留在主目录的文档
+
+- 当前参考文档：`docs/ARCHITECTURE*.md`、`docs/API-REFERENCE*.md`、`docs/DATABASE*.md`、`docs/AUTHENTICATION*.md`、`docs/ZAMMAD-INTEGRATION*.md`
+- 仍在使用的补充文档：`docs/TESTING.md`、`docs/PERFORMANCE-OPTIMIZATIONS.md`、`docs/AI-CONFIGURATION-PERSISTENCE*.md`
+- 仍需继续跟进的设计/待办：
+  - `docs/plans/2026-04-09-email-system-design.md`
+  - `docs/superpowers/specs/2026-04-14-service-group-assignment-design.md`
+  - `docs/feedback/TODO-未实现功能清单.md`
+
+### 已归档文档
+
+- 已实现的计划/设计稿：移动到 `docs/archive/implemented/`
+- 已过时的历史分析/设计稿：移动到 `docs/archive/historical/`
+- 归档索引：`docs/archive/README.md`

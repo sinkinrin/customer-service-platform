@@ -4,7 +4,7 @@
 
 **Chinese Index**: See [README.zh-CN.md](./README.zh-CN.md)
 
-**Last Updated**: 2026-01-21
+**Last Updated**: 2026-04-15
 **Platform Version**: 2.0
 
 ---
@@ -127,8 +127,28 @@ In production, mock auth is disabled by default, but can be explicitly enabled w
 | [AI-CONFIGURATION-PERSISTENCE.md](./AI-CONFIGURATION-PERSISTENCE.md) | FastGPT settings persistence | ✅ Current |
 | [TRANSLATION-STATUS.md](./TRANSLATION-STATUS.md) | i18n translation progress | ⚠️ Verify |
 | [zammad-api-reference.md](./zammad-api-reference.md) | Zammad API endpoint comparison | ✅ Current |
-| [FAQ-ARCHITECTURE-DESIGN.md](./FAQ-ARCHITECTURE-DESIGN.md) | Original FAQ design (superseded) | 📋 Historical |
 | [feedback/TODO-未实现功能清单.md](./feedback/TODO-未实现功能清单.md) | TODO list with status updates | ✅ Updated |
+
+---
+
+## Planning And Archive
+
+### Active Planning Docs
+
+| Document | Why It Stays |
+|----------|--------------|
+| [plans/2026-04-09-email-system-design.md](./plans/2026-04-09-email-system-design.md) | Draft design for self-hosted inbound/outbound email flow; corresponding `src/lib/email/*` implementation is not present yet |
+| [superpowers/specs/2026-04-14-service-group-assignment-design.md](./superpowers/specs/2026-04-14-service-group-assignment-design.md) | Proposal only; current code still uses `CustomerStaffBinding`, not `ServiceGroup` |
+| [feedback/TODO-未实现功能清单.md](./feedback/TODO-未实现功能清单.md) | Backlog snapshot; still contains unresolved items such as password reset |
+
+### Archived Docs
+
+Archived implementation plans and superseded design notes now live under [archive/README.md](./archive/README.md).
+
+| Archive Area | Contents |
+|--------------|----------|
+| [archive/implemented/](./archive/implemented/) | Plans/designs that are now reflected in code, schema, routes, or tests |
+| [archive/historical/](./archive/historical/) | Superseded analysis/design documents retained only for reference |
 
 ---
 
@@ -143,4 +163,4 @@ In production, mock auth is disabled by default, but can be explicitly enabled w
 ---
 
 **Maintainer**: Development Team
-**Last Updated**: 2026-01-21
+**Last Updated**: 2026-04-15

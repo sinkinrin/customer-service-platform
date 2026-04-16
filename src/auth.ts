@@ -27,6 +27,8 @@ import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, type RegionValue
 import { ZAMMAD_ROLES } from "@/lib/constants/zammad"
 import { logger } from "@/lib/utils/logger"
 import { loginLimiter } from "@/lib/utils/rate-limit"
+import { findCustomerServiceGroup } from "@/lib/service-groups/customer-assignment-service"
+import { mapServiceBaseRegionToRegionValue } from "@/lib/service-groups/service-group-service"
 
 // Import mock auth for development/fallback mode
 import { mockUsers, mockPasswords, type MockUser } from "@/lib/mock-auth"
@@ -160,7 +162,7 @@ function getProductionUserFromEnv(): { user: MockUser; password: string } | null
  * @param password - User password
  * @returns MockUser compatible object or null
  */
-async function authenticateWithZammad(
+export async function authenticateWithZammad(
   email: string,
   password: string
 ): Promise<MockUser | null> {
@@ -179,10 +181,23 @@ async function authenticateWithZammad(
     // Convert Zammad user to our user format
     const role = getRoleFromZammad(zammadUser.role_ids || [])
 
-    // Get region: Staff/Admin from group_ids, Customer from note field
-    const region = role === 'customer'
-      ? getRegionFromNote(zammadUser.note)
-      : getRegionFromGroupIds(zammadUser.group_ids)
+    let region: string | undefined
+    if (role === 'customer') {
+      try {
+        const assignment = await findCustomerServiceGroup(zammadUser.id)
+        region = assignment ? mapServiceBaseRegionToRegionValue(assignment.serviceGroup.baseRegion) : undefined
+      } catch (assignmentError) {
+        logger.warning('Auth', 'Failed to resolve customer service-group assignment', {
+          data: {
+            userId: zammadUser.id,
+            error: assignmentError instanceof Error ? assignmentError.message : assignmentError,
+          },
+        })
+        region = undefined
+      }
+    } else {
+      region = getRegionFromGroupIds(zammadUser.group_ids)
+    }
 
     logger.info('Auth', 'User role and region determined', { data: { role, region, notePreview: zammadUser.note?.substring(0, 50) } })
 

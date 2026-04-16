@@ -38,9 +38,8 @@ export function hasRegionAccess(user: RegionAuthUser, region: RegionValue): bool
   }
 
   // Customer can access their own region
-  // If customer has no region set, allow access to any region (they will use default)
   if (user.role === 'customer') {
-    return !user.region || user.region === region
+    return user.region === region
   }
 
   return false
@@ -85,9 +84,7 @@ export function getAccessibleGroupIds(user: RegionAuthUser): number[] {
       const groupId = getGroupIdByRegion(user.region as RegionValue)
       return [groupId]
     }
-    // Default to Africa (group_id=1) if no region set
-    // Note: This default is rarely used as customers should always have a region
-    return [1]
+    return []
   }
 
   // Staff can only access their region's group

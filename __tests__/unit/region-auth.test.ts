@@ -45,9 +45,9 @@ describe('Region Authorization', () => {
       expect(hasRegionAccess(customer, 'europe-zone-1')).toBe(false)
     })
 
-    it('should allow customer without region to access any region', () => {
-      expect(hasRegionAccess(customerNoRegion, 'asia-pacific')).toBe(true)
-      expect(hasRegionAccess(customerNoRegion, 'europe-zone-1')).toBe(true)
+    it('should not allow customer without region to access arbitrary regions', () => {
+      expect(hasRegionAccess(customerNoRegion, 'asia-pacific')).toBe(false)
+      expect(hasRegionAccess(customerNoRegion, 'europe-zone-1')).toBe(false)
     })
   })
 
@@ -90,9 +90,9 @@ describe('Region Authorization', () => {
       expect(groups).toEqual([4]) // asia-pacific
     })
 
-    it('should return default group for customer without region', () => {
+    it('should return no groups for customer without region', () => {
       const groups = getAccessibleGroupIds(customerNoRegion)
-      expect(groups).toEqual([1]) // default to africa
+      expect(groups).toEqual([])
     })
 
     it('should return empty array for staff without region', () => {
@@ -173,6 +173,10 @@ describe('Region Authorization', () => {
 
     it('should throw for staff creating ticket in other region', () => {
       expect(() => validateTicketCreation(staffAsia, 'europe-zone-1')).toThrow()
+    })
+
+    it('should throw for customer without assignment-derived region', () => {
+      expect(() => validateTicketCreation(customerNoRegion, 'asia-pacific')).toThrow()
     })
   })
 

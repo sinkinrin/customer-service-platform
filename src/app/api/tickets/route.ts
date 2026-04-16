@@ -108,11 +108,14 @@ import {
   buildStaffVisibilityQuery,
 } from '@/lib/utils/ticket-helpers'
 import { ensureZammadUser } from '@/lib/zammad/ensure-user'
-import { getGroupIdByRegion, type RegionValue } from '@/lib/constants/regions'
+import { getGroupIdByRegion, STAGING_GROUP_ID, type RegionValue } from '@/lib/constants/regions'
 import { z } from 'zod'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 import { notifyTicketCreated } from '@/lib/notification'
-import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
+import { autoAssignSingleTicket, EXCLUDED_EMAILS, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
+import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
+import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
+import { getAgentDisplayName, isAgentEligible } from '@/lib/ticket/agent-helpers'
 
 // ============================================================================
 // Helper Functions
@@ -435,13 +438,114 @@ export async function POST(request: NextRequest) {
 
     const ticketData = validationResult.data
 
+    let region: RegionValue | undefined
+    let groupId: number
+    let fixedOwner:
+      | {
+          id: number
+          name: string
+          email: string
+        }
+      | undefined
+
+    if (user.role === 'customer') {
+      const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, undefined, log.requestId)
+      log.debug('Zammad user verified', { zammadUserId: zammadUser.id })
+
+      const assignment = await findCustomerServiceGroup(zammadUser.id)
+      if (assignment) {
+        region = mapServiceBaseRegionToRegionValue(assignment.serviceGroup.baseRegion)
+        const assignedGroupId = getGroupIdByRegion(region)
+        const agentsRaw = await zammadClient.getAgents(true)
+        const allAgents = Array.isArray(agentsRaw) ? agentsRaw : []
+        const assignedAgent = allAgents.find((agent) => agent.id === assignment.serviceGroup.staffZammadId)
+
+        if (assignedAgent && isAgentEligible(assignedAgent, assignedGroupId, EXCLUDED_EMAILS)) {
+          groupId = assignedGroupId
+          fixedOwner = {
+            id: assignedAgent.id,
+            name: getAgentDisplayName(assignedAgent),
+            email: assignedAgent.email,
+          }
+        } else {
+          groupId = STAGING_GROUP_ID
+        }
+      } else {
+        groupId = STAGING_GROUP_ID
+      }
+
+      // Create ticket with X-On-Behalf-Of to ensure correct sender identity
+      const ticket = await zammadClient.createTicket(
+        {
+          title: ticketData.title,
+          group: ticketData.group,
+          group_id: groupId,
+          customer_id: zammadUser.id,
+          state_id: 1,
+          priority_id: ticketData.priority_id,
+          article: {
+            subject: ticketData.article.subject,
+            body: ticketData.article.body,
+            type: ticketData.article.type,
+            internal: ticketData.article.internal,
+            sender: 'Customer',
+            origin_by_id: zammadUser.id,
+            ...(ticketData.article.attachments && { attachments: ticketData.article.attachments }),
+            ...(ticketData.article.attachment_ids && { attachment_ids: ticketData.article.attachment_ids }),
+            ...(ticketData.article.form_id && { form_id: ticketData.article.form_id }),
+          },
+        },
+        user.email
+      )
+
+      log.info('Ticket created', { ticketId: ticket.id, ticketNumber: ticket.number })
+
+      try {
+        await notifyTicketCreated({
+          recipientUserId: user.id,
+          ticketId: ticket.id,
+          ticketNumber: ticket.number,
+          ticketTitle: ticket.title,
+        })
+      } catch (notifyError) {
+        log.error('Failed to create in-app notification for ticket creation', { error: notifyError instanceof Error ? notifyError.message : notifyError })
+      }
+
+      if (fixedOwner && region) {
+        await zammadClient.updateTicket(ticket.id, {
+          owner_id: fixedOwner.id,
+          state: 'open',
+        })
+
+        try {
+          await handleAssignmentNotification(
+            { success: true, assignedTo: fixedOwner },
+            ticket.id,
+            ticket.number,
+            ticket.title,
+            region,
+            log.requestId
+          )
+        } catch (err) {
+          log.error('Assignment notification error', { error: err instanceof Error ? err.message : err })
+        }
+      }
+
+      return successResponse(
+        {
+          ticket,
+        },
+        201
+      )
+    }
+
     // Determine region (use provided region or user's region, default to 'asia-pacific' for admin)
     log.debug('Region resolution', {
       ticketDataRegion: ticketData.region,
       userRegion: user.region,
       userRole: user.role
     })
-    const region = (ticketData.region || user.region || 'asia-pacific') as RegionValue
+    region = (ticketData.region || user.region || 'asia-pacific') as RegionValue
     log.debug('Determined region', { region })
 
     // Validate user has permission to create ticket in this region
@@ -464,7 +568,7 @@ export async function POST(request: NextRequest) {
     // Determine group ID based on user's region
     // All users (customer/staff/admin) create tickets in their region's group
     // This ensures staff can see tickets created by customers in their region
-    const groupId = getGroupIdByRegion(region)
+    groupId = getGroupIdByRegion(region)
     log.debug('Using region group', { groupId, region })
 
     // Create ticket with X-On-Behalf-Of to ensure correct sender identity

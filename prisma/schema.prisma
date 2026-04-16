@@ -10,6 +10,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ServiceBaseRegion {
+  AFRICA
+  MIDDLE_EAST
+  ASIA_PACIFIC
+  NORTH_AMERICA
+  LATIN_AMERICA
+  EUROPE_ZONE_1
+  EUROPE_ZONE_2
+  CIS
+}
+
 // FAQ Categories
 model FaqCategory {
   id          Int      @id @default(autoincrement())
@@ -285,4 +296,34 @@ model CustomerStaffBinding {
   @@index([isActive, staffZammadId])
   @@index([isActive, region])
   @@map("customer_staff_bindings")
+}
+
+model ServiceGroup {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  baseRegion    ServiceBaseRegion
+  staffZammadId Int
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assignments CustomerGroupAssignment[]
+
+  @@index([staffZammadId])
+  @@index([baseRegion, isActive])
+  @@map("service_groups")
+}
+
+model CustomerGroupAssignment {
+  id               Int      @id @default(autoincrement())
+  customerZammadId Int      @unique
+  serviceGroupId   Int
+  assignedAt       DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  assignedBy       String?
+
+  serviceGroup ServiceGroup @relation(fields: [serviceGroupId], references: [id], onDelete: Restrict)
+
+  @@index([serviceGroupId])
+  @@map("customer_group_assignments")
 }

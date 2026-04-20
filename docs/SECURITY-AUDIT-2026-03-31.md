@@ -1,200 +1,135 @@
-# Security Audit Report — 2026-03-31
+# 安全审计报告 — 2026-03-31
 
-> Full codebase security audit across 8 modules.
-> - **Initial audit**: Claude Code (Opus 4.6)
-> - **Adversarial validation**: Codex (GPT-5.4) — verified findings, corrected 3 errors, found 8 missed issues
+> 针对全仓代码的安全审计汇总。
+> - **初始审计**：Claude Code（Opus 4.6）
+> - **对抗式复核**：Codex（GPT-5.4）——复核结论、修正误报并补充遗漏项
 >
-> Severity ratings below reflect post-validation adjustments.
+> 下列严重级别以复核后的结果为准。
 
-## Summary
+## 摘要
 
-| Severity | Initial | After Codex Validation |
-|----------|---------|----------------------|
-| CRITICAL | 1 | **0** (C1 downgraded to HIGH) |
-| HIGH | 9 | **8** (3 downgraded, +2 new) |
-| MEDIUM | 13 | **15** (3 promoted from HIGH, -2 invalid, +4 new) |
-| LOW | 15 | **17** (+2 new) |
+| 严重级别 | 初始数量 | 复核后 |
+|----------|----------|--------|
+| CRITICAL | 1 | **0**（C1 下调为 HIGH） |
+| HIGH | 9 | **8** |
+| MEDIUM | 13 | **15** |
+| LOW | 15 | **17** |
 
-**Test Status**: 821 unit tests passing, i18n 6 languages fully aligned (1587 keys).
+**测试状态**：当时审计记录为 821 个单元测试通过，6 种语言文案结构对齐。
 
-### Codex Validation Notes
-- 22/38 findings confirmed as-is
-- 3 findings invalid or inaccurate (M5, M12, H5 description)
-- 4 findings downgraded (C1, H5, H7, H9)
-- 8 new findings discovered by Codex validation
+### 复核说明
 
----
-
-## CRITICAL (0)
-
-> C1 was downgraded to HIGH after Codex validation — the manual role check at line 27 prevents actual exploitation.
+- 22/38 条结论被确认有效
+- 3 条结论无效或描述不准确
+- 4 条结论被下调
+- 8 条新问题由复核补出
 
 ---
 
-## HIGH (8)
+## CRITICAL（0）
 
-### H1. Ticket Reopen Ownership Bypass — `tickets/[id]/reopen/route.ts:53-61`
-
-When a customer has no `zammad_id` (undefined), the condition `if (userZammadId && ...)` evaluates to false, skipping the ownership check entirely. Any customer without a zammad_id can reopen any ticket.
-
-**Fix**: Change to `if (!userZammadId || ticket.customer_id !== userZammadId)` to hard-reject.
-
-### H2. Mock Auth Not Blocked in Production — `lib/env.ts:122-127`
-
-`NEXT_PUBLIC_ENABLE_MOCK_AUTH=true` in production only emits `console.warn`, not `throw`. Anyone who can set this env var gets access via `customer@test.com / password123`.
-
-**Fix**: Throw an error or at minimum use `logger.error` and report to monitoring.
-
-### H3. Webhook Signature Verification Optional — `webhooks/zammad/route.ts:92-100`
-
-When `ZAMMAD_WEBHOOK_SECRET` is not configured or the signature header is missing, verification is skipped entirely. Attackers can forge webhook requests to create fake TicketUpdates, trigger notifications, and route tickets.
-
-**Fix**: When secret is configured but signature header is absent, reject the request.
-
-### H4. AI API Keys Stored in Plaintext — `lib/utils/ai-config.ts:42,109`
-
-AI configuration (including API keys in cleartext) is stored in `config/ai-settings.json`. Anyone with filesystem access can read all AI provider credentials.
-
-**Fix**: Use encrypted storage or environment variables for sensitive keys.
-
-### ~~H5.~~ Moved to M14 (Codex downgraded)
-
-Avatar endpoint IS authenticated by middleware. The real issue is missing ownership check — any authenticated user can access any avatar by ID enumeration. See M14.
-
-### H6. CSV Import Formula Injection — `admin/users/import/route.ts:50-101`
-
-CSV import has no formula injection prevention. Fields like `full_name` can contain `=1+1` which Excel will execute when the data is later exported. CSV parsing also has edge cases with quoted fields.
-
-**Fix**: Sanitize leading `=+@-` characters from all imported fields.
-
-### ~~H7.~~ Moved to M15 (Codex downgraded — availability, not security)
-
-### H7. (NEW) No Rate Limiting on Login — `auth.ts` authorize callback
-
-The entire application has zero rate limiting. Most critically, the login endpoint has no brute-force protection, no account lockout, and no CAPTCHA. Any API route can be called at unlimited frequency.
-
-**Fix**: Add rate limiting middleware, especially on `/api/auth` and `/api/ai/chat`.
-
-### H8. SSE No Connection Limits — `tickets/updates/stream/route.ts`
-
-No rate limiting, no max concurrent connections, no per-user connection limit. A malicious user can open unlimited SSE connections to exhaust server memory.
-
-**Fix**: Implement per-user and global connection limits.
-
-### ~~H9.~~ Moved to M16 (Codex downgraded — operational, not security)
-
-### H9. (NEW) CSV Export Formula Injection — `admin/users/export/route.ts:50-57`
-
-The `escapeCSV()` function handles commas/quotes/newlines but does not sanitize leading `=+@-` characters. Data from Zammad (user names, ticket titles) could contain formula payloads that execute when opened in Excel.
-
-**Fix**: Strip leading formula characters in `escapeCSV()`.
+> C1 在复核后已被下调为 HIGH，因为实际代码中的手动角色检查阻断了直接利用路径。
 
 ---
 
-## MEDIUM (15)
+## HIGH（8）
 
-### Module 1: Authentication & Middleware
+### H1. Ticket reopen ownership bypass
 
-| # | File | Issue |
-|---|------|-------|
-| M1 | `auth.ts:396` | `useSecureCookies: false` hardcoded — cookies lack Secure flag even on HTTPS |
-| M2 | `auth.ts` + `middleware.ts` | Dual authorization logic with subtle inconsistencies |
-| M3 | `middleware.ts:138` | `x-user-role` response header leaks user role to clients |
-| M4 | `lib/utils/auth.ts:87` | `getUserRole()` returns "customer" instead of null for unauthenticated users |
+位置：`tickets/[id]/reopen/route.ts:53-61`
 
-### Module 2: Zammad Integration
+问题：当 customer 没有 `zammad_id` 时，条件判断被绕过，可能导致非所属客户重开任意工单。
 
-| # | File | Issue |
-|---|------|-------|
-| ~~M5~~ | ~~`zammad/client.ts:127-131`~~ | ~~Non-5xx errors also trigger retries~~ — **INVALID** (Codex: code only retries on 5xx) |
-| M6 | `ticket/auto-assign.ts:52` | `getAllTickets()` fetches all tickets for each assignment — poor performance at scale |
-| M7 | `ticket/auto-assign.ts:218` | `searchUsers('*')` to find admins — inefficient, may miss paginated results |
-| M8 | `zammad/client.ts:256` | `formatSearchQuery` injects user input into `title:*${input}*` without escaping |
+建议：使用 `if (!userZammadId || ticket.customer_id !== userZammadId)` 这种硬拒绝方式。
 
-### Module 6: Frontend
+### H2. Production 下 mock auth 未被硬阻断
 
-| # | File | Issue |
-|---|------|-------|
-| M9 | `article-content.tsx` | DOMPurify ALLOWED_TAGS includes `img` — tracking pixels from Zammad emails possible |
+位置：`lib/env.ts:122-127`
 
-### Module 7: AI Integration
+问题：`NEXT_PUBLIC_ENABLE_MOCK_AUTH=true` 在生产环境只告警不抛错，若环境变量被错误配置，可能暴露测试账号登录路径。
 
-| # | File | Issue |
-|---|------|-------|
-| M10 | `api/ai/chat/route.ts` | No `requireAuth()` in handler — relies solely on middleware (no defense-in-depth) |
-| M11 | `api/ai/chat/route.ts` | No rate limiting — malicious users can exhaust AI API quota/cost |
+建议：直接抛错，或至少使用正式日志与监控上报。
 
-### Module 4+5: SSE & Database
+### H3. Webhook 验签在部分场景可被绕过
 
-| # | File | Issue |
-|---|------|-------|
-| ~~M12~~ | ~~`tickets/updates/stream/route.ts:72`~~ | ~~cancel() race condition~~ — **INVALID** (Codex: interval self-terminates when isConnected=false) |
-| M12 | `sse/emitter.ts:23` | Subscriber Map can retain orphaned connections after network partitions |
-| M13 | `admin/users/[id]/role/route.ts:26` | (Was C1) Uses `requireAuth()` not `requireRole(['admin'])` — inconsistent with other admin routes |
-| M14 | `avatars/[id]/route.ts` | (Was H5) No ownership check — any authenticated user can access any avatar by ID |
-| M15 | `sse/emitter.ts:55-70` | (Was H7) broadcast() callbacks lack try-catch — one error breaks remaining subscribers |
-| M16 | `prisma/schema.prisma:149-160` | (Was H9) TicketUpdate table no TTL/cleanup — unbounded growth |
-| M17 | `admin/users/import/route.ts:130` | `Math.random()` for ID/password generation — should use `crypto.getRandomValues()` |
-| M18 | `tickets/[id]/reopen/route.ts:53` | Staff can reopen any ticket with no regional restriction |
-| M19 | `api/ai/chat/route.ts` | Accessible to all authenticated roles including customers — no `requireRole()` check |
-| M20 | `auth.ts:385` | JWT 7-day maxAge with no rotation — stolen JWT valid for full duration, no revocation |
+位置：`webhooks/zammad/route.ts:92-100`
 
----
+问题：当未配置 secret 或签名头缺失时，验签可能被跳过，从而伪造 TicketUpdate、通知或路由副作用。
 
-## LOW (17)
+建议：一旦配置了 secret，就必须要求签名头存在并通过校验。
 
-### Module 1: Authentication
+### H4. AI 凭据明文存储风险
 
-- **L1** `auth.ts:224-231` — Zammad fail falls back to mock; in production with mock enabled, bypasses password policy
-- **L2** `auth.ts:312-324` — JWT contains group_ids/zammad_id/phone; JWT is signed but not encrypted, client can decode
-- **L3** `auth.ts:136` — Admin `group_ids = [1..8]` hardcoded; new Zammad groups won't be covered
+位置：`lib/utils/ai-config.ts`
 
-### Module 2: Zammad
+问题：旧设计下 AI 配置曾有明文凭据落盘风险。
 
-- **L4** `zammad/client.ts:47-48` — Default timeout=5s may be too aggressive for multi-page requests
-- **L5** `webhooks/zammad/route.ts:138` — 5-second threshold for created-vs-reply detection; edge cases may misclassify
-- **L6** `zammad/client.ts:84` — API token sent as `Token token=xxx` in cleartext (Zammad standard; requires HTTPS)
+说明：当前文档整理后，主路径已明确为“敏感字段优先从环境变量读取，不写回 JSON”，但仍应持续核对实现与部署。
 
-### Module 6: Frontend
+### H5 / H7 / H9
 
-- **L7** `faq/article-card.tsx:32` — `new RegExp` from user input (escaped, but extreme lengths could ReDoS)
-- **L8** `language-selector.tsx:37` — `document.cookie` set without HttpOnly/Secure (locale preference only)
+这些条目在复核后有下调或重分类，不能再按最初版本机械理解。
 
-### Module 4+5: SSE & Database
+### H6. CSV import formula injection
 
-- **L9** `tickets/updates/stream/route.ts:66` — Abort event listener never explicitly removed
-- **L10** `prisma/schema.prisma` — Notification.expiresAt has no index; `cleanupExpired()` query inefficient
-- **L11** Notification `cleanupExpired()` method exists but is never called; expired records persist forever
-- **L12** TicketUpdate/Notification have no FK constraints; external deletes create orphaned records
+位置：`admin/users/import/route.ts`
 
-### Module 8: Testing
+问题：导入字段若包含 `= + - @` 等前缀，后续导出到表格工具时可能触发公式执行。
 
-- **L13** No unit tests for `src/lib/sse/emitter.ts` — memory leak scenarios uncovered
-- **L14** No E2E tests for AI conversation flow
+建议：对导入字段统一做前缀净化。
 
-### Module 7: AI
+### H7（复核新增）. 登录端点缺少限流
 
-- **L15** `ai-config.ts:120-135` — `updateEnvFile()` writes `.env.local` directly; fails in containerized deployments
-- **L16** `webhooks/zammad/route.ts:43-51` — Webhook HMAC uses SHA-1 (Zammad dictated); modern practice recommends SHA-256
-- **L17** `api/openapi.json/route.ts` — OpenAPI spec endpoint exposes full API surface for reconnaissance
+位置：`auth.ts` authorize callback
+
+问题：登录过程缺乏足够的暴力破解防护与全局节流能力。
+
+说明：当前代码已存在登录限流逻辑，但这份审计报告反映的是当次审计时的结论，应以当前代码再次核对。
+
+### H8. SSE 连接限制问题
+
+位置：`tickets/updates/stream/route.ts`
+
+问题：过多 SSE 并发连接可能消耗过多资源。
+
+说明：当前代码中已经存在 per-user / global connection limit 与 stale cleanup，不能直接沿用旧结论而不复核。
 
 ---
 
-## Positive Findings
+## MEDIUM / LOW
 
-- **i18n**: 6 languages, 1587 keys, fully aligned across all locales
-- **Tests**: 69 test files, 821 tests, all passing
-- **XSS Prevention**: DOMPurify correctly applied on all `dangerouslySetInnerHTML` usages
-- **Input Validation**: Zod schemas on all API route request bodies
-- **Permission Model**: Unified `checkTicketPermission()` function with region + ownership checks
-- **Customer Isolation**: X-On-Behalf-Of + ownership verification correctly implemented
-- **No dangerous patterns**: No `eval()`, raw SQL, or unprotected innerHTML in API layer
+这部分原文覆盖认证、Zammad 集成、前端、测试和运维等多个模块，价值主要在于：
+
+- 提醒哪些领域曾出现过安全假设偏差
+- 为后续复审提供检查清单
+- 保留“哪些问题已经被推翻或下调”的审计轨迹
+
+由于该报告本身是历史快照，不应再把每条内容直接当作当前真相。
 
 ---
 
-## Recommended Fix Priority
+## 如何使用这份报告
 
-1. **Immediate**: H1, H2, H3 (authentication/authorization bypass)
-2. **This sprint**: H4, H6, H7(new-rate-limit), H8, H9(new-csv-export) (data exposure, DoS, injection)
-3. **Next sprint**: M1-M20 (hardening, performance, defense-in-depth, JWT rotation)
-4. **Backlog**: L1-L17 (minor improvements, test coverage)
+正确用法：
+
+1. 把它当作**历史审计记录**
+2. 结合当前代码逐条复核
+3. 发现已修复或已失效的问题时，以当前实现为准
+4. 需要继续安全检查时，重新跑一轮面向当前分支的安全 review
+
+不正确用法：
+
+- 直接把这份报告当作当前系统状态说明
+- 不核对代码就据此下结论
+
+---
+
+## 当前结论
+
+这份文件保留的意义主要是：
+
+- 留存一次完整安全审计的历史上下文
+- 记录哪些发现经对抗式复核后被修正
+- 为后续安全复检提供线索
+
+若需要得到“当前分支现在还剩哪些安全问题”，应重新基于当前代码做 review，而不是只读这份历史报告。

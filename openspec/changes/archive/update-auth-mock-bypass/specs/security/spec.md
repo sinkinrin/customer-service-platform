@@ -1,15 +1,21 @@
-## ADDED Requirements
+# 认证安全要求（归档摘要）
 
-### Requirement: Server validates session before issuing identity
-#### Scenario: Missing session
-- **WHEN** a request hits any protected API without a server-validated session token
-- **THEN** the API responds with 401 and no mock or default user is issued.
+## 状态
+已归档，保留最小摘要。
 
-#### Scenario: Tampered auth-session cookie
-- **WHEN** the client sends an `auth-session` cookie whose contents are altered (e.g., forged role or user id)
-- **THEN** the server rejects the cookie, does not grant an identity, and returns 401.
+## 为什么保留
+这项归档涉及 mock auth / session 边界，是仍然具有长期参考价值的安全要求。
 
-### Requirement: Privileged APIs enforce server-side roles
-#### Scenario: Admin/staff-only operations
-- **WHEN** a caller is not an authenticated admin or staff as verified on the server
-- **THEN** admin/staff endpoints (ticket CRUD, FAQ CRUD, staff conversation access) respond with 403 and perform no side effects.
+## 核心原则
+- 受保护 API 必须建立在服务端已验证 session 之上
+- 被篡改的认证 cookie 不得被接受
+- 高权限 API 必须做服务端角色校验
+- mock / fallback 认证路径不能越权成为生产认证模型
+
+## 当前应参考
+- `src/auth.ts`
+- `middleware.ts`
+- `src/lib/utils/auth.ts`
+- 当前安全审计与代码实现
+
+这份归档只保留安全边界原则，不再作为详细实施文档。

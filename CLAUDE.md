@@ -136,13 +136,13 @@ messages/               # i18n translation files
 **目录结构**:
 - `openspec/specs/` - 当前系统规范
 - `openspec/changes/` - 提议的变更
-- `openspec/archive/` - 已完成的变更
+- `openspec/changes/archive/` - 已完成的变更
 
 **工作流程**:
 1. 查看现有规范: `openspec/specs/`
 2. 创建变更提案: `openspec/changes/<feature-name>/`
 3. 跟踪进度: 在 `tasks.md` 中更新清单
-4. 归档已完成: 移动到 `openspec/archive/`
+4. 归档已完成: 移动到 `openspec/changes/archive/`
 5. 生成 Changelog: 遵循 `CHANGELOG_GUIDE.md`
 
 ## Development Tips

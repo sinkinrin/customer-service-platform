@@ -1,483 +1,410 @@
-# Database Schema
+# 数据库结构
 
-> Prisma ORM with PostgreSQL
+> 当前本地持久化模型与 Zammad 数据边界说明。
 
-**中文概览**: See [DATABASE.zh-CN.md](./DATABASE.zh-CN.md)
-
-**Last Updated**: 2026-01-21
-**Prisma Version**: 6.19.0
+**最后更新**：2026-04-20
+**Prisma 版本**：`6.19.0`
 
 ---
 
-## Overview
+## 总览
 
-The platform uses Prisma ORM for database operations. Ticket data is stored in Zammad (external), while Prisma handles local-only features:
+本项目使用 Prisma + PostgreSQL 存储**本地支撑数据**，而不是把数据库当作主工单库。
 
-- FAQ management with translations
-- User ratings and feedback
-- Notification system
-- Reply templates
-- File metadata
-- Real-time update tracking
+最重要的边界是：
+
+- **Zammad** 保存 ticket 真相和大量用户 / 组信息
+- **Prisma + PostgreSQL** 保存平台本地需要补充维护的数据
+
+Schema 真相来源：`prisma/schema.prisma`
+Prisma client：`src/lib/prisma.ts`
 
 ---
 
-## Database Configuration
+## 当前数据库提供方
 
-### PostgreSQL (Current)
+当前 Prisma datasource 是：
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+示例：
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/customer_service
 ```
 
-> Note: The Prisma schema uses `provider = "postgresql"` (see `prisma/schema.prisma`).
+这已经覆盖掉旧文档里把 SQLite 写成“当前数据库”的说法。
 
 ---
 
-## Schema Overview
+## 本地数据库存什么
 
-Location: `prisma/schema.prisma`
+### FAQ 数据
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Prisma Models (10)                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│   FAQ System                    User Management                   │
-│   ┌──────────────┐              ┌──────────────────┐            │
-│   │ FaqCategory  │              │ UserZammadMapping│            │
-│   │ FaqArticle   │              └──────────────────┘            │
-│   │ FaqTranslation│                                              │
-│   │ FaqRating    │              Feedback                        │
-│   └──────────────┘              ┌──────────────────┐            │
-│                                 │ TicketRating     │            │
-│   Content                       └──────────────────┘            │
-│   ┌──────────────┐                                               │
-│   │ ReplyTemplate│              Real-time                       │
-│   │ UploadedFile │              ┌──────────────────┐            │
-│   └──────────────┘              │ TicketUpdate     │            │
-│                                 │ Notification     │            │
-│                                 └──────────────────┘            │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
+本地 FAQ 完全由 Prisma 支撑：
 
----
+- `FaqCategory`
+- `FaqArticle`
+- `FaqArticleTranslation`
+- `FaqRating`
 
-## Models
+### 文件元数据
 
-### FaqCategory
+平台自管文件的元数据存于：
 
-FAQ categories for organizing knowledge base articles.
+- `UploadedFile`
 
-```prisma
-model FaqCategory {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String
-  icon        String
-  slug        String   @unique
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+### 工单支撑数据
 
-  articles FaqArticle[]
+围绕 Zammad 工单的本地支撑数据包括：
 
-  @@map("faq_categories")
-}
-```
+- `TicketRating`
+- `ReplyTemplate`
+- `TicketUpdate`
+- `Notification`
+- `CustomerStaffBinding`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| id | Int | Primary key |
-| name | String | Category name |
-| description | String | Category description |
-| icon | String | Icon identifier (e.g., "help-circle") |
-| slug | String | URL-friendly unique identifier |
-| sortOrder | Int | Display order |
-| isActive | Boolean | Whether category is visible |
+### AI 数据
+
+本地 AI 持久化包括：
+
+- `AiConversation`
+- `AiMessage`
+- `AiMessageRating`
+- `AiQaReview`
+
+### 用户映射
+
+本地用户与 Zammad 用户的映射存于：
+
+- `UserZammadMapping`
 
 ---
 
-### FaqArticle
+## 本地数据库不存什么
 
-Individual FAQ articles with multi-language support.
+本地数据库不是以下数据的真相来源：
 
-```prisma
-model FaqArticle {
-  id         Int      @id @default(autoincrement())
-  categoryId Int
-  slug       String   @unique
-  views      Int      @default(0)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+- ticket
+- ticket article / reply
+- Zammad 中的 owner / group 当前状态
+- 大部分 Zammad 用户与 group 主数据
 
-  category     FaqCategory              @relation(...)
-  translations FaqArticleTranslation[]
-  ratings      FaqRating[]
-
-  @@index([categoryId])
-  @@map("faq_articles")
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| id | Int | Primary key |
-| categoryId | Int | Foreign key to FaqCategory |
-| slug | String | URL-friendly unique identifier |
-| views | Int | View count |
-| isActive | Boolean | Whether article is visible |
+这些仍然通过 `src/lib/zammad/client.ts` 从外部系统读取或写入。
 
 ---
 
-### FaqArticleTranslation
+## 当前 Prisma 模型列表
 
-Translated content for FAQ articles (6 languages supported).
+当前 schema 中的模型有：
 
-```prisma
-model FaqArticleTranslation {
-  id        Int      @id @default(autoincrement())
-  articleId Int
-  locale    String   // en, zh-CN, fr, es, ru, pt
-  title     String
-  content   String   // Markdown content
-  keywords  String   // JSON array of keywords
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  article FaqArticle @relation(...)
-
-  @@unique([articleId, locale])
-  @@index([articleId])
-  @@index([locale])
-  @@map("faq_article_translations")
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| locale | String | Language code (en, zh-CN, fr, es, ru, pt) |
-| title | String | Translated title |
-| content | String | Markdown content |
-| keywords | String | JSON array for search |
+1. `FaqCategory`
+2. `FaqArticle`
+3. `FaqArticleTranslation`
+4. `FaqRating`
+5. `UserZammadMapping`
+6. `UploadedFile`
+7. `TicketRating`
+8. `ReplyTemplate`
+9. `TicketUpdate`
+10. `Notification`
+11. `AiConversation`
+12. `AiMessage`
+13. `AiMessageRating`
+14. `AiQaReview`
+15. `CustomerStaffBinding`
 
 ---
 
-### FaqRating
+## 模型分组说明
 
-User feedback on FAQ articles.
+### FAQ 模型
 
-```prisma
-model FaqRating {
-  id        Int      @id @default(autoincrement())
-  articleId Int
-  userId    String
-  isHelpful Boolean
-  createdAt DateTime @default(now())
+#### `FaqCategory`
 
-  article FaqArticle @relation(...)
+FAQ 分类。
 
-  @@unique([articleId, userId])
-  @@index([articleId])
-  @@map("faq_ratings")
-}
-```
+关键字段：
 
----
+- `name`
+- `description`
+- `icon`
+- `slug`
+- `sortOrder`
+- `isActive`
 
-### UserZammadMapping
+#### `FaqArticle`
 
-Maps local user IDs to Zammad user IDs.
+FAQ 文章主记录。
 
-```prisma
-model UserZammadMapping {
-  id              Int      @id @default(autoincrement())
-  userId          String   @unique
-  zammadUserId    Int
-  zammadUserEmail String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+关键字段：
 
-  @@index([userId])
-  @@index([zammadUserId])
-  @@map("user_zammad_mappings")
-}
-```
+- `categoryId`
+- `slug`
+- `views`
+- `isActive`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| userId | String | Local user ID (from NextAuth) |
-| zammadUserId | Int | Zammad user ID |
-| zammadUserEmail | String | User email in Zammad |
+#### `FaqArticleTranslation`
 
----
+多语言 FAQ 内容。
 
-### UploadedFile
+关键字段：
 
-Metadata for uploaded files (actual files stored on disk or cloud).
+- `articleId`
+- `locale`
+- `title`
+- `content`
+- `keywords`
 
-```prisma
-model UploadedFile {
-  id            String   @id @default(uuid())
-  userId        String
-  bucketName    String
-  filePath      String
-  fileName      String
-  fileSize      Int
-  mimeType      String
-  referenceType String
-  referenceId   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+#### `FaqRating`
 
-  @@index([userId])
-  @@index([referenceType, referenceId])
-  @@map("uploaded_files")
-}
-```
+FAQ 文章的 helpful / not helpful 反馈。
 
-| Field | Type | Description |
-|-------|------|-------------|
-| bucketName | String | Storage bucket (avatars, attachments) |
-| filePath | String | Relative path to file |
-| referenceType | String | Type: message, user_profile, ticket |
-| referenceId | String? | Associated entity ID |
+关键字段：
+
+- `articleId`
+- `userId`
+- `isHelpful`
 
 ---
 
-### TicketRating
+### 用户映射
 
-Customer feedback on closed tickets.
+#### `UserZammadMapping`
 
-```prisma
-model TicketRating {
-  id        Int      @id @default(autoincrement())
-  ticketId  Int      @unique
-  userId    String
-  rating    String   // 'positive' or 'negative'
-  reason    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+把平台本地用户 ID 映射到 Zammad 用户 ID。
 
-  @@index([ticketId])
-  @@index([userId])
-  @@index([rating])
-  @@map("ticket_ratings")
-}
-```
+关键字段：
 
-| Field | Type | Description |
-|-------|------|-------------|
-| ticketId | Int | Zammad ticket ID |
-| rating | String | 'positive' or 'negative' |
-| reason | String? | Optional feedback text |
+- `userId`
+- `zammadUserId`
+- `zammadUserEmail`
 
 ---
 
-### ReplyTemplate
+### 文件元数据
 
-Quick response templates for staff.
+#### `UploadedFile`
 
-```prisma
-model ReplyTemplate {
-  id          Int      @id @default(autoincrement())
-  name        String
-  content     String
-  category    String
-  region      String?
-  createdById String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+平台自管文件的元数据。
 
-  @@index([category])
-  @@index([region])
-  @@index([isActive])
-  @@map("reply_templates")
-}
-```
+关键字段：
 
-| Field | Type | Description |
-|-------|------|-------------|
-| name | String | Template name |
-| content | String | Template content with variables |
-| category | String | first_contact, technical, closing, etc. |
-| region | String? | Optional region restriction |
+- `userId`
+- `bucketName`
+- `filePath`
+- `fileName`
+- `fileSize`
+- `mimeType`
+- `referenceType`
+- `referenceId`
+
+注意：这不代表所有工单附件都走本地存储；ticket/article 附件仍可能走 Zammad 附件链路。
 
 ---
 
-### TicketUpdate
+### 工单支撑模型
 
-Real-time ticket update tracking (from Zammad webhooks).
+#### `TicketRating`
 
-```prisma
-model TicketUpdate {
-  id        String   @id @default(cuid())
-  ticketId  Int
-  event     String
-  data      String?
-  createdAt DateTime @default(now())
+客户对 Zammad 工单的评分。
 
-  @@index([ticketId])
-  @@index([createdAt])
-  @@map("ticket_updates")
-}
-```
+关键字段：
 
-| Field | Type | Description |
-|-------|------|-------------|
-| ticketId | Int | Zammad ticket ID |
-| event | String | article_created, status_changed, assigned, created |
-| data | String? | JSON: { articleId, newState, assignedTo, senderEmail } |
+- `ticketId`
+- `userId`
+- `rating`
+- `reason`
+
+#### `ReplyTemplate`
+
+坐席快捷回复模板。
+
+关键字段：
+
+- `name`
+- `content`
+- `category`
+- `region`
+- `createdById`
+- `isActive`
+
+#### `TicketUpdate`
+
+Webhook 入站后落地的标准化工单更新事件。
+
+关键字段：
+
+- `ticketId`
+- `event`
+- `data`
+- `createdAt`
+
+#### `Notification`
+
+持久化站内通知。
+
+关键字段：
+
+- `userId`
+- `type`
+- `title`
+- `body`
+- `data`
+- `read`
+- `readAt`
+- `expiresAt`
+
+#### `CustomerStaffBinding`
+
+客户与固定坐席之间的持久绑定关系。
+
+关键字段：
+
+- `customerZammadId`
+- `staffZammadId`
+- `region`
+- `source`
+- `isActive`
+- `deactivatedAt`
+
+这是当前 binding-first 自动分配模型的核心表。
 
 ---
 
-### Notification
+### AI 模型
 
-Persistent in-app notifications.
+#### `AiConversation`
 
-```prisma
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String
-  title     String
-  body      String
-  data      String?
-  read      Boolean  @default(false)
-  readAt    DateTime?
-  createdAt DateTime @default(now())
-  expiresAt DateTime?
+客户 AI 对话主记录。
 
-  @@index([userId, read])
-  @@index([userId, createdAt])
-  @@index([type])
-  @@map("notifications")
-}
-```
+关键字段：
 
-| Field | Type | Description |
-|-------|------|-------------|
-| type | String | ticket_reply, ticket_assigned, ticket_status, system_alert, etc. |
-| title | String | Short notification title |
-| body | String | Notification content |
-| data | String? | JSON with ticketId, articleId, etc. |
-| read | Boolean | Whether user has read the notification |
-| expiresAt | DateTime? | Optional expiration time |
+- `customerId`
+- `customerEmail`
+- `status`
+- `lastMessageAt`
+
+#### `AiMessage`
+
+AI 对话中的消息。
+
+关键字段：
+
+- `conversationId`
+- `senderRole`
+- `senderId`
+- `content`
+- `messageType`
+- `metadata`
+
+#### `AiMessageRating`
+
+用户对 AI 消息的正 / 负反馈。
+
+关键字段：
+
+- `messageId`
+- `userId`
+- `rating`
+- `feedback`
+
+#### `AiQaReview`
+
+坐席对 AI 回复的 QA 审核记录。
+
+关键字段：
+
+- `messageId`
+- `status`
+- `reviewNote`
+- `reviewedBy`
+- `reviewedAt`
+- `retestAnswer`
+- `retestAppId`
+- `source`
+- `appId`
+- `externalId`
 
 ---
 
-## Migrations
+## 索引与关系
 
-Location: `prisma/migrations/`
+当前 schema 已围绕这些场景建立索引：
 
-### Run Migrations
+- FAQ 分类 / 文章查询
+- 翻译按 locale 查询
+- 未读 / 最近通知查询
+- TicketUpdate 按 ticket / time 查询
+- AI message 按 conversation / time 查询
+- Binding 按 active / region / staff 查询
+
+具体索引和外键约束仍以 `prisma/schema.prisma` 为准。
+
+---
+
+## Prisma 使用模式
+
+`src/lib/prisma.ts` 使用单例模式，避免开发环境热更新产生过多 client 实例。
+
+常见使用位置：
+
+- FAQ API：`src/app/api/faq/*`
+- 通知服务：`src/lib/notification/service.ts`
+- AI 对话服务与 API
+- Binding 逻辑：`src/lib/ticket/customer-binding.ts`
+- Webhook 持久化：`src/app/api/webhooks/zammad/route.ts`
+
+---
+
+## 迁移
+
+迁移目录：
+
+- `prisma/migrations/`
+
+常用命令：
 
 ```bash
-# Development: apply pending migrations
-npx prisma migrate dev
-
-# Production: apply migrations without prompts
-npx prisma migrate deploy
-
-# Generate Prisma Client
 npx prisma generate
+npx prisma migrate dev
+npx prisma migrate deploy
 ```
 
-### Migration History
-
-| Date | Migration | Description |
-|------|-----------|-------------|
-| 2025-11-10 | 20251110114117_init | Initial schema (FAQ) |
-| 2025-12-22 | 20251222105357_add_user_mapping_and_file_upload | User mapping + file metadata |
-| 2026-01-12 | 20260112090000_add_notifications | In-app notifications |
-| 2026-01-22 | 20260122015327_add_ticket_models | Ticket ratings + reply templates + ticket updates |
+仓库中还有：`prisma.config.ts`
 
 ---
 
-## Prisma Client Usage
+## Seed
 
-### Singleton Pattern
-
-Location: `src/lib/prisma.ts`
-
-```typescript
-import { PrismaClient } from '@prisma/client'
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
-```
-
-### Usage in API Routes
-
-```typescript
-import { prisma } from '@/lib/prisma'
-
-// Get all FAQ categories
-const categories = await prisma.faqCategory.findMany({
-  where: { isActive: true },
-  orderBy: { sortOrder: 'asc' },
-  include: { articles: true }
-})
-
-// Create notification
-await prisma.notification.create({
-  data: {
-    userId: 'user-123',
-    type: 'ticket_reply',
-    title: 'New reply on ticket #10001',
-    body: 'Staff has replied to your ticket',
-    data: JSON.stringify({ ticketId: 10001 })
-  }
-})
-```
-
----
-
-## Seeding
-
-Location: `prisma/seed.ts`
+FAQ seed 通过以下命令写入：
 
 ```bash
-# Run seed script
 npm run db:seed
 ```
 
-The seed script creates:
-- FAQ categories (5)
-- FAQ articles with translations (20+)
+脚本位置：`prisma/seed.ts`
 
 ---
 
-## Indexes
+## 文档边界提醒
 
-Performance-critical indexes are defined in the schema:
+整理数据库相关文档时，要一直守住这条边界：
 
-| Model | Index | Purpose |
-|-------|-------|---------|
-| FaqArticle | categoryId | Filter by category |
-| FaqArticleTranslation | [articleId, locale] | Unique translation lookup |
-| Notification | [userId, read] | Unread notifications |
-| Notification | [userId, createdAt] | Recent notifications |
-| TicketUpdate | [ticketId] | Updates per ticket |
-| TicketUpdate | [createdAt] | Recent updates |
+- **Prisma / PostgreSQL** = 本地支撑数据
+- **Zammad** = 工单运行真相
+
+过去很多文档漂移，都是因为把这两层写混了。
 
 ---
 
-## Related Documentation
+## 相关文档
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - System overview
-- [API-REFERENCE.md](./API-REFERENCE.md) - API endpoints
-- [Prisma Docs](https://www.prisma.io/docs) - Official documentation
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [API-REFERENCE.md](./API-REFERENCE.md)
+- [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md)

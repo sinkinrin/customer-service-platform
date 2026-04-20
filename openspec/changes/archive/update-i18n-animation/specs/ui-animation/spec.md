@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
-### Requirement: Animations respect reduced motion
-#### Scenario: User has `prefers-reduced-motion: reduce`
-- **WHEN** skeletons, loaders, transitions, or shimmer effects render
-- **THEN** they disable or minimize animations (no shimmer/pulse) while keeping content visible.
+### Requirement: 动效必须尊重 reduced motion 偏好
+#### Scenario: 用户设置了 `prefers-reduced-motion: reduce`
+- **WHEN** skeleton、loader、transition、shimmer 等动效被渲染
+- **THEN** 系统应禁用或显著减弱这些动画效果（例如不再使用 shimmer / pulse），同时保证内容仍然可见。
 
-### Requirement: Consistent loading/transition styles
-#### Scenario: Showing page-level loading states or transitions
-- **WHEN** page loaders or transitions are displayed
-- **THEN** they use shared utility styles/tokens (timing, easing, shadow/blur) defined once and reused, avoiding per-page bespoke animation values.
+### Requirement: 加载态与过渡效果保持一致风格
+#### Scenario: 页面展示加载态或过渡效果
+- **WHEN** page loader 或 transition 被显示
+- **THEN** 它们应复用统一的样式 / token（如 timing、easing、shadow、blur），避免每个页面各自定义一套动画参数。

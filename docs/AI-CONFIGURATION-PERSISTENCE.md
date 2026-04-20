@@ -1,339 +1,246 @@
-# AI Configuration Persistence Guide
+# AI 配置持久化
 
-**中文概览**: See [AI-CONFIGURATION-PERSISTENCE.zh-CN.md](./AI-CONFIGURATION-PERSISTENCE.zh-CN.md)
+> 当前 AI 设置的持久化方式与管理端配置行为说明。
 
-**Date**: 2025-11-06  
-**Status**: ✅ **IMPLEMENTED**
-
----
-
-## Overview
-
-The AI auto-reply configuration is now **persistent across server restarts** using a hybrid storage approach:
-
-1. **Sensitive Data** (API keys) → `.env.local` file
-2. **Other Settings** (model, temperature, prompts, URLs) → `config/ai-settings.json` file
-
-This ensures:
-- ✅ Settings survive server restarts
-- ✅ Sensitive data is kept secure
-- ✅ Non-sensitive settings can be updated without server restart
-- ✅ Configuration is version-controlled (example file only)
+**最后更新**：2026-04-20
+**状态**：✅ 当前
 
 ---
 
-## File Structure
+## 1. 总览
 
-```
-customer-service-platform/
-├── .env.local                      # Sensitive data (API keys) - NOT in git
-├── .gitignore                      # Excludes .env.local and ai-settings.json
-├── config/
-│   ├── ai-settings.json            # AI configuration - NOT in git
-│   └── ai-settings.example.json    # Example configuration - IN git
-└── src/
-    └── lib/
-        └── utils/
-            └── ai-config.ts        # Configuration utility functions
-```
+AI 配置现在采用混合持久化：
 
----
+1. **非敏感配置** 写入 `config/ai-settings.json`
+2. **敏感凭据** 主要从环境变量读取；对 FastGPT 的旧兼容路径仍可通过管理端写入 `.env.local`
 
-## Configuration Files
+一个关键现实是：当前 AI 系统已经**不是 FastGPT-only**。
 
-### 1. `.env.local` (Sensitive Data)
+代码层现在支持的 provider 有：
 
-**Purpose**: Store sensitive API keys that should never be committed to version control.
+- `fastgpt`
+- `openai`（OpenAI-compatible）
+- `yuxi-legacy`
 
-**Location**: Project root directory `.env.local`
+关键文件：
 
-**Content**:
-```env
-# Zammad Integration
-ZAMMAD_URL=http://your-zammad-instance:8080/
-ZAMMAD_API_TOKEN=your_zammad_api_token_here
-
-# AI Auto-Reply Configuration (Sensitive Data)
-# Note: FastGPT API Key is stored here for security
-# Other AI settings are stored in config/ai-settings.json
-FASTGPT_API_KEY=your-fastgpt-api-key-here
-```
-
-**Important Notes**:
-- ✅ This file is in `.gitignore` and will NOT be committed
-- ⚠️ Changing this file requires **server restart** to take effect
-- 🔒 Keep this file secure - it contains sensitive credentials
+- `src/lib/utils/ai-config.ts`
+- `src/lib/ai/providers/index.ts`
+- `src/app/api/admin/settings/ai/route.ts`
 
 ---
 
-### 2. `config/ai-settings.json` (Non-Sensitive Data)
+## 2. 存储模型
 
-**Purpose**: Store AI configuration that can be updated dynamically via the admin UI.
+### 配置文件
 
-**Location**: `config/ai-settings.json` (project root)
+非敏感设置写入：
 
-**Content**:
-```json
-{
-  "enabled": false,
-  "model": "GPT-4o-mini",
-  "temperature": 0.7,
-  "systemPrompt": "You are a helpful customer service assistant.",
-  "fastgptUrl": "https://your-fastgpt-instance.com",
-  "fastgptAppId": "your-app-id"
-}
-```
+- `config/ai-settings.json`
 
-**Important Notes**:
-- ✅ This file is in `.gitignore` and will NOT be committed
-- ✅ Changes to this file take effect **immediately** (no server restart needed)
-- ✅ Updated automatically when admin saves settings via UI
+当前会保存的典型字段包括：
 
----
+- `enabled`
+- `provider`
+- `fastgptUrl`
+- `fastgptAppId`
+- `openaiUrl`
+- `openaiModel`
+- `yuxiUrl`
+- `yuxiAgentId`
+- `model`
+- `temperature`
+- `systemPrompt`
+- `qaRetestAppId`
+- `qaApps`
 
-### 3. `config/ai-settings.example.json` (Template)
+### 环境变量中的敏感字段
 
-**Purpose**: Provide a template for new installations.
+敏感字段不会被写回 JSON 文件。当前敏感字段包括：
 
-**Location**: `config/ai-settings.example.json` (project root)
+- `fastgptApiKey`
+- `openaiApiKey`
+- `yuxiUsername`
+- `yuxiPassword`
 
-**Content**: Same as `ai-settings.json` but with placeholder values.
-
-**Important Notes**:
-- ✅ This file IS committed to version control
-- ✅ Copy this to `ai-settings.json` for new installations
-- ✅ Update with your actual configuration values
+这些值在读取设置时主要从环境变量叠加进来。
 
 ---
 
-## How It Works
+## 3. 当前 Provider 支持
 
-### Reading Configuration
+### `fastgpt`
 
-When the server starts or when the admin views settings:
+字段：
 
-1. **Read `config/ai-settings.json`** for non-sensitive settings
-2. **Read `process.env.FASTGPT_API_KEY`** from `.env.local` for API key
-3. **Merge** both sources into a single configuration object
-4. **Return** to the admin UI
+- `fastgptUrl`
+- `fastgptAppId`
+- `fastgptApiKey`
 
-**Code**: `src/lib/utils/ai-config.ts` → `readAISettings()`
+### `openai`
 
----
+字段：
 
-### Writing Configuration
+- `openaiUrl`
+- `openaiApiKey`
+- `openaiModel`
 
-When the admin saves settings via the UI:
+这里的 `openai` 指 OpenAI-compatible 路径，不等于只能接 OpenAI 官方服务。
 
-1. **Validate** the input using Zod schema
-2. **Write non-sensitive settings** to `config/ai-settings.json`
-3. **If API key provided**, update `.env.local` file
-4. **Log warning** if API key was updated (requires server restart)
-5. **Return** the saved configuration
+### `yuxi-legacy`
 
-**Code**: `src/lib/utils/ai-config.ts` → `writeAISettings()` and `updateEnvFile()`
+字段：
 
----
+- `yuxiUrl`
+- `yuxiUsername`
+- `yuxiPassword`
+- `yuxiAgentId`
 
-## API Endpoints
+### 共享字段
 
-### GET `/api/admin/settings/ai`
-
-**Purpose**: Retrieve current AI configuration
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "enabled": false,
-    "model": "GPT-4o-mini",
-    "temperature": 0.7,
-    "system_prompt": "You are a helpful customer service assistant.",
-    "fastgpt_url": "https://your-fastgpt-instance.com",
-    "fastgpt_appid": "your-app-id",
-    "fastgpt_api_key": "fastgpt-xxxxxx"
-  }
-}
-```
-
-**Source**: Reads from `config/ai-settings.json` + `.env.local`
+- `enabled`
+- `provider`
+- `model`
+- `temperature`
+- `systemPrompt`
+- `qaRetestAppId`
+- `qaApps`
 
 ---
 
-### PUT `/api/admin/settings/ai`
+## 4. 读取流程
 
-**Purpose**: Update AI configuration
+`src/lib/utils/ai-config.ts` 中的 `readAISettings()` 当前会：
 
-**Request Body**:
-```json
-{
-  "enabled": true,
-  "model": "GPT-4o-mini",
-  "temperature": 0.7,
-  "system_prompt": "You are a helpful customer service assistant.",
-  "fastgpt_url": "https://your-fastgpt-instance.com",
-  "fastgpt_appid": "your-app-id",
-  "fastgpt_api_key": "fastgpt-xxxxxx"
-}
-```
+1. 读取 `config/ai-settings.json`（若存在）
+2. 与默认设置合并
+3. 再叠加来自环境变量的敏感字段
+4. 返回统一的 `AISettings` 对象
 
-**Actions**:
-1. Writes to `config/ai-settings.json` (all fields except API key)
-2. Updates `.env.local` (API key only)
-3. Returns updated configuration
+当前环境变量覆盖示例：
 
-**Important**: If API key is updated, **server restart required** for it to take effect.
+- `FASTGPT_API_KEY` / `AI_FASTGPT_API_KEY`
+- `AI_OPENAI_API_KEY`
+- `AI_YUXI_USERNAME`
+- `AI_YUXI_PASSWORD`
 
 ---
 
-## Usage Instructions
+## 5. 写入流程
 
-### For Administrators
+`writeAISettings()` 当前会：
 
-#### 1. Initial Setup
+1. 确保 `config/` 目录存在
+2. 把传入值与当前设置合并
+3. 在写文件前剥离敏感字段
+4. 把安全配置写入 `config/ai-settings.json`
 
-1. Navigate to **Admin → Settings** (http://localhost:3010/admin/settings)
-2. Scroll to **AI 智能回复** section
-3. Toggle **启用 AI 智能回复** to ON
-4. Fill in the configuration:
-   - **AI 模型**: `GPT-4o-mini` (or your preferred model)
-   - **Temperature**: `0.7` (0-2, recommended 0.7)
-   - **系统提示词**: Your custom system prompt
-   - **FastGPT URL**: Your FastGPT instance URL
-   - **FastGPT App ID**: Your FastGPT application ID
-   - **FastGPT API Key**: Your FastGPT API key
-5. Click **保存设置** (Save Settings)
-
-#### 2. Verify Persistence
-
-1. Save your settings (as above)
-2. **Restart the development server**:
-   ```bash
-   # Stop the server (Ctrl+C)
-   npm run dev
-   ```
-3. Navigate back to **Admin → Settings**
-4. ✅ Verify all settings are still present
-
-#### 3. Test FastGPT Connection
-
-1. After configuring all fields, click **测试 FastGPT 连接**
-2. Wait for the test to complete (up to 10 seconds)
-3. Check the result:
-   - ✅ **Success**: Connection is working
-   - ❌ **Failure**: Check error message and fix configuration
+这意味着 JSON 文件天然就是“去敏感信息”的，不是完整明文快照。
 
 ---
 
-### For Developers
+## 6. `.env.local` 更新路径
 
-#### Reading Configuration in Code
+仓库里仍保留一个兼容辅助：
 
-```typescript
-import { readAISettings } from '@/lib/utils/ai-config'
+- `updateEnvFile(apiKey)`
 
-// Read current configuration
-const settings = readAISettings()
+当前行为：
 
-console.log(settings.enabled)        // boolean
-console.log(settings.model)          // string
-console.log(settings.temperature)    // number
-console.log(settings.systemPrompt)   // string
-console.log(settings.fastgptUrl)     // string
-console.log(settings.fastgptAppId)   // string
-console.log(settings.fastgptApiKey)  // string (from .env.local)
-```
+- 更新或插入 `.env.local` 里的 `FASTGPT_API_KEY=...`
+- 由管理端 AI 设置路由用于 FastGPT API Key 更新
 
-#### Writing Configuration in Code
+当前限制：
 
-```typescript
-import { writeAISettings, updateEnvFile } from '@/lib/utils/ai-config'
-
-// Update non-sensitive settings
-writeAISettings({
-  enabled: true,
-  model: 'GPT-4o-mini',
-  temperature: 0.7,
-  systemPrompt: 'You are a helpful assistant.',
-  fastgptUrl: 'https://your-instance.com',
-  fastgptAppId: 'your-app-id',
-})
-
-// Update API key (requires server restart)
-updateEnvFile('your-new-api-key')
-```
+- 这个 helper 只处理 FastGPT key
+- 环境变量变更是否立即生效仍取决于运行进程，通常可能需要重启
 
 ---
 
-## Security Considerations
+## 7. 管理端 API
 
-### ✅ What's Secure
+AI 设置管理路由：
 
-1. **API keys are stored in `.env.local`** (not in git)
-2. **`.gitignore` excludes sensitive files**
-3. **API endpoints require admin authentication**
-4. **File permissions** (ensure `.env.local` is not world-readable)
+- `GET /api/admin/settings/ai`
+- `PUT /api/admin/settings/ai`
 
-### ⚠️ Important Warnings
+实现位置：
 
-1. **Never commit `.env.local`** to version control
-2. **Never commit `config/ai-settings.json`** to version control
-3. **Keep `.env.local` file permissions restricted** (chmod 600 on Linux/Mac)
-4. **Rotate API keys regularly** for security
-5. **Use HTTPS** for FastGPT connections in production
+- `src/app/api/admin/settings/ai/route.ts`
 
----
+### GET
 
-## Troubleshooting
+当前会：
 
-### Problem: Settings are lost after server restart
+- 要求已登录 admin 权限
+- 调用 `readAISettings()` 读取配置
+- 以 snake_case 结构返回
+- 对敏感字段返回 `********` 掩码
 
-**Solution**:
-1. Check if `config/ai-settings.json` exists
-2. Check if `.env.local` has `FASTGPT_API_KEY`
-3. Check server logs for errors reading configuration files
+### PUT
 
-### Problem: API key not working after update
+当前会：
 
-**Solution**:
-1. Verify API key was saved to `.env.local`
-2. **Restart the server** (required for env changes)
-3. Check server logs for the new API key being loaded
-
-### Problem: "Failed to save AI settings" error
-
-**Solution**:
-1. Check if `config/` directory exists (should be created automatically)
-2. Check file permissions (ensure server can write to `config/`)
-3. Check server logs for detailed error messages
+- 要求已登录 admin 权限
+- 用 Zod 校验请求体
+- 把 snake_case 字段映射为内部 camelCase 设置结构
+- 通过 `writeAISettings()` 写入非敏感配置
+- 对 FastGPT API key 仍调用 `updateEnvFile()`
 
 ---
 
-## Migration from Mock Data
+## 8. Provider Registry
 
-**Previous Implementation**: Settings were stored in `src/lib/mock-data.ts` (in-memory, lost on restart)
+运行时 provider 注册位于：
 
-**New Implementation**: Settings are stored in persistent files
+- `src/lib/ai/providers/index.ts`
 
-**Migration Steps**:
-1. ✅ No migration needed - default values are used if files don't exist
-2. ✅ First save via admin UI will create the configuration files
-3. ✅ Old mock data is no longer used
+当前注册的 provider：
+
+- `fastgpt`
+- `openai`
+- `yuxi-legacy`
+
+所以凡是只把 AI 持久化文档写成“FastGPT 配置持久化”的，都已经不完整了。
 
 ---
 
-## Conclusion
+## 9. QA Review 相关设置
 
-✅ **AI configuration is now fully persistent**  
-✅ **Sensitive data is stored securely**  
-✅ **Settings survive server restarts**  
-✅ **Admin UI updates configuration files automatically**  
-✅ **Production-ready implementation**
+当前 AI 设置模型里还包含 QA review 相关字段：
 
-**Next Steps**:
-1. Configure your FastGPT instance details
-2. Test the connection
-3. Enable AI auto-reply
-4. Monitor AI responses in conversations
+- `qaRetestAppId`
+- `qaApps`
 
+它们用于 AI QA 重测和未来多 app/provider 的映射能力。
+
+---
+
+## 10. 运维注意点
+
+- `config/ai-settings.json` 可能在首次写入前不存在
+- 写入时会故意剥离敏感字段
+- FastGPT API key 仍可通过管理端写入 `.env.local`
+- 其他 provider 的敏感凭据更偏向 env 输入而非 JSON 明文存储
+- env 变更是否立即被进程读取，通常仍需要按部署方式决定是否重启
+
+---
+
+## 11. 文档边界
+
+这份文档描述的是**持久化和管理端配置行为**，不是完整 AI 架构说明。
+
+如需看运行时 provider 接线和整体架构，还应同时参考：
+
+- `docs/ARCHITECTURE.md`
+- `src/lib/ai/providers/index.ts`
+- `src/app/api/conversations/route.ts`
+- `src/app/api/staff/ai-qa/review/route.ts`
+
+---
+
+## 相关文档
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [API-REFERENCE.md](./API-REFERENCE.md)
+- [README.md](../README.md)

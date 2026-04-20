@@ -1,166 +1,81 @@
-# Documentation
+# 文档索引
 
-> Customer Service Platform - Technical Documentation
+> 当前已实现系统的中文技术文档入口。
 
-**Chinese Index**: See [README.zh-CN.md](./README.zh-CN.md)
+**最后更新**：2026-04-20
+**当前包版本**：`0.2.2`
 
-**Last Updated**: 2026-04-15
-**Platform Version**: 2.0
+> 若旧文档与代码冲突，请优先以根 `README.md`、本索引和代码为准。
 
----
+## 如何使用这些文档
 
-## Quick Navigation
+| 区域 | 用途 |
+|------|------|
+| `README.md` | 当前项目概览与快速启动 |
+| `docs/` | 当前实现说明、运维/开发参考 |
+| `openspec/` | 需求约束、设计决策、变更提案 |
+| `docs/archive/` | 历史资料与已归档设计说明 |
 
-| Document | Description |
-|----------|-------------|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture, tech stack, project structure |
-| [API-REFERENCE.md](./API-REFERENCE.md) | Complete API reference (69 endpoints) |
-| [DATABASE.md](./DATABASE.md) | Prisma schema, models, migrations |
-| [AUTHENTICATION.md](./AUTHENTICATION.md) | NextAuth.js v5, roles, middleware |
-| [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) | Zammad API client, webhooks, permissions |
+## 当前系统快照
 
----
+- 三端门户：Customer / Staff / Admin
+- Next.js 16 App Router + React 19
+- Prisma 6.19 + PostgreSQL
+- NextAuth.js v5 JWT Session
+- Zammad 作为外部工单系统
+- SSE 工单更新 + 持久化通知
+- 可配置 AI provider，当前主要文档路径以 FastGPT 为主
+- Vitest + Playwright 自动化测试
 
-## Core Documentation
+## 核心入口
 
-### System Architecture
+| 文档 | 用途 | 状态 |
+|------|------|------|
+| [../README.md](../README.md) | 最新项目概览、运行方式、仓库结构 | ✅ 首选入口 |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | 系统组成与实现位置 | ✅ 当前 |
+| [DATABASE.md](./DATABASE.md) | Prisma 模型与持久化说明 | ✅ 当前 |
+| [AUTHENTICATION.md](./AUTHENTICATION.md) | 认证、会话、路由保护 | ✅ 当前 |
+| [API-REFERENCE.md](./API-REFERENCE.md) | API 路由导读与分类 | ✅ 当前 |
+| [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) | Zammad 集成与工单链路 | ✅ 当前 |
+| [TESTING.md](./TESTING.md) | 测试工具与执行方式 | ✅ 当前 |
+| [AI-CONFIGURATION-PERSISTENCE.md](./AI-CONFIGURATION-PERSISTENCE.md) | AI 配置持久化说明 | ✅ 当前 |
+| [文档编写与编码规范.md](./文档编写与编码规范.md) | 中文文档编码与编写约定 | ✅ 参考 |
 
-**[ARCHITECTURE.md](./ARCHITECTURE.md)** - Complete system overview
+## 仍在进行中的设计 / 待办
 
-- Tech stack (Next.js 16, React 19, Prisma 6.19, NextAuth.js v5)
-- System architecture diagram
-- Project structure (69 API routes, 28 UI components)
-- Data flow diagrams
-- Key design decisions
+下列文档更接近“规划中”而不是“当前实现事实”：
 
-### API Reference
+| 文档 | 状态 |
+|------|------|
+| [plans/2026-04-09-email-system-design.md](./plans/2026-04-09-email-system-design.md) | 设计草案；当前代码中未看到完整实现 |
+| [superpowers/specs/2026-04-14-service-group-assignment-design.md](./superpowers/specs/2026-04-14-service-group-assignment-design.md) | 提案 / 设计稿；当前逻辑仍以 customer-staff binding 为中心 |
+| [feedback/TODO-未实现功能清单.md](./feedback/TODO-未实现功能清单.md) | 待办快照，不是运行时真相 |
 
-**[API-REFERENCE.md](./API-REFERENCE.md)** - All 69 API endpoints
+## 归档
 
-| Category | Endpoints | Description |
-|----------|-----------|-------------|
-| Tickets | 12 | Zammad ticket management |
-| Notifications | 5 | In-app notification system |
-| Conversations | 6 | AI chat (FastGPT) |
-| FAQ | 4 | Knowledge base |
-| User Profile | 4 | Account management |
-| Admin | 20 | Users, FAQ, stats, settings |
-| Files | 5 | Upload/download |
-| Health | 3 | Service monitoring |
+- [archive/README.md](./archive/README.md) - 归档索引
+- [archive/implemented/](./archive/implemented/) - 已实现的计划 / 设计稿
+- [archive/historical/](./archive/historical/) - 历史分析与过时说明
 
-### Database Schema
+## 建议优先核对的事实源
 
-**[DATABASE.md](./DATABASE.md)** - Prisma ORM documentation
+判断文档是否过期时，优先核对：
 
-| Model | Description |
-|-------|-------------|
-| FaqCategory | FAQ categories |
-| FaqArticle | FAQ articles |
-| FaqArticleTranslation | Multi-language content |
-| FaqRating | User feedback |
-| UserZammadMapping | User ID mapping |
-| UploadedFile | File metadata |
-| TicketRating | Ticket feedback |
-| ReplyTemplate | Staff templates |
-| TicketUpdate | Real-time tracking |
-| Notification | In-app notifications |
+- `package.json`
+- `prisma/schema.prisma`
+- `src/auth.ts`
+- `middleware.ts`
+- `src/app/layout.tsx`
+- `src/app/api/tickets/updates/stream/route.ts`
+- `src/lib/sse/emitter.ts`
+- `src/lib/ticket/auto-assign.ts`
+- `src/lib/zammad/client.ts`
+- `src/lib/ai/providers/index.ts`
+- `src/i18n.ts`
 
-### Authentication
-
-**[AUTHENTICATION.md](./AUTHENTICATION.md)** - Auth system details
-
-- NextAuth.js v5 configuration
-- Dual authentication (Zammad + Mock)
-- Role-based access control (Customer, Staff, Admin)
-- JWT session structure
-- Middleware protection
-
-### Zammad Integration
-
-**[ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md)** - External ticketing
-
-- ZammadClient API reference
-- X-On-Behalf-Of authentication pattern
-- Region to Group mapping (8 regions)
-- Auto-assignment algorithm
-- Webhook processing
-- Permission system
-
----
-
-## For Developers
-
-### Getting Started
-
-1. **Environment Setup**: See [CLAUDE.md](../CLAUDE.md) for quick start
-2. **Architecture**: Read [ARCHITECTURE.md](./ARCHITECTURE.md) for system overview
-3. **API**: Reference [API-REFERENCE.md](./API-REFERENCE.md) for endpoints
-
-### Common Tasks
-
-| Task | Documentation |
-|------|---------------|
-| Add new API endpoint | [API-REFERENCE.md](./API-REFERENCE.md) |
-| Modify database schema | [DATABASE.md](./DATABASE.md) |
-| Update auth logic | [AUTHENTICATION.md](./AUTHENTICATION.md) |
-| Integrate with Zammad | [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) |
-
-### Test Accounts (Development)
-
-Mock authentication is enabled by default in development (`NODE_ENV !== "production"`).
-In production, mock auth is disabled by default, but can be explicitly enabled with `NEXT_PUBLIC_ENABLE_MOCK_AUTH=true`.
-
-| Email | Password | Role |
-|-------|----------|------|
-| customer@test.com | password123 | Customer |
-| staff@test.com | password123 | Staff |
-| admin@test.com | password123 | Admin |
-
----
-
-## Supplementary Documentation
-
-| Document | Description | Status |
-|----------|-------------|--------|
-| [TESTING.md](./TESTING.md) | Test framework guide (Vitest, Playwright) | ✅ Current |
-| [PERFORMANCE-OPTIMIZATIONS.md](./PERFORMANCE-OPTIMIZATIONS.md) | LRU cache, FAQ optimization | ✅ Current |
-| [AI-CONFIGURATION-PERSISTENCE.md](./AI-CONFIGURATION-PERSISTENCE.md) | FastGPT settings persistence | ✅ Current |
-| [TRANSLATION-STATUS.md](./TRANSLATION-STATUS.md) | i18n translation progress | ⚠️ Verify |
-| [zammad-api-reference.md](./zammad-api-reference.md) | Zammad API endpoint comparison | ✅ Current |
-| [feedback/TODO-未实现功能清单.md](./feedback/TODO-未实现功能清单.md) | TODO list with status updates | ✅ Updated |
-
----
-
-## Planning And Archive
-
-### Active Planning Docs
-
-| Document | Why It Stays |
-|----------|--------------|
-| [plans/2026-04-09-email-system-design.md](./plans/2026-04-09-email-system-design.md) | Draft design for self-hosted inbound/outbound email flow; corresponding `src/lib/email/*` implementation is not present yet |
-| [superpowers/specs/2026-04-14-service-group-assignment-design.md](./superpowers/specs/2026-04-14-service-group-assignment-design.md) | Proposal only; current code still uses `CustomerStaffBinding`, not `ServiceGroup` |
-| [feedback/TODO-未实现功能清单.md](./feedback/TODO-未实现功能清单.md) | Backlog snapshot; still contains unresolved items such as password reset |
-
-### Archived Docs
-
-Archived implementation plans and superseded design notes now live under [archive/README.md](./archive/README.md).
-
-| Archive Area | Contents |
-|--------------|----------|
-| [archive/implemented/](./archive/implemented/) | Plans/designs that are now reflected in code, schema, routes, or tests |
-| [archive/historical/](./archive/historical/) | Superseded analysis/design documents retained only for reference |
-
----
-
-## External Resources
+## 外部参考
 
 - [Next.js Documentation](https://nextjs.org/docs)
-- [NextAuth.js v5](https://authjs.dev/)
+- [Auth.js / NextAuth](https://authjs.dev/)
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Zammad REST API](https://docs.zammad.org/en/latest/api/)
-- [FastGPT Documentation](https://doc.fastai.site/)
-
----
-
-**Maintainer**: Development Team
-**Last Updated**: 2026-04-15

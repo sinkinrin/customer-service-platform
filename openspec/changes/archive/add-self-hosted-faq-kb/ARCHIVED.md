@@ -1,14 +1,18 @@
-# ⚠️ 已归档 - ARCHIVED
+# 已归档说明
 
-> **归档日期**: 2025-12-29
-> **归档原因**: FAQ 知识库已实现，此提案完成或过期
+## 状态
+已归档，且仅保留最小历史摘要。
 
-## 说明
+## 为什么保留
+这项归档仍有价值，因为它解释了 FAQ 为什么最终走 **本地 Prisma 自建方案**，而不是继续依赖 Zammad Knowledge Base。
 
-自建 FAQ 知识库系统已实现：
-- `src/app/api/faq/` - FAQ API
-- `src/app/customer/faq/` - Customer FAQ 浏览
-- `src/app/admin/faq/` - Admin FAQ 管理
-- Prisma schema 中的 FaqCategory, FaqArticle 模型
+## 当前结论
+- FAQ 当前已经由本地 Prisma 模型支撑
+- Customer / Admin 两侧 FAQ 能力均已落地
+- 这份归档不再作为实施文档使用，只保留“方向选择”的历史背景
 
-此提案可归档。
+## 当前应参考
+- `docs/ARCHITECTURE.md`
+- `docs/DATABASE.md`
+- `openspec/specs/faq-system/spec.md`
+- `openspec/specs/faq-system/design.md`

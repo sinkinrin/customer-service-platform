@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>服务分组分配 Demo</title>
+    <style>
+        :root {
+            --bg: #f6f8fb;
+            --surface: #ffffff;
+            --surface-soft: #f8fafc;
+            --border: #e5e7eb;
+            --text: #111827;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --primary-soft: #dbeafe;
+            --success: #059669;
+            --success-soft: #d1fae5;
+            --warning: #d97706;
+            --warning-soft: #fef3c7;
+            --danger: #dc2626;
+            --danger-soft: #fee2e2;
+            --sidebar: #0f172a;
+            --sidebar-muted: #94a3b8;
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            --radius: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top left, #e8f1ff 0, transparent 26%),
+                radial-gradient(circle at bottom right, #ecfdf5 0, transparent 28%),
+                var(--bg);
+            color: var(--text);
+        }
+
+        button,
+        select,
+        input,
+        textarea {
+            font: inherit;
+        }
+
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 274px;
+            background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+            color: #fff;
+            padding: 24px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: 20px 0 50px rgba(15, 23, 42, 0.15);
+        }
+
+        .brand {
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .brand small {
+            color: var(--sidebar-muted);
+            display: block;
+            margin-bottom: 6px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.2;
+        }
+
+        .brand p {
+            margin: 10px 0 0;
+            color: var(--sidebar-muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .nav-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .nav-button {
+            border: none;
+            background: transparent;
+            color: #dbe4f0;
+            padding: 14px 14px;
+            border-radius: 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-button.active {
+            background: rgba(37, 99, 235, 0.28);
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.25);
+        }
+
+        .nav-title {
+            font-size: 15px;
+            font-weight: 600;
+            display: block;
+        }
+
+        .nav-desc {
+            display: block;
+            font-size: 12px;
+            color: var(--sidebar-muted);
+            margin-top: 5px;
+            line-height: 1.5;
+        }
+
+        .sidebar-panel {
+            margin-top: auto;
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-panel h3 {
+            margin: 0 0 8px;
+            font-size: 14px;
+        }
+
+        .sidebar-panel p {
+            margin: 0;
+            color: var(--sidebar-muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .main {
+            flex: 1;
+            padding: 24px 28px 32px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+
+        .topbar h2 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.2;
+        }
+
+        .topbar p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .topbar-tools {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            box-shadow: var(--shadow);
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--success);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+            gap: 22px;
+        }
+
+        .stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .card-header p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .card-body {
+            padding: 18px 20px 20px;
+        }
+
+        .section-title {
+            margin: 0 0 12px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .search {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: var(--surface);
+        }
+
+        .customer-list {
+            display: grid;
+            gap: 10px;
+            max-height: 680px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .customer-item,
+        .group-item,
+        .backlog-item {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 14px;
+            cursor: pointer;
+            text-align: left;
+            transition: 0.2s ease;
+        }
+
+        .customer-item:hover,
+        .group-item:hover,
+        .backlog-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+            border-color: #bfdbfe;
+        }
+
+        .customer-item.active,
+        .group-item.active,
+        .backlog-item.active {
+            border-color: #60a5fa;
+            background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .item-title {
+            font-weight: 700;
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .item-subtitle {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.primary {
+            background: var(--primary-soft);
+            color: #1d4ed8;
+        }
+
+        .badge.success {
+            background: var(--success-soft);
+            color: var(--success);
+        }
+
+        .badge.warning {
+            background: var(--warning-soft);
+            color: var(--warning);
+        }
+
+        .badge.danger {
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+
+        .badge.muted {
+            background: #eef2f7;
+            color: #4b5563;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .info-box {
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .info-box label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .info-box strong {
+            font-size: 15px;
+        }
+
+        .callout {
+            border-radius: 16px;
+            padding: 15px 16px;
+            border: 1px solid transparent;
+            margin-bottom: 16px;
+        }
+
+        .callout.warning {
+            background: var(--warning-soft);
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+
+        .callout.success {
+            background: var(--success-soft);
+            border-color: #6ee7b7;
+            color: #065f46;
+        }
+
+        .callout.danger {
+            background: var(--danger-soft);
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+            min-width: 220px;
+            flex: 1;
+        }
+
+        .field label {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .field select,
+        .field input {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 11px 12px;
+            background: var(--surface);
+        }
+
+        .button {
+            border: none;
+            border-radius: 12px;
+            padding: 11px 16px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: 0.2s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+        }
+
+        .button.primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .button.secondary {
+            background: white;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .button.ghost {
+            background: transparent;
+            color: var(--primary);
+            border: 1px dashed #93c5fd;
+        }
+
+        .button.warning {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #fdba74;
+        }
+
+        .button.small {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .summary-card {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .summary-card label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .summary-card strong {
+            font-size: 26px;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .summary-card span {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .impact-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .impact-item {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 14px;
+            background: var(--surface);
+        }
+
+        .impact-item strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .impact-item span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .table th {
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .log {
+            background: #0b1220;
+            color: #c7d2fe;
+            border-radius: 16px;
+            padding: 14px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            min-height: 180px;
+            max-height: 180px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
+        .empty-state {
+            border: 1px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            color: var(--muted);
+            background: #f8fafc;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 1180px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-grid,
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .app {
+                display: block;
+            }
+
+            .sidebar {
+                width: auto;
+            }
+
+            .main {
+                padding: 18px;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <small>Howen Support</small>
+                <h1>服务分组分配 Demo</h1>
+                <p>一次性静态演示稿。用于预览客户详情页分配、未分配客户积压，以及服务分组管理的整体操作感。</p>
+            </div>
+
+            <div class="nav-group">
+                <button class="nav-button active" data-tab-target="customer-detail">
+                    <span class="nav-title">客户详情页</span>
+                    <span class="nav-desc">查看客户归属、重分配服务分组、预览未关闭工单迁移影响。</span>
+                </button>
+                <button class="nav-button" data-tab-target="unassigned">
+                    <span class="nav-title">未分配客户</span>
+                    <span class="nav-desc">查看 backlog，给未分配客户快速绑定服务分组。</span>
+                </button>
+                <button class="nav-button" data-tab-target="service-groups">
+                    <span class="nav-title">服务分组管理</span>
+                    <span class="nav-desc">查看分组负责人、客户数量、未关闭工单，并模拟负责人变更。</span>
+                </button>
+            </div>
+
+            <div class="sidebar-panel">
+                <h3>Demo 包含的操作</h3>
+                <p>
+                    1. 未分配客户首次分组<br />
+                    2. 已分配客户重分组<br />
+                    3. 服务分组负责人变更<br />
+                    4. 未关闭工单迁移预览与结果摘要
+                </p>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <div>
+                    <h2 id="page-title">客户详情页中的服务分组分配</h2>
+                    <p id="page-subtitle">参考当前 Admin 用户详情页与用户列表的布局语言，加入服务分组分配与迁移预览。</p>
+                </div>
+                <div class="topbar-tools">
+                    <div class="pill"><span class="status-dot"></span> 模拟系统状态正常</div>
+                    <div class="pill">当前 Demo 用户：Admin / Cassi</div>
+                </div>
+            </div>
+
+            <section id="customer-detail" class="tab-content active">
+                <div class="layout">
+                    <div class="stack">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3>客户列表</h3>
+                                    <p>从当前用户管理页的结构改造而来。点击客户切换右侧详情。</p>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <input id="customer-search" class="search" placeholder="搜索客户姓名或邮箱" />
+                                <div id="customer-list" class="customer-list" style="margin-top: 14px;"></div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3>操作日志</h3>
+                                    <p>模拟后端执行的迁移动作，便于判断实际操作反馈是否清晰。</p>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="activity-log" class="log"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stack">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 id="detail-name">请选择一个客户</h3>
+                                    <p id="detail-meta">右侧将展示客户资料、当前归属、未关闭工单及分组调整影响。</p>
+                                </div>
+                                <div class="badge-row" id="detail-badges"></div>
+                            </div>
+                            <div class="card-body">
+                                <div id="detail-empty" class="empty-state">
+                                    先从左侧选择一个客户，再查看服务分组与工单迁移效果。
+                                </div>
+
+                                <div id="detail-content" style="display:none;">
+                                    <div class="profile-grid" id="profile-grid"></div>
+
+                                    <div style="margin-top: 18px;" id="assignment-callout"></div>
+
+                                    <div class="card" style="box-shadow:none; margin-top: 18px;">
+                                        <div class="card-header">
+                                            <div>
+                                                <h3>服务分组调整</h3>
+                                                <p>模拟未来“客户详情页中的服务分组分配器”。</p>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="toolbar">
+                                                <div class="field">
+                                                    <label for="service-group-select">目标服务分组</label>
+                                                    <select id="service-group-select"></select>
+                                                </div>
+                                                <div class="field" style="max-width: 220px;">
+                                                    <label for="assignment-mode">操作类型</label>
+                                                    <select id="assignment-mode">
+                                                        <option value="auto">自动判断</option>
+                                                        <option value="first">首次分配</option>
+                                                        <option value="reassign">重分配</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="toolbar" style="justify-content:flex-end;">
+                                                <button class="button secondary" id="preview-assignment">预览迁移影响</button>
+                                                <button class="button primary" id="apply-assignment">保存并模拟执行</button>
+                                            </div>
+                                            <div id="assignment-preview"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card" style="box-shadow:none; margin-top: 18px;">
+                                        <div class="card-header">
+                                            <div>
+                                                <h3>该客户的未关闭工单</h3>
+                                                <p>用于直观看出分组变更时哪些工单会迁移 owner/group。</p>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>标题</th>
+                                                        <th>状态</th>
+                                                        <th>当前负责人</th>
+                                                        <th>当前区域组</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="customer-ticket-table"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="unassigned" class="tab-content">
+                <div class="stack">
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <label>未分配客户数</label>
+                            <strong id="unassigned-count">0</strong>
+                            <span>这些客户在切换后应统一走 staging 或等待 Admin 首次分配。</span>
+                        </div>
+                        <div class="summary-card">
+                            <label>关联未关闭工单</label>
+                            <strong id="unassigned-open-ticket-count">0</strong>
+                            <span>帮助判断 backlog 处理优先级。</span>
+                        </div>
+                        <div class="summary-card">
+                            <label>建议入口</label>
+                            <strong>客户详情页</strong>
+                            <span>列表页承担发现与筛选，详情页承担最终分配与影响确认。</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>未分配客户积压列表</h3>
+                                <p>这里模拟你后续可能会加的次级入口，用来快速发现哪些客户还没有服务分组。</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="toolbar">
+                                <div class="field" style="max-width: 360px;">
+                                    <label for="backlog-search">搜索 backlog</label>
+                                    <input id="backlog-search" placeholder="按客户名、邮箱、来源搜索" />
+                                </div>
+                            </div>
+                            <div id="backlog-list" class="stack"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="service-groups" class="tab-content">
+                <div class="layout">
+                    <div class="stack">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3>服务分组列表</h3>
+                                    <p>模拟 Admin 后续可维护的服务分组配置。点击某个分组查看负责人、客户量与迁移影响。</p>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="group-list" class="customer-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stack">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 id="group-detail-name">请选择一个服务分组</h3>
+                                    <p id="group-detail-meta">右侧将展示该分组的负责人、客户数量、未关闭工单，以及负责人变更后的批量迁移效果。</p>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="group-empty" class="empty-state">
+                                    先从左侧选择一个服务分组。
+                                </div>
+
+                                <div id="group-content" style="display:none;">
+                                    <div class="summary-grid" id="group-summary-grid"></div>
+
+                                    <div class="card" style="box-shadow:none;">
+                                        <div class="card-header">
+                                            <div>
+                                                <h3>负责人调整</h3>
+                                                <p>模拟“服务分组负责人变更后，批量迁移该组下所有客户未关闭工单”的行为。</p>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="toolbar">
+                                                <div class="field">
+                                                    <label for="group-owner-select">新负责人</label>
+                                                    <select id="group-owner-select"></select>
+                                                </div>
+                                                <div class="field" style="max-width: 220px;">
+                                                    <label>当前 baseRegion</label>
+                                                    <input id="group-base-region" disabled />
+                                                </div>
+                                            </div>
+                                            <div class="toolbar" style="justify-content:flex-end;">
+                                                <button class="button secondary" id="preview-group-owner">预览迁移影响</button>
+                                                <button class="button primary" id="apply-group-owner">保存负责人并模拟执行</button>
+                                            </div>
+                                            <div id="group-owner-preview"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card" style="box-shadow:none; margin-top: 18px;">
+                                        <div class="card-header">
+                                            <div>
+                                                <h3>该分组客户与工单影响面</h3>
+                                                <p>帮助判断负责人变更后有多少存量客户和未关闭工单会被一起迁移。</p>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>客户</th>
+                                                        <th>邮箱</th>
+                                                        <th>未关闭工单</th>
+                                                        <th>当前负责人</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="group-customer-table"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            activeTab: 'customer-detail',
+            customerSearch: '',
+            backlogSearch: '',
+            selectedCustomerId: 101,
+            selectedGroupId: 1,
+            customers: [
+                {
+                    id: 101,
+                    name: 'Luna Chen',
+                    email: 'luna.chen@example.com',
+                    phone: '+86 138 0000 1010',
+                    source: 'Web 注册',
+                    serviceGroupId: 1,
+                    effectiveRegion: 'asia-pacific',
+                    status: 'active',
+                    notes: '当前由亚太 1 负责，适合作为“已分配客户重分组”演示对象。',
+                },
+                {
+                    id: 102,
+                    name: 'Rafael Costa',
+                    email: 'rafael.costa@example.com',
+                    phone: '+55 11 90000 1020',
+                    source: 'Email 首次进线',
+                    serviceGroupId: null,
+                    effectiveRegion: null,
+                    status: 'unassigned',
+                    notes: '没有服务分组，是“首次分配”演示对象。',
+                },
+                {
+                    id: 103,
+                    name: 'Maya Singh',
+                    email: 'maya.singh@example.com',
+                    phone: '+91 98 2000 1030',
+                    source: 'Admin 导入',
+                    serviceGroupId: 2,
+                    effectiveRegion: 'asia-pacific',
+                    status: 'active',
+                    notes: '当前属于亚太 2，适合观察同大区换负责人影响。',
+                },
+                {
+                    id: 104,
+                    name: 'Yousef Haddad',
+                    email: 'yousef.haddad@example.com',
+                    phone: '+971 50 000 1040',
+                    source: 'Email 客户',
+                    serviceGroupId: 4,
+                    effectiveRegion: 'middle-east',
+                    status: 'active',
+                    notes: '中东客户，适合对比跨基础区域的迁移结果。',
+                },
+                {
+                    id: 105,
+                    name: 'Elena Petrova',
+                    email: 'elena.petrova@example.com',
+                    phone: '+7 900 000 1050',
+                    source: '老客户迁移',
+                    serviceGroupId: null,
+                    effectiveRegion: null,
+                    status: 'unassigned',
+                    notes: '模拟没有有效旧 binding 的客户，切换后进入未分配池。',
+                },
+                {
+                    id: 106,
+                    name: 'Jonas Meyer',
+                    email: 'jonas.meyer@example.com',
+                    phone: '+49 151 000 1060',
+                    source: 'Web 注册',
+                    serviceGroupId: 5,
+                    effectiveRegion: 'europe-zone-1',
+                    status: 'active',
+                    notes: '欧洲客户，可用于观察服务分组负责人变更的批量影响。',
+                },
+            ],
+            groups: [
+                { id: 1, name: '亚太 1', baseRegion: 'asia-pacific', staffId: 201, active: true },
+                { id: 2, name: '亚太 2', baseRegion: 'asia-pacific', staffId: 202, active: true },
+                { id: 3, name: '北美 1', baseRegion: 'north-america', staffId: 203, active: true },
+                { id: 4, name: '中东 1', baseRegion: 'middle-east', staffId: 204, active: true },
+                { id: 5, name: '欧 1-1', baseRegion: 'europe-zone-1', staffId: 205, active: true },
+            ],
+            staff: [
+                { id: 201, name: 'Shevin', regionLabels: ['asia-pacific'], status: 'available' },
+                { id: 202, name: 'Edward', regionLabels: ['asia-pacific'], status: 'available' },
+                { id: 203, name: 'Cody', regionLabels: ['north-america', 'europe-zone-1', 'cis'], status: 'available' },
+                { id: 204, name: 'Rami', regionLabels: ['middle-east'], status: 'available' },
+                { id: 205, name: 'Marta', regionLabels: ['europe-zone-1'], status: 'available' },
+                { id: 206, name: 'Nora', regionLabels: ['asia-pacific', 'middle-east'], status: 'available' },
+            ],
+            tickets: [
+                { id: 7001, customerId: 101, number: '#7001', title: '设备激活失败', state: 'open', ownerId: 201, groupRegion: 'asia-pacific' },
+                { id: 7002, customerId: 101, number: '#7002', title: '票据导出异常', state: 'pending', ownerId: 201, groupRegion: 'asia-pacific' },
+                { id: 7003, customerId: 102, number: '#7003', title: '邮件首次咨询', state: 'new', ownerId: null, groupRegion: 'staging' },
+                { id: 7004, customerId: 103, number: '#7004', title: 'API 连接超时', state: 'open', ownerId: 202, groupRegion: 'asia-pacific' },
+                { id: 7005, customerId: 103, number: '#7005', title: '续费回执确认', state: 'closed', ownerId: 202, groupRegion: 'asia-pacific' },
+                { id: 7006, customerId: 104, number: '#7006', title: '账号地区切换', state: 'open', ownerId: 204, groupRegion: 'middle-east' },
+                { id: 7007, customerId: 105, number: '#7007', title: '老客户迁移咨询', state: 'new', ownerId: null, groupRegion: 'staging' },
+                { id: 7008, customerId: 106, number: '#7008', title: '报价审批等待中', state: 'pending', ownerId: 205, groupRegion: 'europe-zone-1' },
+                { id: 7009, customerId: 106, number: '#7009', title: '补充材料上传', state: 'open', ownerId: 205, groupRegion: 'europe-zone-1' },
+            ],
+            logs: [
+                '[系统] Demo 初始化完成。',
+                '[提示] 该页面仅用于静态演示，不连接真实后端。',
+                '[建议] 先查看未分配客户，再切到客户详情页体验分组后的迁移预览。'
+            ]
+        };
+
+        const pageTitle = document.getElementById('page-title');
+        const pageSubtitle = document.getElementById('page-subtitle');
+
+        function getGroupById(id) {
+            return state.groups.find(group => group.id === id) || null;
+        }
+
+        function getStaffById(id) {
+            return state.staff.find(staff => staff.id === id) || null;
+        }
+
+        function getCustomerById(id) {
+            return state.customers.find(customer => customer.id === id) || null;
+        }
+
+        function getTicketsForCustomer(customerId, onlyOpen = false) {
+            return state.tickets.filter(ticket => {
+                if (ticket.customerId !== customerId) return false;
+                if (!onlyOpen) return true;
+                return ticket.state !== 'closed';
+            });
+        }
+
+        function getCustomersForGroup(groupId) {
+            return state.customers.filter(customer => customer.serviceGroupId === groupId);
+        }
+
+        function getOpenTicketsForGroup(groupId) {
+            return getCustomersForGroup(groupId)
+                .flatMap(customer => getTicketsForCustomer(customer.id, true));
+        }
+
+        function formatRegion(region) {
+            if (!region) return '未分配';
+            const map = {
+                'asia-pacific': 'Asia-Pacific',
+                'middle-east': 'Middle East',
+                'north-america': 'North America',
+                'europe-zone-1': 'Europe Zone 1',
+                'staging': 'Staging Group 9',
+            };
+            return map[region] || region;
+        }
+
+        function isUnassigned(customer) {
+            return customer.serviceGroupId == null;
+        }
+
+        function pushLog(message) {
+            const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            state.logs.unshift(`[${timestamp}] ${message}`);
+            if (state.logs.length > 18) state.logs = state.logs.slice(0, 18);
+            renderLog();
+        }
+
+        function buildAssignmentPreview(customer, targetGroupId) {
+            const targetGroup = getGroupById(Number(targetGroupId));
+            const currentGroup = getGroupById(customer.serviceGroupId);
+            const currentStaff = currentGroup ? getStaffById(currentGroup.staffId) : null;
+            const targetStaff = targetGroup ? getStaffById(targetGroup.staffId) : null;
+            const openTickets = getTicketsForCustomer(customer.id, true);
+
+            return {
+                currentGroup,
+                targetGroup,
+                currentStaff,
+                targetStaff,
+                openTickets,
+                ticketCount: openTickets.length,
+                willChangeGroup: !currentGroup || currentGroup.baseRegion !== targetGroup.baseRegion,
+                mode: !currentGroup ? 'first' : 'reassign',
+            };
+        }
+
+        function buildGroupOwnerPreview(groupId, targetStaffId) {
+            const group = getGroupById(groupId);
+            const currentStaff = getStaffById(group.staffId);
+            const targetStaff = getStaffById(Number(targetStaffId));
+            const customers = getCustomersForGroup(groupId);
+            const openTickets = getOpenTicketsForGroup(groupId);
+            return { group, currentStaff, targetStaff, customers, openTickets };
+        }
+
+        function setTab(tabId) {
+            state.activeTab = tabId;
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.classList.toggle('active', button.dataset.tabTarget === tabId);
+            });
+            document.querySelectorAll('.tab-content').forEach(section => {
+                section.classList.toggle('active', section.id === tabId);
+            });
+
+            const config = {
+                'customer-detail': {
+                    title: '客户详情页中的服务分组分配',
+                    subtitle: '参考当前 Admin 用户详情页与用户列表的布局语言，加入服务分组分配与迁移预览。'
+                },
+                'unassigned': {
+                    title: '未分配客户积压列表',
+                    subtitle: '模拟用于发现与处理“尚未拥有服务分组”的客户积压视图。'
+                },
+                'service-groups': {
+                    title: '服务分组管理面板',
+                    subtitle: '模拟未来 Admin 对服务分组负责人、客户量和批量迁移影响的管理界面。'
+                }
+            }[tabId];
+
+            pageTitle.textContent = config.title;
+            pageSubtitle.textContent = config.subtitle;
+        }
+
+        function renderLog() {
+            document.getElementById('activity-log').textContent = state.logs.join('\n');
+        }
+
+        function renderCustomerList() {
+            const query = state.customerSearch.trim().toLowerCase();
+            const list = document.getElementById('customer-list');
+            list.innerHTML = '';
+
+            state.customers
+                .filter(customer => !query ||
+                    customer.name.toLowerCase().includes(query) ||
+                    customer.email.toLowerCase().includes(query))
+                .forEach(customer => {
+                    const group = getGroupById(customer.serviceGroupId);
+                    const openTicketCount = getTicketsForCustomer(customer.id, true).length;
+                    const button = document.createElement('button');
+                    button.className = 'customer-item' + (customer.id === state.selectedCustomerId ? ' active' : '');
+                    button.innerHTML = `
+                        <div class="item-row">
+                            <div>
+                                <p class="item-title">${customer.name}</p>
+                                <p class="item-subtitle">${customer.email}<br />${customer.source}</p>
+                            </div>
+                            <span class="badge ${isUnassigned(customer) ? 'warning' : 'primary'}">${isUnassigned(customer) ? '未分配' : group.name}</span>
+                        </div>
+                        <div class="badge-row">
+                            <span class="badge muted">${formatRegion(customer.effectiveRegion)}</span>
+                            <span class="badge ${openTicketCount > 0 ? 'success' : 'muted'}">${openTicketCount} 个未关闭工单</span>
+                        </div>
+                    `;
+                    button.addEventListener('click', () => {
+                        state.selectedCustomerId = customer.id;
+                        renderCustomerList();
+                        renderCustomerDetail();
+                    });
+                    list.appendChild(button);
+                });
+        }
+
+        function renderCustomerDetail() {
+            const customer = getCustomerById(state.selectedCustomerId);
+            const detailEmpty = document.getElementById('detail-empty');
+            const detailContent = document.getElementById('detail-content');
+            const detailName = document.getElementById('detail-name');
+            const detailMeta = document.getElementById('detail-meta');
+            const detailBadges = document.getElementById('detail-badges');
+            const profileGrid = document.getElementById('profile-grid');
+            const assignmentCallout = document.getElementById('assignment-callout');
+            const groupSelect = document.getElementById('service-group-select');
+            const ticketTable = document.getElementById('customer-ticket-table');
+            const previewBox = document.getElementById('assignment-preview');
+
+            if (!customer) {
+                detailEmpty.style.display = 'block';
+                detailContent.style.display = 'none';
+                return;
+            }
+
+            const group = getGroupById(customer.serviceGroupId);
+            const staff = group ? getStaffById(group.staffId) : null;
+            const openTickets = getTicketsForCustomer(customer.id, true);
+
+            detailEmpty.style.display = 'none';
+            detailContent.style.display = 'block';
+            detailName.textContent = customer.name;
+            detailMeta.textContent = `${customer.email} · ${customer.phone} · 来源：${customer.source}`;
+            detailBadges.innerHTML = `
+                <span class="badge muted">客户</span>
+                <span class="badge ${isUnassigned(customer) ? 'warning' : 'primary'}">${isUnassigned(customer) ? '未分配' : group.name}</span>
+                <span class="badge ${customer.status === 'active' ? 'success' : 'warning'}">${customer.status === 'active' ? '激活中' : '待处理'}</span>
+            `;
+
+            profileGrid.innerHTML = `
+                <div class="info-box"><label>当前服务分组</label><strong>${group ? group.name : '未分配'}</strong></div>
+                <div class="info-box"><label>有效区域</label><strong>${formatRegion(customer.effectiveRegion)}</strong></div>
+                <div class="info-box"><label>当前默认负责人</label><strong>${staff ? staff.name : '无'}</strong></div>
+                <div class="info-box"><label>未关闭工单数</label><strong>${openTickets.length}</strong></div>
+            `;
+
+            assignmentCallout.innerHTML = group
+                ? `<div class="callout success"><strong>当前状态：</strong>该客户已归属到 <strong>${group.name}</strong>，默认负责人为 <strong>${staff.name}</strong>。如果你把它改到别的服务分组，下面这些未关闭工单会一起迁移 owner；若基础区域变化，group 也会一起变化。</div>`
+                : `<div class="callout warning"><strong>当前状态：</strong>该客户尚未分配服务分组。按照目标方案，新工单会进入 <strong>staging</strong>，直到 Admin 在这里完成首次分配。</div>`;
+
+            groupSelect.innerHTML = state.groups.map(option => `
+                <option value="${option.id}" ${customer.serviceGroupId === option.id ? 'selected' : ''}>
+                    ${option.name} · ${formatRegion(option.baseRegion)} · ${getStaffById(option.staffId).name}
+                </option>
+            `).join('');
+
+            ticketTable.innerHTML = '';
+            const customerTickets = state.tickets.filter(ticket => ticket.customerId === customer.id);
+            customerTickets.forEach(ticket => {
+                const owner = getStaffById(ticket.ownerId);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${ticket.number}</td>
+                    <td>${ticket.title}</td>
+                    <td><span class="badge ${ticket.state === 'closed' ? 'muted' : 'success'}">${ticket.state}</span></td>
+                    <td>${owner ? owner.name : '未分配'}</td>
+                    <td>${formatRegion(ticket.groupRegion)}</td>
+                `;
+                ticketTable.appendChild(row);
+            });
+
+            previewBox.innerHTML = '';
+        }
+
+        function renderAssignmentPreview(apply = false) {
+            const customer = getCustomerById(state.selectedCustomerId);
+            const targetGroupId = document.getElementById('service-group-select').value;
+            const previewBox = document.getElementById('assignment-preview');
+            const preview = buildAssignmentPreview(customer, targetGroupId);
+
+            previewBox.innerHTML = `
+                <div class="callout ${preview.mode === 'first' ? 'warning' : 'success'}">
+                    <strong>${preview.mode === 'first' ? '首次分配预览' : '重分配预览'}：</strong>
+                    ${customer.name} 将被${preview.mode === 'first' ? '首次分配到' : '调整到'} <strong>${preview.targetGroup.name}</strong>，
+                    默认负责人变为 <strong>${preview.targetStaff.name}</strong>。
+                    ${preview.ticketCount > 0 ? `该客户有 <strong>${preview.ticketCount}</strong> 个未关闭工单会一起迁移。` : '当前没有未关闭工单需要迁移。'}
+                </div>
+                <div class="impact-list">
+                    <div class="impact-item">
+                        <strong>负责人变化</strong>
+                        <span>${preview.currentStaff ? preview.currentStaff.name : '无'} -> ${preview.targetStaff.name}</span>
+                    </div>
+                    <div class="impact-item">
+                        <strong>基础区域变化</strong>
+                        <span>${preview.currentGroup ? formatRegion(preview.currentGroup.baseRegion) : '未分配'} -> ${formatRegion(preview.targetGroup.baseRegion)}
+                        ${preview.willChangeGroup ? '（未关闭工单 group 会同步迁移）' : '（基础区域不变，仅 owner 变化）'}</span>
+                    </div>
+                    <div class="impact-item">
+                        <strong>受影响未关闭工单</strong>
+                        <span>${preview.openTickets.length === 0 ? '无' : preview.openTickets.map(ticket => `${ticket.number} ${ticket.title}`).join(' / ')}</span>
+                    </div>
+                </div>
+            `;
+
+            if (!apply) return;
+
+            customer.serviceGroupId = preview.targetGroup.id;
+            customer.effectiveRegion = preview.targetGroup.baseRegion;
+            preview.openTickets.forEach(ticket => {
+                ticket.ownerId = preview.targetStaff.id;
+                if (preview.willChangeGroup) ticket.groupRegion = preview.targetGroup.baseRegion;
+            });
+
+            pushLog(`客户 ${customer.name} 已${preview.mode === 'first' ? '首次分配到' : '重分配到'} ${preview.targetGroup.name}，默认负责人 -> ${preview.targetStaff.name}，迁移未关闭工单 ${preview.ticketCount} 个。`);
+            renderCustomerList();
+            renderCustomerDetail();
+            renderBacklog();
+            renderServiceGroups();
+        }
+
+        function renderBacklog() {
+            const query = state.backlogSearch.trim().toLowerCase();
+            const backlog = state.customers.filter(customer => isUnassigned(customer) && (
+                !query ||
+                customer.name.toLowerCase().includes(query) ||
+                customer.email.toLowerCase().includes(query) ||
+                customer.source.toLowerCase().includes(query)
+            ));
+
+            document.getElementById('unassigned-count').textContent = backlog.length;
+            document.getElementById('unassigned-open-ticket-count').textContent =
+                backlog.reduce((sum, customer) => sum + getTicketsForCustomer(customer.id, true).length, 0);
+
+            const list = document.getElementById('backlog-list');
+            list.innerHTML = '';
+
+            if (backlog.length === 0) {
+                list.innerHTML = '<div class="empty-state">没有匹配的未分配客户。</div>';
+                return;
+            }
+
+            backlog.forEach(customer => {
+                const openTickets = getTicketsForCustomer(customer.id, true);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'backlog-item';
+                wrapper.innerHTML = `
+                    <div class="item-row">
+                        <div>
+                            <p class="item-title">${customer.name}</p>
+                            <p class="item-subtitle">${customer.email}<br />来源：${customer.source}</p>
+                        </div>
+                        <span class="badge warning">未分配</span>
+                    </div>
+                    <div class="badge-row">
+                        <span class="badge muted">${openTickets.length} 个未关闭工单</span>
+                        <span class="badge ${openTickets.length > 0 ? 'warning' : 'muted'}">${openTickets.length > 0 ? '建议优先处理' : '可稍后处理'}</span>
+                    </div>
+                    <div class="toolbar" style="margin-top: 12px; margin-bottom: 0; justify-content: flex-end;">
+                        <button class="button ghost small" data-action="open-detail" data-customer-id="${customer.id}">去客户详情页处理</button>
+                    </div>
+                `;
+                list.appendChild(wrapper);
+            });
+
+            list.querySelectorAll('[data-action="open-detail"]').forEach(button => {
+                button.addEventListener('click', () => {
+                    state.selectedCustomerId = Number(button.dataset.customerId);
+                    setTab('customer-detail');
+                    renderCustomerList();
+                    renderCustomerDetail();
+                    pushLog(`从“未分配客户”列表进入 ${getCustomerById(state.selectedCustomerId).name} 的详情页。`);
+                });
+            });
+        }
+
+        function renderServiceGroups() {
+            const groupList = document.getElementById('group-list');
+            groupList.innerHTML = '';
+
+            state.groups.forEach(group => {
+                const staff = getStaffById(group.staffId);
+                const customers = getCustomersForGroup(group.id);
+                const openTickets = getOpenTicketsForGroup(group.id);
+                const button = document.createElement('button');
+                button.className = 'group-item' + (group.id === state.selectedGroupId ? ' active' : '');
+                button.innerHTML = `
+                    <div class="item-row">
+                        <div>
+                            <p class="item-title">${group.name}</p>
+                            <p class="item-subtitle">${formatRegion(group.baseRegion)} · 当前负责人 ${staff.name}</p>
+                        </div>
+                        <span class="badge primary">${customers.length} 客户</span>
+                    </div>
+                    <div class="badge-row">
+                        <span class="badge success">${openTickets.length} 个未关闭工单</span>
+                        <span class="badge muted">${group.active ? '启用中' : '已停用'}</span>
+                    </div>
+                `;
+                button.addEventListener('click', () => {
+                    state.selectedGroupId = group.id;
+                    renderServiceGroups();
+                    renderGroupDetail();
+                });
+                groupList.appendChild(button);
+            });
+
+            renderGroupDetail();
+        }
+
+        function renderGroupDetail() {
+            const group = getGroupById(state.selectedGroupId);
+            const groupEmpty = document.getElementById('group-empty');
+            const groupContent = document.getElementById('group-content');
+            const groupName = document.getElementById('group-detail-name');
+            const groupMeta = document.getElementById('group-detail-meta');
+            const summaryGrid = document.getElementById('group-summary-grid');
+            const ownerSelect = document.getElementById('group-owner-select');
+            const baseRegion = document.getElementById('group-base-region');
+            const previewBox = document.getElementById('group-owner-preview');
+            const customerTable = document.getElementById('group-customer-table');
+
+            if (!group) {
+                groupEmpty.style.display = 'block';
+                groupContent.style.display = 'none';
+                return;
+            }
+
+            const staff = getStaffById(group.staffId);
+            const customers = getCustomersForGroup(group.id);
+            const openTickets = getOpenTicketsForGroup(group.id);
+
+            groupEmpty.style.display = 'none';
+            groupContent.style.display = 'block';
+            groupName.textContent = group.name;
+            groupMeta.textContent = `${formatRegion(group.baseRegion)} · 当前负责人 ${staff.name} · ${customers.length} 个客户`;
+
+            summaryGrid.innerHTML = `
+                <div class="summary-card">
+                    <label>当前负责人</label>
+                    <strong>${staff.name}</strong>
+                    <span>负责区域：${staff.regionLabels.map(formatRegion).join(' / ')}</span>
+                </div>
+                <div class="summary-card">
+                    <label>归属客户数</label>
+                    <strong>${customers.length}</strong>
+                    <span>这些客户会受到负责人变更影响。</span>
+                </div>
+                <div class="summary-card">
+                    <label>未关闭工单数</label>
+                    <strong>${openTickets.length}</strong>
+                    <span>未来应按你确认的规则一起迁移到新负责人。</span>
+                </div>
+            `;
+
+            ownerSelect.innerHTML = state.staff
+                .filter(member => member.regionLabels.includes(group.baseRegion))
+                .map(member => `<option value="${member.id}" ${member.id === group.staffId ? 'selected' : ''}>${member.name}</option>`)
+                .join('');
+            baseRegion.value = formatRegion(group.baseRegion);
+            previewBox.innerHTML = '';
+
+            customerTable.innerHTML = '';
+            customers.forEach(customer => {
+                const customerOpenTickets = getTicketsForCustomer(customer.id, true);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${customer.name}</td>
+                    <td>${customer.email}</td>
+                    <td>${customerOpenTickets.length}</td>
+                    <td>${staff.name}</td>
+                `;
+                customerTable.appendChild(row);
+            });
+        }
+
+        function renderGroupOwnerPreview(apply = false) {
+            const preview = buildGroupOwnerPreview(state.selectedGroupId, document.getElementById('group-owner-select').value);
+            const previewBox = document.getElementById('group-owner-preview');
+
+            previewBox.innerHTML = `
+                <div class="callout success">
+                    <strong>负责人变更预览：</strong>
+                    服务分组 <strong>${preview.group.name}</strong> 将从 <strong>${preview.currentStaff.name}</strong>
+                    调整给 <strong>${preview.targetStaff.name}</strong>。该分组下
+                    <strong>${preview.customers.length}</strong> 个客户、共
+                    <strong>${preview.openTickets.length}</strong> 个未关闭工单将同步更新默认负责人。
+                </div>
+                <div class="impact-list">
+                    <div class="impact-item">
+                        <strong>受影响客户</strong>
+                        <span>${preview.customers.length === 0 ? '无' : preview.customers.map(customer => customer.name).join(' / ')}</span>
+                    </div>
+                    <div class="impact-item">
+                        <strong>受影响工单</strong>
+                        <span>${preview.openTickets.length === 0 ? '无' : preview.openTickets.map(ticket => `${ticket.number} ${ticket.title}`).join(' / ')}</span>
+                    </div>
+                    <div class="impact-item">
+                        <strong>基础区域</strong>
+                        <span>${formatRegion(preview.group.baseRegion)}（不变，仅 owner 批量变更）</span>
+                    </div>
+                </div>
+            `;
+
+            if (!apply) return;
+
+            preview.group.staffId = preview.targetStaff.id;
+            preview.openTickets.forEach(ticket => {
+                ticket.ownerId = preview.targetStaff.id;
+            });
+
+            pushLog(`服务分组 ${preview.group.name} 的负责人已从 ${preview.currentStaff.name} 变更为 ${preview.targetStaff.name}，批量迁移未关闭工单 ${preview.openTickets.length} 个。`);
+            renderServiceGroups();
+            renderCustomerList();
+            renderCustomerDetail();
+            renderBacklog();
+        }
+
+        function bindEvents() {
+            document.querySelectorAll('[data-tab-target]').forEach(button => {
+                button.addEventListener('click', () => setTab(button.dataset.tabTarget));
+            });
+
+            document.getElementById('customer-search').addEventListener('input', event => {
+                state.customerSearch = event.target.value;
+                renderCustomerList();
+            });
+
+            document.getElementById('backlog-search').addEventListener('input', event => {
+                state.backlogSearch = event.target.value;
+                renderBacklog();
+            });
+
+            document.getElementById('preview-assignment').addEventListener('click', () => renderAssignmentPreview(false));
+            document.getElementById('apply-assignment').addEventListener('click', () => renderAssignmentPreview(true));
+            document.getElementById('preview-group-owner').addEventListener('click', () => renderGroupOwnerPreview(false));
+            document.getElementById('apply-group-owner').addEventListener('click', () => renderGroupOwnerPreview(true));
+        }
+
+        function init() {
+            bindEvents();
+            renderLog();
+            renderCustomerList();
+            renderCustomerDetail();
+            renderBacklog();
+            renderServiceGroups();
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

@@ -92,6 +92,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       ? await getCustomerAssignmentRegion(zammadUser.id)
       : getRegionFromGroupIds(zammadUser.group_ids)
     const assignment = role === 'customer' ? await findCustomerServiceGroup(zammadUser.id) : null
+    let serviceGroupOwnerName: string | undefined
+    if (assignment?.serviceGroup?.staffZammadId) {
+      try {
+        const owner = await zammadClient.getUser(assignment.serviceGroup.staffZammadId)
+        serviceGroupOwnerName =
+          [owner.firstname, owner.lastname].filter(Boolean).join(' ') ||
+          owner.login ||
+          owner.email
+      } catch (ownerError) {
+        logger.warning('AdminUsers', 'Failed to fetch service group owner', {
+          data: {
+            serviceGroupId: assignment.serviceGroup.id,
+            staffZammadId: assignment.serviceGroup.staffZammadId,
+            error: ownerError instanceof Error ? ownerError.message : ownerError,
+          },
+        })
+      }
+    }
     const mockUser = mockUsers[zammadUser.email]
 
     const user = {
@@ -118,7 +136,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       service_group: assignment ? {
         id: assignment.serviceGroup.id,
         name: assignment.serviceGroup.name,
-        owner_name: undefined,
+        owner_name: serviceGroupOwnerName,
       } : null,
     }
 
@@ -188,10 +206,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
 
       // For staff/admin, also set group_ids with full permissions
-      if (currentRole !== 'customer') {
-        const groupId = getGroupIdByRegion(region as RegionValue)
-        updateData.group_ids = { [groupId.toString()]: ['full'] }
-      }
+      const groupId = getGroupIdByRegion(region as RegionValue)
+      updateData.group_ids = { [groupId.toString()]: ['full'] }
 
       if (mockUsers[currentUser.email]) {
         mockUsers[currentUser.email].region = region

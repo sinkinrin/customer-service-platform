@@ -22,6 +22,13 @@ import {
 const adminUser = { id: 'admin_1', email: 'admin@test.com', role: 'admin' as const }
 const staffAsia = { id: 'staff_1', email: 'staff@test.com', role: 'staff' as const, region: 'asia-pacific' }
 const staffEurope = { id: 'staff_2', email: 'staff2@test.com', role: 'staff' as const, region: 'europe-zone-1' }
+const staffMultiGroup = {
+  id: 'staff_3',
+  email: 'staff3@test.com',
+  role: 'staff' as const,
+  region: 'asia-pacific',
+  group_ids: [4, 2],
+}
 const customer = { id: 'customer_1', email: 'customer@test.com', role: 'customer' as const, region: 'asia-pacific' }
 const customerNoRegion = { id: 'customer_2', email: 'customer2@test.com', role: 'customer' as const }
 
@@ -83,6 +90,11 @@ describe('Region Authorization', () => {
       const groups = getAccessibleGroupIds(staffAsia)
       expect(groups).toEqual([4]) // asia-pacific only
       expect(groups).not.toContain(3) // middle-east
+    })
+
+    it('should prefer explicit staff group_ids when available', () => {
+      const groups = getAccessibleGroupIds(staffMultiGroup)
+      expect(groups).toEqual([4, 2])
     })
 
     it('should return region group for customer', () => {
@@ -189,6 +201,10 @@ describe('Region Authorization', () => {
     it('should not throw for staff accessing their region group', () => {
       // asia-pacific = group 4 (after 2025-12-23 update)
       expect(() => validateTicketAccess(staffAsia, 4)).not.toThrow() // asia-pacific
+    })
+
+    it('should allow staff to access any explicitly assigned group id', () => {
+      expect(() => validateTicketAccess(staffMultiGroup, 2)).not.toThrow() // europe-zone-1
     })
 
     it('should throw for staff accessing other region group', () => {

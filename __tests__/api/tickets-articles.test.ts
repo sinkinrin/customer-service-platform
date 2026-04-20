@@ -136,6 +136,35 @@ describe('Tickets Articles API', () => {
       expect(response.status).toBe(200)
       expect(zammadClient.getArticlesByTicket).toHaveBeenCalledWith(1, 'customer@test.com')
     })
+
+    it('allows staff to access tickets in any explicitly assigned group', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: 'staff_002',
+          email: 'staff2@test.com',
+          role: 'staff',
+          full_name: 'Cross Region Staff',
+          region: 'asia-pacific',
+          group_ids: [4, 2],
+        },
+      } as any)
+
+      const europeGroupId = getGroupIdByRegion('europe-zone-1')
+      vi.mocked(zammadClient.getTicket).mockResolvedValue({
+        id: 1,
+        group_id: europeGroupId,
+        customer_id: 100,
+      } as any)
+      vi.mocked(zammadClient.getArticlesByTicket).mockResolvedValue([
+        { id: 1, body: 'Article' },
+      ] as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets/1/articles')
+      const response = await GET(request, { params: Promise.resolve({ id: '1' }) })
+
+      expect(response.status).toBe(200)
+      expect(zammadClient.getArticlesByTicket).toHaveBeenCalledWith(1)
+    })
   })
 
   describe('POST /api/tickets/[id]/articles', () => {

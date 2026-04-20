@@ -85,11 +85,37 @@ const CreateUserSchema = z.object({
   role: z.enum(['customer', 'staff', 'admin'], {
     errorMap: () => ({ message: 'Role must be customer, staff, or admin' })
   }),
-  region: z.string().refine(isValidRegion, {
-    message: 'Invalid region'
-  }),
+  region: z.string().optional(),
   phone: z.string().optional(),
   language: z.string().optional(),
+}).superRefine((value, ctx) => {
+  if (value.role === 'customer') {
+    if (value.region && !isValidRegion(value.region)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['region'],
+        message: 'Invalid region',
+      })
+    }
+    return
+  }
+
+  if (!value.region) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['region'],
+      message: 'Invalid region',
+    })
+    return
+  }
+
+  if (!isValidRegion(value.region)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['region'],
+      message: 'Invalid region',
+    })
+  }
 })
 
 // Map Zammad role_ids to our role names

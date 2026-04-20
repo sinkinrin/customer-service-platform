@@ -110,6 +110,24 @@ function extractGroupIds(groupIds?: Record<string, string[]>): number[] {
   return Object.keys(groupIds).map(id => parseInt(id)).filter(id => !isNaN(id))
 }
 
+async function resolveCustomerAssignmentRegion(
+  customerZammadId: number,
+  fallbackRegion?: string
+): Promise<string | undefined> {
+  try {
+    const assignment = await findCustomerServiceGroup(customerZammadId)
+    return assignment ? mapServiceBaseRegionToRegionValue(assignment.serviceGroup.baseRegion) : undefined
+  } catch (assignmentError) {
+    logger.warning('Auth', 'Failed to resolve customer service-group assignment', {
+      data: {
+        userId: customerZammadId,
+        error: assignmentError instanceof Error ? assignmentError.message : assignmentError,
+      },
+    })
+    return fallbackRegion
+  }
+}
+
 /**
  * Read a single production credential from environment variables
  * Used when mock auth is disabled to allow a controlled login path
@@ -183,18 +201,7 @@ export async function authenticateWithZammad(
 
     let region: string | undefined
     if (role === 'customer') {
-      try {
-        const assignment = await findCustomerServiceGroup(zammadUser.id)
-        region = assignment ? mapServiceBaseRegionToRegionValue(assignment.serviceGroup.baseRegion) : undefined
-      } catch (assignmentError) {
-        logger.warning('Auth', 'Failed to resolve customer service-group assignment', {
-          data: {
-            userId: zammadUser.id,
-            error: assignmentError instanceof Error ? assignmentError.message : assignmentError,
-          },
-        })
-        region = undefined
-      }
+      region = await resolveCustomerAssignmentRegion(zammadUser.id)
     } else {
       region = getRegionFromGroupIds(zammadUser.group_ids)
     }
@@ -346,6 +353,14 @@ const authConfig: NextAuthConfig = {
         token.zammad_id = user.zammad_id
         token.group_ids = user.group_ids
       }
+
+      if (token.role === 'customer' && typeof token.zammad_id === 'number') {
+        token.region = await resolveCustomerAssignmentRegion(
+          token.zammad_id,
+          token.region as string | undefined
+        )
+      }
+
       return token
     },
 

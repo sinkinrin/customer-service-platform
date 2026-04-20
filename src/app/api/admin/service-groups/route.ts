@@ -12,6 +12,7 @@ import { createServiceGroup, listServiceGroups } from '@/lib/service-groups/serv
 import { zammadClient } from '@/lib/zammad/client'
 import { getGroupIdByRegion } from '@/lib/constants/regions'
 import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
+import { hasFullGroupAccess } from '@/lib/ticket/agent-helpers'
 import { z } from 'zod'
 
 const CreateServiceGroupSchema = z.object({
@@ -26,9 +27,15 @@ async function ensureStaffHasBaseRegionAccess(staffZammadId: number, baseRegion:
     throw new Error('Target staff is inactive')
   }
 
+  const isAgent = staff.role_ids?.includes(2) || staff.roles?.includes('Agent')
+  const isAdmin = staff.role_ids?.includes(1) || staff.roles?.includes('Admin')
+  if (!isAgent || isAdmin) {
+    throw new Error('Target staff must be an agent')
+  }
+
   const groupId = getGroupIdByRegion(mapServiceBaseRegionToRegionValue(baseRegion))
   const existing = staff.group_ids || {}
-  if (!Object.prototype.hasOwnProperty.call(existing, String(groupId))) {
+  if (!hasFullGroupAccess(existing, groupId)) {
     await zammadClient.updateUser(staffZammadId, {
       group_ids: {
         ...existing,
@@ -66,7 +73,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     if (error.message === 'Unauthorized') return unauthorizedResponse()
     if (error.message === 'Forbidden') return forbiddenResponse()
-    if (error.message === 'Target staff is inactive') {
+    if (error.message === 'Target staff is inactive' || error.message === 'Target staff must be an agent') {
       return validationErrorResponse([{ path: ['staffZammadId'], message: error.message }])
     }
     return serverErrorResponse('Failed to create service group')

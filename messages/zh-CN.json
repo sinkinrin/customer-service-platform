@@ -645,6 +645,14 @@
         "lastUpdated": "最后更新",
         "lastLogin": "最后登录"
       },
+      "serviceGroup": {
+        "title": "服务分组",
+        "current": "当前服务分组",
+        "owner": "服务分组负责人",
+        "placeholder": "选择服务分组",
+        "assign": "分配服务分组",
+        "assigning": "分配中..."
+      },
       "importDialog": {
         "title": "批量导入用户",
         "description": {

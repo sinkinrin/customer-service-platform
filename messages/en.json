@@ -645,6 +645,14 @@
         "lastUpdated": "Last Updated",
         "lastLogin": "Last Login"
       },
+      "serviceGroup": {
+        "title": "Service Group",
+        "current": "Current Service Group",
+        "owner": "Service Group Owner",
+        "placeholder": "Select a service group",
+        "assign": "Assign Service Group",
+        "assigning": "Assigning..."
+      },
       "importDialog": {
         "title": "Bulk User Import",
         "description": {

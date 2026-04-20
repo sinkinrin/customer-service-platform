@@ -39,9 +39,15 @@ export async function listServiceGroups(options?: { includeInactive?: boolean })
   })
 }
 
-export async function getServiceGroup(id: number) {
-  return prisma.serviceGroup.findUnique({
-    where: { id },
+export async function getServiceGroup(id: number, options?: { includeInactive?: boolean }) {
+  if (options?.includeInactive) {
+    return prisma.serviceGroup.findUnique({
+      where: { id },
+    })
+  }
+
+  return prisma.serviceGroup.findFirst({
+    where: { id, isActive: true },
   })
 }
 

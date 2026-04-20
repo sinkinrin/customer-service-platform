@@ -1,12 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('next-auth', () => ({
-  default: () => ({
-    handlers: {},
-    auth: vi.fn(),
-    signIn: vi.fn(),
-    signOut: vi.fn(),
+const { mockNextAuth } = vi.hoisted(() => ({
+  mockNextAuth: vi.fn((config?: unknown) => {
+    ;(globalThis as any).__TEST_AUTH_CONFIG__ = config
+    return {
+      handlers: {},
+      auth: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    }
   }),
+}))
+
+vi.mock('next-auth', () => ({
+  default: mockNextAuth,
 }))
 
 vi.mock('next-auth/providers/credentials', () => ({
@@ -113,5 +120,42 @@ describe('session region assignment', () => {
 
     expect(user?.role).toBe('staff')
     expect(user?.region).toBe('asia-pacific')
+  })
+
+  it('refreshes customer JWT region from current assignment on callback', async () => {
+    mockFindCustomerServiceGroup.mockResolvedValue({
+      customerZammadId: 101,
+      serviceGroup: {
+        id: 1,
+        name: '亚太 1',
+        baseRegion: 'ASIA_PACIFIC',
+      },
+    })
+
+    const authConfig = (globalThis as any).__TEST_AUTH_CONFIG__
+    const token = await authConfig.callbacks.jwt({
+      token: {
+        role: 'customer',
+        zammad_id: 101,
+        region: 'north-america',
+      },
+    })
+
+    expect(token.region).toBe('asia-pacific')
+  })
+
+  it('clears customer JWT region when assignment no longer exists', async () => {
+    mockFindCustomerServiceGroup.mockResolvedValue(null)
+
+    const authConfig = (globalThis as any).__TEST_AUTH_CONFIG__
+    const token = await authConfig.callbacks.jwt({
+      token: {
+        role: 'customer',
+        zammad_id: 101,
+        region: 'north-america',
+      },
+    })
+
+    expect(token.region).toBeUndefined()
   })
 })

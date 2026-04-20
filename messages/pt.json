@@ -645,6 +645,14 @@
         "lastUpdated": "Última atualização",
         "lastLogin": "?ltimo login"
       },
+      "serviceGroup": {
+        "title": "Grupo de serviço",
+        "current": "Grupo de serviço atual",
+        "owner": "Responsável pelo grupo de serviço",
+        "placeholder": "Selecione um grupo de serviço",
+        "assign": "Atribuir grupo de serviço",
+        "assigning": "Atribuindo..."
+      },
       "importDialog": {
         "title": "Importação em massa de usuários",
         "description": {

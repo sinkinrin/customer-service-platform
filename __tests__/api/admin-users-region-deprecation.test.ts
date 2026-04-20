@@ -30,6 +30,7 @@ import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { mockUsers } from '@/lib/mock-auth'
 import {
+  findCustomerServiceGroup,
   getCustomerAssignmentRegion,
   listCustomerAssignmentRegions,
 } from '@/lib/service-groups/customer-assignment-service'
@@ -74,6 +75,7 @@ describe('admin users region deprecation', () => {
     vi.mocked(zammadClient.searchUsersTotalCount).mockResolvedValue(0)
     vi.mocked(getCustomerAssignmentRegion).mockResolvedValue(undefined)
     vi.mocked(listCustomerAssignmentRegions).mockResolvedValue(new Map())
+    vi.mocked(findCustomerServiceGroup).mockResolvedValue(null)
     Object.keys(mockUsers).forEach((key) => delete (mockUsers as Record<string, unknown>)[key])
   })
 
@@ -131,6 +133,53 @@ describe('admin users region deprecation', () => {
     expect(data.data.user.region).toBe('asia-pacific')
   })
 
+  it('returns customer detail service-group owner name from Zammad', async () => {
+    vi.mocked(zammadClient.getUser)
+      .mockResolvedValueOnce({
+        id: 101,
+        email: 'customer@test.com',
+        firstname: 'Cus',
+        lastname: 'Tomer',
+        login: 'customer@test.com',
+        active: true,
+        verified: true,
+        role_ids: [],
+        note: '',
+        group_ids: {},
+        created_at: '2026-04-16T00:00:00Z',
+        updated_at: '2026-04-16T00:00:00Z',
+      } as any)
+      .mockResolvedValueOnce({
+        id: 222,
+        email: 'owner@test.com',
+        firstname: 'Agent',
+        lastname: 'One',
+        login: 'owner@test.com',
+        active: true,
+      } as any)
+    vi.mocked(getCustomerAssignmentRegion).mockResolvedValue('asia-pacific')
+    vi.mocked(findCustomerServiceGroup).mockResolvedValue({
+      customerZammadId: 101,
+      serviceGroup: {
+        id: 1,
+        name: '亚太 1',
+        staffZammadId: 222,
+      },
+    } as any)
+
+    const response = await GET_USER(new NextRequest('http://localhost/api/admin/users/101'), {
+      params: Promise.resolve({ id: '101' }),
+    })
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.data.user.service_group).toEqual({
+      id: 1,
+      name: '亚太 1',
+      owner_name: 'Agent One',
+    })
+  })
+
   it('does not write customer region into note on standard create flow', async () => {
     vi.mocked(zammadClient.createUser).mockResolvedValue({ id: 101, email: 'customer@test.com' } as any)
 
@@ -146,6 +195,25 @@ describe('admin users region deprecation', () => {
     expect(zammadClient.createUser).toHaveBeenCalledWith(
       expect.not.objectContaining({
         note: expect.stringContaining('Region:'),
+      })
+    )
+  })
+
+  it('accepts customer create flow without region', async () => {
+    vi.mocked(zammadClient.createUser).mockResolvedValue({ id: 101, email: 'customer@test.com' } as any)
+
+    const response = await POST_USERS(createJsonRequest('http://localhost/api/admin/users', 'POST', {
+      email: 'customer@test.com',
+      password: 'password123',
+      full_name: 'Customer User',
+      role: 'customer',
+    }))
+
+    expect(response.status).toBe(201)
+    expect(zammadClient.createUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'customer@test.com',
+        roles: ['Customer'],
       })
     )
   })

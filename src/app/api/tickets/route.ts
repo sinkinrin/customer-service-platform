@@ -447,6 +447,12 @@ export async function POST(request: NextRequest) {
           email: string
         }
       | undefined
+    let assignmentFailure:
+      | {
+          success: false
+          error: string
+        }
+      | undefined
 
     if (user.role === 'customer') {
       const zammadUser = await ensureZammadUser(user.email, user.full_name, user.role, undefined, log.requestId)
@@ -469,9 +475,17 @@ export async function POST(request: NextRequest) {
           }
         } else {
           groupId = STAGING_GROUP_ID
+          assignmentFailure = {
+            success: false,
+            error: 'Assigned service group owner is unavailable',
+          }
         }
       } else {
         groupId = STAGING_GROUP_ID
+        assignmentFailure = {
+          success: false,
+          error: 'Customer has no service group assignment',
+        }
       }
 
       // Create ticket with X-On-Behalf-Of to ensure correct sender identity
@@ -529,6 +543,19 @@ export async function POST(request: NextRequest) {
         } catch (err) {
           log.error('Assignment notification error', { error: err instanceof Error ? err.message : err })
         }
+      } else if (assignmentFailure) {
+        try {
+          await handleAssignmentNotification(
+            assignmentFailure,
+            ticket.id,
+            ticket.number,
+            ticket.title,
+            region || 'unassigned',
+            log.requestId
+          )
+        } catch (err) {
+          log.error('Assignment failure notification error', { error: err instanceof Error ? err.message : err })
+        }
       }
 
       return successResponse(
@@ -573,7 +600,6 @@ export async function POST(request: NextRequest) {
 
     // Create ticket with X-On-Behalf-Of to ensure correct sender identity
     // This shows the actual user's name instead of the API token user (e.g., "Howen Support")
-    const isCustomer = user.role === 'customer'
     const ticket = await zammadClient.createTicket(
       {
         title: ticketData.title,
@@ -587,10 +613,7 @@ export async function POST(request: NextRequest) {
           body: ticketData.article.body,
           type: ticketData.article.type,
           internal: ticketData.article.internal,
-          // Set sender to Customer when customer creates ticket, otherwise Agent
-          sender: isCustomer ? 'Customer' : 'Agent',
-          // Set origin_by_id for customers to properly attribute the article
-          ...(isCustomer && { origin_by_id: zammadUser.id }),
+          sender: 'Agent',
           // Support both legacy base64 attachments and new attachment_ids/form_id
           ...(ticketData.article.attachments && { attachments: ticketData.article.attachments }),
           ...(ticketData.article.attachment_ids && { attachment_ids: ticketData.article.attachment_ids }),
@@ -612,24 +635,11 @@ export async function POST(request: NextRequest) {
     } catch (notifyError) {
       log.error('Failed to create in-app notification for ticket creation', { error: notifyError instanceof Error ? notifyError.message : notifyError })
     }
-
-    // Auto-assign to available Staff in the ticket's region (with binding support)
-    const assignResult = await autoAssignSingleTicket(
-      ticket.id, ticket.number, ticket.title, groupId, log.requestId, isCustomer ? zammadUser.id : undefined
-    )
-
-    if (assignResult.success) {
-      log.info('Ticket auto-assigned', { ticketNumber: ticket.number, assignedTo: assignResult.assignedTo?.name })
-    } else {
-      log.warning('Ticket auto-assign failed', { ticketNumber: ticket.number, error: assignResult.error })
-    }
-
-    // Send notifications asynchronously (don't block response)
-    const notifyPromise = handleAssignmentNotification(
-      assignResult, ticket.id, ticket.number, ticket.title, region, log.requestId
-    )
-
-    notifyPromise.catch(err => log.error('Assignment notification error', { error: err instanceof Error ? err.message : err }))
+    log.info('Skipping runtime auto-assign for non-customer ticket creation', {
+      ticketNumber: ticket.number,
+      role: user.role,
+      groupId,
+    })
 
     return successResponse(
       {

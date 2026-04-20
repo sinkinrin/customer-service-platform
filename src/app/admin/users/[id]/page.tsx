@@ -257,22 +257,22 @@ export default function UserDetailsPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="h-5 w-5" />
-                                serviceGroupTitle
+                                {t('serviceGroup.title')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <p className="text-sm text-muted-foreground">currentServiceGroup</p>
+                                <p className="text-sm text-muted-foreground">{t('serviceGroup.current')}</p>
                                 <p className="font-medium">{user.service_group?.name || '-'}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">serviceGroupOwner</p>
+                                <p className="text-sm text-muted-foreground">{t('serviceGroup.owner')}</p>
                                 <p className="font-medium">{user.service_group?.owner_name || '-'}</p>
                             </div>
                             <div className="flex gap-2">
                                 <Select value={selectedServiceGroupId} onValueChange={setSelectedServiceGroupId}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="serviceGroupPlaceholder" />
+                                        <SelectValue placeholder={t('serviceGroup.placeholder')} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {serviceGroups.map((group) => (
@@ -283,7 +283,7 @@ export default function UserDetailsPage() {
                                     </SelectContent>
                                 </Select>
                                 <Button onClick={handleAssignServiceGroup} disabled={assigningGroup || !selectedServiceGroupId}>
-                                    {assigningGroup ? 'assigningServiceGroup' : 'assignServiceGroup'}
+                                    {assigningGroup ? t('serviceGroup.assigning') : t('serviceGroup.assign')}
                                 </Button>
                             </div>
                         </CardContent>

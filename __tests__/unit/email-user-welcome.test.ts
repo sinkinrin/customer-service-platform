@@ -54,7 +54,7 @@ describe('generateSecurePassword', () => {
   })
 
   it('contains only allowed characters (no confusing chars)', () => {
-    const password = generateSecurePassword(100) // Long password to increase coverage
+    const password = generateSecurePassword(100)
     const confusingChars = ['0', 'O', '1', 'l', 'I']
 
     for (const char of confusingChars) {
@@ -63,7 +63,6 @@ describe('generateSecurePassword', () => {
   })
 
   it('contains at least one uppercase, one lowercase, and one digit', () => {
-    // Run multiple times to ensure requirement is consistently met
     for (let i = 0; i < 10; i++) {
       const password = generateSecurePassword(12)
       expect(password).toMatch(/[A-Z]/)
@@ -77,7 +76,6 @@ describe('generateSecurePassword', () => {
     for (let i = 0; i < 100; i++) {
       passwords.add(generateSecurePassword(12))
     }
-    // All should be unique
     expect(passwords.size).toBe(100)
   })
 })
@@ -90,10 +88,10 @@ describe('email welcome state', () => {
     expect(isFirstTimeEmailUserByState(null)).toBe(true)
   })
 
-  it('does not use note region presence as the first-time trigger', () => {
-    expect(getEmailUserWelcomeState('Region: asia-pacific')).toBe('unknown')
-    expect(getEmailUserWelcomeState('Some prefix\nRegion: middle-east')).toBe('unknown')
-    expect(isFirstTimeEmailUserByState('Region: asia-pacific')).toBe(false)
+  it('does not let region or unrelated note content block the first-time flow', () => {
+    expect(getEmailUserWelcomeState('Region: asia-pacific')).toBe('new_email_user')
+    expect(getEmailUserWelcomeState('Some prefix\nRegion: middle-east')).toBe('new_email_user')
+    expect(isFirstTimeEmailUserByState('Region: asia-pacific')).toBe(true)
   })
 
   it('tracks explicit welcome progress from markers', () => {
@@ -101,9 +99,9 @@ describe('email welcome state', () => {
     expect(getEmailUserWelcomeState('WelcomeEmailSent: 2024-01-01T00:00:00Z')).toBe('completed')
   })
 
-  it('treats unrelated or invalid region note content as unknown state', () => {
-    expect(getEmailUserWelcomeState('Some other note')).toBe('unknown')
-    expect(getEmailUserWelcomeState('Region: invalid-region')).toBe('unknown')
+  it('treats unrelated or invalid region note content as first-time state until welcome markers exist', () => {
+    expect(getEmailUserWelcomeState('Some other note')).toBe('new_email_user')
+    expect(getEmailUserWelcomeState('Region: invalid-region')).toBe('new_email_user')
   })
 })
 
@@ -188,7 +186,7 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     expect(mockGetUser).not.toHaveBeenCalled()
   })
 
-  it('skips when welcome state is unknown rather than using Region as existing-user signal', async () => {
+  it('continues the welcome flow when note only contains legacy region data', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
@@ -200,8 +198,15 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       article: { id: 1, type: 'email' },
     } as any)
 
-    expect(mockUpdateUser).not.toHaveBeenCalled()
-    expect(mockCreateArticle).not.toHaveBeenCalled()
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      password: expect.any(String),
+    }))
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomePasswordSet:'),
+    }))
+    expect(mockCreateArticle).toHaveBeenCalledWith(expect.objectContaining({
+      to: 'customer@example.com',
+    }))
   })
 
   it('does not reinitialize password when welcome state is already password_set', async () => {
@@ -238,17 +243,12 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       article: { id: 1, type: 'email' },
     } as any)
 
-    // Should set password (first updateUser call)
     expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
       password: expect.any(String),
     }))
-
-    // Should mark password as set (second updateUser call)
     expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
       note: expect.stringContaining('WelcomePasswordSet:'),
     }))
-
-    // Should send welcome email
     expect(mockCreateArticle).toHaveBeenCalledWith(expect.objectContaining({
       ticket_id: 100,
       type: 'email',
@@ -256,8 +256,6 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       internal: false,
       to: 'customer@example.com',
     }))
-
-    // Should mark welcome email as sent (third updateUser call)
     expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
       note: expect.stringContaining('WelcomeEmailSent:'),
     }))
@@ -267,7 +265,7 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
-      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z', // Password set but email not sent
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z',
     })
 
     await handleEmailUserWelcomeFromWebhookPayload({
@@ -275,12 +273,9 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       article: { id: 1, type: 'email' },
     } as any)
 
-    // Should NOT set password again
     expect(mockUpdateUser).not.toHaveBeenCalledWith(1, expect.objectContaining({
       password: expect.any(String),
     }))
-
-    // Should NOT send email (password not available)
     expect(mockCreateArticle).not.toHaveBeenCalled()
   })
 
@@ -298,17 +293,12 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       article: { id: 1, type: 'email' },
     } as any)
 
-    // Should set password
     expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
       password: expect.any(String),
     }))
-
-    // Should mark password as set
     expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
       note: expect.stringContaining('WelcomePasswordSet:'),
     }))
-
-    // Should NOT mark email as sent (only two updateUser calls)
     expect(mockUpdateUser).toHaveBeenCalledTimes(2)
   })
 
@@ -320,13 +310,11 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     })
     mockUpdateUser.mockRejectedValue(new Error('API error'))
 
-    // Should not throw
     await expect(handleEmailUserWelcomeFromWebhookPayload({
       ticket: { id: 100, customer_id: 1, number: '100', title: 'Test' },
       article: { id: 1, type: 'email' },
     } as any)).resolves.not.toThrow()
 
-    // Should not try to send email
     expect(mockCreateArticle).not.toHaveBeenCalled()
   })
 })

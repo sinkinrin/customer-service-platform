@@ -88,6 +88,12 @@ describe('isAgentEligible', () => {
     expect(isAgentEligible(baseAgent as any, 99, EXCLUDED_EMAILS)).toBe(false)
   })
 
+  it('excludes agents with read-only group access', () => {
+    expect(
+      isAgentEligible({ ...baseAgent, group_ids: { '4': ['read'] } } as any, 4, EXCLUDED_EMAILS)
+    ).toBe(false)
+  })
+
   it('excludes agents on vacation', () => {
     const now = new Date()
     expect(isAgentEligible({

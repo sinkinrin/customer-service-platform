@@ -53,7 +53,7 @@ import { POST } from '@/app/api/tickets/route'
 import { auth } from '@/auth'
 import { ensureZammadUser } from '@/lib/zammad/ensure-user'
 import { zammadClient } from '@/lib/zammad/client'
-import { autoAssignSingleTicket } from '@/lib/ticket/auto-assign'
+import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
 import { STAGING_GROUP_ID } from '@/lib/constants/regions'
 
 const customerUser = {
@@ -140,6 +140,17 @@ describe('tickets create assignment-first', () => {
     )
     expect(zammadClient.updateTicket).not.toHaveBeenCalled()
     expect(autoAssignSingleTicket).not.toHaveBeenCalled()
+    expect(handleAssignmentNotification).toHaveBeenCalledWith(
+      {
+        success: false,
+        error: 'Customer has no service group assignment',
+      },
+      1,
+      '10001',
+      'Need help',
+      'unassigned',
+      undefined
+    )
   })
 
   it('creates ticket in staging when assigned owner is unavailable', async () => {
@@ -177,5 +188,16 @@ describe('tickets create assignment-first', () => {
     )
     expect(zammadClient.updateTicket).not.toHaveBeenCalled()
     expect(autoAssignSingleTicket).not.toHaveBeenCalled()
+    expect(handleAssignmentNotification).toHaveBeenCalledWith(
+      {
+        success: false,
+        error: 'Assigned service group owner is unavailable',
+      },
+      1,
+      '10001',
+      'Need help',
+      'asia-pacific',
+      undefined
+    )
   })
 })

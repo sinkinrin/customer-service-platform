@@ -33,6 +33,15 @@ export function getAgentDisplayName(agent: {
   return fullName || agent.login || agent.email || 'Unknown'
 }
 
+/** Check whether a user has full access to a specific Zammad group */
+export function hasFullGroupAccess(
+  groupIds: Record<string, string[]> | undefined,
+  groupId: number
+): boolean {
+  const permissions = groupIds?.[String(groupId)] || []
+  return permissions.includes('full')
+}
+
 /**
  * Check if an agent is eligible for ticket assignment.
  * Self-contained: checks active, not system account, not admin role, has group access, not on vacation.
@@ -47,10 +56,9 @@ export function isAgentEligible(
   // Exclude system accounts
   if (excludedEmails.some(e => agent.email?.toLowerCase() === e.toLowerCase())) return false
   // Exclude Admin role (role_id 1)
-  if (agent.role_ids?.includes(1)) return false
-  // Check group access
-  const hasGroupAccess = Object.keys(agent.group_ids || {}).includes(String(groupId))
-  if (!hasGroupAccess) return false
+  if (agent.role_ids?.includes(1) || agent.roles?.includes('Admin')) return false
+  // Must have assignable full access in the target group
+  if (!hasFullGroupAccess(agent.group_ids, groupId)) return false
   // Check vacation
   if (checkIsOnVacation(agent)) return false
   return true

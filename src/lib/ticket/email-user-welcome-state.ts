@@ -5,7 +5,6 @@ export type EmailUserWelcomeState =
   | 'new_email_user'
   | 'password_set'
   | 'completed'
-  | 'unknown'
 
 export function hasPasswordBeenSet(note?: string | null): boolean {
   if (!note) return false
@@ -26,11 +25,7 @@ export function getEmailUserWelcomeState(note?: string | null): EmailUserWelcome
     return 'password_set'
   }
 
-  if (!note || note.trim() === '') {
-    return 'new_email_user'
-  }
-
-  return 'unknown'
+  return 'new_email_user'
 }
 
 export function isFirstTimeEmailUserByState(note?: string | null): boolean {

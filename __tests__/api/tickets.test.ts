@@ -23,6 +23,7 @@ vi.mock('@/lib/zammad/client', () => ({
   zammadClient: {
     getTickets: vi.fn(),
     getAllTickets: vi.fn(),
+    getAgents: vi.fn(),
     searchTickets: vi.fn(),
     searchTicketsRawQuery: vi.fn(),
     searchTicketsTotalCount: vi.fn(),
@@ -57,6 +58,7 @@ vi.mock('@/lib/zammad/health-check', () => ({
 vi.mock('@/lib/ticket/auto-assign', () => ({
   autoAssignSingleTicket: vi.fn(),
   handleAssignmentNotification: vi.fn(),
+  EXCLUDED_EMAILS: ['support@howentech.com', 'howensupport@howentech.com'],
 }))
 
 // Mock ensureZammadUser (extracted to shared module)
@@ -64,11 +66,16 @@ vi.mock('@/lib/zammad/ensure-user', () => ({
   ensureZammadUser: vi.fn().mockResolvedValue({ id: 100 }),
 }))
 
+vi.mock('@/lib/service-groups/customer-assignment-service', () => ({
+  findCustomerServiceGroup: vi.fn().mockResolvedValue(null),
+}))
+
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { checkZammadHealth } from '@/lib/zammad/health-check'
 import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
 import { ensureZammadUser } from '@/lib/zammad/ensure-user'
+import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
 
 // Test users
 const mockCustomer = {
@@ -412,7 +419,7 @@ describe('Tickets API 集成测试', () => {
     })
 
     describe('auto-assignment on creation', () => {
-      it('calls autoAssignSingleTicket after ticket creation', async () => {
+      it('does not run runtime auto-assign for staff/admin-created tickets', async () => {
         vi.mocked(auth).mockResolvedValue({
           user: mockAdmin,
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -420,11 +427,6 @@ describe('Tickets API 集成测试', () => {
 
         vi.mocked(zammadClient.searchUsers).mockResolvedValue([{ id: 100 }] as any)
         vi.mocked(zammadClient.createTicket).mockResolvedValue(mockTicket as any)
-        vi.mocked(autoAssignSingleTicket).mockResolvedValue({
-          success: true,
-          assignedTo: { id: 100, name: 'Test Agent', email: 'agent@test.com' },
-        })
-        vi.mocked(handleAssignmentNotification).mockResolvedValue(undefined)
 
         const request = createMockRequest('http://localhost:3000/api/tickets', {
           method: 'POST',
@@ -436,17 +438,10 @@ describe('Tickets API 集成测试', () => {
         const response = await POST(request)
 
         expect(response.status).toBe(201)
-        expect(autoAssignSingleTicket).toHaveBeenCalledWith(
-          expect.any(Number),  // ticketId
-          expect.any(String),  // ticketNumber
-          expect.any(String),  // ticketTitle
-          expect.any(Number),  // groupId
-          undefined,           // requestId (no request ID in test context)
-          undefined            // no customer assignment key for staff/admin-created tickets
-        )
+        expect(autoAssignSingleTicket).not.toHaveBeenCalled()
       })
 
-      it('does not pass staff/admin zammad user id as customer assignment key', async () => {
+      it('does not send assignment notifications for staff/admin-created tickets', async () => {
         vi.mocked(auth).mockResolvedValue({
           user: mockAdmin,
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -454,11 +449,6 @@ describe('Tickets API 集成测试', () => {
 
         vi.mocked(zammadClient.searchUsers).mockResolvedValue([{ id: 100 }] as any)
         vi.mocked(zammadClient.createTicket).mockResolvedValue(mockTicket as any)
-        vi.mocked(autoAssignSingleTicket).mockResolvedValue({
-          success: true,
-          assignedTo: { id: 100, name: 'Test Agent', email: 'agent@test.com' },
-        })
-        vi.mocked(handleAssignmentNotification).mockResolvedValue(undefined)
 
         const request = createMockRequest('http://localhost:3000/api/tickets', {
           method: 'POST',
@@ -470,14 +460,7 @@ describe('Tickets API 集成测试', () => {
         const response = await POST(request)
 
         expect(response.status).toBe(201)
-        expect(autoAssignSingleTicket).toHaveBeenCalledWith(
-          expect.any(Number),
-          expect.any(String),
-          expect.any(String),
-          expect.any(Number),
-          undefined,
-          undefined
-        )
+        expect(handleAssignmentNotification).not.toHaveBeenCalled()
       })
 
       it('creates ticket successfully even when auto-assign fails', async () => {
@@ -510,18 +493,36 @@ describe('Tickets API 集成测试', () => {
         expect(data.data.ticket.id).toBe(1)
       })
 
-      it('calls handleAssignmentNotification after auto-assign attempt', async () => {
+      it('still calls handleAssignmentNotification for customer-owned assignment-first flow', async () => {
         vi.mocked(auth).mockResolvedValue({
-          user: mockAdmin,
+          user: mockCustomer,
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         } as any)
 
         vi.mocked(zammadClient.searchUsers).mockResolvedValue([{ id: 100 }] as any)
-        vi.mocked(zammadClient.createTicket).mockResolvedValue(mockTicket as any)
-        vi.mocked(autoAssignSingleTicket).mockResolvedValue({
-          success: true,
-          assignedTo: { id: 100, name: 'Test Agent', email: 'agent@test.com' },
+        vi.mocked(zammadClient.createTicket).mockResolvedValue({
+          ...mockTicket,
+          group_id: 4,
         })
+        vi.mocked(findCustomerServiceGroup).mockResolvedValue({
+          customerZammadId: 100,
+          serviceGroup: {
+            id: 1,
+            name: '亚太 1',
+            baseRegion: 'ASIA_PACIFIC',
+            staffZammadId: 100,
+          },
+        } as any)
+        vi.mocked(zammadClient.getAgents).mockResolvedValue([{
+          id: 100,
+          email: 'agent@test.com',
+          firstname: 'Test',
+          lastname: 'Agent',
+          active: true,
+          role_ids: [2],
+          group_ids: { '4': ['full'] },
+          out_of_office: false,
+        }] as any)
         vi.mocked(handleAssignmentNotification).mockResolvedValue(undefined)
 
         const request = createMockRequest('http://localhost:3000/api/tickets', {
@@ -541,7 +542,7 @@ describe('Tickets API 集成测试', () => {
           expect.any(Number),
           expect.any(String),
           expect.any(String),
-          expect.any(String),
+          'asia-pacific',
           undefined // requestId
         )
       })

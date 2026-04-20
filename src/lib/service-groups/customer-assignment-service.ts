@@ -2,10 +2,16 @@ import { prisma } from '@/lib/prisma'
 import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
 
 export async function findCustomerServiceGroup(customerZammadId: number) {
-  return prisma.customerGroupAssignment.findUnique({
+  const assignment = await prisma.customerGroupAssignment.findUnique({
     where: { customerZammadId },
     include: { serviceGroup: true },
   })
+
+  if (!assignment?.serviceGroup?.isActive) {
+    return null
+  }
+
+  return assignment
 }
 
 export async function getCustomerAssignmentRegion(customerZammadId: number) {
@@ -28,10 +34,12 @@ export async function listCustomerAssignmentRegions(customerZammadIds: number[])
   })
 
   return new Map(
-    assignments.map((assignment) => [
-      assignment.customerZammadId,
-      mapServiceBaseRegionToRegionValue(assignment.serviceGroup.baseRegion),
-    ])
+    assignments
+      .filter((assignment) => assignment.serviceGroup.isActive)
+      .map((assignment) => [
+        assignment.customerZammadId,
+        mapServiceBaseRegionToRegionValue(assignment.serviceGroup.baseRegion),
+      ])
   )
 }
 
@@ -58,6 +66,22 @@ export async function assignCustomerToServiceGroup(
 export async function clearCustomerAssignment(customerZammadId: number) {
   const result = await prisma.customerGroupAssignment.deleteMany({
     where: { customerZammadId },
+  })
+
+  return result.count
+}
+
+export async function reassignCustomersToServiceGroup(
+  fromServiceGroupId: number,
+  toServiceGroupId: number,
+  assignedBy?: string
+) {
+  const result = await prisma.customerGroupAssignment.updateMany({
+    where: { serviceGroupId: fromServiceGroupId },
+    data: {
+      serviceGroupId: toServiceGroupId,
+      assignedBy,
+    },
   })
 
   return result.count

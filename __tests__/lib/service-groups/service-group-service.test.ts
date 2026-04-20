@@ -40,12 +40,23 @@ describe('service-group-service', () => {
     })
   })
 
-  it('loads a single service group by id', async () => {
-    vi.mocked(prisma.serviceGroup.findUnique).mockResolvedValue({ id: 7, name: '中东 1' } as any)
+  it('loads only active service groups by id by default', async () => {
+    vi.mocked(prisma.serviceGroup.findFirst).mockResolvedValue({ id: 7, name: '中东 1', isActive: true } as any)
 
     const result = await getServiceGroup(7)
 
-    expect(result).toEqual({ id: 7, name: '中东 1' })
+    expect(result).toEqual({ id: 7, name: '中东 1', isActive: true })
+    expect(prisma.serviceGroup.findFirst).toHaveBeenCalledWith({
+      where: { id: 7, isActive: true },
+    })
+  })
+
+  it('can include inactive service groups when explicitly requested', async () => {
+    vi.mocked(prisma.serviceGroup.findUnique).mockResolvedValue({ id: 7, name: '中东 1', isActive: false } as any)
+
+    const result = await getServiceGroup(7, { includeInactive: true })
+
+    expect(result).toEqual({ id: 7, name: '中东 1', isActive: false })
     expect(prisma.serviceGroup.findUnique).toHaveBeenCalledWith({ where: { id: 7 } })
   })
 

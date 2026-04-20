@@ -10,7 +10,10 @@ import {
 } from '@/lib/utils/api-response'
 import { assignCustomerToServiceGroup, clearCustomerAssignment } from '@/lib/service-groups/customer-assignment-service'
 import { getServiceGroup } from '@/lib/service-groups/service-group-service'
-import { migrateCustomerOpenTicketsToGroup } from '@/lib/service-groups/ticket-migration-service'
+import {
+  migrateCustomerOpenTicketsToGroupDetailed,
+  rollbackTicketMigration,
+} from '@/lib/service-groups/ticket-migration-service'
 import { getGroupIdByRegion } from '@/lib/constants/regions'
 import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
 import { z } from 'zod'
@@ -40,6 +43,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const completedAssignments: Array<{
+    customerZammadId: number
+    previousServiceGroupId: number | null
+    migratedTicketSnapshots: Awaited<ReturnType<typeof migrateCustomerOpenTicketsToGroupDetailed>>['snapshots']
+  }> = []
+
   try {
     await requireRole(['admin'])
     const { id } = await params
@@ -60,14 +69,66 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const groupId = getGroupIdByRegion(mapServiceBaseRegionToRegionValue(serviceGroup.baseRegion))
     for (const customerZammadId of validation.data.customerZammadIds) {
-      await assignCustomerToServiceGroup(customerZammadId, serviceGroupId, 'service-group-bulk-route')
-      await migrateCustomerOpenTicketsToGroup(customerZammadId, groupId, serviceGroup.staffZammadId)
+      const previousAssignment = await prisma.customerGroupAssignment.findUnique({
+        where: { customerZammadId },
+        select: { serviceGroupId: true },
+      })
+      const migration = await migrateCustomerOpenTicketsToGroupDetailed(
+        customerZammadId,
+        groupId,
+        serviceGroup.staffZammadId
+      )
+
+      try {
+        await assignCustomerToServiceGroup(customerZammadId, serviceGroupId, 'service-group-bulk-route')
+      } catch (error) {
+        try {
+          await rollbackTicketMigration(migration.snapshots)
+        } catch {
+          // Best-effort rollback across systems.
+        }
+        throw error
+      }
+
+      completedAssignments.push({
+        customerZammadId,
+        previousServiceGroupId: previousAssignment?.serviceGroupId ?? null,
+        migratedTicketSnapshots: migration.snapshots,
+      })
     }
 
     return successResponse({ assigned: validation.data.customerZammadIds.length })
   } catch (error: any) {
+    for (const completedAssignment of [...completedAssignments].reverse()) {
+      try {
+        await rollbackTicketMigration(completedAssignment.migratedTicketSnapshots)
+      } catch {
+        // Best-effort rollback across systems.
+      }
+
+      try {
+        if (completedAssignment.previousServiceGroupId === null) {
+          await clearCustomerAssignment(completedAssignment.customerZammadId)
+        } else {
+          await assignCustomerToServiceGroup(
+            completedAssignment.customerZammadId,
+            completedAssignment.previousServiceGroupId,
+            `service-group-bulk-rollback:${completedAssignment.customerZammadId}`
+          )
+        }
+      } catch {
+        // Best-effort rollback across systems.
+      }
+    }
+
     if (error.message === 'Unauthorized') return unauthorizedResponse()
     if (error.message === 'Forbidden') return forbiddenResponse()
+    if (
+      error.message === 'Target service group owner must be an agent' ||
+      error.message === 'Target service group owner is unavailable'
+    ) {
+      return validationErrorResponse([{ path: ['customerZammadIds'], message: error.message }])
+    }
     return serverErrorResponse('Failed to assign customers to service group')
   }
 }

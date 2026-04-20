@@ -10,10 +10,16 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { getServiceGroup, updateServiceGroup } from '@/lib/service-groups/service-group-service'
-import { migrateServiceGroupOpenTickets } from '@/lib/service-groups/ticket-migration-service'
+import { assignCustomerToServiceGroup, reassignCustomersToServiceGroup } from '@/lib/service-groups/customer-assignment-service'
+import {
+  migrateServiceGroupOpenTicketsDetailed,
+  rollbackTicketMigration,
+} from '@/lib/service-groups/ticket-migration-service'
 import { zammadClient } from '@/lib/zammad/client'
 import { getGroupIdByRegion } from '@/lib/constants/regions'
 import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
+import { prisma } from '@/lib/prisma'
+import { hasFullGroupAccess } from '@/lib/ticket/agent-helpers'
 import { z } from 'zod'
 
 const UpdateServiceGroupSchema = z.object({
@@ -23,15 +29,25 @@ const UpdateServiceGroupSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
+const DeactivateServiceGroupSchema = z.object({
+  transferToServiceGroupId: z.number().int().positive(),
+})
+
 async function ensureStaffHasBaseRegionAccess(staffZammadId: number, baseRegion: ServiceBaseRegion) {
   const staff = await zammadClient.getUser(staffZammadId)
   if (!staff.active) {
     throw new Error('Target staff is inactive')
   }
 
+  const isAgent = staff.role_ids?.includes(2) || staff.roles?.includes('Agent')
+  const isAdmin = staff.role_ids?.includes(1) || staff.roles?.includes('Admin')
+  if (!isAgent || isAdmin) {
+    throw new Error('Target staff must be an agent')
+  }
+
   const groupId = getGroupIdByRegion(mapServiceBaseRegionToRegionValue(baseRegion))
   const existing = staff.group_ids || {}
-  if (!Object.prototype.hasOwnProperty.call(existing, String(groupId))) {
+  if (!hasFullGroupAccess(existing, groupId)) {
     await zammadClient.updateUser(staffZammadId, {
       group_ids: {
         ...existing,
@@ -50,7 +66,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return validationErrorResponse([{ path: ['id'], message: 'Invalid service group id' }])
     }
 
-    const current = await getServiceGroup(serviceGroupId)
+    const current = await getServiceGroup(serviceGroupId, { includeInactive: true })
     if (!current) {
       return notFoundResponse('Service group not found')
     }
@@ -64,33 +80,53 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const input = validation.data
     const nextBaseRegion = input.baseRegion || current.baseRegion
     const nextStaffZammadId = input.staffZammadId || current.staffZammadId
+    const requiresMigration =
+      (input.staffZammadId && input.staffZammadId !== current.staffZammadId) ||
+      (input.baseRegion && input.baseRegion !== current.baseRegion)
 
     if (input.staffZammadId || input.baseRegion) {
       await ensureStaffHasBaseRegionAccess(nextStaffZammadId, nextBaseRegion)
     }
 
-    const serviceGroup = await updateServiceGroup(serviceGroupId, input)
+    const migration = requiresMigration
+      ? await migrateServiceGroupOpenTicketsDetailed(
+          serviceGroupId,
+          getGroupIdByRegion(mapServiceBaseRegionToRegionValue(nextBaseRegion)),
+          nextStaffZammadId
+        )
+      : null
 
-    if ((input.staffZammadId && input.staffZammadId !== current.staffZammadId) || (input.baseRegion && input.baseRegion !== current.baseRegion)) {
-      await migrateServiceGroupOpenTickets(
-        serviceGroupId,
-        getGroupIdByRegion(mapServiceBaseRegionToRegionValue(nextBaseRegion)),
-        nextStaffZammadId
-      )
+    let serviceGroup
+    try {
+      serviceGroup = await updateServiceGroup(serviceGroupId, input)
+    } catch (error) {
+      if (migration) {
+        try {
+          await rollbackTicketMigration(migration.snapshots)
+        } catch {
+          // Best-effort rollback across systems.
+        }
+      }
+      throw error
     }
 
     return successResponse({ serviceGroup })
   } catch (error: any) {
     if (error.message === 'Unauthorized') return unauthorizedResponse()
     if (error.message === 'Forbidden') return forbiddenResponse()
-    if (error.message === 'Target staff is inactive') {
+    if (
+      error.message === 'Target staff is inactive' ||
+      error.message === 'Target staff must be an agent' ||
+      error.message === 'Target service group owner must be an agent' ||
+      error.message === 'Target service group owner is unavailable'
+    ) {
       return validationErrorResponse([{ path: ['staffZammadId'], message: error.message }])
     }
     return serverErrorResponse('Failed to update service group')
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole(['admin'])
     const { id } = await params
@@ -98,15 +134,91 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     if (Number.isNaN(serviceGroupId)) {
       return validationErrorResponse([{ path: ['id'], message: 'Invalid service group id' }])
     }
-    const current = await getServiceGroup(serviceGroupId)
+
+    const current = await getServiceGroup(serviceGroupId, { includeInactive: true })
     if (!current) {
       return notFoundResponse('Service group not found')
     }
-    const serviceGroup = await updateServiceGroup(serviceGroupId, { isActive: false })
+
+    const body = await request.json()
+    const validation = DeactivateServiceGroupSchema.safeParse(body)
+    if (!validation.success) {
+      return validationErrorResponse(validation.error.errors)
+    }
+
+    const { transferToServiceGroupId } = validation.data
+    if (transferToServiceGroupId === serviceGroupId) {
+      return validationErrorResponse([{ path: ['transferToServiceGroupId'], message: 'Transfer target must be a different service group' }])
+    }
+
+    const transferTarget = await getServiceGroup(transferToServiceGroupId)
+    if (!transferTarget) {
+      return validationErrorResponse([{ path: ['transferToServiceGroupId'], message: 'Transfer target service group not found' }])
+    }
+
+    await ensureStaffHasBaseRegionAccess(transferTarget.staffZammadId, transferTarget.baseRegion)
+    const migratedAssignments = await prisma.customerGroupAssignment.findMany({
+      where: { serviceGroupId },
+      select: { customerZammadId: true },
+    })
+    const migration = await migrateServiceGroupOpenTicketsDetailed(
+      serviceGroupId,
+      getGroupIdByRegion(mapServiceBaseRegionToRegionValue(transferTarget.baseRegion)),
+      transferTarget.staffZammadId
+    )
+
+    try {
+      await reassignCustomersToServiceGroup(
+        serviceGroupId,
+        transferToServiceGroupId,
+        `service-group-deactivate:${serviceGroupId}->${transferToServiceGroupId}`
+      )
+    } catch (error) {
+      try {
+        await rollbackTicketMigration(migration.snapshots)
+      } catch {
+        // Best-effort rollback across systems.
+      }
+      throw error
+    }
+
+    let serviceGroup
+    try {
+      serviceGroup = await updateServiceGroup(serviceGroupId, { isActive: false })
+    } catch (error) {
+      for (const assignment of migratedAssignments) {
+        try {
+          await assignCustomerToServiceGroup(
+            assignment.customerZammadId,
+            serviceGroupId,
+            `service-group-deactivate-rollback:${transferToServiceGroupId}->${serviceGroupId}`
+          )
+        } catch {
+          // Best-effort rollback across systems.
+        }
+      }
+
+      try {
+        await rollbackTicketMigration(migration.snapshots)
+      } catch {
+        // Best-effort rollback across systems.
+      }
+
+      throw error
+    }
+
     return successResponse({ serviceGroup })
   } catch (error: any) {
     if (error.message === 'Unauthorized') return unauthorizedResponse()
     if (error.message === 'Forbidden') return forbiddenResponse()
+    if (
+      error.message === 'Target staff is inactive' ||
+      error.message === 'Target staff must be an agent' ||
+      error.message === 'Target service group owner must be an agent' ||
+      error.message === 'Target service group owner is unavailable'
+    ) {
+      return validationErrorResponse([{ path: ['transferToServiceGroupId'], message: error.message }])
+    }
     return serverErrorResponse('Failed to deactivate service group')
   }
 }

@@ -18,6 +18,7 @@ interface RegionAuthUser {
   email: string
   role: 'customer' | 'staff' | 'admin'
   region?: string
+  group_ids?: number[]
 }
 
 /**
@@ -32,9 +33,9 @@ export function hasRegionAccess(user: RegionAuthUser, region: RegionValue): bool
     return true
   }
 
-  // Staff can only access their assigned region
+  // Staff can access any region implied by their explicit group_ids, with region as fallback
   if (user.role === 'staff') {
-    return user.region === region
+    return getAccessibleRegions(user).includes(region)
   }
 
   // Customer can access their own region
@@ -88,11 +89,17 @@ export function getAccessibleGroupIds(user: RegionAuthUser): number[] {
   }
 
   // Staff can only access their region's group
-  // Since all 8 regions now have dedicated Zammad groups (2025-12-23 update),
-  // we no longer need to include a fallback group
-  if (user.role === 'staff' && user.region) {
-    const groupId = getGroupIdByRegion(user.region as RegionValue)
-    return [groupId]
+  // Prefer explicit group_ids from session/auth, fall back to primary region.
+  if (user.role === 'staff') {
+    const explicitGroupIds = (user.group_ids || []).filter((groupId): groupId is number => Number.isFinite(groupId))
+    if (explicitGroupIds.length > 0) {
+      return explicitGroupIds
+    }
+
+    if (user.region) {
+      const groupId = getGroupIdByRegion(user.region as RegionValue)
+      return [groupId]
+    }
   }
 
   return []
@@ -118,7 +125,17 @@ export function getAccessibleRegions(user: RegionAuthUser): RegionValue[] {
     ]
   }
 
-  // Staff and customer can only access their region
+  if (user.role === 'staff') {
+    const regions = getAccessibleGroupIds(user)
+      .map((groupId) => getRegionByGroupId(groupId))
+      .filter((region): region is RegionValue => Boolean(region))
+
+    if (regions.length > 0) {
+      return regions
+    }
+  }
+
+  // Staff fallback and customers can only access their explicit region
   if (user.region) {
     return [user.region as RegionValue]
   }
@@ -220,12 +237,13 @@ export function hasConversationRegionAccess(
   }
 
   // Staff can only access conversations in their region
+  const accessibleRegions = getAccessibleRegions(user)
   if (user.role === 'staff') {
     // If conversation has no region, allow access (legacy data)
     if (!conversation.region) {
       return true
     }
-    return conversation.region === user.region
+    return accessibleRegions.includes(conversation.region)
   }
 
   return false
@@ -253,12 +271,13 @@ export function filterConversationsByRegion<T extends ConversationWithRegion>(
 
   // Staff: Filter by region
   if (user.role === 'staff') {
+    const accessibleRegions = getAccessibleRegions(user)
     return conversations.filter(c => {
       // Allow access to conversations without region (legacy data)
       if (!c.region) {
         return true
       }
-      return c.region === user.region
+      return accessibleRegions.includes(c.region)
     })
   }
 

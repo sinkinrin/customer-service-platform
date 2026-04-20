@@ -283,16 +283,6 @@ export async function handleEmailUserWelcomeFromWebhookPayload(
 
     const welcomeState = getEmailUserWelcomeState(customer.note)
 
-    if (welcomeState === 'unknown') {
-      log.info('User welcome state is unknown; skipping welcome flow conservatively', {
-        ticketId: ticket.id,
-        customerId,
-        email: customer.email,
-        notePreview: customer.note?.substring(0, 50),
-      })
-      return
-    }
-
     // Track current note state for updates
     let currentNote = customer.note
 

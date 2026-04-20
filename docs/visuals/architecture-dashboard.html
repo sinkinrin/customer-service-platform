@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工单生命周期重构可视化</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary: #0066cc;
+            --primary-light: #e6f3ff;
+            --danger: #ff4d4d;
+            --danger-bg: #ffe6e6;
+            --success: #00b894;
+            --success-bg: #e6faf6;
+            --bg-color: #f8f9fa;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-main: #2d3436;
+            --text-secondary: #636e72;
+            --sidebar-width: 340px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
+            background-image: radial-gradient(at 0% 0%, #e6f3ff 0, transparent 50%), radial-gradient(at 100% 100%, #f0f7ff 0, transparent 50%);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            border-right: 1px solid #eee;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.02);
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            padding: 14px 18px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            text-align: left;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 15px;
+            width: 100%;
+        }
+
+        .nav-btn:hover {
+            background: #f0f3f5;
+        }
+
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-btn.danger.active {
+            background: var(--danger);
+        }
+
+        main {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            min-height: 500px;
+            position: relative;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .view {
+            display: none;
+            width: 100%;
+        }
+
+        .view.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .highlight-box {
+            margin-top: auto;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .caption {
+            margin-top: 18px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+            max-width: 1200px;
+        }
+
+        .danger-box {
+            background: var(--danger-bg);
+            color: #c0392b;
+            border: 1px solid #ffcccc;
+        }
+
+        .success-box {
+            background: var(--success-bg);
+            color: #006266;
+            border: 1px solid #ccf2e9;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="logo">工单生命周期看板</div>
+        <button class="nav-btn danger active" id="btn-current" onclick="switchTab('current')">当前生命周期</button>
+        <button class="nav-btn" id="btn-target" onclick="switchTab('target')">目标生命周期</button>
+
+        <div id="info-box" class="highlight-box danger-box">
+            <strong>当前风险：</strong><br>
+            1. 客户区域真相存放在 Zammad 的 <code>note</code> 中。<br>
+            2. Web 建单与 Email 建单遵循两套不同的路由生命周期。<br>
+            3. 邮件欢迎流程隐式依赖 <code>note</code> 中是否存在 <code>Region:</code>。
+        </div>
+    </div>
+
+    <main>
+        <div class="chart-container" id="main-container">
+            <div id="loading" class="loading">正在渲染图表...</div>
+
+            <div id="view-current" class="view active">
+                <div id="svg-current" class="mermaid">
+flowchart TD
+    subgraph C_Login["1. 客户登录"]
+        C_L1["Zammad 认证"] --> C_L2["src/auth.ts"]
+        C_L2 --> C_L3["从 zammadUser.note 解析 Region"]
+        C_L3 --> C_L4["session.user.region"]
+    end
+
+    subgraph C_Web["2. Web 建单"]
+        C_W1["POST /api/tickets"] --> C_W2["解析 region = body.region || user.region || asia-pacific"]
+        C_W2 --> C_W3["validateTicketCreation(user, region)"]
+        C_W3 --> C_W4["ensureZammadUser(...)"]
+        C_W4 --> C_W5["group_id = getGroupIdByRegion(region)"]
+        C_W5 --> C_W6["直接在区域组中创建工单"]
+        C_W6 --> C_W7["autoAssignSingleTicket(...)"]
+        C_W7 --> C_W8{"是否找到 Binding 或可分配坐席？"}
+        C_W8 -->|是| C_W9["分配 owner_id，并将状态从 new 改为 open"]
+        C_W8 -->|否| C_W10["工单仍留在区域组中，处于未分配状态"]
+    end
+
+    subgraph C_Email["3. Email 建单"]
+        C_E1["邮件进入 Zammad"] --> C_E2["Zammad 先将工单创建到 staging group 9"]
+        C_E2 --> C_E3["Webhook -> handleEmailTicketRoutingFromWebhookPayload"]
+        C_E3 --> C_E4["根据 ticket.customer_id 获取客户"]
+        C_E4 --> C_E5["从 customer.note 解析 Region"]
+        C_E5 --> C_E6{"Region 是否有效？"}
+        C_E6 -->|是| C_E7["将工单从 staging 移动到目标区域组"]
+        C_E7 --> C_E8["autoAssignSingleTicket(...)"]
+        C_E8 --> C_E9{"分配是否成功？"}
+        C_E9 -->|是| C_E10["成功分配 owner"]
+        C_E9 -->|否| C_E11["通知 Admin"]
+        C_E6 -->|否| C_E12["保留在 staging，并通知 Admin"]
+    end
+
+    subgraph C_Conversation["4. 工单对话与更新"]
+        C_A1["GET /api/tickets/[id]/articles"] --> C_A2["从 Zammad 读取 articles"]
+        C_A3["POST /api/tickets/[id]/articles"] --> C_A4["在 Zammad 中创建 article"]
+        C_A4 --> C_A5["Webhook 写入 TicketUpdate"]
+        C_A5 --> C_A6["通过 SSE / polling 更新前端"]
+    end
+
+    subgraph C_Hidden["5. 隐藏的 note 耦合"]
+        C_H1["src/lib/ticket/email-user-welcome.ts"] --> C_H2["note 中没有 Region => 首次邮件用户"]
+        C_H2 --> C_H3["生成密码 / 发送欢迎邮件 / 追加 note 标记"]
+    end
+
+    style C_L3 fill:#ffe6e6,stroke:#ff4d4d,stroke-width:2px
+    style C_E5 fill:#ffe6e6,stroke:#ff4d4d,stroke-width:2px
+    style C_H2 fill:#ffe6e6,stroke:#ff4d4d,stroke-width:2px
+                </div>
+                <div class="caption">
+                    当前状态下，客户路由真相分散在 <code>note.Region</code>、会话派生的
+                    <code>user.region</code>、Zammad <code>group_ids</code> 与本地
+                    <code>CustomerStaffBinding</code> 之间。Web 工单会直接进入区域组，而 Email 工单总是先落入
+                    staging，再依据 <code>note</code> 二次路由。
+                </div>
+            </div>
+
+            <div id="view-target" class="view">
+                <div id="svg-target"></div>
+                <div class="caption">
+                    目标状态下，路由真相迁移到本地数据库模型。客户登录、Web 建单与 Email 建单都从
+                    <code>CustomerGroupAssignment -&gt; ServiceGroup</code> 出发。staging 成为未分组客户与负责人不可用时的统一兜底路径，而
+                    Zammad 继续作为工单状态与对话 article 的系统事实源。
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 将目标架构的代码存储在配置脚本中，避免初始解析冲突 -->
+    <script type="text/plain" id="target-mermaid-code">
+flowchart TD
+    T_DB1[("CustomerGroupAssignment")]
+    T_DB2[("ServiceGroup")]
+
+    subgraph T_Login["1. 客户登录"]
+        T_L1["Zammad 认证"] --> T_L2["src/auth.ts"]
+        T_L2 --> T_DB1
+        T_DB1 --> T_DB2
+        T_DB2 --> T_L3["从 ServiceGroup.baseRegion 派生 effectiveRegion"]
+        T_L3 --> T_L4["session 反映 assignment-based truth"]
+    end
+
+    subgraph T_Web["2. Web 建单"]
+        T_W1["POST /api/tickets"] --> T_W2["按 zammad_id 查询 customer assignment"]
+        T_W2 --> T_DB1
+        T_DB1 --> T_DB2
+        T_DB2 --> T_W3{"是否已分组且负责人可用？"}
+        T_W3 -->|是| T_W4["baseRegion -> group_id"]
+        T_W4 --> T_W5["在区域组中创建工单"]
+        T_W5 --> T_W6["owner_id = ServiceGroup.staffZammadId"]
+        T_W6 --> T_W7["状态从 new -> open"]
+        T_W3 -->|否| T_W8["将工单创建到 staging group 9"]
+        T_W8 --> T_W9["保持未分配并通知 Admin"]
+    end
+
+    subgraph T_Email["3. Email 建单"]
+        T_E1["邮件进入 Zammad"] --> T_E2["工单仍然先落在 staging group 9"]
+        T_E2 --> T_E3["Webhook 路由读取 ticket.customer_id"]
+        T_E3 --> T_DB1
+        T_DB1 --> T_DB2
+        T_DB2 --> T_E4{"是否已分组且负责人可用？"}
+        T_E4 -->|是| T_E5["将工单移动到 ServiceGroup.baseRegion 对应组"]
+        T_E5 --> T_E6["owner_id = ServiceGroup.staffZammadId"]
+        T_E4 -->|否| T_E7["工单保留在 staging，由 Admin 处理"]
+    end
+
+    subgraph T_Admin["4. Admin 控制的分配生命周期"]
+        T_A1["客户被重新分配到新的 ServiceGroup"] --> T_A2["更新 CustomerGroupAssignment"]
+        T_A2 --> T_A3["批量迁移该客户所有未关闭工单"]
+        T_A3 --> T_A4["更新 owner_id，必要时也更新 group_id"]
+        T_A5["ServiceGroup 负责人发生变更"] --> T_A6["更新 ServiceGroup.staffZammadId"]
+        T_A6 --> T_A7["批量迁移该组下所有客户的未关闭工单"]
+    end
+
+    subgraph T_Stable["5. 下游工单生命周期保持稳定"]
+        T_S1["GET/POST ticket articles"] --> T_S2["Zammad articles 继续作为对话系统"]
+        T_S2 --> T_S3["Webhook -> TicketUpdate -> SSE / polling"]
+    end
+
+    subgraph T_Welcome["6. Welcome 流程必须解耦"]
+        T_G1["email-user-welcome 不再使用 'note 中没有 Region'"] --> T_G2["Welcome 状态必须独立存储或独立判断"]
+    end
+
+    style T_DB1 fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
+    style T_DB2 fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
+    style T_W8 fill:#fff4d6,stroke:#e0a800,stroke-width:2px
+    style T_E7 fill:#fff4d6,stroke:#e0a800,stroke-width:2px
+    style T_G1 fill:#e6faf6,stroke:#00b894,stroke-width:2px
+</script>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+
+        let renderedTabs = { current: true, target: false };
+
+        async function switchTab(tabId) {
+            // UI 更新
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active', 'danger'));
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+            const btn = document.getElementById('btn-' + tabId);
+            btn.classList.add('active');
+            if (tabId === 'current') btn.classList.add('danger');
+
+            const view = document.getElementById('view-' + tabId);
+            view.classList.add('active');
+
+            // 文字信息更新
+            const info = document.getElementById('info-box');
+            if (tabId === 'current') {
+                info.className = "highlight-box danger-box";
+                info.innerHTML = "<strong>当前风险：</strong><br>1. 客户区域真相存放在 Zammad 的 <code>note</code> 中。<br>2. Web 与 Email 的工单入口遵循两套不同的路由生命周期。<br>3. Welcome 流程隐式依赖 <code>note</code> 中是否存在 <code>Region:</code>。";
+            } else {
+                info.className = "highlight-box success-box";
+                info.innerHTML = "<strong>目标优势：</strong><br>1. 路由真相迁移到 <code>CustomerGroupAssignment + ServiceGroup</code>。<br>2. Web 与 Email 都从同一套 assignment 查询出发。<br>3. staging 成为未分组客户与负责人不可用时的显式兜底路径。";
+            }
+
+            // 动态渲染逻辑
+            if (!renderedTabs[tabId]) {
+                document.getElementById('loading').style.display = 'block';
+                const code = document.getElementById(tabId + '-mermaid-code').textContent;
+
+                try {
+                    // 延迟一帧确保 DOM 已显示，让 Mermaid 能计算尺寸
+                    requestAnimationFrame(async () => {
+                        const { svg } = await mermaid.render('svg-render-' + tabId, code);
+                        document.getElementById('svg-' + tabId).innerHTML = svg;
+                        renderedTabs[tabId] = true;
+                        document.getElementById('loading').style.display = 'none';
+                    });
+                } catch (e) {
+                    console.error("Mermaid Render Error:", e);
+                    document.getElementById('svg-' + tabId).innerHTML = "<div style='color:red; padding:20px;'>图表渲染失败，请检查 Mermaid 语法。</div>";
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }
+        }
+    </script>
+
+</body>
+
+</html>

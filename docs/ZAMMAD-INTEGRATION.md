@@ -1,588 +1,259 @@
-# Zammad Integration Guide
+# Zammad 集成
 
-> Deep integration with Zammad ticketing system
+> 当前 Zammad 集成边界、关键文件与真实链路说明。
 
-**中文概览**: See [ZAMMAD-INTEGRATION.zh-CN.md](./ZAMMAD-INTEGRATION.zh-CN.md)
-
-**Last Updated**: 2026-01-29
-**Version**: 2.1
+**最后更新**：2026-04-20
 
 ---
 
-## Overview
+## 总览
 
-The platform uses Zammad as the external ticketing system. All ticket data is stored in Zammad, while the platform handles UI, authentication, and additional features like notifications and ratings.
+Zammad 是这个平台背后的外部工单系统。
 
-### Integration Architecture
+当前职责边界是：
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Platform ↔ Zammad Integration                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│   Platform (Next.js)                    Zammad Server            │
-│   ┌─────────────────┐                   ┌─────────────────┐     │
-│   │                 │   REST API        │                 │     │
-│   │  ZammadClient   │◄─────────────────►│  Zammad API     │     │
-│   │  (client.ts)    │   Token Auth      │  /api/v1/*      │     │
-│   │                 │                   │                 │     │
-│   └────────┬────────┘                   └────────┬────────┘     │
-│            │                                     │               │
-│            │                                     │               │
-│   ┌────────▼────────┐                   ┌────────▼────────┐     │
-│   │  Webhook        │   HTTP POST       │  Triggers       │     │
-│   │  Handler        │◄──────────────────│  (Events)       │     │
-│   │                 │                   │                 │     │
-│   └─────────────────┘                   └─────────────────┘     │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
+- **Zammad**：ticket、ticket article、group 路由、大量用户记录、out-of-office 元数据、附件缓存链路
+- **平台**：UI、认证编排、站内通知、ticket rating、reply template、FAQ、AI 数据、TicketUpdate 持久化、binding-aware 分配
+
+如果文档把平台数据库写成工单真相来源，那就是过期了。
 
 ---
 
-## Configuration
+## 配置
 
-### Environment Variables
+核心环境变量：
 
 ```env
-# Required
 ZAMMAD_URL=http://your-zammad-server:8080/
-ZAMMAD_API_TOKEN=<admin-token-with-admin.user-permission>
-
-# Optional
-ZAMMAD_WEBHOOK_SECRET=<webhook-signature-secret>
+ZAMMAD_API_TOKEN=<admin token>
 ```
 
-### API Token Requirements
-
-The API token must have the following permissions:
-- `admin.user` - Required for X-On-Behalf-Of functionality
-- `ticket.agent` - Required for ticket operations
-- Access to all groups for cross-region operations
-
----
-
-## ZammadClient API
-
-Location: `src/lib/zammad/client.ts`
-
-### Initialization
-
-```typescript
-import { zammadClient } from '@/lib/zammad/client'
-
-// Client is a singleton, auto-configured from env
-const tickets = await zammadClient.getAllTickets()
-```
-
-### Ticket Operations
-
-| Method | Description |
-|--------|-------------|
-| `createTicket(data, onBehalfOf?)` | Create new ticket |
-| `getTicket(id, onBehalfOf?)` | Get ticket by ID |
-| `getAllTickets()` | Get all tickets (paginated) |
-| `updateTicket(id, data, onBehalfOf?)` | Update ticket |
-| `deleteTicket(id, onBehalfOf?)` | Delete ticket |
-| `searchTickets(query, limit?, onBehalfOf?)` | Search tickets |
-
-### Article Operations
-
-| Method | Description |
-|--------|-------------|
-| `createArticle(data, onBehalfOf?)` | Create reply/note |
-| `getArticle(id, onBehalfOf?)` | Get article by ID |
-| `getArticlesByTicket(ticketId, onBehalfOf?)` | Get ticket articles |
-| `downloadAttachment(ticketId, articleId, attachmentId, onBehalfOf?)` | Download file |
-| `uploadAttachment(file, filename, mimeType, onBehalfOf, formId?)` | Upload file |
-
-### User Operations
-
-| Method | Description |
-|--------|-------------|
-| `authenticateUser(email, password)` | Validate credentials |
-| `getUser(id)` | Get user by ID |
-| `getUserByEmail(email)` | Find user by email |
-| `createUser(data)` | Create new user |
-| `updateUser(id, data)` | Update user |
-| `searchUsers(query)` | Search users |
-| `getAgents(activeOnly?)` | Get all agents |
-| `setOutOfOffice(userId, data)` | Set vacation status |
-
-### Tag Operations
-
-| Method | Description |
-|--------|-------------|
-| `getTicketTags(ticketId)` | Get ticket tags |
-| `addTag(ticketId, tag, onBehalfOf?)` | Add tag |
-| `removeTag(ticketId, tag, onBehalfOf?)` | Remove tag |
-
-### Group & SLA Operations
-
-| Method | Description |
-|--------|-------------|
-| `getGroups()` | Get all groups |
-| `getGroup(id)` | Get group by ID |
-| `createGroup(data)` | Create group |
-| `getSLAs()` | Get all SLAs |
-
----
-
-## X-On-Behalf-Of Pattern
-
-The platform uses a single admin API token for all operations. To preserve user identity, the `X-On-Behalf-Of` header is used.
-
-### How It Works
-
-```typescript
-// When customer creates a ticket:
-await zammadClient.createTicket(
-  {
-    title: 'Help needed',
-    group: 'Asia-Pacific',
-    article: { body: 'I need help...' }
-  },
-  'customer@example.com'  // X-On-Behalf-Of
-)
-
-// Zammad creates the ticket as if customer@example.com created it
-// The ticket.customer_id is set to the customer's Zammad user ID
-```
-
-### Usage by Role
-
-| Role | X-On-Behalf-Of Usage |
-|------|---------------------|
-| **Customer** | Always used - ensures customer only sees own tickets |
-| **Staff** | Used for articles - shows staff name as sender |
-| **Admin** | Optional - can act as any user |
-
-### Permission Requirements
-
-The API token must have `admin.user` permission to use X-On-Behalf-Of.
-
----
-
-## Region & Group Mapping
-
-### Region Constants
-
-Location: `src/lib/constants/regions.ts`
-
-```typescript
-export const REGION_GROUP_MAPPING: Record<RegionValue, number> = {
-  'asia-pacific': 4,      // Zammad Group: 亚太
-  'middle-east': 3,       // Zammad Group: 中东
-  'africa': 1,            // Zammad Group: 非洲 Users
-  'north-america': 6,     // Zammad Group: 北美
-  'latin-america': 7,     // Zammad Group: 拉美
-  'europe-zone-1': 2,     // Zammad Group: 欧洲
-  'europe-zone-2': 8,     // Zammad Group: 欧洲二区
-  'cis': 5,               // Zammad Group: 独联体
-}
-```
-
-### Helper Functions
-
-```typescript
-import {
-  getGroupIdByRegion,   // 'asia-pacific' → 4
-  getRegionByGroupId,   // 4 → 'asia-pacific'
-  isValidRegion         // Validate region string
-} from '@/lib/constants/regions'
-```
-
-### Ticket Routing
-
-When a customer creates a ticket:
-1. Customer's region is determined (from session or selection)
-2. Region is mapped to Zammad group ID
-3. Ticket is created in that group
-4. Staff in that region can see the ticket
-
-```typescript
-// In ticket creation flow:
-const groupId = getGroupIdByRegion(userRegion)
-await zammadClient.createTicket({
-  title: 'Help needed',
-  group_id: groupId,  // Routes to correct regional group
-  customer_id: zammadUserId,
-  article: { ... }
-}, userEmail)
-```
-
----
-
-## Ticket State Mapping
-
-Location: `src/lib/constants/zammad-states.ts`
-
-| State ID | Zammad State | Platform Display |
-|----------|--------------|------------------|
-| 1 | new | New |
-| 2 | open | Open |
-| 3 | pending reminder | Pending |
-| 4 | closed | Closed |
-| 5 | merged | Merged |
-| 6 | removed | Removed |
-| 7 | pending close | Pending Close |
-
-### State Transitions
-
-```
-new (1) ──────► open (2) ──────► closed (4)
-    │              │                 │
-    │              ▼                 │
-    │         pending (3,7)          │
-    │              │                 │
-    └──────────────┴─────────────────┘
-                 (reopen)
-```
-
----
-
-## Auto-Assignment System
-
-Location: `src/lib/ticket/auto-assign.ts`
-
-### Algorithm
-
-1. Get all active agents from Zammad
-2. Filter by region (group membership)
-3. Exclude system accounts and on-vacation users
-4. Calculate workload (active ticket count per agent)
-5. Select agent with lowest workload
-6. Assign ticket and update state to "open"
-
-### Excluded Accounts
-
-```typescript
-const EXCLUDED_EMAILS = [
-  'support@howentech.com',
-  'howensupport@howentech.com'
-]
-```
-
-### Integration Point
-
-Auto-assignment runs:
-- Immediately after ticket creation (if `auto_assign: true`)
-- Via `/api/tickets/auto-assign` endpoint (batch)
-
----
-
-## Webhook Integration
-
-Location: `src/app/api/webhooks/zammad/route.ts`
-
-### Endpoint
-
-```
-POST /api/webhooks/zammad
-```
-
-### Zammad Trigger Configuration
-
-Configure a Zammad trigger to POST to the webhook URL on ticket events:
-- Ticket created
-- Ticket updated
-- Article created
-
-### Payload Processing
-
-The webhook handler:
-1. Validates signature (if `ZAMMAD_WEBHOOK_SECRET` is set)
-2. Determines event type from payload
-3. Stores update in `TicketUpdate` table
-4. Creates in-app notifications
-5. Broadcasts via SSE
-
-### Event Detection Logic
-
-```typescript
-// Determine event type from Zammad payload
-if (webhookPayload.article && !prevArticle) {
-  event = 'article_created'
-} else if (prevState !== currentState) {
-  event = 'status_changed'
-} else if (prevOwner !== currentOwner) {
-  event = 'assigned'
-}
-```
-
-### Signature Verification
-
-```typescript
-// Zammad sends X-Hub-Signature or X-Zammad-Signature
-const signature = request.headers.get('X-Hub-Signature')
-const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret)
-```
-
----
-
-## User Synchronization
-
-### First Ticket Flow
-
-When a customer creates their first ticket:
-
-1. Platform checks if user exists in Zammad
-2. If not, creates user with matching email
-3. Stores mapping in `UserZammadMapping` table
-4. Proceeds with ticket creation
-
-```typescript
-// Ensure user exists in Zammad before ticket creation
-async function ensureZammadUser(email, fullName, role, region) {
-  // Try to find existing user
-  const existing = await zammadClient.getUserByEmail(email)
-  if (existing) return existing
-
-  // Create new user with appropriate role
-  const zammadRoles = role === 'admin' ? ['Admin', 'Agent']
-                    : role === 'staff' ? ['Agent']
-                    : ['Customer']
-
-  return await zammadClient.createUser({
-    email,
-    firstname: fullName.split(' ')[0],
-    lastname: fullName.split(' ').slice(1).join(' '),
-    roles: zammadRoles,
-    group_ids: getGroupPermissions(role, region)
-  })
-}
-```
-
-### Role Mapping
-
-| Platform Role | Zammad Roles |
-|---------------|--------------|
-| customer | Customer |
-| staff | Agent |
-| admin | Admin, Agent |
-
-### Customer Region Storage
-
-Customer regions are stored in Zammad's `note` field:
-
-```
-Region: asia-pacific
-```
-
-Staff regions are determined by their `group_ids` in Zammad.
-
----
-
-## Email User Welcome System
-
-Location: `src/lib/ticket/email-user-welcome.ts`
-
-### Overview
-
-When a user first contacts support via email, Zammad automatically creates a customer account but without a usable password. This system automatically generates a password and sends a welcome email.
-
-### Configuration
+可选 Webhook 安全变量：
 
 ```env
-# Enable auto-generation of password for first-time email users (default: true)
-EMAIL_USER_AUTO_PASSWORD_ENABLED=true
-
-# Enable sending welcome email with login credentials (default: true)
-EMAIL_USER_WELCOME_EMAIL_ENABLED=true
-
-# Web platform URL for the login link in welcome emails
-WEB_PLATFORM_URL=https://support.example.com
+ZAMMAD_WEBHOOK_SECRET=<webhook signature secret>
 ```
 
-### How It Works
+客户端实现位置：
 
-1. **Webhook Trigger**: When a ticket is created via email (`article.type === 'email'`), the webhook handler triggers the welcome flow asynchronously.
-
-2. **First-Time User Detection**: The system distinguishes first-time email users from existing users by checking the `note` field for a Region marker:
-   - **No Region** = First-time email user (auto-created by Zammad with empty note)
-   - **Has Region** = Existing user (registered via web or created by admin, always has `Region: xxx`)
-
-3. **Two-Step Idempotency**: The system uses two separate markers to ensure safe retries:
-   - `WelcomePasswordSet:` - Written immediately after password is set
-   - `WelcomeEmailSent:` - Written after welcome email is successfully sent
-
-4. **Password Generation**: A 12-character secure random password is generated using `crypto.randomBytes()`. The password excludes confusing characters (0/O, 1/l/I).
-
-5. **Password Setting**: The password is set via `zammadClient.updateUser()`, then immediately marked with `WelcomePasswordSet:`.
-
-6. **Welcome Email**: An HTML email is sent via `zammadClient.createArticle()` with:
-   - Login credentials (email + temporary password)
-   - Login URL link
-   - Security warning to change password after first login
-
-7. **Marker Update**: After successful email delivery, the user's `note` field is updated with `WelcomeEmailSent: <timestamp>`.
-
-### Security Considerations
-
-⚠️ **Important**: The welcome email is sent as an external article and appears in the ticket history. This means:
-- Staff and admins can see the temporary password in ticket history
-- The email prominently warns users to change their password immediately
-- Password is only set once per user (idempotent via `WelcomePasswordSet:` marker)
-- Only truly new email users (no Region) receive credentials; existing users are never affected
-
-### Retry Logic
-
-- If password setting fails: the flow aborts, no marker is written
-- If email sending fails: only `WelcomePasswordSet:` is written; password won't be regenerated on retry
-- All errors are logged but don't block the webhook response
-- Note: If password was set but email failed, subsequent retries cannot send the welcome email (password is not stored)
+- `src/lib/zammad/client.ts`
 
 ---
 
-## Permission System
+## ZammadClient 负责什么
 
-Location: `src/lib/utils/permission.ts`
+`src/lib/zammad/client.ts` 是当前访问 Zammad REST API 的统一入口。
 
-### Ticket Access Rules
+它现在承担的职责包括：
 
-```typescript
-function checkTicketPermission(ctx: PermissionContext): PermissionResult {
-  const { user, ticket, action } = ctx
+- Zammad 用户认证
+- ticket 相关操作
+- article 与附件相关操作
+- 用户查询 / 创建 / 更新
+- agent 与 group 获取
+- out-of-office 操作
+- 一些历史遗留的 knowledge-base 相关方法
+- 请求超时与重试处理
 
-  // Admin: full access
-  if (user.role === 'admin') return { allowed: true }
+当前实现特征：
 
-  // Customer: own tickets only
-  if (user.role === 'customer') {
-    return {
-      allowed: ticket.customer_id === user.zammad_id,
-      reason: 'Customers can only access their own tickets'
-    }
-  }
-
-  // Staff: assigned or regional tickets
-  if (user.role === 'staff') {
-    const isAssigned = ticket.owner_id === user.zammad_id
-    const isInRegion = user.group_ids?.includes(ticket.group_id)
-    return {
-      allowed: isAssigned || isInRegion,
-      reason: 'Staff can access assigned or regional tickets'
-    }
-  }
-}
-```
-
-### Filtering Functions
-
-```typescript
-// Filter ticket list by permissions
-filterTicketsByPermission(tickets, user)
-
-// Filter by region only (for staff)
-filterTicketsByRegion(tickets, user)
-
-// Check single ticket access
-checkTicketPermission({ user, ticket, action: 'view' })
-```
+- 从环境变量读取并规范化 base URL
+- 通过统一 request 方法发请求
+- 在请求时做配置校验
+- 对部分失败做重试
+- 内置 timeout 处理
 
 ---
 
-## Health Monitoring
+## X-On-Behalf-Of 模式
 
-Location: `src/lib/zammad/health-check.ts`
+平台会在需要时使用 admin token + `X-On-Behalf-Of` 来保留真实操作者身份。
 
-### Health Check Endpoint
+当前用法不是“所有请求都冒名”，而是分场景：
 
-```
-GET /api/health/zammad
-```
+- **Customer 工单动作**：常使用 `X-On-Behalf-Of`，让 Zammad 自己保证客户只能看到自己的数据
+- **Staff / Admin 流程**：有些场景更多依赖平台侧权限过滤，而不是每次都在 Zammad 层 impersonate
+- **附件下载**：工单文章附件下载路由对所有角色都走 `X-On-Behalf-Of`
 
-### Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "status": "healthy",
-    "responseTime": 45,
-    "version": "6.4.1"
-  }
-}
-```
-
-### Error Handling
-
-When Zammad is unavailable:
-- API routes return 503 with friendly message
-- Frontend shows "Service temporarily unavailable"
-- Requests are not retried to avoid blocking
+因此文档里不能把它简化成“平台统一以用户身份请求 Zammad”。
 
 ---
 
-## Attachment Handling
+## 认证集成
 
-### Upload Flow
+Zammad 不只是工单依赖，也是认证链路的一部分。
 
-1. Client uploads file to `/api/attachments/upload`
-2. Platform validates file (size, type, magic bytes)
-3. Platform uploads to Zammad's `upload_caches` endpoint
-4. Returns `form_id` for later reference
-5. When creating article, reference the `form_id`
+在 `src/auth.ts` 中：
 
-### Size Limits
+- 可以直接用用户邮箱 / 密码去 Zammad 做认证
+- 返回的 Zammad 用户会被转换成平台 session user
+- role / region 都会基于 Zammad 信息推导
 
-Location: `src/lib/constants/attachments.ts`
-
-```typescript
-export const ATTACHMENT_LIMITS = {
-  MAX_FILE_SIZE: 10 * 1024 * 1024,  // 10MB
-  UPLOAD_TIMEOUT: 120000,            // 2 minutes
-  ALLOWED_MIME_TYPES: [
-    'image/jpeg', 'image/png', 'image/gif',
-    'application/pdf',
-    'text/plain',
-    // ... more types
-  ]
-}
-```
-
-### Security Measures
-
-- MIME type validation (client + magic bytes)
-- Filename sanitization
-- Path traversal prevention
-- XSS prevention in filenames
+所以一旦启用了 Zammad-backed auth，Zammad 就是身份体系的关键依赖。
 
 ---
 
-## Troubleshooting
+## 工单创建与更新
 
-### Common Issues
+重要工单 API 包括：
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| "Zammad is not configured" | Missing env vars | Set `ZAMMAD_URL` and `ZAMMAD_API_TOKEN` |
-| 403 on ticket operations | Token lacks permissions | Ensure token has `admin.user` permission |
-| Tickets not visible to staff | Wrong group assignment | Check staff's `group_ids` in Zammad |
-| Webhook not received | Firewall/URL issue | Verify Zammad can reach webhook URL |
-| User not syncing | Email mismatch | Check email case sensitivity |
+- `src/app/api/tickets/route.ts`
+- `src/app/api/tickets/[id]/route.ts`
+- `src/app/api/tickets/[id]/articles/route.ts`
+- `src/app/api/tickets/[id]/assign/route.ts`
+- `src/app/api/tickets/auto-assign/route.ts`
 
-### Debug Logging
+平台在调用 Zammad 工单 API 时，通常还会叠加：
 
-Enable debug logs by checking console output. Key log prefixes:
-- `[Zammad]` - API client operations
-- `[Auth]` - Authentication flow
-- `[Webhook]` - Webhook processing
-- `[Permission]` - Access control checks
-- `[Auto-Assign]` - Assignment logic
+- 请求参数校验
+- 认证与角色检查
+- 资源级权限判断
+- 健康检查 / 不可用处理
+- 本地副作用（通知、binding 更新等）
 
 ---
 
-## API Reference
+## 当前分配模型
 
-For complete API documentation, see [API-REFERENCE.md](./API-REFERENCE.md).
+当前分配架构是 **binding-aware**。
 
-Ticket-related endpoints:
-- `GET /api/tickets` - List tickets
-- `POST /api/tickets` - Create ticket
-- `GET /api/tickets/:id` - Get ticket details
-- `PUT /api/tickets/:id` - Update ticket
-- `POST /api/tickets/:id/articles` - Add reply
-- `PUT /api/tickets/:id/assign` - Assign to staff
-- `POST /api/tickets/auto-assign` - Batch auto-assign
-- `POST /api/webhooks/zammad` - Receive Zammad events
+`src/lib/ticket/auto-assign.ts` 的当前大致顺序：
+
+1. 从 Zammad 拉取 active agents
+2. 过滤出 eligible agents
+3. 优先检查 customer 是否已有 active binding
+4. 绑定坐席不可用时处理 fallback / replacement
+5. 否则在目标 group 中按负载均衡选择
+6. 首次成功分配后可自动创建 binding
+
+相关文件：
+
+- `src/lib/ticket/auto-assign.ts`
+- `src/lib/ticket/agent-helpers.ts`
+- `src/lib/ticket/customer-binding.ts`
+- `src/app/api/admin/customer-bindings/route.ts`
+
+所以旧文档里那种“纯 region 分配”或“纯 service-group 分配”不能再当作当前事实。
+
+---
+
+## Region 与 Group 映射
+
+Region / group 的映射辅助在：
+
+- `src/lib/constants/regions.ts`
+
+这些映射被用于：
+
+- 建单时把工单路由到正确 Zammad group
+- 从 staff / admin 的 group 权限反推 region
+- 自动分配时筛选候选人
+- 一部分工单可见性判断
+
+---
+
+## 假期与可用性
+
+Staff 的 out-of-office / vacation 真相仍在 Zammad。
+
+当前代码会通过 Zammad 用户数据判断可用性，位置例如：
+
+- `src/lib/zammad/client.ts`
+- `src/lib/ticket/agent-helpers.ts`
+- `src/app/api/staff/available/route.ts`
+- `src/app/api/staff/vacation/route.ts`
+
+这意味着“坐席可用性”不是一个纯本地状态模型。
+
+---
+
+## Webhook 集成
+
+Webhook 入口：
+
+- `POST /api/webhooks/zammad`
+- 实现：`src/app/api/webhooks/zammad/route.ts`
+
+当前行为：
+
+- 若配置了 `ZAMMAD_WEBHOOK_SECRET`，则进行 HMAC 签名校验
+- 解析 ticket / article payload
+- 推断事件类型：`created` / `article_created` / `assigned` / `status_changed`
+- 写入本地 `TicketUpdate`
+- 最佳努力创建持久化通知
+- 定向广播 SSE
+- 在需要时触发邮件路由 / welcome flow 等旁路逻辑
+
+这个 webhook 是外部 Zammad 事件与平台实时体验之间的桥梁。
+
+---
+
+## 实时更新边界
+
+当前“实时更新”并不是 Zammad 直接把消息推给前端。
+
+现在的路径是：
+
+1. Zammad webhook
+2. 本地写入 `TicketUpdate`
+3. 本地通知副作用
+4. 通过 `src/lib/sse/emitter.ts` 推送 SSE
+5. 通过 `GET /api/tickets/updates` 做 polling fallback
+
+关键文件：
+
+- `src/app/api/webhooks/zammad/route.ts`
+- `src/app/api/tickets/updates/stream/route.ts`
+- `src/app/api/tickets/updates/route.ts`
+- `src/lib/sse/emitter.ts`
+
+---
+
+## 附件处理
+
+Zammad 相关附件链路需要分清两类：
+
+### Zammad upload cache
+
+- 路由：`src/app/api/attachments/upload/route.ts`
+- 用于为 ticket / article 创建准备 Zammad 可引用的附件缓存
+
+### Zammad article attachment download
+
+- 路由：`src/app/api/tickets/[id]/articles/[articleId]/attachments/[attachmentId]/route.ts`
+- 会先读取 article，再根据附件元数据从 Zammad 下载
+
+不要把这两条链路和 `src/app/api/files/*` 的本地文件元数据链路混为一谈。
+
+---
+
+## 健康检查与失败处理
+
+相关健康处理在：
+
+- `src/lib/zammad/health-check.ts`
+- `src/app/api/health/zammad/route.ts`
+
+依赖 Zammad 的平台 API 在 Zammad 不可用时，通常会返回更友好的错误或提前终止流程。
+
+---
+
+## 文档注意事项
+
+仓库里仍有一些历史文档会提到：
+
+- 用 Zammad KB 做 FAQ
+- 更旧的分配策略
+- 过期的路由数量
+- 更旧的 auth / session 假设
+
+除非代码当前仍支持，否则都应视为历史说明。
+
+---
+
+## 相关文档
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [AUTHENTICATION.md](./AUTHENTICATION.md)
+- [API-REFERENCE.md](./API-REFERENCE.md)
+- [DATABASE.md](./DATABASE.md)

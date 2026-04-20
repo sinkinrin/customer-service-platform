@@ -1,207 +1,138 @@
-# 🎫 Customer Service Platform
+# 客户服务平台
 
-> A modern, multilingual customer service platform with Zammad ticketing integration, NextAuth.js authentication, and Prisma ORM.
+> 一个基于 Next.js、Prisma 和 Zammad 的三端客户服务平台。
 
-**Version**: 0.1.0  
-**Last Updated**: 2025-12-12
+**当前包版本**：`0.2.2`
+**项目总览入口**：本文件
+**详细文档**：[`docs/README.md`](./docs/README.md)
 
----
+> 文档正在持续校准。判断当前事实时，优先以代码、本 README 和 `docs/README.md` 为准，而不是历史说明。
 
-## 📋 Overview
+## 项目概览
 
-A comprehensive customer service platform featuring:
-- **Customer Portal** - FAQ self-service, live chat, ticket management
-- **Staff Portal** - Ticket handling, knowledge base, dashboard
-- **Admin Panel** - User management, FAQ management, system settings
-- **Zammad Integration** - Full ticketing system with X-On-Behalf-Of support
+本仓库实现了一个面向三类角色的客户服务平台：
 
----
+- **Customer**：浏览 FAQ、发起 AI 对话、创建并跟踪工单、带附件回复
+- **Staff**：处理工单、回复客户、处理分配相关流程、复核 AI 回复质量
+- **Admin**：管理用户、FAQ、AI 设置，以及 customer-staff binding
 
-## ✨ Features
+## 当前能力
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| **Authentication** | ✅ | NextAuth.js with mock/production modes |
-| **Customer Portal** | ✅ | FAQ, conversations, tickets, feedback |
-| **Staff Portal** | ✅ | Ticket management, knowledge base |
-| **Admin Panel** | ✅ | Users, FAQ, AI settings |
-| **Zammad Integration** | ✅ | Tickets, articles, tags, knowledge base |
-| **Multilingual (i18n)** | ✅ | 6 languages (en, zh-CN, fr, es, ru, pt) |
-| **Dark Mode** | ✅ | System-aware theme switching |
-| **Responsive Design** | ✅ | Mobile-first UI |
+- **认证与 RBAC**：NextAuth.js v5 + Credentials，Zammad 优先认证，mock/env 回退
+- **工单流程**：基于 Zammad REST API，并支持 `X-On-Behalf-Of`
+- **绑定优先分配**：customer-staff binding + 假期回退 + 负载均衡
+- **实时更新**：SSE 工单更新 + 持久化站内通知
+- **AI 对话与质检**：支持多 provider 配置，当前主文档以 FastGPT 路径为主
+- **FAQ 与多语言界面**：`next-intl`，支持 6 种语言
+- **附件预览与拖拽上传**：覆盖对话与工单回复场景
+- **自动化测试**：Vitest + Playwright
 
----
+## 架构速览
 
-## 🏗️ Tech Stack
+| 区域 | 当前实现 |
+|------|----------|
+| 框架 | Next.js 16 App Router |
+| 语言 | TypeScript 5.3 |
+| UI | React 19 + Tailwind CSS + shadcn/ui |
+| 认证 | NextAuth.js v5 JWT Session |
+| 本地数据 | Prisma 6.19 + PostgreSQL |
+| 外部工单系统 | Zammad REST API |
+| 实时更新 | SSE（`/api/tickets/updates/stream`） |
+| AI | 可配置 provider，代码中含 FastGPT / OpenAI-compatible / Yuxi legacy |
+| 国际化 | next-intl（`en`、`zh-CN`、`fr`、`es`、`ru`、`pt`） |
+| 测试 | Vitest + Playwright |
 
-| Layer | Technology |
-|-------|------------|
-| **Framework** | Next.js 16 (App Router) |
-| **Language** | TypeScript 5.3 |
-| **UI** | React 19, Tailwind CSS 3.4, shadcn/ui |
-| **State** | Zustand 5.0 |
-| **Forms** | React Hook Form + Zod |
-| **Auth** | NextAuth.js 5 (beta) |
-| **Database** | Prisma 6.19 + SQLite |
-| **i18n** | next-intl 4.5 |
-| **Ticketing** | Zammad REST API |
-| **Icons** | Lucide React |
+## 关键入口
 
----
+- 认证配置：`src/auth.ts`
+- 路由保护：`middleware.ts`
+- 根布局与 Provider：`src/app/layout.tsx`
+- Prisma Schema：`prisma/schema.prisma`
+- Zammad 客户端：`src/lib/zammad/client.ts`
+- 自动分配：`src/lib/ticket/auto-assign.ts`
+- SSE Stream：`src/app/api/tickets/updates/stream/route.ts`
+- SSE Emitter：`src/lib/sse/emitter.ts`
+- AI Provider 注册：`src/lib/ai/providers/index.ts`
 
-## 🚀 Quick Start
+## 快速开始
 
-### Prerequisites
+### 前置条件
+
 - Node.js 18+
-- npm or yarn
-- Zammad instance (optional)
+- PostgreSQL
+- 可访问的 Zammad 实例
+- 可选：FastGPT 或其他 AI provider 服务
 
-### Installation
+### 安装与运行
 
 ```bash
-# Clone and install
-git clone <repository-url>
-cd customer-service-platform
 npm install
-
-# Setup environment
 cp .env.example .env.local
-# Edit .env.local with your configuration
 
-# Initialize database
+# 配置 AUTH_SECRET、DATABASE_URL、ZAMMAD_URL、ZAMMAD_API_TOKEN
 npx prisma migrate dev
 npm run db:seed
-
-# Start development server
 npm run dev
 ```
 
-### Access
-- **URL**: http://localhost:3010
-- **Test Accounts** (development mock fallback):
-  - Customer: `customer@test.com` / `password123`
-  - Staff: `staff@test.com` / `password123`
-  - Admin: `admin@test.com` / `password123`
+开发服务器默认运行在 `http://localhost:3010`。
 
----
+### 常用脚本
 
-## ⚙️ Environment Variables
+```bash
+npm run dev
+npm run dev:turbo
+npm run build
+npm run start
+npm run lint
+npm run type-check
+npm run test
+npm run test:coverage
+npm run test:e2e
+npm run i18n:check
+```
+
+## 关键环境变量
 
 ```env
-# Authentication (required in production)
 AUTH_SECRET=your_auth_secret_here
-
-# Database
-DATABASE_URL=file:./dev.db
-
-# Zammad Integration
+DATABASE_URL=postgresql://user:password@localhost:5432/customer_service
 ZAMMAD_URL=http://your-zammad-server:8080/
-ZAMMAD_API_TOKEN=your_api_token
+ZAMMAD_API_TOKEN=your_zammad_api_token
 
 # Optional
-FASTGPT_API_KEY=your_fastgpt_key
+NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
+FASTGPT_API_KEY=your_fastgpt_api_key
 LOG_LEVEL=info
 ```
 
----
+## 仓库结构
 
-## 📁 Project Structure
-
-```
+```text
 src/
-├── app/                    # Next.js App Router
-│   ├── admin/             # Admin panel routes
-│   ├── api/               # API routes (40+ endpoints)
-│   ├── auth/              # Authentication pages
-│   ├── customer/          # Customer portal routes
-│   └── staff/             # Staff portal routes
-├── components/            # React components
-│   ├── ui/               # shadcn/ui (23 components)
-│   ├── conversation/     # Chat components
-│   ├── faq/              # FAQ components
-│   ├── ticket/           # Ticket components
-│   └── layouts/          # Layout components
-├── lib/                   # Utilities
-│   ├── hooks/            # Custom React hooks
-│   ├── stores/           # Zustand stores
-│   ├── zammad/           # Zammad API client
-│   └── utils/            # Helper functions
-└── types/                 # TypeScript definitions
-
-prisma/
-├── schema.prisma          # Database schema
-├── migrations/            # Database migrations
-└── seed.ts               # Seed data
-
-messages/                  # i18n translations (6 languages)
-docs/                      # Documentation
-openspec/                  # Requirements & change proposals
+├── app/              # App Router 页面和 API Routes
+├── components/       # UI 与业务组件
+├── lib/              # auth、Zammad、tickets、AI、notifications、SSE
+├── types/            # 共享 TypeScript 类型
+prisma/               # schema、migrations、seed
+messages/             # i18n 文案
+docs/                 # 当前实现文档与归档
+openspec/             # specs、proposal、change 管理
 ```
 
----
+## 文档地图
 
-## 🔌 API Endpoints
+- [`docs/README.md`](./docs/README.md) - 当前技术文档入口
+- [`docs/archive/README.md`](./docs/archive/README.md) - 已归档计划与历史说明
+- [`openspec/README.md`](./openspec/README.md) - OpenSpec 工作流与目录说明
+- [`openspec/project.md`](./openspec/project.md) - OpenSpec 项目上下文
 
-| Category | Endpoints | Description |
-|----------|-----------|-------------|
-| `/api/auth` | NextAuth handlers | Authentication |
-| `/api/tickets` | CRUD + search | Zammad ticket management |
-| `/api/conversations` | CRUD + messages | Chat conversations |
-| `/api/faq` | Categories + articles | FAQ management |
-| `/api/admin` | Users, settings | Admin operations |
-| `/api/health` | Status check | System health |
+## 文档整理说明
 
----
+仓库中仍保留部分历史设计稿、归档计划和旧说明。整理策略是：
 
-## 📚 Documentation
+1. 先建立可信的中文主入口
+2. 再把核心文档校准到当前代码事实
+3. 最后删除或归档被覆盖的旧材料
 
-- [Documentation Index](./docs/README.md)
-- [Legacy Docs](./docs/legacy/)
-- [OpenSpec Changes](./openspec/)
-
----
-
-## 🛠️ Scripts
-
-```bash
-npm run dev          # Development server (port 3010)
-npm run dev:turbo    # Development with Turbopack
-npm run build        # Production build
-npm run start        # Production server
-npm run lint         # ESLint
-npm run type-check   # TypeScript check
-npm run db:seed      # Seed database
-npm run i18n:check   # Validate translations
-```
-
----
-
-## 🔐 Security
-
-- **Authentication**: NextAuth.js with JWT sessions
-- **Authorization**: Role-based access control (customer/staff/admin)
-- **API Security**: Input validation with Zod
-- **Zammad**: X-On-Behalf-Of header for user impersonation
-
----
-
-## 🌍 Internationalization
-
-Supported languages with full translation coverage:
-- 🇬🇧 English (en)
-- 🇨🇳 简体中文 (zh-CN)
-- 🇫🇷 Français (fr)
-- 🇪🇸 Español (es)
-- 🇷🇺 Русский (ru)
-- 🇧🇷 Português (pt)
-
----
-
-## 📄 License
-
-TBD
-
----
-
-**Built with Next.js 16, React 19, and Zammad**
-
+如果历史说明与当前代码冲突，请优先信任代码和当前中文索引。

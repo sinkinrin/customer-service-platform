@@ -1,490 +1,251 @@
-# Authentication System
+# 认证系统
 
-> NextAuth.js v5 with Zammad Integration
+> 当前认证、Session 与路由保护规则。
 
-**中文概览**: See [AUTHENTICATION.zh-CN.md](./AUTHENTICATION.zh-CN.md)
-
-**Last Updated**: 2026-01-21
-**NextAuth Version**: 5.0.0-beta.30
+**最后更新**：2026-04-20
+**NextAuth 版本**：`5.0.0-beta.30`
 
 ---
 
-## Overview
+## 总体设计
 
-The platform uses NextAuth.js v5 for authentication with a multi-strategy approach:
+认证由 NextAuth.js v5 实现，登录方式是 **Credentials + 多策略校验**。
 
-1. **Primary**: Zammad authentication (when `ZAMMAD_URL` + `ZAMMAD_API_TOKEN` are configured)
-2. **Fallback**: Mock authentication (enabled by default in development, optional in production)
-3. **Fallback**: Production env credential (single controlled user login path)
+当前顺序如下：
 
-### Key Features
+1. 优先尝试 Zammad 认证
+2. 若启用了 mock auth，则回退到 mock 用户
+3. 若 mock auth 关闭，则可回退到 env 中定义的单个应急账号
 
-- JWT-based sessions (stateless, no database sessions)
-- Role-based access control (customer, staff, admin)
-- Region-based permissions
-- 7-day session TTL
-- Reverse-proxy friendly cookie settings (`useSecureCookies=false`)
+实现位置：`src/auth.ts`
 
 ---
 
-## Configuration
+## 当前 Session 事实
 
-Location: `src/auth.ts`
+`src/auth.ts` 中的当前 session 配置为：
 
-### Environment Variables
+- `strategy: "jwt"`
+- `maxAge = 1 day`
+- `updateAge = 12 hours`
+- `trustHost = true`
+- 仅生产环境启用 secure cookies
+- 开发环境启用 debug
+
+这已经覆盖旧文档里“7 天 session”或“默认不安全 cookie”的说法。
+
+---
+
+## 登录流程
+
+### Zammad 优先
+
+当 `ZAMMAD_URL` 和 `ZAMMAD_API_TOKEN` 已配置时，`validateCredentials()` 会先调用 `authenticateWithZammad()`：
+
+- 用用户邮箱/密码去 Zammad 验证
+- 从 Zammad 角色映射出平台角色
+- 从 Zammad 用户资料推断 region
+- 组装成平台 session user 结构
+
+### Mock 回退
+
+如果启用了 mock auth，则会从 `src/lib/mock-auth.ts` 中查找测试用户和密码。
+
+### Env 单用户回退
+
+若 mock auth 未启用，代码还可以读取以下变量作为单账号 fallback：
+
+- `AUTH_DEFAULT_USER_EMAIL`
+- `AUTH_DEFAULT_USER_PASSWORD`
+- `AUTH_DEFAULT_USER_ROLE`
+- `AUTH_DEFAULT_USER_NAME`
+- `AUTH_DEFAULT_USER_REGION`
+
+这个路径更像应急 / 开发兜底，而不是正式生产身份模型。
+
+---
+
+## 角色与区域
+
+### 角色
+
+平台角色只有三种：
+
+- `customer`
+- `staff`
+- `admin`
+
+它们由 Zammad `role_ids` 映射得到。
+
+### 区域
+
+当前 region 注入逻辑：
+
+- **Customer**：从 Zammad `note` 中解析 `Region: <region>`
+- **Staff / Admin**：从 Zammad `group_ids` 反推，通常取有 `full` 权限的 group
+
+相关文件：
+
+- `src/auth.ts`
+- `src/lib/constants/regions.ts`
+
+---
+
+## Session.user 字段
+
+当前 session callback 会把这些字段放入 `session.user`：
+
+- `id`
+- `email`
+- `role`
+- `full_name`
+- `avatar_url`
+- `phone`
+- `language`
+- `region`
+- `zammad_id`
+- `group_ids`
+
+服务端 API 常通过 `src/lib/utils/auth.ts` 把它转换成统一的 `AuthUser` 结构。
+
+---
+
+## 登录限流
+
+当前 credentials 登录带有限流逻辑：
+
+- 会基于规范化后的邮箱构造 rate-limit key
+- 通过 `loginLimiter` 检查是否允许继续尝试
+- 超限时抛出 `RATE_LIMIT_EXCEEDED`
+
+所以认证文档不能只写“校验用户名密码”，还要承认当前存在登录限流。
+
+---
+
+## 路由保护
+
+### 主执行层
+
+`middleware.ts` 是主要保护层。
+
+高层行为：
+
+- public routes 直接放行
+- 未登录访问页面时，重定向到 `/auth/login`
+- 未登录访问 API 时，返回 `401` JSON
+- 登录后再做角色限制
+
+### 补充防线
+
+`src/auth.ts` 中的 `authorized` 回调会再按共享 route 常量做一次校验。
+
+也就是说，现在不是“只有 middleware”，而是双层保护。
+
+---
+
+## 高层路由规则
+
+- `/admin/*` → 仅 `admin`
+- `/staff/*` → `staff` 或 `admin`
+- `/customer/*` → 任意已登录用户
+- 受保护的 `/api/*` → 默认要求登录，除非该 route 被定义为 public
+
+共享路由规则来源：`src/lib/constants/routes`
+
+---
+
+## 服务端认证工具
+
+`src/lib/utils/auth.ts` 提供当前常用的服务端辅助：
+
+- `getSession()`
+- `getCurrentUser()`
+- `requireAuth()`
+- `requireRole()`
+- `getUserRole()`
+- `isAdmin()`
+- `isStaff()`
+
+写新的 API route 时，通常应该从这里进入，而不是自己手搓 session 判断。
+
+---
+
+## 工单权限不是只靠登录
+
+很多工单 API 除了 `requireAuth()` / `requireRole()` 外，还会再走：
+
+- `src/lib/utils/permission.ts`
+- `src/lib/utils/region-auth.ts`
+
+当前核心规则：
+
+- customer 只能访问自己的 ticket
+- staff 可访问分配给自己的 ticket，或自己 region / group 内的 ticket
+- staff 不能访问未分配 ticket
+- admin 拥有全量访问权限
+
+---
+
+## Mock Auth 说明
+
+Mock 用户定义在 `src/lib/mock-auth.ts`，包括：
+
+- customer / staff / admin 固定测试用户
+- 分 region 的测试用户
+- 固定测试密码
+
+它适合本地开发与 E2E 测试，但不应被写成生产认证模型。
+
+---
+
+## 关键环境变量
+
+### 核心认证
 
 ```env
-# Required (production)
-AUTH_SECRET=<32+ character secret for JWT signing>
+AUTH_SECRET=<required secret>
+NEXTAUTH_URL=http://localhost:3010
+```
 
-# Optional (Zammad auth)
+### Zammad 登录
+
+```env
 ZAMMAD_URL=http://your-zammad-server:8080/
 ZAMMAD_API_TOKEN=<admin token>
+```
 
-# Optional (production fallback user; used when mock auth is disabled)
+### Mock Auth
+
+```env
+NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
+```
+
+### Env Fallback User
+
+```env
 AUTH_DEFAULT_USER_EMAIL=user@example.com
 AUTH_DEFAULT_USER_PASSWORD=strong-password
 AUTH_DEFAULT_USER_ROLE=staff
-AUTH_DEFAULT_USER_NAME="Authenticated User"
+AUTH_DEFAULT_USER_NAME="Support Agent"
 AUTH_DEFAULT_USER_REGION=asia-pacific
-
-# Optional (mock auth)
-# - Development: always enabled when NODE_ENV !== "production"
-# - Production: disabled by default, can be explicitly enabled:
-NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
 ```
+
+这些变量的读取与规范化在 `src/lib/env.ts`。
 
 ---
 
-## Authentication Flow
+## 运维注意点
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    User Login Request                            │
-│                    (email + password)                            │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                Strategy 1: Zammad Authentication                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ 1. Call zammadClient.authenticateUser(email, password)  │   │
-│  │ 2. Validate credentials via Zammad's /users/me          │   │
-│  │ 3. Extract role from role_ids                           │   │
-│  │ 4. Extract region from group_ids (staff) or note (customer)│
-│  │ 5. Return user object with zammad_id                    │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                   Success?  │
-              ┌──────────────┴──────────────┐
-              │ Yes                         │ No
-              ▼                             ▼
-┌─────────────────────┐     ┌─────────────────────────────────────┐
-│   Create Session    │     │    Strategy 2: Mock Authentication   │
-│   (JWT Token)       │     │ (dev default; optional in production)│
-└─────────────────────┘     │  ┌─────────────────────────────────┐│
-                            │  │ 1. Check mockUsers[email]       ││
-                            │  │ 2. Validate against mockPasswords││
-                            │  │ 3. Return mock user object      ││
-                            │  └─────────────────────────────────┘│
-                            └─────────────────────────────────────┘
-
-                           (when mock auth is disabled)
-                             ┌─────────────────────────────────────┐
-                             │ Strategy 3: Env User Credentials     │
-                             │  - Validate email/password from env  │
-                             │  - Role/region derived from env vars │
-                             └─────────────────────────────────────┘
-```
+- 配了 Zammad 时，会先尝试 Zammad 登录
+- 开启 mock auth 时，失败的 Zammad 登录仍可能回退到 mock 用户
+- 如果没有任何可用认证路径，可能出现 `AUTH_CONFIG_MISSING`
+- 反向代理部署依赖 `trustHost = true`
+- `.env.local` 变更遵循常规进程环境变量行为，必要时要重启
 
 ---
 
-## Session Structure
-
-### JWT Token Contents
-
-```typescript
-interface JWTToken {
-  id: string           // User ID (e.g., "zammad-15")
-  email: string        // User email
-  role: string         // "customer" | "staff" | "admin"
-  full_name: string    // Display name
-  avatar_url?: string  // Profile image URL
-  phone?: string       // Phone number
-  language?: string    // Preferred language (en, zh-CN, etc.)
-  region?: string      // User region (asia-pacific, etc.)
-  zammad_id?: number   // Zammad user ID
-  group_ids?: number[] // Zammad group IDs (for staff)
-}
-```
-
-### Session Object
-
-```typescript
-interface Session {
-  user: {
-    id: string
-    email: string
-    role: "customer" | "staff" | "admin"
-    full_name: string
-    avatar_url?: string
-    phone?: string
-    language?: string
-    region?: string
-    zammad_id?: number
-    group_ids?: number[]
-  }
-  expires: string  // ISO date string
-}
-```
-
----
-
-## Role System
-
-### Role Definitions
-
-| Role | Description | Zammad role_ids |
-|------|-------------|-----------------|
-| **customer** | End users who create tickets | [3] (Customer) |
-| **staff** | Support agents who handle tickets | [2] (Agent) |
-| **admin** | Full system access | [1] (Admin) |
-
-### Role Detection from Zammad
-
-```typescript
-function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
-  if (roleIds.includes(1)) return 'admin'   // ZAMMAD_ROLES.ADMIN
-  if (roleIds.includes(2)) return 'staff'   // ZAMMAD_ROLES.AGENT
-  return 'customer'
-}
-```
-
----
-
-## Region System
-
-### Region Extraction
-
-**For Staff/Admin**: Extracted from Zammad `group_ids`
-
-```typescript
-function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | undefined {
-  if (!groupIds) return undefined
-  for (const [groupId, permissions] of Object.entries(groupIds)) {
-    if (permissions.includes('full')) {
-      return getRegionByGroupId(parseInt(groupId))
-    }
-  }
-  return undefined
-}
-```
-
-**For Customers**: Extracted from Zammad `note` field
-
-```typescript
-function getRegionFromNote(note?: string): string | undefined {
-  if (!note) return undefined
-  const match = note.match(/Region:\s*(\S+)/)
-  return match?.[1]
-}
-```
-
----
-
-## Middleware Protection
-
-Location: `middleware.ts`
-
-### Route Protection Matrix
-
-| Route Pattern | Required Role | Behavior |
-|---------------|---------------|----------|
-| `/admin/*` | admin | 403 for non-admin |
-| `/staff/*` | staff, admin | 403 for customer |
-| `/customer/*` | any authenticated | 401 for unauthenticated |
-| `/api/admin/*` | admin | JSON 403 |
-| `/api/*` | any authenticated | JSON 401 |
-| `/auth/*` | none | Public |
-| `/` | none | Public |
-
-### Middleware Implementation
-
-```typescript
-export default auth((req) => {
-  const { pathname } = req.nextUrl
-  const session = req.auth
-
-  // Public routes - always allow
-  if (isRouteMatch(pathname, PUBLIC_ROUTES)) {
-    return NextResponse.next()
-  }
-
-  // Check authentication
-  const isLoggedIn = !!session?.user
-  if (!isLoggedIn) {
-    // API: return 401
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    // Page: redirect to login
-    return NextResponse.redirect(new URL("/auth/login", req.url))
-  }
-
-  // Role-based access
-  const userRole = session.user.role
-
-  if (pathname.startsWith("/admin") && userRole !== "admin") {
-    return NextResponse.redirect(new URL("/unauthorized", req.url))
-  }
-
-  if (pathname.startsWith("/staff") && !["staff", "admin"].includes(userRole)) {
-    return NextResponse.redirect(new URL("/unauthorized", req.url))
-  }
-
-  return NextResponse.next()
-})
-```
-
----
-
-## Auth Utilities
-
-Location: `src/lib/utils/auth.ts`
-
-### requireAuth
-
-Require any authenticated user.
-
-```typescript
-import { requireAuth } from '@/lib/utils/auth'
-
-export async function GET() {
-  const user = await requireAuth()
-  // user is guaranteed to exist
-  return successResponse({ user })
-}
-```
-
-### requireRole
-
-Require specific role(s).
-
-```typescript
-import { requireRole } from '@/lib/utils/auth'
-
-export async function POST() {
-  // Throws if user is not admin
-  await requireRole(['admin'])
-
-  // Or allow multiple roles
-  await requireRole(['admin', 'staff'])
-}
-```
-
----
-
-## Mock Authentication
-
-Location: `src/lib/mock-auth.ts`
-
-### When Active
-
-Mock auth is enabled:
-- In development: always, when `NODE_ENV !== "production"`
-- In production: only when explicitly enabled via:
-```typescript
-NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
-```
-
-### Test Accounts
-
-| Email | Password | Role | Region |
-|-------|----------|------|--------|
-| `customer@test.com` | password123 | customer | asia-pacific |
-| `staff@test.com` | password123 | staff | asia-pacific |
-| `admin@test.com` | password123 | admin | (all regions) |
-
-### Regional Test Users
-
-| Email | Role | Region |
-|-------|------|--------|
-| `staff-ap-1@test.com` | staff | asia-pacific |
-| `staff-me-1@test.com` | staff | middle-east |
-| `staff-af-1@test.com` | staff | africa |
-| `customer-ap-1@test.com` | customer | asia-pacific |
-| ... | ... | ... |
-
----
-
-## Frontend Integration
-
-### Session Provider
-
-Location: `src/components/providers/session-provider.tsx`
-
-```tsx
-import { SessionProvider as NextAuthSessionProvider } from "next-auth/react"
-
-export function SessionProvider({ children, session }) {
-  return (
-    <NextAuthSessionProvider
-      session={session}
-      refetchOnWindowFocus={false}
-    >
-      <AuthStoreSync>{children}</AuthStoreSync>
-    </NextAuthSessionProvider>
-  )
-}
-```
-
-### useAuth Hook
-
-Location: `src/lib/hooks/use-auth.ts`
-
-```typescript
-import { useAuth } from '@/lib/hooks/use-auth'
-
-function MyComponent() {
-  const { user, userRole, isLoading, signOut } = useAuth()
-
-  if (isLoading) return <Loading />
-  if (!user) return <LoginPrompt />
-
-  return <Dashboard user={user} />
-}
-```
-
-### Protected Route Component
-
-Location: `src/components/auth/protected-route.tsx`
-
-```tsx
-import { ProtectedRoute } from '@/components/auth/protected-route'
-
-export default function StaffPage({ children }) {
-  return (
-    <ProtectedRoute requiredRoles={['staff', 'admin']}>
-      {children}
-    </ProtectedRoute>
-  )
-}
-```
-
----
-
-## Zustand Auth Store
-
-Location: `src/lib/stores/auth-store.ts`
-
-### State
-
-```typescript
-interface AuthState {
-  user: MockUser | null
-  session: MockSession | null
-  userRole: 'customer' | 'staff' | 'admin' | null
-  isLoading: boolean
-  isInitialized: boolean
-}
-```
-
-### Synchronization
-
-The `AuthStoreSync` component keeps Zustand store in sync with NextAuth session:
-
-```typescript
-function AuthStoreSync({ children }) {
-  const { data: session, status } = useNextAuthSession()
-  const { setUser, setSession, setUserRole } = useAuthStore()
-
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      setUser(session.user)
-      setSession(session)
-      setUserRole(session.user.role)
-    }
-  }, [session, status])
-
-  return <>{children}</>
-}
-```
-
----
-
-## Security Configuration
-
-### Cookie Settings
-
-```typescript
-const authConfig: NextAuthConfig = {
-  session: {
-    strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60,  // 7 days
-  },
-  trustHost: true,
-  useSecureCookies: false,  // Set true for HTTPS
-}
-```
-
-### Pages
-
-```typescript
-pages: {
-  signIn: "/auth/login",
-  error: "/auth/error",
-}
-```
-
----
-
-## API Routes
-
-### NextAuth Endpoints
-
-| Endpoint | Purpose |
-|----------|---------|
-| `POST /api/auth/callback/credentials` | Login |
-| `GET /api/auth/session` | Get current session |
-| `POST /api/auth/signout` | Logout |
-| `GET /api/auth/csrf` | Get CSRF token |
-
-### Custom Auth Endpoints
-
-| Endpoint | Purpose |
-|----------|---------|
-| `PUT /api/user/password` | Change password |
-| `GET /api/user/profile` | Get profile |
-| `PUT /api/user/profile` | Update profile |
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| "AUTH_CONFIG_MISSING" | No auth method configured | Set Zammad or mock auth env vars |
-| Session not persisting | Cookie issues | Check AUTH_SECRET is set |
-| Role not detected | Zammad role_ids missing | Verify user has roles in Zammad |
-| Region not detected | Missing group_ids/note | Check Zammad user configuration |
-
-### Debug Mode
-
-Enable debug logging in development:
-
-```typescript
-debug: process.env.NODE_ENV === "development"
-```
-
-Check console for `[Auth]` prefixed logs.
-
----
-
-## Related Documentation
-
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - System overview
-- [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) - Zammad auth details
-- [NextAuth.js Docs](https://authjs.dev/) - Official documentation
+## 相关文档
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md)
+- [API-REFERENCE.md](./API-REFERENCE.md)

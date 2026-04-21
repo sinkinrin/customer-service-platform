@@ -59,6 +59,7 @@ export interface Conversation {
 }
 
 interface ConversationState {
+  currentUserId: string | null
   // Current conversations list
   conversations: Conversation[]
 
@@ -86,11 +87,13 @@ interface ConversationState {
   setLoadingConversations: (loading: boolean) => void
   setLoadingMessages: (loading: boolean) => void
   setSendingMessage: (sending: boolean) => void
+  resetForUser: (userId: string | null) => void
 
   reset: () => void
 }
 
 const initialState = {
+  currentUserId: null,
   conversations: [],
   activeConversation: null,
   messages: [],
@@ -103,6 +106,21 @@ export const useConversationStore = create<ConversationState>()(
   persist(
     (set, _get) => ({
       ...initialState,
+
+      resetForUser: (userId) => set((state) => {
+        if (!userId) {
+          return initialState
+        }
+
+        if (state.currentUserId === userId) {
+          return state
+        }
+
+        return {
+          ...initialState,
+          currentUserId: userId,
+        }
+      }),
 
       setConversations: (conversations) => set({ conversations }),
 
@@ -158,6 +176,7 @@ export const useConversationStore = create<ConversationState>()(
       name: 'conversation-storage',
       // Only persist conversations list, not messages or loading states
       partialize: (state) => ({
+        currentUserId: state.currentUserId,
         conversations: state.conversations,
       }),
       // Migrate function to fix corrupted state

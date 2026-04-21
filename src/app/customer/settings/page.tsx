@@ -14,7 +14,7 @@ import { useTranslations } from 'next-intl'
 import { User, Bell, Lock } from 'lucide-react'
 
 export default function CustomerSettingsPage() {
-  const { user } = useAuth()
+  const { user, refreshSession } = useAuth()
   const t = useTranslations('customer.settings')
   const tPersonal = useTranslations('customer.settings.personalInfo')
   const tNotifications = useTranslations('customer.settings.notifications')
@@ -116,6 +116,7 @@ export default function CustomerSettingsPage() {
 
       const data = await response.json()
       if (data.success) {
+        await refreshSession()
         toast.success(tToast('personalInfoUpdated'))
       } else {
         toast.error(data.error?.message || tToast('updateFailed'))

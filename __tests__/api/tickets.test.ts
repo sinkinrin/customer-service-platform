@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/tickets/route'
-import { GET as GET_TICKET, DELETE } from '@/app/api/tickets/[id]/route'
+import { GET as GET_TICKET, PUT as PUT_TICKET, DELETE } from '@/app/api/tickets/[id]/route'
 
 // Mock auth module
 vi.mock('@/auth', () => ({
@@ -389,6 +389,26 @@ describe('Tickets API 集成测试', () => {
       expect(data.success).toBe(false)
     })
 
+    it('staff/admin 提交无效 region 应返回 400', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: 'Invalid Region Ticket',
+          region: 'bogus-region',
+          article: { subject: 'Test Subject', body: 'Test body content' },
+        }),
+      })
+      const response = await POST(request)
+
+      expect(response.status).toBe(400)
+      expect(zammadClient.createTicket).not.toHaveBeenCalled()
+    })
+
     it('有效请求应成功创建工单', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: mockCustomer,
@@ -610,6 +630,94 @@ describe('Tickets API 集成测试', () => {
       const response = await GET_TICKET(request, { params: Promise.resolve({ id: '999' }) })
 
       expect(response.status).toBe(404)
+    })
+  })
+
+  // ============================================================================
+  // PUT /api/tickets/[id]
+  // ============================================================================
+
+  describe('PUT /api/tickets/[id]', () => {
+    it('rolls back ticket field updates when article creation fails', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+
+      vi.mocked(zammadClient.getTicket).mockResolvedValue({
+        ...mockTicket,
+        owner_id: 55,
+        pending_time: null,
+      } as any)
+      vi.mocked(zammadClient.updateTicket)
+        .mockResolvedValueOnce({
+          ...mockTicket,
+          title: 'Updated Ticket',
+          owner_id: 99,
+        } as any)
+        .mockResolvedValueOnce({
+          ...mockTicket,
+          owner_id: 55,
+        } as any)
+      vi.mocked(zammadClient.createArticle).mockRejectedValue(new Error('Article failed'))
+
+      const request = createMockRequest('http://localhost:3000/api/tickets/1', {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: 'Updated Ticket',
+          owner_id: 99,
+          article: {
+            subject: 'Reply',
+            body: 'Response',
+            internal: false,
+          },
+        }),
+      })
+      const response = await PUT_TICKET(request, { params: Promise.resolve({ id: '1' }) })
+
+      expect(response.status).toBe(500)
+      expect(zammadClient.updateTicket).toHaveBeenNthCalledWith(1, 1, {
+        title: 'Updated Ticket',
+        owner_id: 99,
+      })
+      expect(zammadClient.updateTicket).toHaveBeenNthCalledWith(2, 1, {
+        title: mockTicket.title,
+        owner_id: 55,
+      })
+    })
+
+    it('does not issue an empty ticket update when request only adds an article', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+
+      vi.mocked(zammadClient.getTicket).mockResolvedValue({
+        ...mockTicket,
+        owner_id: 55,
+        pending_time: null,
+      } as any)
+      vi.mocked(zammadClient.createArticle).mockResolvedValue({ id: 10 } as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets/1', {
+        method: 'PUT',
+        body: JSON.stringify({
+          article: {
+            subject: 'Reply',
+            body: 'Response',
+            internal: false,
+          },
+        }),
+      })
+      const response = await PUT_TICKET(request, { params: Promise.resolve({ id: '1' }) })
+
+      expect(response.status).toBe(200)
+      expect(zammadClient.updateTicket).not.toHaveBeenCalled()
+      expect(zammadClient.createArticle).toHaveBeenCalledWith(expect.objectContaining({
+        ticket_id: 1,
+        subject: 'Reply',
+        body: 'Response',
+      }))
     })
   })
 

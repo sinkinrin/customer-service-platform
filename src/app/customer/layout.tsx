@@ -25,7 +25,7 @@ export default function CustomerLayoutWrapper({
   }
 
   return (
-    <ProtectedRoute requiredRoles={['customer', 'staff', 'admin']}>
+    <ProtectedRoute requiredRole="customer">
       <CustomerLayout
         user={user ? {
           id: user.id,

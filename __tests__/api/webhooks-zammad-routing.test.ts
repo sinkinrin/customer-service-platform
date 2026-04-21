@@ -70,4 +70,51 @@ describe('Zammad webhook routing orchestration', () => {
     expect(mockHandleEmailTicketRouting).toHaveBeenCalledWith(payload, undefined)
     expect(mockHandleEmailUserWelcome).toHaveBeenCalledWith(payload, undefined)
   })
+
+  it('waits for routing and welcome side effects before acknowledging created email tickets', async () => {
+    const payload = {
+      ticket: {
+        id: 10,
+        title: 'New ticket',
+        number: 'T-10',
+        customer_id: 33,
+        group_id: 9,
+        state_id: 1,
+        created_at: '2024-01-10T00:00:00Z',
+      },
+      article: {
+        id: 100,
+        type: 'email',
+        subject: 'Help',
+        created_at: '2024-01-10T00:00:02Z',
+      },
+    }
+
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    mockHandleEmailTicketRouting.mockImplementation(async () => {
+      await gate
+    })
+    mockHandleEmailUserWelcome.mockImplementation(async () => {
+      await gate
+    })
+
+    let settled = false
+    const responsePromise = POST(createRequest(payload)).then((response) => {
+      settled = true
+      return response
+    })
+
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(settled).toBe(false)
+
+    release()
+
+    const response = await responsePromise
+    expect(response.status).toBe(200)
+  })
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ const locales = ['en', 'zh-CN', 'fr', 'es', 'ru', 'pt'] as const
 type Locale = (typeof locales)[number]
 
 export function LanguageSelector() {
+  const router = useRouter()
   const tCommon = useTranslations('common.localeNames')
   const tSettings = useTranslations('settings')
   const [locale, setLocale] = useState<Locale>('en')
@@ -38,8 +40,7 @@ export function LanguageSelector() {
     setLocale(newLocale)
 
     console.log(`Language changed to: ${newLocale}`)
-    // Reload page to apply new locale
-    window.location.reload()
+    router.refresh()
   }
 
   return (

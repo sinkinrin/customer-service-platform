@@ -5,6 +5,7 @@ import { ATTACHMENT_LIMITS } from '@/lib/constants/attachments'
  * Represents a file being uploaded or already uploaded
  */
 export interface UploadedFile {
+  localId: string
   file: File
   attachmentId: number | null
   uploading: boolean
@@ -30,7 +31,7 @@ export interface UseFileUploadReturn {
   removeFile: (index: number) => void
   clearFiles: () => void
   getAttachmentIds: () => number[]
-  getFormId: () => string | null
+  getFormId: () => Promise<string | null>
 }
 
 /**
@@ -105,6 +106,39 @@ export function useFileUpload(options: UseFileUploadOptions = {}): UseFileUpload
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   // Track the form_id for this upload session (all files share the same form_id)
   const formIdRef = useRef<string | null>(null)
+  const needsFormRebuildRef = useRef(false)
+
+  const replaceFileByLocalId = useCallback((localId: string, updater: (file: UploadedFile) => UploadedFile) => {
+    setUploadedFiles((prev) =>
+      prev.map((file) => (file.localId === localId ? updater(file) : file))
+    )
+  }, [])
+
+  const rebuildFormUploads = useCallback(async (): Promise<string | null> => {
+    const activeFiles = uploadedFiles.filter((file) => !file.uploading && !file.error)
+    if (activeFiles.length === 0) {
+      formIdRef.current = null
+      needsFormRebuildRef.current = false
+      return null
+    }
+
+    let rebuiltFormId: string | null = null
+
+    for (const uploadedFile of activeFiles) {
+      const result = await uploadFileToServer(uploadedFile.file, rebuiltFormId || undefined)
+      rebuiltFormId = rebuiltFormId || result.form_id
+      replaceFileByLocalId(uploadedFile.localId, (currentFile) => ({
+        ...currentFile,
+        attachmentId: result.id,
+        uploading: false,
+        error: undefined,
+      }))
+    }
+
+    formIdRef.current = rebuiltFormId
+    needsFormRebuildRef.current = false
+    return rebuiltFormId
+  }, [replaceFileByLocalId, uploadedFiles])
 
   // Check if any files are still uploading
   const isUploading = useMemo(
@@ -129,11 +163,9 @@ export function useFileUpload(options: UseFileUploadOptions = {}): UseFileUpload
       return
     }
 
-    // Get starting index for the new files
-    const startIndex = uploadedFiles.length
-
     // Add files with uploading state
     const newFiles: UploadedFile[] = selectedFiles.map(file => ({
+      localId: crypto.randomUUID(),
       file,
       attachmentId: null,
       uploading: true,
@@ -144,7 +176,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}): UseFileUpload
     // Upload files immediately, using shared form_id
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i]
-      const fileIndex = startIndex + i
+      const targetLocalId = newFiles[i].localId
 
       try {
         // Pass existing form_id to group uploads together
@@ -155,31 +187,40 @@ export function useFileUpload(options: UseFileUploadOptions = {}): UseFileUpload
           formIdRef.current = result.form_id
         }
 
-        setUploadedFiles(prev => prev.map((f, idx) =>
-          idx === fileIndex
-            ? { ...f, attachmentId: result.id, uploading: false }
-            : f
-        ))
+        replaceFileByLocalId(targetLocalId, (currentFile) => ({
+          ...currentFile,
+          attachmentId: result.id,
+          uploading: false,
+        }))
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Upload failed'
-        setUploadedFiles(prev => prev.map((f, idx) =>
-          idx === fileIndex
-            ? { ...f, uploading: false, error: errorMessage }
-            : f
-        ))
+        replaceFileByLocalId(targetLocalId, (currentFile) => ({
+          ...currentFile,
+          uploading: false,
+          error: errorMessage,
+        }))
       }
     }
-  }, [uploadedFiles.length, maxCount, maxSize, onError])
+  }, [uploadedFiles.length, maxCount, maxSize, onError, replaceFileByLocalId])
 
   // Remove a file by index
   const removeFile = useCallback((index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
+    setUploadedFiles((prev) => {
+      const nextFiles = prev.filter((_, i) => i !== index)
+      needsFormRebuildRef.current = prev.some((file, i) => i === index && (file.attachmentId !== null || file.uploading))
+      if (nextFiles.length === 0) {
+        formIdRef.current = null
+        needsFormRebuildRef.current = false
+      }
+      return nextFiles
+    })
   }, [])
 
   // Clear all files and reset form_id
   const clearFiles = useCallback(() => {
     setUploadedFiles([])
     formIdRef.current = null
+    needsFormRebuildRef.current = false
   }, [])
 
   // Get successfully uploaded attachment IDs
@@ -190,9 +231,17 @@ export function useFileUpload(options: UseFileUploadOptions = {}): UseFileUpload
   }, [uploadedFiles])
 
   // Get the form_id for this upload session
-  const getFormId = useCallback(() => {
+  const getFormId = useCallback(async () => {
+    if (isUploading) {
+      return formIdRef.current
+    }
+
+    if (needsFormRebuildRef.current) {
+      return rebuildFormUploads()
+    }
+
     return formIdRef.current
-  }, [])
+  }, [isUploading, rebuildFormUploads])
 
   return {
     uploadedFiles,

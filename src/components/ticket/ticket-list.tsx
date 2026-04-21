@@ -144,10 +144,19 @@ export function TicketList({ tickets, isLoading, onAssign }: TicketListProps) {
         <Card
           key={ticket.id}
           interactive
+          role="link"
+          tabIndex={0}
+          aria-label={`${ticket.number} - ${ticket.title}`}
           className={cn(
             isUnread && "border-l-4 border-l-blue-500 bg-blue-50/50"
           )}
           onClick={() => router.push(getTicketDetailPath(ticket.id))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              router.push(getTicketDetailPath(ticket.id))
+            }
+          }}
         >
           <CardHeader>
             <div className="flex items-start justify-between">

@@ -180,6 +180,62 @@ describe('admin users region deprecation', () => {
     })
   })
 
+  it('lists staff primary region from note instead of full group iteration order', async () => {
+    vi.mocked(zammadClient.searchUsersPaginated).mockResolvedValue([
+      {
+        id: 201,
+        email: 'staff@test.com',
+        firstname: 'Sta',
+        lastname: 'Ff',
+        login: 'staff@test.com',
+        active: true,
+        verified: true,
+        role_ids: [2],
+        note: 'Region: asia-pacific',
+        group_ids: {
+          '2': ['full'],
+          '4': ['full'],
+        },
+        created_at: '2026-04-16T00:00:00Z',
+      },
+    ] as any)
+    vi.mocked(zammadClient.searchUsersTotalCount).mockResolvedValue(1)
+
+    const response = await GET_USERS(new NextRequest('http://localhost/api/admin/users'))
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.data.users[0].region).toBe('asia-pacific')
+  })
+
+  it('returns staff detail region from note instead of full group iteration order', async () => {
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 201,
+      email: 'staff@test.com',
+      firstname: 'Sta',
+      lastname: 'Ff',
+      login: 'staff@test.com',
+      active: true,
+      verified: true,
+      role_ids: [2],
+      note: 'Region: asia-pacific',
+      group_ids: {
+        '2': ['full'],
+        '4': ['full'],
+      },
+      created_at: '2026-04-16T00:00:00Z',
+      updated_at: '2026-04-16T00:00:00Z',
+    } as any)
+
+    const response = await GET_USER(new NextRequest('http://localhost/api/admin/users/201'), {
+      params: Promise.resolve({ id: '201' }),
+    })
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.data.user.region).toBe('asia-pacific')
+  })
+
   it('does not write customer region into note on standard create flow', async () => {
     vi.mocked(zammadClient.createUser).mockResolvedValue({ id: 101, email: 'customer@test.com' } as any)
 
@@ -260,6 +316,216 @@ describe('admin users region deprecation', () => {
     )
   })
 
+  it('does not overwrite existing full group access when staff region is unchanged', async () => {
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 201,
+      email: 'staff@test.com',
+      firstname: 'Sta',
+      lastname: 'Ff',
+      login: 'staff@test.com',
+      active: true,
+      verified: true,
+      role_ids: [2],
+      note: 'Region: asia-pacific',
+      group_ids: {
+        '4': ['full'],
+        '2': ['full'],
+      },
+      created_at: '2026-04-16T00:00:00Z',
+      updated_at: '2026-04-16T00:00:00Z',
+    } as any)
+    vi.mocked(zammadClient.updateUser).mockResolvedValue({
+      id: 201,
+      email: 'staff@test.com',
+      firstname: 'Sta Updated',
+      lastname: 'Ff',
+      active: true,
+      note: 'Region: asia-pacific',
+      group_ids: {
+        '4': ['full'],
+        '2': ['full'],
+      },
+      updated_at: '2026-04-16T00:00:00Z',
+    } as any)
+
+    const response = await PUT_USER(createJsonRequest('http://localhost/api/admin/users/201', 'PUT', {
+      firstname: 'Sta Updated',
+      region: 'asia-pacific',
+    }), {
+      params: Promise.resolve({ id: '201' }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(zammadClient.updateUser).toHaveBeenCalledWith(
+      201,
+      expect.objectContaining({
+        firstname: 'Sta Updated',
+      })
+    )
+    expect(zammadClient.updateUser).toHaveBeenCalledWith(
+      201,
+      expect.not.objectContaining({
+        group_ids: expect.anything(),
+      })
+    )
+  })
+
+  it('preserves existing extra group access when staff primary region changes', async () => {
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 201,
+      email: 'staff@test.com',
+      firstname: 'Sta',
+      lastname: 'Ff',
+      login: 'staff@test.com',
+      active: true,
+      verified: true,
+      role_ids: [2],
+      note: 'Region: asia-pacific',
+      group_ids: {
+        '4': ['full'],
+        '2': ['full'],
+      },
+      created_at: '2026-04-16T00:00:00Z',
+      updated_at: '2026-04-16T00:00:00Z',
+    } as any)
+    vi.mocked(zammadClient.updateUser).mockResolvedValue({
+      id: 201,
+      email: 'staff@test.com',
+      firstname: 'Sta',
+      lastname: 'Ff',
+      active: true,
+      note: 'Region: north-america',
+      group_ids: {
+        '4': ['full'],
+        '2': ['full'],
+        '6': ['full'],
+      },
+      updated_at: '2026-04-16T00:00:00Z',
+    } as any)
+
+    const response = await PUT_USER(createJsonRequest('http://localhost/api/admin/users/201', 'PUT', {
+      region: 'north-america',
+    }), {
+      params: Promise.resolve({ id: '201' }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(zammadClient.updateUser).toHaveBeenCalledWith(
+      201,
+      expect.objectContaining({
+        note: 'Region: north-america',
+        group_ids: {
+          '4': ['full'],
+          '2': ['full'],
+          '6': ['full'],
+        },
+      })
+    )
+  })
+
+  it('clears legacy group access and region note when converting staff to customer', async () => {
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 201,
+      email: 'staff@test.com',
+      firstname: 'Sta',
+      lastname: 'Ff',
+      login: 'staff@test.com',
+      active: true,
+      verified: true,
+      role_ids: [2],
+      note: 'Region: asia-pacific',
+      group_ids: {
+        '4': ['full'],
+        '2': ['full'],
+      },
+      created_at: '2026-04-16T00:00:00Z',
+      updated_at: '2026-04-16T00:00:00Z',
+    } as any)
+    vi.mocked(zammadClient.updateUser).mockResolvedValue({
+      id: 201,
+      email: 'staff@test.com',
+      firstname: 'Sta',
+      lastname: 'Ff',
+      active: true,
+      note: '',
+      group_ids: {},
+      updated_at: '2026-04-16T00:00:00Z',
+    } as any)
+    vi.mocked(getCustomerAssignmentRegion).mockResolvedValue(undefined)
+
+    const response = await PUT_USER(createJsonRequest('http://localhost/api/admin/users/201', 'PUT', {
+      role: 'customer',
+    }), {
+      params: Promise.resolve({ id: '201' }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(zammadClient.updateUser).toHaveBeenCalledWith(
+      201,
+      expect.objectContaining({
+        role_ids: [3],
+        group_ids: {},
+        note: '',
+      })
+    )
+  })
+
+  it('rejects converting a customer to staff without an explicit region', async () => {
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 101,
+      email: 'customer@test.com',
+      firstname: 'Cus',
+      lastname: 'Tomer',
+      login: 'customer@test.com',
+      active: true,
+      verified: true,
+      role_ids: [],
+      note: '',
+      group_ids: {},
+      created_at: '2026-04-16T00:00:00Z',
+      updated_at: '2026-04-16T00:00:00Z',
+    } as any)
+
+    const response = await PUT_USER(createJsonRequest('http://localhost/api/admin/users/101', 'PUT', {
+      role: 'staff',
+    }), {
+      params: Promise.resolve({ id: '101' }),
+    })
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(JSON.stringify(data)).toContain('Invalid region')
+    expect(zammadClient.updateUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 403 when reading a user without admin/staff permission', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'customer_1', role: 'customer', email: 'customer@test.com' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any)
+
+    const response = await GET_USER(new NextRequest('http://localhost/api/admin/users/101'), {
+      params: Promise.resolve({ id: '101' }),
+    })
+
+    expect(response.status).toBe(403)
+  })
+
+  it('returns 403 when updating a user without admin permission', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'staff_1', role: 'staff', email: 'staff@test.com' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any)
+
+    const response = await PUT_USER(createJsonRequest('http://localhost/api/admin/users/101', 'PUT', {
+      firstname: 'Nope',
+    }), {
+      params: Promise.resolve({ id: '101' }),
+    })
+
+    expect(response.status).toBe(403)
+  })
+
   it('does not write customer region into note during import flow', async () => {
     vi.mocked(zammadClient.createUser).mockResolvedValue({ id: 101, email: 'customer@test.com' } as any)
 
@@ -299,5 +565,33 @@ describe('admin users region deprecation', () => {
     expect(response.status).toBe(200)
     expect(csv).toContain('asia-pacific')
     expect(csv).not.toContain('north-america')
+  })
+
+  it('exports staff primary region from note instead of full group iteration order', async () => {
+    vi.mocked(zammadClient.searchUsersPaginated).mockResolvedValue([
+      {
+        id: 201,
+        email: 'staff@test.com',
+        firstname: 'Sta',
+        lastname: 'Ff',
+        active: true,
+        verified: true,
+        role_ids: [2],
+        note: 'Region: asia-pacific',
+        group_ids: {
+          '2': ['full'],
+          '4': ['full'],
+        },
+        created_at: '2026-04-16T00:00:00Z',
+        last_login: '',
+      },
+    ] as any)
+
+    const response = await GET_EXPORT(new NextRequest('http://localhost/api/admin/users/export'))
+    const csv = await response.text()
+
+    expect(response.status).toBe(200)
+    expect(csv).toContain('asia-pacific')
+    expect(csv).not.toContain('europe-zone-1')
   })
 })

@@ -1,6 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
+vi.mock('@prisma/client', () => ({
+  ServiceBaseRegion: {
+    AFRICA: 'AFRICA',
+    MIDDLE_EAST: 'MIDDLE_EAST',
+    ASIA_PACIFIC: 'ASIA_PACIFIC',
+    NORTH_AMERICA: 'NORTH_AMERICA',
+    LATIN_AMERICA: 'LATIN_AMERICA',
+    EUROPE_ZONE_1: 'EUROPE_ZONE_1',
+    EUROPE_ZONE_2: 'EUROPE_ZONE_2',
+    CIS: 'CIS',
+  },
+}))
+
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
@@ -44,6 +57,7 @@ vi.mock('@/lib/service-groups/customer-assignment-service', () => ({
 vi.mock('@/lib/zammad/client', () => ({
   zammadClient: {
     createTicket: vi.fn(),
+    deleteTicket: vi.fn(),
     updateTicket: vi.fn(),
     getAgents: vi.fn(),
   },
@@ -51,6 +65,7 @@ vi.mock('@/lib/zammad/client', () => ({
 
 import { POST } from '@/app/api/tickets/route'
 import { auth } from '@/auth'
+import { notifyTicketCreated } from '@/lib/notification'
 import { ensureZammadUser } from '@/lib/zammad/ensure-user'
 import { zammadClient } from '@/lib/zammad/client'
 import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
@@ -122,6 +137,42 @@ describe('tickets create assignment-first', () => {
     )
     expect(zammadClient.updateTicket).toHaveBeenCalledWith(1, { owner_id: 222, state: 'open' })
     expect(autoAssignSingleTicket).not.toHaveBeenCalled()
+  })
+
+  it('rolls back created ticket when fixed-owner update fails', async () => {
+    mockFindCustomerServiceGroup.mockResolvedValue({
+      customerZammadId: 100,
+      serviceGroup: {
+        id: 1,
+        name: '亚太 1',
+        baseRegion: 'ASIA_PACIFIC',
+        staffZammadId: 222,
+      },
+    })
+    vi.mocked(zammadClient.getAgents).mockResolvedValue([
+      {
+        id: 222,
+        email: 'owner@test.com',
+        firstname: 'Fixed',
+        lastname: 'Owner',
+        active: true,
+        role_ids: [2],
+        group_ids: { '4': ['full'] },
+        out_of_office: false,
+      },
+    ] as any)
+    vi.mocked(zammadClient.updateTicket).mockRejectedValue(new Error('owner update failed'))
+    vi.mocked(zammadClient.deleteTicket).mockResolvedValue(undefined)
+
+    const response = await POST(createRequest({
+      title: 'Need help',
+      article: { subject: 'S', body: 'B' },
+    }))
+
+    expect(response.status).toBe(500)
+    expect(zammadClient.deleteTicket).toHaveBeenCalledWith(1, customerUser.email)
+    expect(handleAssignmentNotification).not.toHaveBeenCalled()
+    expect(notifyTicketCreated).not.toHaveBeenCalled()
   })
 
   it('creates ticket in staging for unassigned customer', async () => {

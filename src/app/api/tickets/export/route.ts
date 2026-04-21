@@ -82,6 +82,12 @@ export async function GET(request: NextRequest) {
 
     log.info('Export started', { userId: session.user.id, role: session.user.role })
 
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    const priority = searchParams.get('priority')
+    const groupId = searchParams.get('group_id')
+    const query = searchParams.get('query')?.trim().toLowerCase()
+
     // Get all tickets from Zammad
     let tickets: RawZammadTicket[] = await zammadClient.getAllTickets()
     log.info('Fetched tickets from Zammad', { count: tickets.length })
@@ -90,6 +96,40 @@ export async function GET(request: NextRequest) {
     if (session.user.role === 'staff') {
       tickets = filterTicketsByRegion(tickets, session.user)
       log.info('Applied region filter', { count: tickets.length })
+    }
+
+    if (status) {
+      const statusMap: Record<string, number[]> = {
+        open: [1, 2],
+        pending: [3, 7],
+        closed: [4],
+        new: [1],
+      }
+      const allowedStates = statusMap[status] || []
+      if (allowedStates.length > 0) {
+        tickets = tickets.filter((ticket) => allowedStates.includes(ticket.state_id))
+      }
+    }
+
+    if (priority) {
+      const priorityId = Number(priority)
+      if (Number.isFinite(priorityId)) {
+        tickets = tickets.filter((ticket) => ticket.priority_id === priorityId)
+      }
+    }
+
+    if (groupId) {
+      const parsedGroupId = Number(groupId)
+      if (Number.isFinite(parsedGroupId)) {
+        tickets = tickets.filter((ticket) => ticket.group_id === parsedGroupId)
+      }
+    }
+
+    if (query) {
+      tickets = tickets.filter((ticket) =>
+        ticket.number.toLowerCase().includes(query) ||
+        ticket.title.toLowerCase().includes(query)
+      )
     }
 
     // Fetch customer and owner info for all tickets (with concurrency limit)

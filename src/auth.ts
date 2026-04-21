@@ -23,12 +23,13 @@ import {
   isRoleAllowedForPath,
 } from "@/lib/constants/routes"
 import { zammadClient } from "@/lib/zammad/client"
-import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, type RegionValue } from "@/lib/constants/regions"
+import { getGroupIdByRegion, type RegionValue } from "@/lib/constants/regions"
 import { ZAMMAD_ROLES } from "@/lib/constants/zammad"
 import { logger } from "@/lib/utils/logger"
 import { loginLimiter } from "@/lib/utils/rate-limit"
 import { findCustomerServiceGroup } from "@/lib/service-groups/customer-assignment-service"
 import { mapServiceBaseRegionToRegionValue } from "@/lib/service-groups/service-group-service"
+import { extractFullAccessGroupIds, getPrimaryZammadUserRegion } from "@/lib/utils/zammad-user-regions"
 
 // Import mock auth for development/fallback mode
 import { mockUsers, mockPasswords, type MockUser } from "@/lib/mock-auth"
@@ -73,41 +74,6 @@ function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
   if (roleIds.includes(ZAMMAD_ROLES.ADMIN)) return 'admin'
   if (roleIds.includes(ZAMMAD_ROLES.AGENT)) return 'staff'
   return 'customer'
-}
-
-/**
- * Get region from Zammad group_ids (for Staff/Admin)
- */
-function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | undefined {
-  if (!groupIds) return undefined
-  for (const [groupId, permissions] of Object.entries(groupIds)) {
-    if (permissions.includes('full')) {
-      const region = getRegionByGroupId(parseInt(groupId))
-      if (region) return region
-    }
-  }
-  return undefined
-}
-
-/**
- * Get region from Zammad note field (for Customer)
- * Customer region is stored in note field as "Region: xxx"
- */
-function getRegionFromNote(note?: string): string | undefined {
-  if (!note) return undefined
-  const match = note.match(/Region:\s*(\S+)/)
-  if (match && isValidRegion(match[1])) {
-    return match[1]
-  }
-  return undefined
-}
-
-/**
- * Extract numeric group IDs from Zammad group_ids object
- */
-function extractGroupIds(groupIds?: Record<string, string[]>): number[] {
-  if (!groupIds) return []
-  return Object.keys(groupIds).map(id => parseInt(id)).filter(id => !isNaN(id))
 }
 
 async function resolveCustomerAssignmentRegion(
@@ -203,12 +169,16 @@ export async function authenticateWithZammad(
     if (role === 'customer') {
       region = await resolveCustomerAssignmentRegion(zammadUser.id)
     } else {
-      region = getRegionFromGroupIds(zammadUser.group_ids)
+      region = getPrimaryZammadUserRegion({
+        role,
+        note: zammadUser.note,
+        groupIds: zammadUser.group_ids,
+      })
     }
 
     logger.info('Auth', 'User role and region determined', { data: { role, region, notePreview: zammadUser.note?.substring(0, 50) } })
 
-    const groupIds = extractGroupIds(zammadUser.group_ids)
+    const groupIds = extractFullAccessGroupIds(zammadUser.group_ids)
 
     const user: MockUser = {
       id: `zammad-${zammadUser.id}`,

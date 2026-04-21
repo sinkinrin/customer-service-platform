@@ -110,6 +110,7 @@ export default function StaffTicketDetailPage() {
         console.log('[TicketDetail] Received update for this ticket, refreshing...')
         loadTicket()
         loadArticles()
+        loadRating()
       }
     }
 
@@ -173,7 +174,7 @@ export default function StaffTicketDetailPage() {
     })
 
     if (article) {
-      setArticles([...articles, article])
+      setArticles((currentArticles) => [...currentArticles, article])
       toast.success(replyType === 'email' ? tToast('emailSent') : tToast('noteAdded'))
     }
   }

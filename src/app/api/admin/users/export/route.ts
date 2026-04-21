@@ -10,10 +10,10 @@ import { NextRequest } from 'next/server'
 import { requireRole } from '@/lib/utils/auth'
 import { unauthorizedResponse, serverErrorResponse } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
-import { getRegionByGroupId } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { logger } from '@/lib/utils/logger'
 import { getCustomerAssignmentRegion } from '@/lib/service-groups/customer-assignment-service'
+import { getPrimaryZammadUserRegion } from '@/lib/utils/zammad-user-regions'
 
 // Safety limit: max pages to scan during export to prevent runaway loops.
 // 200 pages × 100 users/page = 20,000 users max.
@@ -24,27 +24,6 @@ function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
     if (roleIds.includes(ZAMMAD_ROLES.ADMIN)) return 'admin'
     if (roleIds.includes(ZAMMAD_ROLES.AGENT)) return 'staff'
     return 'customer'
-}
-
-// Get primary region from group_ids
-function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string {
-    if (!groupIds) return ''
-
-    // Find first group with 'full' permission
-    for (const [groupId, permissions] of Object.entries(groupIds)) {
-        if (permissions.includes('full')) {
-            const region = getRegionByGroupId(parseInt(groupId))
-            if (region) return region
-        }
-    }
-    return ''
-}
-
-// Get region from note field for customers
-function getRegionFromNote(note?: string): string {
-    if (!note) return ''
-    const match = note.match(/Region:\s*(\S+)/)
-    return match?.[1] || ''
 }
 
 // Escape CSV field with formula injection protection
@@ -97,9 +76,14 @@ export async function GET(request: NextRequest) {
                     continue
                 }
 
-                const region = role === 'customer'
-                    ? (await getCustomerAssignmentRegion(user.id) || '')
-                    : (getRegionFromGroupIds(user.group_ids) || getRegionFromNote(user.note))
+                const region = getPrimaryZammadUserRegion({
+                    role,
+                    note: user.note,
+                    groupIds: user.group_ids,
+                    customerAssignmentRegion: role === 'customer'
+                        ? (await getCustomerAssignmentRegion(user.id) || '')
+                        : undefined,
+                }) || ''
 
                 users.push({
                     id: user.id,

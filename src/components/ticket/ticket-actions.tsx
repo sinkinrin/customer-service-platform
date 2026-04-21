@@ -59,6 +59,15 @@ const PRIORITY_KEYS = [
   { value: '3 high', labelKey: 'high' },
 ]
 
+export function formatDateTimeLocalValue(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
 export function TicketActions({
   ticket,
   onUpdate,
@@ -143,9 +152,7 @@ export function TicketActions({
     if (requiresPendingTime && !pendingTime) {
       const defaultTime = new Date()
       defaultTime.setHours(defaultTime.getHours() + 24)
-      // Format as datetime-local input value (YYYY-MM-DDTHH:mm)
-      const formatted = defaultTime.toISOString().slice(0, 16)
-      setPendingTime(formatted)
+      setPendingTime(formatDateTimeLocalValue(defaultTime))
     }
   }, [state, pendingTime])
 
@@ -177,7 +184,6 @@ export function TicketActions({
           alert(t('selectPendingTime'))
           return
         }
-        // Convert to ISO 8601 format
         updates.pending_time = new Date(pendingTime).toISOString()
       }
     }
@@ -202,7 +208,7 @@ export function TicketActions({
     if (note.trim()) {
       // Get attachment IDs and form_id from successfully uploaded files
       const attachmentIds = getAttachmentIds()
-      const formId = getFormId()
+      const formId = await getFormId()
 
       // internal is true only for 'note' mode
       // email type is handled by passing 'email' as the last argument
@@ -289,7 +295,7 @@ export function TicketActions({
                 type="datetime-local"
                 value={pendingTime}
                 onChange={(e) => handlePendingTimeChange(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
+                min={formatDateTimeLocalValue(new Date())}
                 className="h-8 text-sm"
                 required
               />

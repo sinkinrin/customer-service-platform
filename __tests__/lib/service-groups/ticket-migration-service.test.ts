@@ -99,6 +99,58 @@ describe('ticket migration service', () => {
     expect(zammadClient.updateTicket).toHaveBeenNthCalledWith(3, 1, { group_id: 2, owner_id: 111 })
   })
 
+  it('restores null owner_id during rollback instead of forcing system owner', async () => {
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 200,
+      active: true,
+      role_ids: [2],
+      group_ids: { '4': ['full'] },
+      out_of_office: false,
+      email: 'owner@test.com',
+    } as any)
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [
+        { id: 1, number: '10001', group_id: 2, owner_id: null },
+        { id: 2, number: '10002', group_id: 2, owner_id: 112 },
+      ],
+      tickets_count: 2,
+    } as any)
+    vi.mocked(zammadClient.updateTicket)
+      .mockResolvedValueOnce({} as any)
+      .mockRejectedValueOnce(new Error('update failed'))
+      .mockResolvedValueOnce({} as any)
+
+    await expect(migrateCustomerOpenTicketsToGroup(50, 4, 200)).rejects.toThrow('update failed')
+
+    expect(zammadClient.updateTicket).toHaveBeenNthCalledWith(3, 1, { group_id: 2, owner_id: null })
+  })
+
+  it('restores null group_id during rollback instead of leaving target group behind', async () => {
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 200,
+      active: true,
+      role_ids: [2],
+      group_ids: { '4': ['full'] },
+      out_of_office: false,
+      email: 'owner@test.com',
+    } as any)
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [
+        { id: 1, number: '10001', group_id: null, owner_id: 111 },
+        { id: 2, number: '10002', group_id: 2, owner_id: 112 },
+      ],
+      tickets_count: 2,
+    } as any)
+    vi.mocked(zammadClient.updateTicket)
+      .mockResolvedValueOnce({} as any)
+      .mockRejectedValueOnce(new Error('update failed'))
+      .mockResolvedValueOnce({} as any)
+
+    await expect(migrateCustomerOpenTicketsToGroup(50, 4, 200)).rejects.toThrow('update failed')
+
+    expect(zammadClient.updateTicket).toHaveBeenNthCalledWith(3, 1, { group_id: null, owner_id: 111 })
+  })
+
   it('migrates all customers in a service group', async () => {
     vi.mocked(zammadClient.getUser).mockResolvedValue({
       id: 200,

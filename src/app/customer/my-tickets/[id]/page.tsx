@@ -188,7 +188,7 @@ export default function CustomerTicketDetailPage() {
     try {
       // Get form_id from successfully uploaded files
       // Note: Only form_id is needed - Zammad retrieves attachments from UploadCache by form_id
-      const formId = getFormId()
+      const formId = await getFormId()
 
       // Call API with form_id (Zammad native API)
       const response = await fetch(`/api/tickets/${ticketId}/articles`, {
@@ -227,6 +227,8 @@ export default function CustomerTicketDetailPage() {
       'new': { variant: 'default', label: t('statusLabels.new') },
       'open': { variant: 'default', label: t('statusLabels.open') },
       'pending': { variant: 'secondary', label: t('statusLabels.pending') },
+      'pending reminder': { variant: 'secondary', label: t('statusLabels.pending') },
+      'pending close': { variant: 'secondary', label: t('statusLabels.pending') },
       'closed': { variant: 'outline', label: t('statusLabels.closed') },
     }
     const config = variants[state] || { variant: 'default', label: state }

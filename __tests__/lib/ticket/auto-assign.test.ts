@@ -3,13 +3,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { autoAssignSingleTicket } from '@/lib/ticket/auto-assign'
+import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
 import { getGroupIdByRegion } from '@/lib/constants/regions'
 
 vi.mock('@/lib/zammad/client', () => ({
   zammadClient: {
     searchTicketsRawQuery: vi.fn(),
     getAgents: vi.fn(),
+    searchUsersPaginated: vi.fn(),
     updateTicket: vi.fn(),
   },
 }))
@@ -20,8 +21,15 @@ vi.mock('@/lib/ticket/customer-binding', () => ({
   deactivateBindingByCustomer: vi.fn(),
 }))
 
+vi.mock('@/lib/notification', () => ({
+  notifyTicketAssigned: vi.fn(),
+  notifySystemAlert: vi.fn(),
+  resolveLocalUserIdsForZammadUserId: vi.fn(),
+}))
+
 import { zammadClient } from '@/lib/zammad/client'
 import { findActiveBinding, findOrCreateBinding, deactivateBindingByCustomer } from '@/lib/ticket/customer-binding'
+import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 
 describe('autoAssignSingleTicket', () => {
   const asiaGroupId = getGroupIdByRegion('asia-pacific')
@@ -214,4 +222,40 @@ describe('autoAssignSingleTicket', () => {
     expect(result.error).toBe('API timeout')
   })
 
+})
+
+describe('handleAssignmentNotification', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('notifies admins across multiple user-search pages on assignment failure', async () => {
+    vi.mocked(zammadClient.searchUsersPaginated)
+      .mockResolvedValueOnce(Array.from({ length: 100 }, (_, index) => ({
+        id: index + 1,
+        role_ids: [2],
+        active: true,
+      })) as any)
+      .mockResolvedValueOnce([
+        { id: 201, role_ids: [1], active: true },
+      ] as any)
+      .mockResolvedValueOnce([] as any)
+    vi.mocked(resolveLocalUserIdsForZammadUserId).mockResolvedValue(['admin-local-1'])
+    vi.mocked(notifySystemAlert).mockResolvedValue(undefined as any)
+
+    await handleAssignmentNotification(
+      { success: false, error: 'No available agents' },
+      1,
+      '10001',
+      'Need help',
+      'asia-pacific'
+    )
+
+    expect(zammadClient.searchUsersPaginated).toHaveBeenNthCalledWith(1, '*', 100, 1)
+    expect(zammadClient.searchUsersPaginated).toHaveBeenNthCalledWith(2, '*', 100, 2)
+    expect(notifySystemAlert).toHaveBeenCalledWith(expect.objectContaining({
+      recipientUserId: 'admin-local-1',
+      title: 'Auto-assignment failed',
+    }))
+  })
 })

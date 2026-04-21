@@ -183,7 +183,20 @@ export async function handleAssignmentNotification(
       }
       log.info('Notified staff for ticket assignment', { staffEmail: result.assignedTo.email, ticketNumber })
     } else {
-      const allUsers = await zammadClient.searchUsersPaginated('*', 100, 1)
+      const allUsers = []
+      let page = 1
+
+      while (true) {
+        const pageUsers = await zammadClient.searchUsersPaginated('*', 100, page)
+        allUsers.push(...pageUsers)
+
+        if (pageUsers.length < 100) {
+          break
+        }
+
+        page += 1
+      }
+
       const adminUsers = allUsers.filter(user => user.role_ids?.includes(1) && user.active)
 
       let notifiedCount = 0

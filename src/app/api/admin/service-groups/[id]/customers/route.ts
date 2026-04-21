@@ -8,7 +8,11 @@ import {
   validationErrorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
-import { assignCustomerToServiceGroup, clearCustomerAssignment } from '@/lib/service-groups/customer-assignment-service'
+import {
+  assignCustomerToServiceGroup,
+  clearCustomerAssignment,
+  ensureCustomerAssignmentTarget,
+} from '@/lib/service-groups/customer-assignment-service'
 import { getServiceGroup } from '@/lib/service-groups/service-group-service'
 import {
   migrateCustomerOpenTicketsToGroupDetailed,
@@ -46,6 +50,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const completedAssignments: Array<{
     customerZammadId: number
     previousServiceGroupId: number | null
+    previousAssignedBy: string | null
     migratedTicketSnapshots: Awaited<ReturnType<typeof migrateCustomerOpenTicketsToGroupDetailed>>['snapshots']
   }> = []
 
@@ -69,9 +74,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const groupId = getGroupIdByRegion(mapServiceBaseRegionToRegionValue(serviceGroup.baseRegion))
     for (const customerZammadId of validation.data.customerZammadIds) {
+      await ensureCustomerAssignmentTarget(customerZammadId)
+    }
+
+    for (const customerZammadId of validation.data.customerZammadIds) {
       const previousAssignment = await prisma.customerGroupAssignment.findUnique({
         where: { customerZammadId },
-        select: { serviceGroupId: true },
+        select: { serviceGroupId: true, assignedBy: true },
       })
       const migration = await migrateCustomerOpenTicketsToGroupDetailed(
         customerZammadId,
@@ -93,6 +102,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       completedAssignments.push({
         customerZammadId,
         previousServiceGroupId: previousAssignment?.serviceGroupId ?? null,
+        previousAssignedBy: previousAssignment?.assignedBy ?? null,
         migratedTicketSnapshots: migration.snapshots,
       })
     }
@@ -113,7 +123,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           await assignCustomerToServiceGroup(
             completedAssignment.customerZammadId,
             completedAssignment.previousServiceGroupId,
-            `service-group-bulk-rollback:${completedAssignment.customerZammadId}`
+            completedAssignment.previousAssignedBy ?? undefined
           )
         }
       } catch {
@@ -124,10 +134,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (error.message === 'Unauthorized') return unauthorizedResponse()
     if (error.message === 'Forbidden') return forbiddenResponse()
     if (
+      error.message === 'Customer not found' ||
       error.message === 'Target service group owner must be an agent' ||
       error.message === 'Target service group owner is unavailable'
     ) {
-      return validationErrorResponse([{ path: ['customerZammadIds'], message: error.message }])
+      return validationErrorResponse([{
+        path: error.message === 'Customer not found' ? ['customerZammadIds'] : ['customerZammadIds'],
+        message: error.message,
+      }])
     }
     return serverErrorResponse('Failed to assign customers to service group')
   }

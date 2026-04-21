@@ -220,6 +220,10 @@ export function useAuth() {
     return user
   }, [user])
 
+  const refreshSession = useCallback(async () => {
+    await update()
+  }, [update])
+
   return {
     user,
     session,
@@ -233,5 +237,6 @@ export function useAuth() {
     updatePassword,
     getUserProfile,
     getUserRole,
+    refreshSession,
   }
 }

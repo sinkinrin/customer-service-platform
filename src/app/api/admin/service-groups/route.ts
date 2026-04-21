@@ -21,6 +21,12 @@ const CreateServiceGroupSchema = z.object({
   staffZammadId: z.number().int().positive(),
 })
 
+function cloneGroupIds(groupIds?: Record<string, string[]>) {
+  return Object.fromEntries(
+    Object.entries(groupIds || {}).map(([groupId, permissions]) => [groupId, [...permissions]])
+  )
+}
+
 async function ensureStaffHasBaseRegionAccess(staffZammadId: number, baseRegion: ServiceBaseRegion) {
   const staff = await zammadClient.getUser(staffZammadId)
   if (!staff.active) {
@@ -34,7 +40,7 @@ async function ensureStaffHasBaseRegionAccess(staffZammadId: number, baseRegion:
   }
 
   const groupId = getGroupIdByRegion(mapServiceBaseRegionToRegionValue(baseRegion))
-  const existing = staff.group_ids || {}
+  const existing = cloneGroupIds(staff.group_ids)
   if (!hasFullGroupAccess(existing, groupId)) {
     await zammadClient.updateUser(staffZammadId, {
       group_ids: {
@@ -42,7 +48,14 @@ async function ensureStaffHasBaseRegionAccess(staffZammadId: number, baseRegion:
         [groupId]: ['full'],
       },
     })
+    return async () => {
+      await zammadClient.updateUser(staffZammadId, {
+        group_ids: existing,
+      })
+    }
   }
+
+  return null
 }
 
 export async function GET() {
@@ -67,8 +80,22 @@ export async function POST(request: NextRequest) {
     }
 
     const input = validation.data
-    await ensureStaffHasBaseRegionAccess(input.staffZammadId, input.baseRegion)
-    const serviceGroup = await createServiceGroup(input)
+    const rollbackAccess = await ensureStaffHasBaseRegionAccess(input.staffZammadId, input.baseRegion)
+
+    let serviceGroup
+    try {
+      serviceGroup = await createServiceGroup(input)
+    } catch (error) {
+      if (rollbackAccess) {
+        try {
+          await rollbackAccess()
+        } catch {
+          // Best-effort rollback across systems.
+        }
+      }
+      throw error
+    }
+
     return successResponse({ serviceGroup }, 201)
   } catch (error: any) {
     if (error.message === 'Unauthorized') return unauthorizedResponse()

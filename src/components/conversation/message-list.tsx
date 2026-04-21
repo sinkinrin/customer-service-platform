@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import { SystemMessage } from './system-message'
 import { MarkdownMessage } from './markdown-message'
 import { AIThinkingIndicator } from './ai-thinking-indicator'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { isImageType, isVideoType, formatFileSize } from '@/lib/constants/attachments'
 import { MediaRenderer } from '@/components/ui/media-renderer'
 import { ImageLightbox } from '@/components/ui/image-lightbox'
@@ -38,6 +38,7 @@ export function MessageList({
   renderMessageActions,
 }: MessageListProps) {
   const t = useTranslations('components.conversation.messageList')
+  const locale = useLocale()
   const bottomRef = useRef<HTMLDivElement>(null)
   const [lightbox, setLightbox] = useState<{ open: boolean; src: string; alt: string }>({
     open: false, src: '', alt: '',
@@ -88,7 +89,7 @@ export function MessageList({
       return `${hours}h`
     }
 
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
     })

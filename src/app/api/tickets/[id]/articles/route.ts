@@ -68,7 +68,7 @@ import {
   serverErrorResponse,
   notFoundResponse,
 } from '@/lib/utils/api-response'
-import { validateTicketAccess } from '@/lib/utils/region-auth'
+import { checkTicketPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 import { z } from 'zod'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 
@@ -136,12 +136,32 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       return notFoundResponse('Ticket not found')
     }
 
-    // Validate access control
+    const permissionUser: PermissionUser = {
+      id: user.id,
+      email: user.email,
+      role: user.role as 'admin' | 'staff' | 'customer',
+      zammad_id: user.zammad_id,
+      group_ids: user.group_ids,
+      region: user.region,
+    }
+
+    const permissionTicket: PermissionTicket = {
+      id: ticket.id,
+      customer_id: ticket.customer_id,
+      owner_id: ticket.owner_id,
+      group_id: ticket.group_id,
+      state_id: ticket.state_id,
+    }
+
     if (user.role === 'staff') {
-      try {
-        validateTicketAccess(user, ticket.group_id)
-      } catch (error) {
-        log.warning('Staff access denied', { error: error instanceof Error ? error.message : error })
+      const permissionResult = checkTicketPermission({
+        user: permissionUser,
+        ticket: permissionTicket,
+        action: 'view',
+      })
+
+      if (!permissionResult.allowed) {
+        log.warning('Staff access denied', { reason: permissionResult.reason })
         return errorResponse('FORBIDDEN', 'You do not have permission to access articles for this ticket', undefined, 403)
       }
     } else if (user.role === 'customer') {
@@ -238,12 +258,32 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       return notFoundResponse('Ticket not found')
     }
 
-    // Validate access control
+    const permissionUser: PermissionUser = {
+      id: user.id,
+      email: user.email,
+      role: user.role as 'admin' | 'staff' | 'customer',
+      zammad_id: user.zammad_id,
+      group_ids: user.group_ids,
+      region: user.region,
+    }
+
+    const permissionTicket: PermissionTicket = {
+      id: ticket.id,
+      customer_id: ticket.customer_id,
+      owner_id: ticket.owner_id,
+      group_id: ticket.group_id,
+      state_id: ticket.state_id,
+    }
+
     if (user.role === 'staff') {
-      try {
-        validateTicketAccess(user, ticket.group_id)
-      } catch (error) {
-        log.warning('Staff create access denied', { error: error instanceof Error ? error.message : error })
+      const permissionResult = checkTicketPermission({
+        user: permissionUser,
+        ticket: permissionTicket,
+        action: 'edit',
+      })
+
+      if (!permissionResult.allowed) {
+        log.warning('Staff create access denied', { reason: permissionResult.reason })
         return errorResponse('FORBIDDEN', 'You do not have permission to create articles for this ticket', undefined, 403)
       }
     } else if (user.role === 'customer') {

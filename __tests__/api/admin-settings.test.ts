@@ -13,11 +13,10 @@ vi.mock('@/lib/utils/auth', () => ({
 vi.mock('@/lib/utils/ai-config', () => ({
   readAISettings: vi.fn(),
   writeAISettings: vi.fn(),
-  updateEnvFile: vi.fn(),
 }))
 
 import { requireAuth, requireRole } from '@/lib/utils/auth'
-import { readAISettings, writeAISettings, updateEnvFile } from '@/lib/utils/ai-config'
+import { readAISettings, writeAISettings } from '@/lib/utils/ai-config'
 
 import { GET as GET_SETTINGS, PUT as PUT_SETTINGS } from '@/app/api/admin/settings/route'
 import { GET as GET_AI_SETTINGS, PUT as PUT_AI_SETTINGS } from '@/app/api/admin/settings/ai/route'
@@ -98,7 +97,7 @@ describe('Admin settings APIs', () => {
       expect(payload.success).toBe(false)
     })
 
-    it('writes settings and updates env when api key is provided', async () => {
+    it('writes settings and updates runtime env when credentials are provided', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
         model: 'FastGPT',
@@ -119,6 +118,9 @@ describe('Admin settings APIs', () => {
           fastgpt_url: 'http://fastgpt',
           fastgpt_appid: 'app',
           fastgpt_api_key: 'key',
+          openai_api_key: 'openai-key',
+          yuxi_username: 'agent-user',
+          yuxi_password: 'agent-pass',
         }),
       })
 
@@ -136,9 +138,16 @@ describe('Admin settings APIs', () => {
           fastgptUrl: 'http://fastgpt',
           fastgptAppId: 'app',
           fastgptApiKey: 'key',
+          openaiApiKey: 'openai-key',
+          yuxiUsername: 'agent-user',
+          yuxiPassword: 'agent-pass',
         })
       )
-      expect(updateEnvFile).toHaveBeenCalledWith('key')
+      expect(process.env.FASTGPT_API_KEY).toBe('key')
+      expect(process.env.AI_FASTGPT_API_KEY).toBe('key')
+      expect(process.env.AI_OPENAI_API_KEY).toBe('openai-key')
+      expect(process.env.AI_YUXI_USERNAME).toBe('agent-user')
+      expect(process.env.AI_YUXI_PASSWORD).toBe('agent-pass')
     })
   })
 

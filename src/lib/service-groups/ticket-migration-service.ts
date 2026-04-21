@@ -53,13 +53,13 @@ async function listCustomerOpenTickets(customerZammadId: number) {
 
 export async function rollbackTicketMigration(snapshots: MigratedTicketSnapshot[]) {
   for (const snapshot of [...snapshots].reverse()) {
-    const rollbackPayload: { group_id?: number; owner_id?: number } = {}
+    const rollbackPayload: { group_id?: number | null; owner_id?: number | null } = {}
 
-    if (typeof snapshot.previousGroupId === 'number') {
+    if (snapshot.previousGroupId === null || typeof snapshot.previousGroupId === 'number') {
       rollbackPayload.group_id = snapshot.previousGroupId
     }
 
-    rollbackPayload.owner_id = snapshot.previousOwnerId ?? 1
+    rollbackPayload.owner_id = snapshot.previousOwnerId ?? null
     await zammadClient.updateTicket(snapshot.id, rollbackPayload)
   }
 }

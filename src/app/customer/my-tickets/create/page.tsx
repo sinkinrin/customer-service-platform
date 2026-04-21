@@ -147,7 +147,7 @@ ${values.actualResult || 'N/A'}`
 
       // Get form_id from successfully uploaded files
       // Note: Only form_id is needed - Zammad retrieves attachments from UploadCache by form_id
-      const formId = getFormId()
+      const formId = await getFormId()
 
       // Create ticket data (matching API schema)
       const ticketData = {

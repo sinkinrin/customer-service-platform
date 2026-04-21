@@ -34,15 +34,6 @@ export function ConversationHeader({ mode: _mode = 'ai', currentConversationId }
     try {
       setIsCreating(true)
 
-      // Close current conversation if exists
-      if (currentConversationId) {
-        await fetch(`/api/conversations/${currentConversationId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'closed' }),
-        })
-      }
-
       // Create new conversation
       const response = await fetch('/api/conversations', {
         method: 'POST',
@@ -57,6 +48,15 @@ export function ConversationHeader({ mode: _mode = 'ai', currentConversationId }
       const data = await response.json()
 
       if (data.success && data.data?.id) {
+        if (currentConversationId) {
+          fetch(`/api/conversations/${currentConversationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'closed' }),
+          }).catch((error) => {
+            console.warn('Failed to close previous conversation after creating a new one:', error)
+          })
+        }
         router.push(`/customer/conversations/${data.data.id}`)
       } else {
         throw new Error('Invalid response')

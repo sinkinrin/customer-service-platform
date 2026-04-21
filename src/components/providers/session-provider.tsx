@@ -12,6 +12,8 @@ import { useEffect } from "react"
 import { SessionProvider as NextAuthSessionProvider, useSession } from "next-auth/react"
 import type { Session } from "next-auth"
 import { useAuthStore } from "@/lib/stores/auth-store"
+import { useConversationStore } from "@/lib/stores/conversation-store"
+import { useUnreadStore } from "@/lib/stores/unread-store"
 
 interface SessionProviderProps {
   children: React.ReactNode
@@ -25,6 +27,8 @@ interface SessionProviderProps {
 function AuthStoreSync({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const { setUser, setSession, setUserRole, setLoading, setInitialized } = useAuthStore()
+  const { resetForUser } = useUnreadStore()
+  const { resetForUser: resetConversationsForUser } = useConversationStore()
 
   useEffect(() => {
     // Update loading state
@@ -38,6 +42,8 @@ function AuthStoreSync({ children }: { children: React.ReactNode }) {
     setInitialized(true)
 
     if (status === "authenticated" && session?.user) {
+      resetForUser(session.user.id)
+      resetConversationsForUser(session.user.id)
       // Sync user data to Zustand store
       const user = {
         id: session.user.id,
@@ -63,12 +69,14 @@ function AuthStoreSync({ children }: { children: React.ReactNode }) {
       })
       setUserRole(session.user.role)
     } else {
+      resetForUser(null)
+      resetConversationsForUser(null)
       // Clear auth store on sign out
       setUser(null)
       setSession(null)
       setUserRole(null)
     }
-  }, [session, status, setUser, setSession, setUserRole, setLoading, setInitialized])
+  }, [session, status, setUser, setSession, setUserRole, setLoading, setInitialized, resetForUser, resetConversationsForUser])
 
   return <>{children}</>
 }

@@ -26,6 +26,7 @@ interface EnvConfig {
   // Zammad Integration
   ZAMMAD_URL: string
   ZAMMAD_API_TOKEN: string
+  ZAMMAD_WEBHOOK_SECRET?: string
 
   // Database
   DATABASE_URL?: string
@@ -125,6 +126,19 @@ export function validateEnv(): void {
           "Remove NEXT_PUBLIC_ENABLE_MOCK_AUTH from production environment."
       )
     }
+
+    if (
+      process.env.EMAIL_USER_WELCOME_EMAIL_ENABLED !== "false" &&
+      !process.env.WEB_PLATFORM_URL
+    ) {
+      throw new Error(
+        "WEB_PLATFORM_URL is required in production when welcome email is enabled"
+      )
+    }
+
+    if (!process.env.ZAMMAD_WEBHOOK_SECRET) {
+      throw new Error("ZAMMAD_WEBHOOK_SECRET is required in production")
+    }
   }
 }
 
@@ -148,6 +162,7 @@ export function getEnv(): EnvConfig {
     NEXT_PUBLIC_ENABLE_MOCK_AUTH: process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH,
     ZAMMAD_URL: process.env.ZAMMAD_URL || "",
     ZAMMAD_API_TOKEN: process.env.ZAMMAD_API_TOKEN || "",
+    ZAMMAD_WEBHOOK_SECRET: process.env.ZAMMAD_WEBHOOK_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     FASTGPT_API_KEY: process.env.FASTGPT_API_KEY,
     LOG_LEVEL: process.env.LOG_LEVEL || "info",

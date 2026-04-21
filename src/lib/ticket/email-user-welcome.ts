@@ -32,6 +32,8 @@ const PASSWORD_CHARS = {
 
 const ALL_PASSWORD_CHARS =
   PASSWORD_CHARS.uppercase + PASSWORD_CHARS.lowercase + PASSWORD_CHARS.digits
+const WELCOME_EMAIL_SUBJECT_PREFIX = 'Welcome! Your account has been created (Ticket #'
+const WELCOME_TICKET_SEARCH_PAGE_SIZE = 100
 
 /**
  * Generate a cryptographically secure random password
@@ -101,27 +103,30 @@ export function buildNoteWithWelcomeMarker(existingNote?: string | null): string
 }
 
 /**
- * Set password for a Zammad user
+ * Set password for a Zammad user and persist the password-set marker
  *
  * @param userId - Zammad user ID
  * @param password - New password to set
+ * @param existingNote - User's current note
  * @param requestId - Request ID for logging
- * @returns Updated user object
+ * @returns Updated note string
  */
-async function setUserPassword(
+async function setUserPasswordAndMark(
   userId: number,
   password: string,
+  existingNote: string | undefined,
   requestId?: string
-): Promise<ZammadUser> {
+): Promise<string> {
   const log = createApiLogger('EmailUserWelcome', requestId)
+  const updatedNote = buildNoteWithPasswordMarker(existingNote)
 
   log.info('Setting password for email user', { userId })
 
-  const updatedUser = await zammadClient.updateUser(userId, { password })
+  await zammadClient.updateUser(userId, { password, note: updatedNote })
 
   log.info('Password set successfully for email user', { userId })
 
-  return updatedUser
+  return updatedNote
 }
 
 /**
@@ -142,9 +147,11 @@ async function sendWelcomeEmail(
 ): Promise<void> {
   const log = createApiLogger('EmailUserWelcome', requestId)
 
-  const loginUrl = env.WEB_PLATFORM_URL
-    ? new URL('/auth/login', env.WEB_PLATFORM_URL).toString()
-    : 'https://support.example.com/auth/login'
+  if (!env.WEB_PLATFORM_URL) {
+    throw new Error('WEB_PLATFORM_URL is required to send welcome email')
+  }
+
+  const loginUrl = new URL('/auth/login', env.WEB_PLATFORM_URL).toString()
 
   const emailHtml = generateWelcomeEmailHtml({
     customerName: params.customerName || '',
@@ -177,6 +184,66 @@ async function sendWelcomeEmail(
     ticketId: params.ticketId,
     ticketNumber: params.ticketNumber,
   })
+}
+
+async function hasWelcomeEmailArticle(
+  ticketId: number,
+  ticketNumber: string,
+  customerEmail: string
+): Promise<boolean> {
+  const expectedSubject = generateWelcomeEmailSubject(ticketNumber)
+  const articles = await zammadClient.getArticlesByTicket(ticketId)
+
+  return articles.some((article) => isWelcomeEmailArticle(article, customerEmail, expectedSubject))
+}
+
+function isWelcomeEmailArticle(
+  article: { type?: string; subject?: string | null; to?: string | null },
+  customerEmail: string,
+  expectedSubject?: string
+): boolean {
+  if (article.type !== 'email') {
+    return false
+  }
+
+  if (expectedSubject) {
+    if (article.subject !== expectedSubject) {
+      return false
+    }
+  } else if (!article.subject?.startsWith(WELCOME_EMAIL_SUBJECT_PREFIX)) {
+    return false
+  }
+
+  return !article.to || article.to.includes(customerEmail)
+}
+
+async function hasWelcomeEmailArticleOnAnyTicket(
+  customerId: number,
+  customerEmail: string
+): Promise<boolean> {
+  for (let page = 1; ; page += 1) {
+    const searchResult = await zammadClient.searchTicketsRawQuery(
+      `customer_id:${customerId}`,
+      WELCOME_TICKET_SEARCH_PAGE_SIZE,
+      undefined,
+      page,
+      'created_at',
+      'desc'
+    )
+
+    const tickets = searchResult.tickets || []
+
+    for (const candidateTicket of tickets) {
+      const articles = await zammadClient.getArticlesByTicket(candidateTicket.id)
+      if (articles.some((article) => isWelcomeEmailArticle(article, customerEmail))) {
+        return true
+      }
+    }
+
+    if (tickets.length < WELCOME_TICKET_SEARCH_PAGE_SIZE) {
+      return false
+    }
+  }
 }
 
 /**
@@ -286,15 +353,46 @@ export async function handleEmailUserWelcomeFromWebhookPayload(
     // Track current note state for updates
     let currentNote = customer.note
 
-    // Step 1: Set password if not already done
+    if (env.EMAIL_USER_WELCOME_EMAIL_ENABLED && !hasWelcomeEmailSent(currentNote)) {
+      try {
+        const alreadySentOnTicket = await hasWelcomeEmailArticle(ticket.id, ticket.number, customer.email)
+        const alreadySentOnAnyTicket = alreadySentOnTicket
+          ? true
+          : await hasWelcomeEmailArticleOnAnyTicket(customerId, customer.email)
+
+        if (alreadySentOnAnyTicket) {
+          if (!hasPasswordBeenSet(currentNote)) {
+            currentNote = await markPasswordSet(customerId, currentNote, requestId)
+          }
+          await markWelcomeEmailSent(customerId, currentNote, requestId)
+          log.info('Recovered missing welcome-email marker from existing welcome email article', {
+            ticketId: ticket.id,
+            ticketNumber: ticket.number,
+            customerId,
+          })
+          return
+        }
+      } catch (articleError) {
+        log.warning('Failed to inspect existing ticket email articles', {
+          ticketId: ticket.id,
+          customerId,
+          error: articleError instanceof Error ? articleError.message : articleError,
+        })
+      }
+    }
+
+    const shouldResetPasswordForWelcomeEmail =
+      env.EMAIL_USER_WELCOME_EMAIL_ENABLED &&
+      hasPasswordBeenSet(currentNote) &&
+      !hasWelcomeEmailSent(currentNote)
+
+    // Step 1: Set or reset password when we still need to deliver welcome credentials
     let password: string | null = null
-    if (isFirstTimeEmailUserByState(currentNote)) {
+    if (isFirstTimeEmailUserByState(currentNote) || shouldResetPasswordForWelcomeEmail) {
       password = generateSecurePassword(12)
 
       try {
-        await setUserPassword(customerId, password, requestId)
-        // Mark password as set immediately after successful password update
-        currentNote = await markPasswordSet(customerId, currentNote, requestId)
+        currentNote = await setUserPasswordAndMark(customerId, password, currentNote, requestId)
       } catch (error) {
         log.error('Failed to set user password; aborting welcome flow', {
           ticketId: ticket.id,
@@ -313,10 +411,8 @@ export async function handleEmailUserWelcomeFromWebhookPayload(
 
     // Step 2: Send welcome email if enabled and not already sent
     if (env.EMAIL_USER_WELCOME_EMAIL_ENABLED && !hasWelcomeEmailSent(currentNote)) {
-      // If password was already set in a previous run, we can't send the email
-      // (we don't have the password anymore)
       if (!password) {
-        log.warning('Cannot send welcome email: password was set previously and is not available', {
+        log.warning('Cannot send welcome email: password is unavailable after password setup step', {
           ticketId: ticket.id,
           customerId,
         })

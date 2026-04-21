@@ -60,6 +60,8 @@ describe('Tickets Articles API', () => {
           role: 'staff',
           full_name: 'Test Staff',
           region: 'asia-pacific',
+          zammad_id: 42,
+          group_ids: [getGroupIdByRegion('asia-pacific')],
         },
       } as any)
 
@@ -68,6 +70,7 @@ describe('Tickets Articles API', () => {
         id: 1,
         group_id: europeGroupId,
         customer_id: 100,
+        owner_id: 999,
       } as any)
 
       const request = createMockRequest('http://localhost:3000/api/tickets/1/articles')
@@ -154,6 +157,7 @@ describe('Tickets Articles API', () => {
         id: 1,
         group_id: europeGroupId,
         customer_id: 100,
+        owner_id: 999,
       } as any)
       vi.mocked(zammadClient.getArticlesByTicket).mockResolvedValue([
         { id: 1, body: 'Article' },
@@ -168,6 +172,33 @@ describe('Tickets Articles API', () => {
   })
 
   describe('POST /api/tickets/[id]/articles', () => {
+    it('denies staff access to unassigned tickets even when group matches', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: 'staff_001',
+          email: 'staff@test.com',
+          role: 'staff',
+          full_name: 'Test Staff',
+          region: 'asia-pacific',
+          zammad_id: 42,
+          group_ids: [getGroupIdByRegion('asia-pacific')],
+        },
+      } as any)
+
+      vi.mocked(zammadClient.getTicket).mockResolvedValue({
+        id: 1,
+        group_id: getGroupIdByRegion('asia-pacific'),
+        owner_id: 1,
+        customer_id: 100,
+      } as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets/1/articles')
+      const response = await GET(request, { params: Promise.resolve({ id: '1' }) })
+
+      expect(response.status).toBe(403)
+      expect(zammadClient.getArticlesByTicket).not.toHaveBeenCalled()
+    })
+
     it('rejects email articles without recipient', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: {
@@ -176,6 +207,8 @@ describe('Tickets Articles API', () => {
           role: 'staff',
           full_name: 'Test Staff',
           region: 'asia-pacific',
+          zammad_id: 42,
+          group_ids: [getGroupIdByRegion('asia-pacific')],
         },
       } as any)
 
@@ -183,6 +216,7 @@ describe('Tickets Articles API', () => {
         id: 1,
         group_id: getGroupIdByRegion('asia-pacific'),
         customer_id: 100,
+        owner_id: 999,
       } as any)
 
       vi.mocked(zammadClient.getUser).mockResolvedValue({
@@ -211,6 +245,8 @@ describe('Tickets Articles API', () => {
           role: 'staff',
           full_name: 'Test Staff',
           region: 'asia-pacific',
+          zammad_id: 42,
+          group_ids: [getGroupIdByRegion('asia-pacific')],
         },
       } as any)
 
@@ -218,6 +254,7 @@ describe('Tickets Articles API', () => {
         id: 1,
         group_id: getGroupIdByRegion('asia-pacific'),
         customer_id: 100,
+        owner_id: 999,
       } as any)
 
       vi.mocked(zammadClient.createArticle).mockResolvedValue({ id: 10 } as any)
@@ -242,6 +279,39 @@ describe('Tickets Articles API', () => {
         }),
         'staff@test.com'
       )
+    })
+
+    it('denies staff replies to unassigned tickets even when group matches', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: 'staff_001',
+          email: 'staff@test.com',
+          role: 'staff',
+          full_name: 'Test Staff',
+          region: 'asia-pacific',
+          zammad_id: 42,
+          group_ids: [getGroupIdByRegion('asia-pacific')],
+        },
+      } as any)
+
+      vi.mocked(zammadClient.getTicket).mockResolvedValue({
+        id: 1,
+        group_id: getGroupIdByRegion('asia-pacific'),
+        owner_id: 1,
+        customer_id: 100,
+      } as any)
+
+      const request = createMockRequest('http://localhost:3000/api/tickets/1/articles', {
+        method: 'POST',
+        body: JSON.stringify({
+          body: 'Response',
+          type: 'note',
+        }),
+      })
+      const response = await POST(request, { params: Promise.resolve({ id: '1' }) })
+
+      expect(response.status).toBe(403)
+      expect(zammadClient.createArticle).not.toHaveBeenCalled()
     })
   })
 })

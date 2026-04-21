@@ -16,7 +16,7 @@ import {
 } from '@/lib/utils/api-response'
 import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'
-import { readAISettings, writeAISettings, updateEnvFile } from '@/lib/utils/ai-config'
+import { readAISettings, writeAISettings } from '@/lib/utils/ai-config'
 
 const AISettingsSchema = z.object({
   enabled: z.boolean(),
@@ -137,13 +137,21 @@ export async function PUT(request: NextRequest) {
 
     writeAISettings(settings)
 
-    // Legacy: update .env.local for FastGPT API key
     if (data.fastgpt_api_key && data.fastgpt_api_key !== '********') {
-      try {
-        updateEnvFile(data.fastgpt_api_key)
-      } catch {
-        // Continue anyway
-      }
+      process.env.FASTGPT_API_KEY = data.fastgpt_api_key
+      process.env.AI_FASTGPT_API_KEY = data.fastgpt_api_key
+    }
+
+    if (data.openai_api_key && data.openai_api_key !== '********') {
+      process.env.AI_OPENAI_API_KEY = data.openai_api_key
+    }
+
+    if (data.yuxi_username !== undefined) {
+      process.env.AI_YUXI_USERNAME = data.yuxi_username
+    }
+
+    if (data.yuxi_password && data.yuxi_password !== '********') {
+      process.env.AI_YUXI_PASSWORD = data.yuxi_password
     }
 
     return successResponse({ message: 'Settings saved successfully' })

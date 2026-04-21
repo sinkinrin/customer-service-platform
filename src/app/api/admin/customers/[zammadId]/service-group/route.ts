@@ -7,7 +7,11 @@ import {
   validationErrorResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response'
-import { assignCustomerToServiceGroup, findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
+import {
+  assignCustomerToServiceGroup,
+  ensureCustomerAssignmentTarget,
+  findCustomerServiceGroup,
+} from '@/lib/service-groups/customer-assignment-service'
 import { getServiceGroup } from '@/lib/service-groups/service-group-service'
 import {
   migrateCustomerOpenTicketsToGroupDetailed,
@@ -59,6 +63,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return validationErrorResponse([{ path: ['serviceGroupId'], message: 'Service group not found' }])
     }
 
+    await ensureCustomerAssignmentTarget(customerZammadId)
+
     const migration = await migrateCustomerOpenTicketsToGroupDetailed(
       customerZammadId,
       getGroupIdByRegion(mapServiceBaseRegionToRegionValue(serviceGroup.baseRegion)),
@@ -86,10 +92,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (error.message === 'Unauthorized') return unauthorizedResponse()
     if (error.message === 'Forbidden') return forbiddenResponse()
     if (
+      error.message === 'Customer not found' ||
       error.message === 'Target service group owner must be an agent' ||
       error.message === 'Target service group owner is unavailable'
     ) {
-      return validationErrorResponse([{ path: ['serviceGroupId'], message: error.message }])
+      return validationErrorResponse([{
+        path: error.message === 'Customer not found' ? ['zammadId'] : ['serviceGroupId'],
+        message: error.message,
+      }])
     }
     return serverErrorResponse('Failed to assign customer service group')
   }

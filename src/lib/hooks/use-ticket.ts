@@ -188,7 +188,6 @@ export function useTicket() {
       }
 
       const data = await response.json()
-      toast.success('Ticket updated successfully')
       return data.data.ticket
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update ticket'
@@ -235,7 +234,6 @@ export function useTicket() {
       }
 
       const data = await response.json()
-      toast.success('Article added successfully')
       return data.data.article
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add article'

@@ -1,5 +1,25 @@
 import { prisma } from '@/lib/prisma'
 import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
+import { zammadClient } from '@/lib/zammad/client'
+
+export async function ensureCustomerAssignmentTarget(customerZammadId: number) {
+  let user
+
+  try {
+    user = await zammadClient.getUser(customerZammadId)
+  } catch {
+    throw new Error('Customer not found')
+  }
+
+  const isAgent = user.role_ids?.includes(2) || user.roles?.includes('Agent')
+  const isAdmin = user.role_ids?.includes(1) || user.roles?.includes('Admin')
+
+  if (isAgent || isAdmin) {
+    throw new Error('Customer not found')
+  }
+
+  return user
+}
 
 export async function findCustomerServiceGroup(customerZammadId: number) {
   const assignment = await prisma.customerGroupAssignment.findUnique({

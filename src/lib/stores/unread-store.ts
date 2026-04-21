@@ -8,10 +8,12 @@ import { persist } from 'zustand/middleware'
  */
 interface UnreadStore {
   // State
+  currentUserId: string | null
   unreadTickets: number[]
   unreadCounts: Record<number, number>
   
   // Actions
+  resetForUser: (userId: string | null) => void
   markAsUnread: (ticketId: number) => void
   markAsRead: (ticketId: number) => void
   incrementCount: (ticketId: number) => void
@@ -27,8 +29,31 @@ export const useUnreadStore = create<UnreadStore>()(
   persist(
     (set, get) => ({
       // Initial state
+      currentUserId: null,
       unreadTickets: [],
       unreadCounts: {},
+
+      resetForUser: (userId: string | null) => {
+        set((state) => {
+          if (!userId) {
+            return {
+              currentUserId: null,
+              unreadTickets: [],
+              unreadCounts: {},
+            }
+          }
+
+          if (state.currentUserId === userId) {
+            return state
+          }
+
+          return {
+            currentUserId: userId,
+            unreadTickets: [],
+            unreadCounts: {},
+          }
+        })
+      },
 
       // Mark a ticket as unread
       markAsUnread: (ticketId: number) => {
@@ -74,6 +99,7 @@ export const useUnreadStore = create<UnreadStore>()(
       // Clear all unread state
       clearAll: () => {
         set({
+          currentUserId: null,
           unreadTickets: [],
           unreadCounts: {},
         })
@@ -98,6 +124,7 @@ export const useUnreadStore = create<UnreadStore>()(
       name: 'ticket-unread-store',
       // Only persist unreadTickets and unreadCounts
       partialize: (state) => ({
+        currentUserId: state.currentUserId,
         unreadTickets: state.unreadTickets,
         unreadCounts: state.unreadCounts,
       }),

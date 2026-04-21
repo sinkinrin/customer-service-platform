@@ -16,10 +16,20 @@ const {
   mockGetUser,
   mockUpdateUser,
   mockCreateArticle,
+  mockGetArticlesByTicket,
+  mockSearchTicketsRawQuery,
+  mockEnv,
 } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockUpdateUser: vi.fn(),
   mockCreateArticle: vi.fn(),
+  mockGetArticlesByTicket: vi.fn(),
+  mockSearchTicketsRawQuery: vi.fn(),
+  mockEnv: {
+    EMAIL_USER_AUTO_PASSWORD_ENABLED: true,
+    EMAIL_USER_WELCOME_EMAIL_ENABLED: true,
+    WEB_PLATFORM_URL: 'https://support.example.com',
+  },
 }))
 
 vi.mock('@/lib/zammad/client', () => ({
@@ -27,19 +37,22 @@ vi.mock('@/lib/zammad/client', () => ({
     getUser: mockGetUser,
     updateUser: mockUpdateUser,
     createArticle: mockCreateArticle,
+    getArticlesByTicket: mockGetArticlesByTicket,
+    searchTicketsRawQuery: mockSearchTicketsRawQuery,
   },
 }))
 
 vi.mock('@/lib/env', () => ({
-  env: {
-    EMAIL_USER_AUTO_PASSWORD_ENABLED: true,
-    EMAIL_USER_WELCOME_EMAIL_ENABLED: true,
-    WEB_PLATFORM_URL: 'https://support.example.com',
-  },
+  env: mockEnv,
 }))
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockGetArticlesByTicket.mockResolvedValue([])
+  mockSearchTicketsRawQuery.mockResolvedValue({ tickets: [], tickets_count: 0 })
+  mockEnv.EMAIL_USER_AUTO_PASSWORD_ENABLED = true
+  mockEnv.EMAIL_USER_WELCOME_EMAIL_ENABLED = true
+  mockEnv.WEB_PLATFORM_URL = 'https://support.example.com'
 })
 
 describe('generateSecurePassword', () => {
@@ -209,11 +222,11 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     }))
   })
 
-  it('does not reinitialize password when welcome state is already password_set', async () => {
+  it('does not reinitialize password after welcome flow is already completed', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
-      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z',
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z\nWelcomeEmailSent: 2024-01-01T00:05:00Z',
     })
 
     await handleEmailUserWelcomeFromWebhookPayload({
@@ -261,11 +274,11 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     }))
   })
 
-  it('marks password set but does not resend email if password was already set', async () => {
+  it('does not resend email after welcome flow is already completed', async () => {
     mockGetUser.mockResolvedValue({
       id: 1,
       email: 'customer@example.com',
-      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z',
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z\nWelcomeEmailSent: 2024-01-01T00:05:00Z',
     })
 
     await handleEmailUserWelcomeFromWebhookPayload({
@@ -277,6 +290,66 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
       password: expect.any(String),
     }))
     expect(mockCreateArticle).not.toHaveBeenCalled()
+  })
+
+  it('resets password and retries welcome email when previous email delivery failed', async () => {
+    mockGetUser.mockResolvedValue({
+      id: 1,
+      email: 'customer@example.com',
+      firstname: 'John',
+      lastname: 'Doe',
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z',
+    })
+    mockUpdateUser.mockResolvedValue({ id: 1 })
+    mockCreateArticle.mockResolvedValue({ id: 10 })
+
+    await handleEmailUserWelcomeFromWebhookPayload({
+      ticket: { id: 100, customer_id: 1, number: '100', title: 'Test' },
+      article: { id: 1, type: 'email' },
+    } as any)
+
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      password: expect.any(String),
+    }))
+    expect(mockCreateArticle).toHaveBeenCalledWith(expect.objectContaining({
+      ticket_id: 100,
+      to: 'customer@example.com',
+    }))
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomeEmailSent:'),
+    }))
+  })
+
+  it('does not reset password again when current ticket already contains the welcome email article', async () => {
+    mockGetUser.mockResolvedValue({
+      id: 1,
+      email: 'customer@example.com',
+      firstname: 'John',
+      lastname: 'Doe',
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z',
+    })
+    mockGetArticlesByTicket.mockResolvedValue([
+      {
+        id: 99,
+        type: 'email',
+        subject: 'Welcome! Your account has been created (Ticket #100)',
+        to: 'customer@example.com',
+      },
+    ])
+    mockUpdateUser.mockResolvedValue({ id: 1 })
+
+    await handleEmailUserWelcomeFromWebhookPayload({
+      ticket: { id: 100, customer_id: 1, number: '100', title: 'Test' },
+      article: { id: 1, type: 'email' },
+    } as any)
+
+    expect(mockUpdateUser).not.toHaveBeenCalledWith(1, expect.objectContaining({
+      password: expect.any(String),
+    }))
+    expect(mockCreateArticle).not.toHaveBeenCalled()
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomeEmailSent:'),
+    }))
   })
 
   it('does not mark email sent if email fails', async () => {
@@ -299,7 +372,108 @@ describe('handleEmailUserWelcomeFromWebhookPayload', () => {
     expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
       note: expect.stringContaining('WelcomePasswordSet:'),
     }))
-    expect(mockUpdateUser).toHaveBeenCalledTimes(2)
+    expect(mockUpdateUser).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not send welcome email with a placeholder link when WEB_PLATFORM_URL is missing', async () => {
+    mockEnv.WEB_PLATFORM_URL = undefined
+    mockGetUser.mockResolvedValue({
+      id: 1,
+      email: 'customer@example.com',
+      firstname: 'John',
+      lastname: 'Doe',
+      note: '',
+    })
+    mockUpdateUser.mockResolvedValue({ id: 1 })
+
+    await handleEmailUserWelcomeFromWebhookPayload({
+      ticket: { id: 100, customer_id: 1, number: '100', title: 'Test' },
+      article: { id: 1, type: 'email' },
+    } as any)
+
+    expect(mockCreateArticle).not.toHaveBeenCalled()
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      password: expect.any(String),
+    }))
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomePasswordSet:'),
+    }))
+    expect(mockUpdateUser).toHaveBeenCalledTimes(1)
+  })
+
+  it('recovers missing welcome-email marker from a previous ticket article without resetting password', async () => {
+    mockGetUser.mockResolvedValue({
+      id: 1,
+      email: 'customer@example.com',
+      note: 'WelcomePasswordSet: 2024-01-01T00:00:00Z',
+    })
+    mockSearchTicketsRawQuery.mockResolvedValue({
+      tickets: [{ id: 88 }, { id: 100 }],
+      tickets_count: 2,
+    })
+    mockGetArticlesByTicket
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 501,
+          type: 'email',
+          subject: 'Welcome! Your account has been created (Ticket #88)',
+          to: 'customer@example.com',
+        },
+      ])
+    mockUpdateUser.mockResolvedValue({ id: 1 })
+
+    await handleEmailUserWelcomeFromWebhookPayload({
+      ticket: { id: 100, customer_id: 1, number: '100', title: 'Test' },
+      article: { id: 1, type: 'email' },
+    } as any)
+
+    expect(mockUpdateUser).not.toHaveBeenCalledWith(1, expect.objectContaining({
+      password: expect.any(String),
+    }))
+    expect(mockCreateArticle).not.toHaveBeenCalled()
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomeEmailSent:'),
+    }))
+  })
+
+  it('recovers missing welcome markers from a previous ticket article without resetting password', async () => {
+    mockGetUser.mockResolvedValue({
+      id: 1,
+      email: 'customer@example.com',
+      note: '',
+    })
+    mockSearchTicketsRawQuery.mockResolvedValue({
+      tickets: [{ id: 77 }],
+      tickets_count: 1,
+    })
+    mockGetArticlesByTicket
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 502,
+          type: 'email',
+          subject: 'Welcome! Your account has been created (Ticket #77)',
+          to: 'customer@example.com',
+        },
+      ])
+    mockUpdateUser.mockResolvedValue({ id: 1 })
+
+    await handleEmailUserWelcomeFromWebhookPayload({
+      ticket: { id: 100, customer_id: 1, number: '100', title: 'Test' },
+      article: { id: 1, type: 'email' },
+    } as any)
+
+    expect(mockCreateArticle).not.toHaveBeenCalled()
+    expect(mockUpdateUser).not.toHaveBeenCalledWith(1, expect.objectContaining({
+      password: expect.any(String),
+    }))
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomePasswordSet:'),
+    }))
+    expect(mockUpdateUser).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: expect.stringContaining('WelcomeEmailSent:'),
+    }))
   })
 
   it('handles password setting failure gracefully', async () => {

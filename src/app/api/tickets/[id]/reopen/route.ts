@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { ZammadClient } from '@/lib/zammad/client'
 import { notifyTicketReopened, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 import { logger } from '@/lib/utils/logger'
+import { checkTicketPermission, type AuthUser as PermissionUser, type Ticket as PermissionTicket } from '@/lib/utils/permission'
 
 const zammadClient = new ZammadClient()
 
@@ -49,6 +50,23 @@ export async function PUT(
       )
     }
 
+    const permissionUser: PermissionUser = {
+      id: session.user.id,
+      email: session.user.email,
+      role: session.user.role,
+      zammad_id: session.user.zammad_id,
+      group_ids: session.user.group_ids,
+      region: session.user.region,
+    }
+
+    const permissionTicket: PermissionTicket = {
+      id: ticket.id,
+      customer_id: ticket.customer_id,
+      owner_id: ticket.owner_id,
+      group_id: ticket.group_id,
+      state_id: ticket.state_id,
+    }
+
     // For customers, verify they own the ticket by customer_id
     if (session.user.role === 'customer') {
       const userZammadId = session.user.zammad_id
@@ -60,12 +78,17 @@ export async function PUT(
       }
     }
 
-    // For staff, verify ticket belongs to their region (group)
+    // For staff, enforce the same ownership/assignment model as ticket detail routes.
     if (session.user.role === 'staff') {
-      const userGroupIds = session.user.group_ids
-      if (userGroupIds && userGroupIds.length > 0 && !userGroupIds.includes(ticket.group_id)) {
+      const permissionResult = checkTicketPermission({
+        user: permissionUser,
+        ticket: permissionTicket,
+        action: 'edit',
+      })
+
+      if (!permissionResult.allowed) {
         return NextResponse.json(
-          { success: false, error: { code: 'FORBIDDEN', message: 'You can only reopen tickets in your region' } },
+          { success: false, error: { code: 'FORBIDDEN', message: 'You do not have permission to reopen this ticket' } },
           { status: 403 }
         )
       }

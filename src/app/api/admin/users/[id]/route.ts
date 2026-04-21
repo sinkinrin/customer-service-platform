@@ -9,6 +9,7 @@ import { NextRequest } from 'next/server'
 import { requireRole } from '@/lib/utils/auth'
 import {
   successResponse,
+  forbiddenResponse,
   unauthorizedResponse,
   notFoundResponse,
   validationErrorResponse,
@@ -16,11 +17,12 @@ import {
 } from '@/lib/utils/api-response'
 import { zammadClient } from '@/lib/zammad/client'
 import { mockUsers } from '@/lib/mock-auth'
-import { getRegionByGroupId, getGroupIdByRegion, isValidRegion, REGIONS, type RegionValue } from '@/lib/constants/regions'
+import { getGroupIdByRegion, isValidRegion, REGIONS, type RegionValue } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
 import { findCustomerServiceGroup, getCustomerAssignmentRegion } from '@/lib/service-groups/customer-assignment-service'
+import { getPrimaryZammadUserRegion, getRegionFromZammadNote } from '@/lib/utils/zammad-user-regions'
 
 // Map Zammad role_ids to our role names
 function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
@@ -29,26 +31,21 @@ function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
   return 'customer'
 }
 
-// Get region from Zammad group_ids (for staff/admin)
-function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | undefined {
-  if (!groupIds) return undefined
-  for (const [groupId, permissions] of Object.entries(groupIds)) {
-    if (permissions.includes('full')) {
-      const region = getRegionByGroupId(parseInt(groupId))
-      if (region) return region
-    }
-  }
-  return undefined
+function stripRegionNote(note?: string): string {
+  if (!note) return ''
+
+  return note
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => !/^Region:\s*\S+/i.test(line.trim()))
+    .join('\n')
+    .trim()
 }
 
-// Get region from Zammad note field (for customers)
-function getRegionFromNote(note?: string): string | undefined {
-  if (!note) return undefined
-  const match = note.match(/Region:\s*(\S+)/)
-  if (match && isValidRegion(match[1])) {
-    return match[1]
-  }
-  return undefined
+function cloneGroupIds(groupIds?: Record<string, string[]>) {
+  return Object.fromEntries(
+    Object.entries(groupIds || {}).map(([groupId, permissions]) => [groupId, [...permissions]])
+  )
 }
 
 const UpdateUserSchema = z.object({
@@ -87,10 +84,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const role = getRoleFromZammad(zammadUser.role_ids || [])
-    // For staff/admin: get region from group_ids; for customers: get from note field
-    const region = role === 'customer'
-      ? await getCustomerAssignmentRegion(zammadUser.id)
-      : getRegionFromGroupIds(zammadUser.group_ids)
+    const region = getPrimaryZammadUserRegion({
+      role,
+      note: zammadUser.note,
+      groupIds: zammadUser.group_ids,
+      customerAssignmentRegion: role === 'customer'
+        ? await getCustomerAssignmentRegion(zammadUser.id)
+        : undefined,
+    })
     const assignment = role === 'customer' ? await findCustomerServiceGroup(zammadUser.id) : null
     let serviceGroupOwnerName: string | undefined
     if (assignment?.serviceGroup?.staffZammadId) {
@@ -143,9 +144,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return successResponse({ user })
 
   } catch (error: any) {
-    if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
-      return unauthorizedResponse()
-    }
+    if (error.message === 'Unauthorized') return unauthorizedResponse()
+    if (error.message === 'Forbidden') return forbiddenResponse()
     if (error.message?.includes('not found') || error.message?.includes('404')) {
       return notFoundResponse('User not found')
     }
@@ -190,12 +190,23 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Fetch current user for role check and mockUsers sync
     const currentUser = await zammadClient.getUser(userId)
-    const currentRole = role || getRoleFromZammad(currentUser.role_ids || [])
+    const existingRole = getRoleFromZammad(currentUser.role_ids || [])
+    const targetRole = role || existingRole
+
+    if (role && role !== 'customer' && existingRole === 'customer' && !region) {
+      return validationErrorResponse([{ path: ['region'], message: 'Invalid region' }])
+    }
+
+    const currentRegion = getRegionFromZammadNote(currentUser.note) || getPrimaryZammadUserRegion({
+      role: existingRole,
+      note: currentUser.note,
+      groupIds: currentUser.group_ids,
+    })
 
     // Handle region change
     // - Staff/Admin: update group_ids in Zammad AND note field (note is fallback for regions without dedicated groups)
     // - Customer: update note field only (Zammad ignores group_ids for customers)
-    if (region && currentRole !== 'customer') {
+    if (region && targetRole !== 'customer' && region !== currentRegion) {
       // Always update note field with region (works for all roles, and serves as fallback)
       const existingNote = currentUser.note || ''
       const regionPattern = /Region:\s*\S+/
@@ -207,10 +218,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       // For staff/admin, also set group_ids with full permissions
       const groupId = getGroupIdByRegion(region as RegionValue)
-      updateData.group_ids = { [groupId.toString()]: ['full'] }
+      updateData.group_ids = {
+        ...cloneGroupIds(currentUser.group_ids),
+        [groupId.toString()]: ['full'],
+      }
 
       if (mockUsers[currentUser.email]) {
         mockUsers[currentUser.email].region = region
+      }
+    }
+
+    if (role === 'customer' && existingRole !== 'customer') {
+      updateData.group_ids = {}
+      updateData.note = stripRegionNote(currentUser.note)
+
+      if (mockUsers[currentUser.email]) {
+        mockUsers[currentUser.email].region = undefined
       }
     }
 
@@ -234,10 +257,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const updatedUser = await zammadClient.updateUser(userId, updateData)
 
     // Get region based on user role
-    const updatedRole = role || currentRole
-    const updatedRegion = updatedRole === 'customer'
-      ? await getCustomerAssignmentRegion(updatedUser.id)
-      : getRegionFromGroupIds(updatedUser.group_ids)
+    const updatedRole = targetRole
+    const updatedRegion = getPrimaryZammadUserRegion({
+      role: updatedRole,
+      note: updatedUser.note,
+      groupIds: updatedUser.group_ids,
+      customerAssignmentRegion: updatedRole === 'customer'
+        ? await getCustomerAssignmentRegion(updatedUser.id)
+        : undefined,
+    })
 
     return successResponse({
       user: {
@@ -253,9 +281,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error: any) {
-    if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
-      return unauthorizedResponse()
-    }
+    if (error.message === 'Unauthorized') return unauthorizedResponse()
+    if (error.message === 'Forbidden') return forbiddenResponse()
     logger.error('AdminUsers', 'Failed to update user', { data: { error: error instanceof Error ? error.message : error } })
     return serverErrorResponse('Failed to update user', error.message)
   }

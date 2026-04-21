@@ -69,6 +69,7 @@
 
 import { NextRequest } from 'next/server'
 import { zammadClient } from '@/lib/zammad/client'
+import type { UpdateTicketRequest, ZammadTicket } from '@/lib/zammad/types'
 import { requireAuth } from '@/lib/utils/auth'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import {
@@ -100,6 +101,34 @@ const updateTicketSchema = z.object({
     internal: z.boolean().default(false),
   }).optional(),
 })
+
+function buildRollbackPayload(
+  existingTicket: ZammadTicket,
+  attemptedPayload: UpdateTicketRequest
+): UpdateTicketRequest {
+  const rollbackPayload: UpdateTicketRequest = {}
+
+  if ('title' in attemptedPayload) {
+    rollbackPayload.title = existingTicket.title
+  }
+  if ('group' in attemptedPayload || 'group_id' in attemptedPayload) {
+    rollbackPayload.group_id = existingTicket.group_id
+  }
+  if ('state' in attemptedPayload || 'state_id' in attemptedPayload) {
+    rollbackPayload.state_id = existingTicket.state_id
+  }
+  if ('priority' in attemptedPayload || 'priority_id' in attemptedPayload) {
+    rollbackPayload.priority_id = existingTicket.priority_id
+  }
+  if ('owner_id' in attemptedPayload) {
+    rollbackPayload.owner_id = existingTicket.owner_id ?? null
+  }
+  if ('pending_time' in attemptedPayload && existingTicket.pending_time) {
+    rollbackPayload.pending_time = existingTicket.pending_time
+  }
+
+  return rollbackPayload
+}
 
 // ============================================================================
 // GET /api/tickets/[id]
@@ -279,7 +308,7 @@ export async function PUT(
 
     // Build update payload
     // Zammad API accepts string values for state and priority, not IDs
-    const payload: any = {}
+    const payload: UpdateTicketRequest = {}
     if (updateData.title) payload.title = updateData.title
     if (updateData.group) payload.group = updateData.group
     if (updateData.state) {
@@ -365,35 +394,62 @@ export async function PUT(
 
     // Admin and Staff update without X-On-Behalf-Of (staff access already validated by region)
     // Customer uses X-On-Behalf-Of to ensure they can only update their own tickets
-    const rawTicket = user.role === 'customer'
-      ? await zammadClient.updateTicket(ticketId, payload, user.email)
-      : await zammadClient.updateTicket(ticketId, payload)
+    const shouldUpdateTicketFields = Object.keys(payload).length > 0
+
+    const rawTicket = shouldUpdateTicketFields
+      ? user.role === 'customer'
+        ? await zammadClient.updateTicket(ticketId, payload, user.email)
+        : await zammadClient.updateTicket(ticketId, payload)
+      : existingTicket
 
     // Add article if provided
     // Admin and Staff create articles without X-On-Behalf-Of
     // Customer uses X-On-Behalf-Of to ensure proper ownership
     if (updateData.article) {
-      if (user.role === 'customer') {
-        await zammadClient.createArticle(
-          {
+      try {
+        if (user.role === 'customer') {
+          await zammadClient.createArticle(
+            {
+              ticket_id: ticketId,
+              subject: updateData.article.subject,
+              body: updateData.article.body,
+              content_type: 'text/html',
+              type: 'note',
+              internal: updateData.article.internal,
+            },
+            user.email
+          )
+        } else {
+          await zammadClient.createArticle({
             ticket_id: ticketId,
             subject: updateData.article.subject,
             body: updateData.article.body,
             content_type: 'text/html',
             type: 'note',
             internal: updateData.article.internal,
-          },
-          user.email
-        )
-      } else {
-        await zammadClient.createArticle({
-          ticket_id: ticketId,
-          subject: updateData.article.subject,
-          body: updateData.article.body,
-          content_type: 'text/html',
-          type: 'note',
-          internal: updateData.article.internal,
-        })
+          })
+        }
+      } catch (articleError) {
+        if (shouldUpdateTicketFields) {
+          const rollbackPayload = buildRollbackPayload(existingTicket, payload)
+
+          try {
+            if (Object.keys(rollbackPayload).length > 0) {
+              if (user.role === 'customer') {
+                await zammadClient.updateTicket(ticketId, rollbackPayload, user.email)
+              } else {
+                await zammadClient.updateTicket(ticketId, rollbackPayload)
+              }
+            }
+          } catch (rollbackError) {
+            log.error('Failed to rollback ticket after article creation error', {
+              error: rollbackError instanceof Error ? rollbackError.message : rollbackError,
+              ticketId,
+            })
+          }
+        }
+
+        throw articleError
       }
     }
 

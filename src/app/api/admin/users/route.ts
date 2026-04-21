@@ -71,11 +71,12 @@ import {
 } from '@/lib/utils/api-response'
 import { mockUsers, mockPasswords } from '@/lib/mock-auth'
 import { zammadClient } from '@/lib/zammad/client'
-import { getGroupIdByRegion, isValidRegion, getRegionByGroupId } from '@/lib/constants/regions'
+import { getGroupIdByRegion, isValidRegion } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
 import { getCustomerAssignmentRegion, listCustomerAssignmentRegions } from '@/lib/service-groups/customer-assignment-service'
+import { getPrimaryZammadUserRegion } from '@/lib/utils/zammad-user-regions'
 
 // Validation schema for creating a new user
 const CreateUserSchema = z.object({
@@ -125,36 +126,17 @@ function getRoleFromZammad(roleIds: number[]): 'admin' | 'staff' | 'customer' {
   return 'customer'
 }
 
-// Get region from Zammad group_ids (for staff/admin)
-function getRegionFromGroupIds(groupIds?: Record<string, string[]>): string | undefined {
-  if (!groupIds) return undefined
-  for (const [groupId, permissions] of Object.entries(groupIds)) {
-    if (permissions.includes('full')) {
-      const region = getRegionByGroupId(parseInt(groupId))
-      if (region) return region
-    }
-  }
-  return undefined
-}
-
-// Get region from Zammad note field (for customers)
-function getRegionFromNote(note?: string): string | undefined {
-  if (!note) return undefined
-  const match = note.match(/Region:\s*(\S+)/)
-  if (match && isValidRegion(match[1])) {
-    return match[1]
-  }
-  return undefined
-}
-
 const ZAMMAD_USERS_PAGE_SIZE = 100
 const ZAMMAD_USERS_MAX_SCAN_PAGES = 50
 
 function mapZammadUser(user: any, customerAssignmentRegion?: string) {
   const role = getRoleFromZammad(user.role_ids || [])
-  const regionFromGroups = getRegionFromGroupIds(user.group_ids)
-  const regionFromNote = getRegionFromNote(user.note)
-  const region = role === 'customer' ? customerAssignmentRegion : (regionFromGroups || regionFromNote)
+  const region = getPrimaryZammadUserRegion({
+    role,
+    note: user.note,
+    groupIds: user.group_ids,
+    customerAssignmentRegion,
+  })
   const mockUser = mockUsers[user.email]
 
   return {

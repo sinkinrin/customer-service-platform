@@ -33,6 +33,12 @@ const DeactivateServiceGroupSchema = z.object({
   transferToServiceGroupId: z.number().int().positive(),
 })
 
+function cloneGroupIds(groupIds?: Record<string, string[]>) {
+  return Object.fromEntries(
+    Object.entries(groupIds || {}).map(([groupId, permissions]) => [groupId, [...permissions]])
+  )
+}
+
 async function ensureStaffHasBaseRegionAccess(staffZammadId: number, baseRegion: ServiceBaseRegion) {
   const staff = await zammadClient.getUser(staffZammadId)
   if (!staff.active) {
@@ -46,7 +52,7 @@ async function ensureStaffHasBaseRegionAccess(staffZammadId: number, baseRegion:
   }
 
   const groupId = getGroupIdByRegion(mapServiceBaseRegionToRegionValue(baseRegion))
-  const existing = staff.group_ids || {}
+  const existing = cloneGroupIds(staff.group_ids)
   if (!hasFullGroupAccess(existing, groupId)) {
     await zammadClient.updateUser(staffZammadId, {
       group_ids: {
@@ -54,7 +60,14 @@ async function ensureStaffHasBaseRegionAccess(staffZammadId: number, baseRegion:
         [groupId]: ['full'],
       },
     })
+    return async () => {
+      await zammadClient.updateUser(staffZammadId, {
+        group_ids: existing,
+      })
+    }
   }
+
+  return null
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -85,7 +98,41 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       (input.baseRegion && input.baseRegion !== current.baseRegion)
 
     if (input.staffZammadId || input.baseRegion) {
-      await ensureStaffHasBaseRegionAccess(nextStaffZammadId, nextBaseRegion)
+      const rollbackAccess = await ensureStaffHasBaseRegionAccess(nextStaffZammadId, nextBaseRegion)
+      try {
+        const migration = requiresMigration
+          ? await migrateServiceGroupOpenTicketsDetailed(
+              serviceGroupId,
+              getGroupIdByRegion(mapServiceBaseRegionToRegionValue(nextBaseRegion)),
+              nextStaffZammadId
+            )
+          : null
+
+        let serviceGroup
+        try {
+          serviceGroup = await updateServiceGroup(serviceGroupId, input)
+        } catch (error) {
+          if (migration) {
+            try {
+              await rollbackTicketMigration(migration.snapshots)
+            } catch {
+              // Best-effort rollback across systems.
+            }
+          }
+          throw error
+        }
+
+        return successResponse({ serviceGroup })
+      } catch (error) {
+        if (rollbackAccess) {
+          try {
+            await rollbackAccess()
+          } catch {
+            // Best-effort rollback across systems.
+          }
+        }
+        throw error
+      }
     }
 
     const migration = requiresMigration
@@ -156,58 +203,69 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return validationErrorResponse([{ path: ['transferToServiceGroupId'], message: 'Transfer target service group not found' }])
     }
 
-    await ensureStaffHasBaseRegionAccess(transferTarget.staffZammadId, transferTarget.baseRegion)
-    const migratedAssignments = await prisma.customerGroupAssignment.findMany({
-      where: { serviceGroupId },
-      select: { customerZammadId: true },
-    })
-    const migration = await migrateServiceGroupOpenTicketsDetailed(
-      serviceGroupId,
-      getGroupIdByRegion(mapServiceBaseRegionToRegionValue(transferTarget.baseRegion)),
-      transferTarget.staffZammadId
-    )
-
+    const rollbackAccess = await ensureStaffHasBaseRegionAccess(transferTarget.staffZammadId, transferTarget.baseRegion)
     try {
-      await reassignCustomersToServiceGroup(
+      const migratedAssignments = await prisma.customerGroupAssignment.findMany({
+        where: { serviceGroupId },
+        select: { customerZammadId: true, assignedBy: true },
+      })
+      const migration = await migrateServiceGroupOpenTicketsDetailed(
         serviceGroupId,
-        transferToServiceGroupId,
-        `service-group-deactivate:${serviceGroupId}->${transferToServiceGroupId}`
+        getGroupIdByRegion(mapServiceBaseRegionToRegionValue(transferTarget.baseRegion)),
+        transferTarget.staffZammadId
       )
-    } catch (error) {
-      try {
-        await rollbackTicketMigration(migration.snapshots)
-      } catch {
-        // Best-effort rollback across systems.
-      }
-      throw error
-    }
 
-    let serviceGroup
-    try {
-      serviceGroup = await updateServiceGroup(serviceGroupId, { isActive: false })
-    } catch (error) {
-      for (const assignment of migratedAssignments) {
+      try {
+        await reassignCustomersToServiceGroup(
+          serviceGroupId,
+          transferToServiceGroupId,
+          `service-group-deactivate:${serviceGroupId}->${transferToServiceGroupId}`
+        )
+      } catch (error) {
         try {
-          await assignCustomerToServiceGroup(
-            assignment.customerZammadId,
-            serviceGroupId,
-            `service-group-deactivate-rollback:${transferToServiceGroupId}->${serviceGroupId}`
-          )
+          await rollbackTicketMigration(migration.snapshots)
+        } catch {
+          // Best-effort rollback across systems.
+        }
+        throw error
+      }
+
+      let serviceGroup
+      try {
+        serviceGroup = await updateServiceGroup(serviceGroupId, { isActive: false })
+      } catch (error) {
+        for (const assignment of migratedAssignments) {
+          try {
+            await assignCustomerToServiceGroup(
+              assignment.customerZammadId,
+              serviceGroupId,
+              assignment.assignedBy ?? undefined
+            )
+          } catch {
+            // Best-effort rollback across systems.
+          }
+        }
+
+        try {
+          await rollbackTicketMigration(migration.snapshots)
+        } catch {
+          // Best-effort rollback across systems.
+        }
+
+        throw error
+      }
+
+      return successResponse({ serviceGroup })
+    } catch (error) {
+      if (rollbackAccess) {
+        try {
+          await rollbackAccess()
         } catch {
           // Best-effort rollback across systems.
         }
       }
-
-      try {
-        await rollbackTicketMigration(migration.snapshots)
-      } catch {
-        // Best-effort rollback across systems.
-      }
-
       throw error
     }
-
-    return successResponse({ serviceGroup })
   } catch (error: any) {
     if (error.message === 'Unauthorized') return unauthorizedResponse()
     if (error.message === 'Forbidden') return forbiddenResponse()

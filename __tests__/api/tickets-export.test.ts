@@ -117,4 +117,63 @@ describe('Tickets export API', () => {
     expect(lines).toHaveLength(2)
     expect(lines[1]).toContain('Asia ticket')
   })
+
+  it('applies export filters from the current UI state', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { role: 'admin', id: 'admin_1' },
+    } as any)
+
+    const asiaGroupId = getGroupIdByRegion('asia-pacific')
+    const europeGroupId = getGroupIdByRegion('europe-zone-1')
+
+    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([
+      {
+        id: 1,
+        number: '10001',
+        title: 'Asia urgent login',
+        group_id: asiaGroupId,
+        state_id: 2,
+        priority_id: 3,
+        customer_id: 10,
+        owner_id: 20,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+      },
+      {
+        id: 2,
+        number: '10002',
+        title: 'Europe normal request',
+        group_id: europeGroupId,
+        state_id: 4,
+        priority_id: 2,
+        customer_id: 11,
+        owner_id: 21,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+      },
+    ] as any)
+
+    vi.mocked(zammadClient.getUser).mockImplementation(async (id: number) => ({
+      id,
+      firstname: `User${id}`,
+      lastname: 'Test',
+      email: `user${id}@test.com`,
+    }) as any)
+
+    vi.mocked(prisma.ticketRating.findMany).mockResolvedValue([] as any)
+
+    const response = await GET_EXPORT(
+      createRequest(
+        `http://localhost:3000/api/tickets/export?status=open&priority=3&group_id=${asiaGroupId}&query=urgent`
+      )
+    )
+    const text = await response.text()
+    const normalized = text.startsWith('\uFEFF') ? text.slice(1) : text
+    const lines = normalized.split('\n')
+
+    expect(response.status).toBe(200)
+    expect(lines).toHaveLength(2)
+    expect(lines[1]).toContain('Asia urgent login')
+    expect(lines[1]).not.toContain('Europe normal request')
+  })
 })

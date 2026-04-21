@@ -11,11 +11,12 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useConversation } from '@/lib/hooks/use-conversation'
+import { useAuth } from '@/lib/hooks/use-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-import { CONVERSATION_LAST_VISIT_KEY } from '@/lib/constants/conversation'
+import { getConversationLastVisitKey } from '@/lib/constants/conversation'
 
 // If the user left the conversation page more than this many ms ago,
 // we treat it as a "return" and start fresh.
@@ -26,6 +27,7 @@ export default function ConversationsPage() {
   const tToast = useTranslations('toast.customer.conversations')
 
   const router = useRouter()
+  const { user } = useAuth()
   const { conversations, fetchConversations, createConversation } = useConversation()
   const [isProcessing, setIsProcessing] = useState(true)
   const [conversationsLoaded, setConversationsLoaded] = useState(false)
@@ -68,7 +70,7 @@ export default function ConversationsPage() {
         // Check how long the user has been away
         let elapsed = 0 // default: treat as "quick switch" (reuse existing)
         try {
-          const lastVisit = sessionStorage.getItem(CONVERSATION_LAST_VISIT_KEY)
+          const lastVisit = sessionStorage.getItem(getConversationLastVisitKey(user?.id))
           if (lastVisit) {
             elapsed = Date.now() - parseInt(lastVisit, 10)
           }
@@ -83,7 +85,9 @@ export default function ConversationsPage() {
           const latest = activeConversations[0]
           router.replace(`/customer/conversations/${latest.id}`)
         } else {
-          // Return after absence or no active conversations — start fresh
+          // Intentional product behavior:
+          // after a long absence, we explicitly end stale active threads and
+          // start a fresh one so the customer lands in a clean context.
           // Close ALL active conversations to prevent orphans
           for (const conv of activeConversations) {
             try {
@@ -109,7 +113,7 @@ export default function ConversationsPage() {
     }
 
     handleRedirect()
-  }, [conversationsLoaded, conversations, isProcessing, router, createConversation])
+  }, [conversationsLoaded, conversations, isProcessing, router, createConversation, user?.id])
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

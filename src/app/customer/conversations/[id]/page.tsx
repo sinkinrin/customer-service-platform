@@ -8,6 +8,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
+import { useAuth } from '@/lib/hooks/use-auth'
 import { MessageList } from '@/components/conversation/message-list'
 import { MessageInput } from '@/components/conversation/message-input'
 import { ConversationHeader } from '@/components/conversation/conversation-header'
@@ -18,7 +19,7 @@ import { useTranslations } from 'next-intl'
 import { ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStreamingChat } from '@/hooks/use-streaming-chat'
-import { CONVERSATION_LAST_VISIT_KEY } from '@/lib/constants/conversation'
+import { getConversationLastVisitKey } from '@/lib/constants/conversation'
 
 interface AiMsg {
   id: string
@@ -37,6 +38,7 @@ export default function ConversationDetailPage() {
 
   const params = useParams()
   const conversationId = params.id as string
+  const { user } = useAuth()
 
   const [aiMessages, setAiMessages] = useState<AiMsg[]>([])
   const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -79,13 +81,15 @@ export default function ConversationDetailPage() {
 
   // Track visit timestamp for the auto-new-conversation logic
   useEffect(() => {
+    setAiMessages([])
     // Update timestamp on mount and periodically while the page is active
-    sessionStorage.setItem(CONVERSATION_LAST_VISIT_KEY, String(Date.now()))
+    const storageKey = getConversationLastVisitKey(user?.id)
+    sessionStorage.setItem(storageKey, String(Date.now()))
     const interval = setInterval(() => {
-      sessionStorage.setItem(CONVERSATION_LAST_VISIT_KEY, String(Date.now()))
+      sessionStorage.setItem(storageKey, String(Date.now()))
     }, 60_000) // refresh every minute
     return () => clearInterval(interval)
-  }, [])
+  }, [conversationId, user?.id])
 
   // Load existing AI messages on mount
   useEffect(() => {
@@ -109,12 +113,13 @@ export default function ConversationDetailPage() {
                 feedback: msg.rating?.feedback || null,
               }))
 
-            if (aiModeMessages.length > 0) {
-              setAiMessages(aiModeMessages)
-            }
+            setAiMessages(aiModeMessages)
+          } else {
+            setAiMessages([])
           }
         } catch (error) {
           console.error('Failed to load AI messages:', error)
+          setAiMessages([])
         } finally {
           setIsInitialLoading(false)
         }

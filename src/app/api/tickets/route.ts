@@ -108,7 +108,7 @@ import {
   buildStaffVisibilityQuery,
 } from '@/lib/utils/ticket-helpers'
 import { ensureZammadUser } from '@/lib/zammad/ensure-user'
-import { getGroupIdByRegion, STAGING_GROUP_ID, type RegionValue } from '@/lib/constants/regions'
+import { getGroupIdByRegion, isValidRegion, STAGING_GROUP_ID, type RegionValue } from '@/lib/constants/regions'
 import { z } from 'zod'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 import { notifyTicketCreated } from '@/lib/notification'
@@ -161,6 +161,18 @@ function buildTicketsSearchQuery(options: {
   return parts.join(' AND ')
 }
 
+async function rollbackCreatedTicket(ticketId: number, onBehalfOf: string, log: ReturnType<typeof getApiLogger>) {
+  try {
+    await zammadClient.deleteTicket(ticketId, onBehalfOf)
+    log.warning('Rolled back created ticket after assignment step failed', { ticketId })
+  } catch (rollbackError) {
+    log.error('Failed to roll back created ticket after assignment step failed', {
+      ticketId,
+      error: rollbackError instanceof Error ? rollbackError.message : rollbackError,
+    })
+  }
+}
+
 // ensureZammadUser imported from @/lib/zammad/ensure-user
 
 // ============================================================================
@@ -171,7 +183,10 @@ const createTicketSchema = z.object({
   title: z.string().min(1).max(255),
   group: z.string().min(1).optional().default('Support'),
   priority_id: z.number().int().min(1).max(3).optional().default(2),
-  region: z.string().optional(), // Optional region override (defaults to user's region)
+  region: z.string().optional().refine(
+    (value) => !value || isValidRegion(value),
+    { message: 'Invalid region' }
+  ), // Optional region override (defaults to user's region)
   article: z.object({
     subject: z.string().min(1),
     body: z.string().min(1),
@@ -514,22 +529,16 @@ export async function POST(request: NextRequest) {
 
       log.info('Ticket created', { ticketId: ticket.id, ticketNumber: ticket.number })
 
-      try {
-        await notifyTicketCreated({
-          recipientUserId: user.id,
-          ticketId: ticket.id,
-          ticketNumber: ticket.number,
-          ticketTitle: ticket.title,
-        })
-      } catch (notifyError) {
-        log.error('Failed to create in-app notification for ticket creation', { error: notifyError instanceof Error ? notifyError.message : notifyError })
-      }
-
       if (fixedOwner && region) {
-        await zammadClient.updateTicket(ticket.id, {
-          owner_id: fixedOwner.id,
-          state: 'open',
-        })
+        try {
+          await zammadClient.updateTicket(ticket.id, {
+            owner_id: fixedOwner.id,
+            state: 'open',
+          })
+        } catch (assignmentError) {
+          await rollbackCreatedTicket(ticket.id, user.email, log)
+          throw assignmentError
+        }
 
         try {
           await handleAssignmentNotification(
@@ -556,6 +565,17 @@ export async function POST(request: NextRequest) {
         } catch (err) {
           log.error('Assignment failure notification error', { error: err instanceof Error ? err.message : err })
         }
+      }
+
+      try {
+        await notifyTicketCreated({
+          recipientUserId: user.id,
+          ticketId: ticket.id,
+          ticketNumber: ticket.number,
+          ticketTitle: ticket.title,
+        })
+      } catch (notifyError) {
+        log.error('Failed to create in-app notification for ticket creation', { error: notifyError instanceof Error ? notifyError.message : notifyError })
       }
 
       return successResponse(

@@ -31,6 +31,7 @@ export interface TicketUpdate {
 interface UseTicketUpdatesOptions {
   enabled?: boolean
   onUpdate?: (updates: TicketUpdate[]) => void
+  userId?: string | null
 }
 
 interface UseTicketUpdatesReturn {
@@ -40,17 +41,22 @@ interface UseTicketUpdatesReturn {
   error: string | null
 }
 
-const LAST_SYNC_KEY = 'ticket-updates-last-sync'
+const LAST_SYNC_KEY_PREFIX = 'ticket-updates-last-sync'
+
+export function getLastSyncStorageKey(userId?: string | null): string {
+  return `${LAST_SYNC_KEY_PREFIX}:${userId || 'anonymous'}`
+}
 
 export function useTicketUpdates(options: UseTicketUpdatesOptions = {}): UseTicketUpdatesReturn {
-  const { enabled = true, onUpdate } = options
+  const { enabled = true, onUpdate, userId } = options
+  const storageKey = getLastSyncStorageKey(userId)
   
   const [updates, setUpdates] = useState<TicketUpdate[]>([])
   const [isPolling, setIsPolling] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(LAST_SYNC_KEY)
+      const stored = localStorage.getItem(storageKey)
       return stored ? parseInt(stored, 10) : null
     }
     return null
@@ -88,7 +94,7 @@ export function useTicketUpdates(options: UseTicketUpdatesOptions = {}): UseTick
         lastSyncTimeRef.current = serverTime
         setLastSyncTime(serverTime)
         if (typeof window !== 'undefined') {
-          localStorage.setItem(LAST_SYNC_KEY, String(serverTime))
+          localStorage.setItem(storageKey, String(serverTime))
         }
 
         // If we have new updates
@@ -120,7 +126,17 @@ export function useTicketUpdates(options: UseTicketUpdatesOptions = {}): UseTick
     } finally {
       setIsPolling(false)
     }
-  }, [enabled, onUpdate])
+  }, [enabled, onUpdate, storageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const stored = localStorage.getItem(storageKey)
+    const parsed = stored ? parseInt(stored, 10) : null
+    lastSyncTimeRef.current = Number.isFinite(parsed) ? parsed : null
+    setLastSyncTime(lastSyncTimeRef.current)
+    setUpdates([])
+  }, [storageKey])
 
   // Start polling
   const startPolling = useCallback(() => {

@@ -150,6 +150,7 @@ export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) 
   useTicketUpdates({
     enabled: !!user && (!sseConnected || sseFailed),
     onUpdate: handlePollingUpdates,
+    userId: user?.id,
   })
 
   // Log mode on mount/change

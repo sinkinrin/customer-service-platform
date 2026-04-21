@@ -122,7 +122,21 @@ export default function AdminTicketsPage() {
   const exportTickets = async () => {
     try {
       toast.info(t('status.exporting'))
-      const response = await fetch('/api/tickets/export')
+      const params = new URLSearchParams()
+      if (statusFilter) {
+        params.set('status', statusFilter)
+      }
+      if (priorityFilter) {
+        params.set('priority', String(priorityFilter))
+      }
+      if (groupIdFilter) {
+        params.set('group_id', String(groupIdFilter))
+      }
+      if (submittedQuery) {
+        params.set('query', submittedQuery)
+      }
+      const exportUrl = params.toString() ? `/api/tickets/export?${params}` : '/api/tickets/export'
+      const response = await fetch(exportUrl)
       if (!response.ok) {
         throw new Error('Export failed')
       }

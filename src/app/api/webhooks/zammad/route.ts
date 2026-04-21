@@ -294,9 +294,8 @@ export async function POST(request: NextRequest) {
 
       // Non-blocking: route newly created email tickets from staging group to regional group
       if (updateEvent === 'created') {
-        void handleEmailTicketRoutingFromWebhookPayload(webhookPayload!, log.requestId)
-        // Non-blocking: send welcome email to first-time email users
-        void handleEmailUserWelcomeFromWebhookPayload(webhookPayload!, log.requestId)
+        await handleEmailTicketRoutingFromWebhookPayload(webhookPayload!, log.requestId)
+        await handleEmailUserWelcomeFromWebhookPayload(webhookPayload!, log.requestId)
       }
     }
 

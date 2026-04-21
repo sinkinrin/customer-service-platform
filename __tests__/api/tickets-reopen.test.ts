@@ -123,4 +123,55 @@ describe('Ticket Reopen API', () => {
       })
     )
   })
+
+  it('denies staff reopening unassigned tickets even when group matches', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: {
+        id: 'staff_001',
+        role: 'staff',
+        email: 'staff@test.com',
+        zammad_id: 55,
+        group_ids: [2],
+      },
+    } as any)
+
+    mockGetTicket.mockResolvedValue({
+      id: 1,
+      state_id: 4,
+      customer_id: 100,
+      owner_id: 1,
+      group_id: 2,
+    })
+
+    const request = createRequest('http://localhost:3000/api/tickets/1/reopen')
+    const response = await PUT(request, { params: Promise.resolve({ id: '1' }) })
+
+    expect(response.status).toBe(403)
+    expect(mockUpdateTicket).not.toHaveBeenCalled()
+  })
+
+  it('denies staff reopening tickets when session group_ids are missing and ticket is not assigned to them', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: {
+        id: 'staff_001',
+        role: 'staff',
+        email: 'staff@test.com',
+        zammad_id: 55,
+      },
+    } as any)
+
+    mockGetTicket.mockResolvedValue({
+      id: 1,
+      state_id: 4,
+      customer_id: 100,
+      owner_id: 99,
+      group_id: 2,
+    })
+
+    const request = createRequest('http://localhost:3000/api/tickets/1/reopen')
+    const response = await PUT(request, { params: Promise.resolve({ id: '1' }) })
+
+    expect(response.status).toBe(403)
+    expect(mockUpdateTicket).not.toHaveBeenCalled()
+  })
 })

@@ -62,6 +62,24 @@ interface AiConversationStats {
   }>
 }
 
+interface HealthData {
+  status: 'healthy' | 'degraded' | 'unhealthy'
+  services: {
+    zammad: { status: 'connected' | 'disconnected' | 'error' }
+    database: { status: 'connected' | 'disconnected' | 'error' }
+  }
+}
+
+function getHealthBadge(status: 'connected' | 'disconnected' | 'error' | undefined) {
+  if (status === 'connected') {
+    return { labelKey: 'connected', className: 'bg-green-600' }
+  }
+  if (status === 'error') {
+    return { labelKey: 'error', className: 'bg-red-600' }
+  }
+  return { labelKey: 'disconnected', className: 'bg-amber-600' }
+}
+
 const getActivityIcon = (state: string) => {
   const stateLower = state?.toLowerCase() || ''
   if (stateLower.includes('new')) {
@@ -116,6 +134,7 @@ export default function AdminDashboardPage() {
     ratings: { positive: 0, negative: 0, satisfactionRate: 0 },
     recentNegative: [],
   })
+  const [health, setHealth] = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -126,10 +145,11 @@ export default function AdminDashboardPage() {
     setLoading(true)
     try {
       // Use unified dashboard API for better performance
-      const [dashboardRes, ratingsRes, aiStatsRes] = await Promise.all([
+      const [dashboardRes, ratingsRes, aiStatsRes, healthRes] = await Promise.all([
         fetch('/api/admin/stats/dashboard'),
         fetch('/api/admin/stats/ratings'),
         fetch('/api/admin/stats/ai-conversations'),
+        fetch('/api/health'),
       ])
 
       if (dashboardRes.ok) {
@@ -154,6 +174,13 @@ export default function AdminDashboardPage() {
         const data = await aiStatsRes.json()
         if (data.success && data.data) {
           setAiStats(data.data)
+        }
+      }
+
+      if (healthRes.ok) {
+        const data = await healthRes.json()
+        if (data.data) {
+          setHealth(data.data)
         }
       }
     } catch (error) {
@@ -188,6 +215,10 @@ export default function AdminDashboardPage() {
       toast.error(tAiStats('exportFailed'))
     }
   }, [tAiStats])
+
+  const apiHealthBadge = getHealthBadge(health?.status === 'healthy' ? 'connected' : health?.status === 'degraded' ? 'connected' : 'error')
+  const databaseHealthBadge = getHealthBadge(health?.services.database.status)
+  const zammadHealthBadge = getHealthBadge(health?.services.zammad.status)
 
   return (
     <PageTransition className="space-y-6">
@@ -543,15 +574,15 @@ export default function AdminDashboardPage() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{t('systemHealth.apiStatus')}</span>
-              <Badge variant="default" className="bg-green-600">{tCommon('status.operational')}</Badge>
+              <Badge variant="default" className={apiHealthBadge.className}>{tCommon(`status.${apiHealthBadge.labelKey}`)}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{t('systemHealth.database')}</span>
-              <Badge variant="default" className="bg-green-600">{tCommon('status.healthy')}</Badge>
+              <Badge variant="default" className={databaseHealthBadge.className}>{tCommon(`status.${databaseHealthBadge.labelKey}`)}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{t('systemHealth.zammadIntegration')}</span>
-              <Badge variant="default" className="bg-green-600">{tCommon('status.connected')}</Badge>
+              <Badge variant="default" className={zammadHealthBadge.className}>{tCommon(`status.${zammadHealthBadge.labelKey}`)}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{t('systemHealth.fastgpt')}</span>

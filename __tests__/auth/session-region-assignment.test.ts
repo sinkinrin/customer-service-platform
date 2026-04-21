@@ -103,7 +103,7 @@ describe('session region assignment', () => {
     expect(user?.region).toBeUndefined()
   })
 
-  it('still derives staff region from group ids', async () => {
+  it('falls back to staff group ids when no primary region note exists', async () => {
     mockAuthenticateUser.mockResolvedValue({
       id: 201,
       email: 'staff@example.com',
@@ -111,8 +111,53 @@ describe('session region assignment', () => {
       firstname: 'Sta',
       lastname: 'Ff',
       role_ids: [2],
-      note: 'Region: north-america',
+      note: '',
       group_ids: { '4': ['full'] },
+      created_at: '2026-04-16T00:00:00Z',
+    })
+
+    const user = await authenticateWithZammad('staff@example.com', 'pw')
+
+    expect(user?.role).toBe('staff')
+    expect(user?.region).toBe('asia-pacific')
+  })
+
+  it('only persists full-access staff groups into session permissions', async () => {
+    mockAuthenticateUser.mockResolvedValue({
+      id: 201,
+      email: 'staff@example.com',
+      login: 'staff@example.com',
+      firstname: 'Sta',
+      lastname: 'Ff',
+      role_ids: [2],
+      note: '',
+      group_ids: {
+        '4': ['full'],
+        '2': ['read'],
+        '3': ['overview'],
+      },
+      created_at: '2026-04-16T00:00:00Z',
+    })
+
+    const user = await authenticateWithZammad('staff@example.com', 'pw')
+
+    expect(user?.role).toBe('staff')
+    expect(user?.group_ids).toEqual([4])
+  })
+
+  it('prefers staff primary region from note over full group iteration order', async () => {
+    mockAuthenticateUser.mockResolvedValue({
+      id: 201,
+      email: 'staff@example.com',
+      login: 'staff@example.com',
+      firstname: 'Sta',
+      lastname: 'Ff',
+      role_ids: [2],
+      note: 'Region: asia-pacific',
+      group_ids: {
+        '2': ['full'],
+        '4': ['full'],
+      },
       created_at: '2026-04-16T00:00:00Z',
     })
 

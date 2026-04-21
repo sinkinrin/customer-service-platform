@@ -56,6 +56,8 @@
  *                 enum: [customer, staff, admin]
  *               region:
  *                 type: string
+ *               serviceGroupId:
+ *                 type: integer
  *     responses:
  *       201:
  *         description: User created successfully
@@ -75,8 +77,13 @@ import { getGroupIdByRegion, isValidRegion } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
-import { getCustomerAssignmentRegion, listCustomerAssignmentRegions } from '@/lib/service-groups/customer-assignment-service'
+import {
+  getCustomerAssignmentRegion,
+  listCustomerAssignmentRegions,
+} from '@/lib/service-groups/customer-assignment-service'
+import { getServiceGroup } from '@/lib/service-groups/service-group-service'
 import { getPrimaryZammadUserRegion } from '@/lib/utils/zammad-user-regions'
+import { assignCustomerToServiceGroupWithRollback } from '@/lib/admin-user-creation'
 
 // Validation schema for creating a new user
 const CreateUserSchema = z.object({
@@ -87,10 +94,18 @@ const CreateUserSchema = z.object({
     errorMap: () => ({ message: 'Role must be customer, staff, or admin' })
   }),
   region: z.string().optional(),
+  serviceGroupId: z.number().int().positive().optional(),
   phone: z.string().optional(),
   language: z.string().optional(),
 }).superRefine((value, ctx) => {
   if (value.role === 'customer') {
+    if (!value.serviceGroupId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['serviceGroupId'],
+        message: 'Invalid service group',
+      })
+    }
     if (value.region && !isValidRegion(value.region)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -355,7 +370,7 @@ export async function POST(request: NextRequest) {
       return validationErrorResponse(validation.error.errors)
     }
 
-    const { email, password, full_name, role, region, phone, language } = validation.data
+    const { email, password, full_name, role, region, serviceGroupId, phone, language } = validation.data
 
     // Check if user already exists
     if (mockUsers[email]) {
@@ -368,6 +383,17 @@ export async function POST(request: NextRequest) {
     // Prepare Zammad user data
     const [firstname, ...lastnameArr] = full_name.split(' ')
     const lastname = lastnameArr.join(' ') || firstname
+
+    const customerServiceGroup = role === 'customer'
+      ? await getServiceGroup(serviceGroupId!)
+      : null
+
+    if (role === 'customer' && !customerServiceGroup) {
+      return validationErrorResponse([{
+        path: ['serviceGroupId'],
+        message: 'Service group not found',
+      }])
+    }
 
     // Determine Zammad role
     let zammadRoles: string[]
@@ -402,6 +428,10 @@ export async function POST(request: NextRequest) {
       active: true,
       verified: true,
     })
+
+    if (role === 'customer') {
+      await assignCustomerToServiceGroupWithRollback(zammadUser.id, serviceGroupId!, `admin-create-user:${email}`)
+    }
 
     // Create user in mock system
     const mockUser = {

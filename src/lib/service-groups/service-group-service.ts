@@ -51,6 +51,18 @@ export async function getServiceGroup(id: number, options?: { includeInactive?: 
   })
 }
 
+export async function getServiceGroupByName(name: string, options?: { includeInactive?: boolean }) {
+  if (options?.includeInactive) {
+    return prisma.serviceGroup.findUnique({
+      where: { name },
+    })
+  }
+
+  return prisma.serviceGroup.findFirst({
+    where: { name, isActive: true },
+  })
+}
+
 export async function createServiceGroup(input: {
   name: string
   baseRegion: ServiceBaseRegion

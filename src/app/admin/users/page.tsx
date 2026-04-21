@@ -61,6 +61,15 @@ interface User {
   active?: boolean
   zammad_id?: number
   created_at: string
+  service_group?: {
+    id: number
+    name: string
+  } | null
+}
+
+interface ServiceGroupOption {
+  id: number
+  name: string
 }
 
 export default function UsersPage() {
@@ -82,13 +91,18 @@ export default function UsersPage() {
   const [statusChangeUser, setStatusChangeUser] = useState<User | null>(null)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [changingStatus, setChangingStatus] = useState(false)
+  const [serviceGroups, setServiceGroups] = useState<ServiceGroupOption[]>([])
+  const [selectedServiceGroupId, setSelectedServiceGroupId] = useState('')
+  const [loadingEditContext, setLoadingEditContext] = useState(false)
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (options?: { limit?: number; offset?: number }) => {
+    const limit = options?.limit ?? pagination.limit
+    const offset = options?.offset ?? pagination.offset
     setLoading(true)
     try {
       const params = new URLSearchParams({
-        limit: pagination.limit.toString(),
-        offset: pagination.offset.toString(),
+        limit: limit.toString(),
+        offset: offset.toString(),
       })
       if (search) params.append('search', search)
       if (roleFilter !== 'all') params.append('role', roleFilter)
@@ -101,7 +115,11 @@ export default function UsersPage() {
       const result = await response.json()
       if (result.success && result.data) {
         setUsers(result.data.users || [])
-        setPagination(result.data.pagination || { limit: 20, offset: 0, total: 0 })
+        setPagination((current) => ({
+          limit: result.data.pagination?.limit ?? current.limit,
+          offset: result.data.pagination?.offset ?? current.offset,
+          total: result.data.pagination?.total ?? current.total,
+        }))
       }
     } catch (error) {
       toast.error(tToast('loadError'))
@@ -114,16 +132,65 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roleFilter, regionFilter, statusFilter]) // Re-fetch when filters change
+  }, [roleFilter, regionFilter, statusFilter, pagination.offset, pagination.limit]) // Re-fetch when filters or page change
 
   const handleSearch = () => {
-    setPagination({ ...pagination, offset: 0 })
-    fetchUsers()
+    setPagination((current) => ({ ...current, offset: 0 }))
+    if (pagination.offset === 0) {
+      fetchUsers({ offset: 0 })
+    }
+  }
+
+  const loadCustomerEditContext = async (user: User) => {
+    const userId = user.zammad_id || Number(user.user_id)
+    if (!userId) return
+
+    setLoadingEditContext(true)
+    try {
+      const [detailResponse, groupsResponse] = await Promise.all([
+        fetch(`/api/admin/users/${userId}`),
+        fetch('/api/admin/service-groups'),
+      ])
+
+      const detailData = await detailResponse.json().catch(() => ({}))
+      const groupsData = await groupsResponse.json().catch(() => ({}))
+
+      if (detailData.success && detailData.data?.user) {
+        setEditingUser((current) => current ? {
+          ...current,
+          region: detailData.data.user.region,
+          service_group: detailData.data.user.service_group,
+        } : current)
+        setSelectedServiceGroupId(
+          detailData.data.user.service_group?.id ? String(detailData.data.user.service_group.id) : ''
+        )
+      }
+
+      if (groupsData.success && groupsData.data?.serviceGroups) {
+        setServiceGroups(
+          groupsData.data.serviceGroups.map((group: ServiceGroupOption) => ({
+            id: group.id,
+            name: group.name,
+          }))
+        )
+      }
+    } catch (error) {
+      toast.error(tToast('loadError'))
+      console.error(error)
+    } finally {
+      setLoadingEditContext(false)
+    }
   }
 
   const handleEdit = (user: User) => {
     setEditingUser(user)
+    setSelectedServiceGroupId(user.service_group?.id ? String(user.service_group.id) : '')
+    setServiceGroups([])
     setEditDialogOpen(true)
+
+    if (user.role === 'customer') {
+      void loadCustomerEditContext(user)
+    }
   }
 
   const handleSave = async () => {
@@ -143,7 +210,9 @@ export default function UsersPage() {
         updateData.region = editingUser.region
       }
 
-      const response = await fetch(`/api/admin/users/${editingUser.zammad_id || editingUser.user_id}`, {
+      const userId = editingUser.zammad_id || editingUser.user_id
+
+      const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
@@ -153,6 +222,19 @@ export default function UsersPage() {
         const errorData = await response.json().catch(() => ({}))
         console.error('API Error:', errorData)
         throw new Error(errorData.error || 'Failed to update user')
+      }
+
+      if (editingUser.role === 'customer' && selectedServiceGroupId) {
+        const assignmentResponse = await fetch(`/api/admin/customers/${userId}/service-group`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serviceGroupId: Number(selectedServiceGroupId) }),
+        })
+
+        if (!assignmentResponse.ok) {
+          const assignmentError = await assignmentResponse.json().catch(() => ({}))
+          throw new Error(assignmentError.error || 'Failed to update service group')
+        }
       }
 
       toast.success(tToast('updateSuccess'))
@@ -348,7 +430,19 @@ export default function UsersPage() {
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.user_id}>
+                    <TableRow
+                      key={user.user_id}
+                      role="button"
+                      tabIndex={0}
+                      className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => handleEdit(user)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          handleEdit(user)
+                        }
+                      }}
+                    >
                       <TableCell className="font-medium">{user.full_name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
@@ -358,7 +452,11 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell>{getRegionLabel(user.region)}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div
+                          className="flex items-center gap-2"
+                          onClick={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => event.stopPropagation()}
+                        >
                           <Switch
                             checked={user.active !== false}
                             onCheckedChange={() => handleStatusToggle(user)}
@@ -375,7 +473,11 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(user)}
+                          aria-label={t('editUser')}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            handleEdit(user)
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -397,7 +499,10 @@ export default function UsersPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPagination({ ...pagination, offset: Math.max(0, pagination.offset - pagination.limit) })}
+                    onClick={() => setPagination((current) => ({
+                      ...current,
+                      offset: Math.max(0, current.offset - current.limit),
+                    }))}
                     disabled={pagination.offset === 0}
                   >
                     {t('pagination.previous')}
@@ -405,7 +510,10 @@ export default function UsersPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPagination({ ...pagination, offset: pagination.offset + pagination.limit })}
+                    onClick={() => setPagination((current) => ({
+                      ...current,
+                      offset: current.offset + current.limit,
+                    }))}
                     disabled={pagination.offset + pagination.limit >= pagination.total}
                   >
                     {t('pagination.next')}
@@ -418,7 +526,17 @@ export default function UsersPage() {
       </Card>
 
       {/* Edit User Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open)
+          if (!open) {
+            setServiceGroups([])
+            setSelectedServiceGroupId('')
+            setLoadingEditContext(false)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('editDialog.title')}</DialogTitle>
@@ -483,9 +601,28 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t('roles.staffRegionHint')}
+                  {editingUser.role === 'customer' ? t('serviceGroup.regionHint') : t('roles.staffRegionHint')}
                 </p>
               </div>
+              {editingUser.role === 'customer' && (
+                <div>
+                  <Label>{t('serviceGroup.title')}</Label>
+                  <Select value={selectedServiceGroupId} onValueChange={setSelectedServiceGroupId}>
+                    <SelectTrigger disabled={loadingEditContext}>
+                      <SelectValue
+                        placeholder={loadingEditContext ? tCommon('loading') : t('serviceGroup.placeholder')}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {serviceGroups.map((group) => (
+                        <SelectItem key={group.id} value={String(group.id)}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label>{t('editDialog.phone')}</Label>
                 <Input

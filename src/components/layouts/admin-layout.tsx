@@ -15,6 +15,7 @@ import {
   Activity,
   Ticket,
   ChevronDown,
+  Layers3,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -77,6 +78,11 @@ export function AdminLayout({
       href: "/admin/tickets",
       icon: Ticket,
       badge: displayUnread,
+    },
+    {
+      name: t('serviceGroups'),
+      href: "/admin/service-groups",
+      icon: Layers3,
     },
     {
       name: t('faqManagement'),

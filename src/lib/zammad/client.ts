@@ -645,6 +645,30 @@ export class ZammadClient {
   }
 
   /**
+   * Delete user
+   * @param id - User ID
+   */
+  async deleteUser(id: number): Promise<void> {
+    const url = `${this.baseUrl}/api/v1/users/${id}`
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Token token=${this.apiToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(this.timeout),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      }))
+      throw new Error(error.error_human || error.error)
+    }
+  }
+
+  /**
    * Search users
    * @param query - Search query (email, login, name, etc.)
    * @returns Array of matching users

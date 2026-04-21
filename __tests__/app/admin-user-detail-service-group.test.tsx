@@ -46,6 +46,7 @@ vi.mock('next-intl', () => ({
       'admin.users.serviceGroup.placeholder': 'Select a service group',
       'admin.users.serviceGroup.assign': 'Assign Service Group',
       'admin.users.serviceGroup.assigning': 'Assigning...',
+      'admin.users.serviceGroup.regionHint': 'Customer region is controlled by the assigned service group.',
       'admin.dashboard.stats.openTickets': 'Open Tickets',
       'admin.dashboard.stats.closedTickets': 'Closed Tickets',
       'common.edit': 'Edit',
@@ -149,32 +150,43 @@ describe('admin user service-group surfaces', () => {
   })
 
   it('disables direct region editing for customer on edit page', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: {
-          user: {
-            id: 101,
-            email: 'customer@test.com',
-            full_name: 'Customer User',
-            firstname: 'Customer',
-            lastname: 'User',
-            role: 'customer',
-            region: 'asia-pacific',
-            active: true,
-            service_group: { id: 1, name: '亚太 1' },
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            user: {
+              id: 101,
+              email: 'customer@test.com',
+              full_name: 'Customer User',
+              firstname: 'Customer',
+              lastname: 'User',
+              role: 'customer',
+              region: 'asia-pacific',
+              active: true,
+              service_group: { id: 1, name: '亚太 1' },
+            },
           },
-        },
-      }),
-    }) as any)
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            serviceGroups: [{ id: 1, name: '亚太 1' }],
+          },
+        }),
+      }) as any)
 
     render(<EditUserPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Service Group')).toBeInTheDocument()
+      expect(screen.getAllByText('Service Group').length).toBeGreaterThan(0)
     })
-    expect(screen.getByText('亚太 1')).toBeInTheDocument()
-    expect(screen.getByRole('combobox')).toBeDisabled()
+    expect(screen.getAllByText('亚太 1').length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('combobox')[0]).toBeDisabled()
+    expect(screen.getByText('Customer region is controlled by the assigned service group.')).toBeInTheDocument()
   })
 })

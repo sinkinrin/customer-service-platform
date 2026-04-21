@@ -119,6 +119,7 @@
     "tickets": "Tickets",
     "knowledgeBase": "Knowledge Base",
     "users": "Users",
+    "serviceGroups": "Service Groups",
     "settings": "Settings",
     "systemSettings": "System Settings",
     "logout": "Logout",
@@ -597,7 +598,7 @@
       },
       "createPage": {
         "title": "Create New User",
-        "description": "Add a new user to the system with role and region assignment",
+        "description": "Add a new user to the system with role and routing assignment",
         "backToUsers": "Back to Users",
         "createButton": "Create User",
         "cancel": "Cancel",
@@ -651,7 +652,8 @@
         "owner": "Service Group Owner",
         "placeholder": "Select a service group",
         "assign": "Assign Service Group",
-        "assigning": "Assigning..."
+        "assigning": "Assigning...",
+        "regionHint": "Customer region is controlled by the assigned service group."
       },
       "importDialog": {
         "title": "Bulk User Import",
@@ -686,6 +688,48 @@
         "retry": "Retry",
         "noTickets": "No tickets found for this user",
         "count": "Found {count} tickets"
+      }
+    },
+    "serviceGroups": {
+      "pageTitle": "Service Groups",
+      "pageDescription": "Create and maintain refined customer partitions from the admin console",
+      "title": "Service Group List",
+      "description": "Each service group belongs to one base region and one responsible staff member.",
+      "createButton": "New Service Group",
+      "refreshButton": "Refresh",
+      "deactivateButton": "Deactivate",
+      "empty": "No service groups yet",
+      "table": {
+        "name": "Name",
+        "baseRegion": "Base Region",
+        "owner": "Owner",
+        "status": "Status",
+        "updatedAt": "Updated At",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "form": {
+        "name": "Name",
+        "namePlaceholder": "APAC Premium",
+        "baseRegion": "Base Region",
+        "staff": "Assigned Staff",
+        "staffPlaceholder": "Select a staff member",
+        "noStaff": "No staff members are available right now",
+        "transferTarget": "Transfer customers to",
+        "transferTargetPlaceholder": "Select a target service group"
+      },
+      "dialog": {
+        "createTitle": "Create Service Group",
+        "createDescription": "Create a new refined partition under an existing base region.",
+        "createConfirm": "Create",
+        "editTitle": "Edit Service Group",
+        "editDescription": "Update the service group name, base region, or responsible staff.",
+        "deactivateTitle": "Deactivate Service Group",
+        "deactivateDescription": "Deactivate {name} and transfer its customers to another active service group.",
+        "noTransferTargets": "Create another active service group first before deactivating this one."
       }
     },
     "faq": {
@@ -1789,6 +1833,18 @@
         "deleteSuccess": "User deleted",
         "deleteError": "Failed to delete user",
         "importSuccess": "Successfully imported {count} users"
+      },
+      "serviceGroups": {
+        "loadError": "Failed to load service groups",
+        "staffLoadError": "Failed to load staff list",
+        "validationError": "Name and assigned staff are required",
+        "transferRequired": "Select a transfer target first",
+        "createSuccess": "Service group created successfully",
+        "createError": "Failed to create service group",
+        "updateSuccess": "Service group updated successfully",
+        "updateError": "Failed to update service group",
+        "deactivateSuccess": "Service group deactivated successfully",
+        "deactivateError": "Failed to deactivate service group"
       },
       "faq": {
         "createSuccess": "Article created successfully!",

@@ -3,10 +3,10 @@
 /**
  * Admin Create User Page
  *
- * Allows administrators to create new users with role and region assignment
+ * Allows administrators to create new users with role and routing assignment
  */
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,16 +16,47 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
-import { REGIONS } from '@/lib/constants/regions'
+import { REGIONS, type RegionValue } from '@/lib/constants/regions'
 import Link from 'next/link'
+
+type ServiceBaseRegion =
+  | 'AFRICA'
+  | 'MIDDLE_EAST'
+  | 'ASIA_PACIFIC'
+  | 'NORTH_AMERICA'
+  | 'LATIN_AMERICA'
+  | 'EUROPE_ZONE_1'
+  | 'EUROPE_ZONE_2'
+  | 'CIS'
+
+interface ServiceGroupOption {
+  id: number
+  name: string
+  baseRegion: ServiceBaseRegion
+  isActive: boolean
+}
+
+const BASE_REGION_TO_REGION: Record<ServiceBaseRegion, RegionValue> = {
+  AFRICA: 'africa',
+  MIDDLE_EAST: 'middle-east',
+  ASIA_PACIFIC: 'asia-pacific',
+  NORTH_AMERICA: 'north-america',
+  LATIN_AMERICA: 'latin-america',
+  EUROPE_ZONE_1: 'europe-zone-1',
+  EUROPE_ZONE_2: 'europe-zone-2',
+  CIS: 'cis',
+}
 
 export default function CreateUserPage() {
   const router = useRouter()
   const t = useTranslations('admin.users')
   const tToast = useTranslations('toast.admin.users')
+  const tCommon = useTranslations('common')
   const tRegions = useTranslations('common.regions')
   const tLocaleNames = useTranslations('common.localeNames')
   const [loading, setLoading] = useState(false)
+  const [loadingServiceGroups, setLoadingServiceGroups] = useState(false)
+  const [serviceGroups, setServiceGroups] = useState<ServiceGroupOption[]>([])
 
   const [formData, setFormData] = useState({
     email: '',
@@ -33,19 +64,92 @@ export default function CreateUserPage() {
     full_name: '',
     role: 'customer' as 'customer' | 'staff' | 'admin',
     region: 'asia-pacific',
+    serviceGroupId: '',
     phone: '',
     language: 'zh-CN',
   })
 
+  useEffect(() => {
+    if (formData.role !== 'customer' || serviceGroups.length > 0) {
+      return
+    }
+
+    let active = true
+
+    async function loadServiceGroups() {
+      setLoadingServiceGroups(true)
+      try {
+        const response = await fetch('/api/admin/service-groups')
+        const data = await response.json()
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || tToast('loadError'))
+        }
+
+        if (!active) {
+          return
+        }
+
+        setServiceGroups(
+          (data.data?.serviceGroups || []).filter((group: ServiceGroupOption) => group.isActive)
+        )
+      } catch (error: any) {
+        if (active) {
+          toast.error(error.message || tToast('loadError'))
+        }
+      } finally {
+        if (active) {
+          setLoadingServiceGroups(false)
+        }
+      }
+    }
+
+    void loadServiceGroups()
+
+    return () => {
+      active = false
+    }
+  }, [formData.role, serviceGroups.length])
+
+  const selectedServiceGroup = useMemo(
+    () => serviceGroups.find((group) => String(group.id) === formData.serviceGroupId),
+    [formData.serviceGroupId, serviceGroups]
+  )
+
+  const customerRegion = selectedServiceGroup
+    ? BASE_REGION_TO_REGION[selectedServiceGroup.baseRegion]
+    : undefined
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (formData.role === 'customer' && !formData.serviceGroupId) {
+      toast.error(tToast('validationError'))
+      return
+    }
+
     setLoading(true)
 
     try {
+      const payload: Record<string, string | number> = {
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
+        role: formData.role,
+        phone: formData.phone,
+        language: formData.language,
+      }
+
+      if (formData.role === 'customer') {
+        payload.serviceGroupId = Number(formData.serviceGroupId)
+      } else {
+        payload.region = formData.region
+      }
+
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()
@@ -166,30 +270,64 @@ export default function CreateUserPage() {
               </p>
             </div>
 
-            {/* Region */}
-            <div className="space-y-2">
-              <Label htmlFor="region">{t('form.regionLabel')}</Label>
-              <Select
-                value={formData.region}
-                onValueChange={(value) => setFormData({ ...formData, region: value })}
-              >
-                <SelectTrigger id="region">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {REGIONS.map((region) => (
-                    <SelectItem key={region.value} value={region.value}>
-                      {tRegions(region.value)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                {formData.role === 'staff'
-                  ? t('roles.staffRegionHint')
-                  : t('roles.customerRegionHint')}
-              </p>
-            </div>
+            {formData.role === 'customer' ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="service-group">{t('serviceGroup.title')}</Label>
+                  <Select
+                    value={formData.serviceGroupId}
+                    onValueChange={(value) => setFormData({ ...formData, serviceGroupId: value })}
+                  >
+                    <SelectTrigger id="service-group">
+                      <SelectValue placeholder={loadingServiceGroups ? tCommon('loading') : t('serviceGroup.placeholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {serviceGroups.map((group) => (
+                        <SelectItem key={group.id} value={String(group.id)}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="region">{t('form.regionLabel')}</Label>
+                  <Input
+                    id="region"
+                    value={customerRegion ? tRegions(customerRegion) : ''}
+                    placeholder={t('serviceGroup.placeholder')}
+                    readOnly
+                    disabled
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {t('serviceGroup.regionHint')}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="region">{t('form.regionLabel')}</Label>
+                <Select
+                  value={formData.region}
+                  onValueChange={(value) => setFormData({ ...formData, region: value })}
+                >
+                  <SelectTrigger id="region">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REGIONS.map((region) => (
+                      <SelectItem key={region.value} value={region.value}>
+                        {tRegions(region.value)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {t('roles.staffRegionHint')}
+                </p>
+              </div>
+            )}
 
             {/* Phone (Optional) */}
             <div className="space-y-2">
@@ -231,7 +369,10 @@ export default function CreateUserPage() {
                   {t('createPage.cancel')}
                 </Button>
               </Link>
-              <Button type="submit" disabled={loading}>
+              <Button
+                type="submit"
+                disabled={loading || (formData.role === 'customer' && (!formData.serviceGroupId || loadingServiceGroups))}
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <UserPlus className="mr-2 h-4 w-4" />
                 {t('createPage.createButton')}

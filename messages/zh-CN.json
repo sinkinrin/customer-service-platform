@@ -119,6 +119,7 @@
     "tickets": "工单",
     "knowledgeBase": "知识库",
     "users": "用户管理",
+    "serviceGroups": "服务分组",
     "settings": "设置",
     "systemSettings": "系统设置",
     "logout": "退出登录",
@@ -597,7 +598,7 @@
       },
       "createPage": {
         "title": "创建新用户",
-        "description": "向系统添加新用户并分配角色和地区",
+        "description": "向系统添加新用户并分配角色与归属",
         "backToUsers": "返回用户列表",
         "createButton": "创建用户",
         "cancel": "取消",
@@ -651,7 +652,8 @@
         "owner": "服务分组负责人",
         "placeholder": "选择服务分组",
         "assign": "分配服务分组",
-        "assigning": "分配中..."
+        "assigning": "分配中...",
+        "regionHint": "客户的地区由服务分组决定，请在这里调整。"
       },
       "importDialog": {
         "title": "批量导入用户",
@@ -686,6 +688,48 @@
         "retry": "重试",
         "noTickets": "未找到该用户的工单",
         "count": "找到 {count} 个工单"
+      }
+    },
+    "serviceGroups": {
+      "pageTitle": "服务分组",
+      "pageDescription": "在管理后台创建和维护细化分区",
+      "title": "服务分组列表",
+      "description": "每个服务分组都归属于一个基础区域，并绑定一位负责人。",
+      "createButton": "新建服务分组",
+      "refreshButton": "刷新",
+      "deactivateButton": "停用",
+      "empty": "暂无服务分组",
+      "table": {
+        "name": "名称",
+        "baseRegion": "基础区域",
+        "owner": "负责人",
+        "status": "状态",
+        "updatedAt": "更新时间",
+        "actions": "操作"
+      },
+      "status": {
+        "active": "启用中",
+        "inactive": "已停用"
+      },
+      "form": {
+        "name": "名称",
+        "namePlaceholder": "亚太高优先级",
+        "baseRegion": "基础区域",
+        "staff": "指派员工",
+        "staffPlaceholder": "选择员工",
+        "noStaff": "当前没有可用员工",
+        "transferTarget": "客户转移到",
+        "transferTargetPlaceholder": "选择目标服务分组"
+      },
+      "dialog": {
+        "createTitle": "新建服务分组",
+        "createDescription": "在已有基础区域下新建一个细化分区。",
+        "createConfirm": "创建",
+        "editTitle": "编辑服务分组",
+        "editDescription": "更新服务分组名称、基础区域或负责人。",
+        "deactivateTitle": "停用服务分组",
+        "deactivateDescription": "停用 {name}，并将其客户转移到另一个启用中的服务分组。",
+        "noTransferTargets": "请先创建另一个启用中的服务分组，再停用当前分组。"
       }
     },
     "faq": {
@@ -1789,6 +1833,18 @@
         "deleteSuccess": "用户已删除",
         "deleteError": "用户删除失败",
         "importSuccess": "成功导入 {count} 位用户"
+      },
+      "serviceGroups": {
+        "loadError": "服务分组加载失败",
+        "staffLoadError": "员工列表加载失败",
+        "validationError": "名称和指派员工为必填项",
+        "transferRequired": "请先选择转移目标",
+        "createSuccess": "服务分组创建成功",
+        "createError": "服务分组创建失败",
+        "updateSuccess": "服务分组更新成功",
+        "updateError": "服务分组更新失败",
+        "deactivateSuccess": "服务分组已停用",
+        "deactivateError": "服务分组停用失败"
       },
       "faq": {
         "createSuccess": "文章创建成功！",

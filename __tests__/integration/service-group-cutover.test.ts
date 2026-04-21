@@ -96,17 +96,32 @@ const {
   mockFindCustomerServiceGroup,
   mockGetCustomerAssignmentRegion,
   mockListCustomerAssignmentRegions,
+  mockAssignCustomerToServiceGroup,
 } = vi.hoisted(() => ({
   mockFindCustomerServiceGroup: vi.fn(),
   mockGetCustomerAssignmentRegion: vi.fn(),
   mockListCustomerAssignmentRegions: vi.fn(),
+  mockAssignCustomerToServiceGroup: vi.fn(),
 }))
 
 vi.mock('@/lib/service-groups/customer-assignment-service', () => ({
+  assignCustomerToServiceGroup: mockAssignCustomerToServiceGroup,
   findCustomerServiceGroup: mockFindCustomerServiceGroup,
   getCustomerAssignmentRegion: mockGetCustomerAssignmentRegion,
   listCustomerAssignmentRegions: mockListCustomerAssignmentRegions,
 }))
+
+const { mockGetServiceGroup } = vi.hoisted(() => ({
+  mockGetServiceGroup: vi.fn(),
+}))
+
+vi.mock('@/lib/service-groups/service-group-service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/service-groups/service-group-service')>()
+  return {
+    ...actual,
+    getServiceGroup: mockGetServiceGroup,
+  }
+})
 
 vi.mock('@/lib/zammad/health-check', () => ({
   checkZammadHealth: vi.fn().mockResolvedValue({ isHealthy: true }),
@@ -181,6 +196,14 @@ describe('service-group cutover smoke test', () => {
       },
       expires: new Date(Date.now() + 3600000).toISOString(),
     } as any)
+    mockAssignCustomerToServiceGroup.mockResolvedValue({})
+    mockGetServiceGroup.mockResolvedValue({
+      id: 7,
+      name: 'APAC Premium',
+      baseRegion: 'ASIA_PACIFIC',
+      staffZammadId: 2,
+      isActive: true,
+    })
     mockGetCustomerAssignmentRegion.mockResolvedValue(undefined)
     mockListCustomerAssignmentRegions.mockResolvedValue(new Map())
     process.env.ZAMMAD_WEBHOOK_SECRET = ''
@@ -285,7 +308,7 @@ describe('service-group cutover smoke test', () => {
         password: 'password123',
         full_name: 'New Customer',
         role: 'customer',
-        region: 'asia-pacific',
+        serviceGroupId: 7,
       }),
     }))
 
@@ -295,5 +318,6 @@ describe('service-group cutover smoke test', () => {
         note: expect.stringContaining('Region:'),
       })
     )
+    expect(mockAssignCustomerToServiceGroup).toHaveBeenCalledWith(201, 7, 'admin-create-user:newcustomer@test.com')
   })
 })

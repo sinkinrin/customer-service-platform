@@ -19,12 +19,15 @@ import { mockUsers, mockPasswords } from '@/lib/mock-auth'
 import { getGroupIdByRegion, isValidRegion } from '@/lib/constants/regions'
 import { logger } from '@/lib/utils/logger'
 import crypto from 'crypto'
+import { assignCustomerToServiceGroupWithRollback } from '@/lib/admin-user-creation'
+import { getServiceGroupByName } from '@/lib/service-groups/service-group-service'
 
 interface ParsedUser {
     email: string
     full_name: string
     role: 'customer' | 'staff' | 'admin'
-    region: string
+    region?: string
+    service_group?: string
     phone?: string
     password?: string
 }
@@ -58,6 +61,7 @@ function parseCSV(content: string): { users: ParsedUser[], errors: string[] } {
     const nameIdx = header.findIndex(h => h.includes('name') || h === 'full_name')
     const roleIdx = header.indexOf('role')
     const regionIdx = header.indexOf('region')
+    const serviceGroupIdx = header.findIndex(h => ['service_group', 'servicegroup', 'service-group'].includes(h))
     const phoneIdx = header.indexOf('phone')
     const passwordIdx = header.indexOf('password')
 
@@ -81,7 +85,8 @@ function parseCSV(content: string): { users: ParsedUser[], errors: string[] } {
         const email = sanitizeCSVField(values[emailIdx]?.trim() || '')
         const full_name = sanitizeCSVField(values[nameIdx]?.trim() || '')
         const role = (sanitizeCSVField(values[roleIdx]?.trim().toLowerCase() || '') || 'customer') as 'customer' | 'staff' | 'admin'
-        const region = sanitizeCSVField(values[regionIdx]?.trim() || '') || 'asia-pacific'
+        const region = sanitizeCSVField(values[regionIdx]?.trim() || '')
+        const service_group = serviceGroupIdx >= 0 ? sanitizeCSVField(values[serviceGroupIdx]?.trim() || '') : ''
         const phone = sanitizeCSVField(values[phoneIdx]?.trim() || '')
         const password = values[passwordIdx]?.trim() || generatePassword()
 
@@ -98,11 +103,23 @@ function parseCSV(content: string): { users: ParsedUser[], errors: string[] } {
             errors.push(`Row ${i + 1}: Invalid role "${role}" for ${email}, using "customer"`)
         }
 
+        const normalizedRole = ['customer', 'staff', 'admin'].includes(role) ? role : 'customer'
+        if (normalizedRole === 'customer') {
+            if (!service_group) {
+                errors.push(`Row ${i + 1}: Missing service group for ${email}`)
+                continue
+            }
+        } else if (!region || !isValidRegion(region)) {
+            errors.push(`Row ${i + 1}: Invalid region "${region}" for ${email}`)
+            continue
+        }
+
         users.push({
             email,
             full_name,
-            role: ['customer', 'staff', 'admin'].includes(role) ? role : 'customer',
-            region: isValidRegion(region) ? region : 'asia-pacific',
+            role: normalizedRole,
+            region: normalizedRole === 'customer' ? undefined : region,
+            service_group: normalizedRole === 'customer' ? service_group : undefined,
             phone,
             password,
         })
@@ -194,6 +211,13 @@ export async function POST(request: NextRequest) {
                 // Prepare Zammad user data
                 const [firstname, ...lastnameArr] = user.full_name.split(' ')
                 const lastname = lastnameArr.join(' ') || firstname
+                const serviceGroup = user.role === 'customer'
+                    ? await getServiceGroupByName(user.service_group || '')
+                    : null
+
+                if (user.role === 'customer' && !serviceGroup) {
+                    throw new Error('Service group not found')
+                }
 
                 // Determine Zammad roles
                 let zammadRoles: string[]
@@ -226,6 +250,14 @@ export async function POST(request: NextRequest) {
                     active: true,
                     verified: true,
                 })
+
+                if (user.role === 'customer') {
+                    await assignCustomerToServiceGroupWithRollback(
+                        zammadUser.id,
+                        serviceGroup!.id,
+                        `import:${user.email}`
+                    )
+                }
 
                 // Store in mock data for auth
                 mockUsers[user.email] = {

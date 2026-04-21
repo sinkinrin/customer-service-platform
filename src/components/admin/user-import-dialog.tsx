@@ -37,7 +37,8 @@ interface PreviewUser {
     email: string
     full_name: string
     role: string
-    region: string
+    region?: string
+    service_group?: string
     phone?: string
 }
 
@@ -155,7 +156,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
     }
 
     const downloadTemplate = () => {
-        const template = 'email,full_name,role,region,phone\nexample@company.com,John Doe,customer,asia-pacific,+1234567890'
+        const template = 'email,full_name,role,service_group,region,phone\ncustomer@example.com,John Doe,customer,APAC Premium,,+1234567890\nstaff@example.com,Jane Smith,staff,,asia-pacific,+1234567891'
         const blob = new Blob([template], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -243,6 +244,7 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                                         <TableHead>{tUsers('table.email')}</TableHead>
                                         <TableHead>{tUsers('table.name')}</TableHead>
                                         <TableHead>{tUsers('table.role')}</TableHead>
+                                        <TableHead>{tUsers('serviceGroup.title')}</TableHead>
                                         <TableHead>{tUsers('table.region')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -254,7 +256,8 @@ export function UserImportDialog({ open, onOpenChange, onImportComplete }: UserI
                                             <TableCell>
                                                 <Badge variant="outline">{user.role}</Badge>
                                             </TableCell>
-                                            <TableCell>{user.region}</TableCell>
+                                            <TableCell>{user.service_group || '-'}</TableCell>
+                                            <TableCell>{user.region || '-'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

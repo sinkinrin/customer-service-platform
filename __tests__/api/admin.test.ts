@@ -20,6 +20,7 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/zammad/client', () => ({
   zammadClient: {
     createUser: vi.fn(),
+    deleteUser: vi.fn(),
     searchUsersPaginated: vi.fn(),
     searchUsersTotalCount: vi.fn(),
   },
@@ -31,9 +32,25 @@ vi.mock('@/lib/mock-auth', () => ({
   mockPasswords: {},
 }))
 
+vi.mock('@/lib/service-groups/customer-assignment-service', () => ({
+  assignCustomerToServiceGroup: vi.fn(),
+  getCustomerAssignmentRegion: vi.fn(),
+  listCustomerAssignmentRegions: vi.fn(),
+}))
+
+vi.mock('@/lib/service-groups/service-group-service', () => ({
+  getServiceGroup: vi.fn(),
+}))
+
 import { auth } from '@/auth'
 import { mockUsers } from '@/lib/mock-auth'
 import { zammadClient } from '@/lib/zammad/client'
+import {
+  assignCustomerToServiceGroup,
+  getCustomerAssignmentRegion,
+  listCustomerAssignmentRegions,
+} from '@/lib/service-groups/customer-assignment-service'
+import { getServiceGroup } from '@/lib/service-groups/service-group-service'
 
 // Test users
 const mockCustomer = {
@@ -70,6 +87,10 @@ describe('Admin API 集成测试', () => {
     vi.clearAllMocks()
     vi.mocked(zammadClient.searchUsersPaginated).mockResolvedValue([] as any)
     vi.mocked(zammadClient.searchUsersTotalCount).mockResolvedValue(0)
+    vi.mocked(getCustomerAssignmentRegion).mockResolvedValue(undefined)
+    vi.mocked(listCustomerAssignmentRegions).mockResolvedValue(new Map())
+    vi.mocked(getServiceGroup).mockResolvedValue(null as any)
+    vi.mocked(assignCustomerToServiceGroup).mockResolvedValue({} as any)
     // Reset mockUsers
     Object.keys(mockUsers).forEach(key => delete mockUsers[key])
   })
@@ -262,6 +283,105 @@ describe('Admin API 集成测试', () => {
       const response = await POST(request)
 
       expect(response.status).toBe(401)
+    })
+
+    it('创建 customer 时未提供 serviceGroupId 应返回 400', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+
+      const request = createMockRequest('http://localhost:3000/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'new@test.com',
+          password: 'password123',
+          full_name: 'New User',
+          role: 'customer',
+        }),
+      })
+      const response = await POST(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.error.details).toContainEqual(
+        expect.objectContaining({ path: ['serviceGroupId'] })
+      )
+      expect(zammadClient.createUser).not.toHaveBeenCalled()
+    })
+
+    it('创建 customer 时应写入 service-group assignment', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+      vi.mocked(getServiceGroup).mockResolvedValue({
+        id: 7,
+        name: 'APAC Premium',
+        baseRegion: 'ASIA_PACIFIC',
+        staffZammadId: 22,
+        isActive: true,
+      } as any)
+      vi.mocked(zammadClient.createUser).mockResolvedValue({
+        id: 301,
+        email: 'new@test.com',
+      } as any)
+
+      const request = createMockRequest('http://localhost:3000/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'new@test.com',
+          password: 'password123',
+          full_name: 'New User',
+          role: 'customer',
+          serviceGroupId: 7,
+        }),
+      })
+      const response = await POST(request)
+
+      expect(response.status).toBe(201)
+      expect(zammadClient.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'new@test.com',
+          roles: ['Customer'],
+          group_ids: undefined,
+        })
+      )
+      expect(assignCustomerToServiceGroup).toHaveBeenCalledWith(301, 7, 'admin-create-user:new@test.com')
+    })
+
+    it('创建 customer assignment 失败时应回滚删除 Zammad 用户', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: mockAdmin,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
+      vi.mocked(getServiceGroup).mockResolvedValue({
+        id: 7,
+        name: 'APAC Premium',
+        baseRegion: 'ASIA_PACIFIC',
+        staffZammadId: 22,
+        isActive: true,
+      } as any)
+      vi.mocked(zammadClient.createUser).mockResolvedValue({
+        id: 401,
+        email: 'rollback@test.com',
+      } as any)
+      vi.mocked(assignCustomerToServiceGroup).mockRejectedValue(new Error('Assignment failed'))
+
+      const request = createMockRequest('http://localhost:3000/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'rollback@test.com',
+          password: 'password123',
+          full_name: 'Rollback User',
+          role: 'customer',
+          serviceGroupId: 7,
+        }),
+      })
+      const response = await POST(request)
+
+      expect(response.status).toBe(500)
+      expect(zammadClient.deleteUser).toHaveBeenCalledWith(401)
     })
   })
 })

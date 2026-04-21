@@ -37,6 +37,11 @@ interface UserData {
     } | null
 }
 
+interface ServiceGroupOption {
+    id: number
+    name: string
+}
+
 export default function EditUserPage() {
     const params = useParams()
     const router = useRouter()
@@ -48,6 +53,8 @@ export default function EditUserPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [user, setUser] = useState<UserData | null>(null)
+    const [serviceGroups, setServiceGroups] = useState<ServiceGroupOption[]>([])
+    const [selectedServiceGroupId, setSelectedServiceGroupId] = useState('')
     const [formData, setFormData] = useState({
         firstname: '',
         lastname: '',
@@ -67,6 +74,7 @@ export default function EditUserPage() {
                 if (data.success && data.data?.user) {
                     const u = data.data.user
                     setUser(u)
+                    setSelectedServiceGroupId(u.service_group?.id ? String(u.service_group.id) : '')
                     setFormData({
                         firstname: u.firstname || '',
                         lastname: u.lastname || '',
@@ -74,6 +82,17 @@ export default function EditUserPage() {
                         region: u.region || '',
                         active: u.active,
                     })
+
+                    if (u.role === 'customer') {
+                        const groupsResponse = await fetch('/api/admin/service-groups')
+                        const groupsData = await groupsResponse.json()
+                        if (groupsData.success) {
+                            setServiceGroups((groupsData.data.serviceGroups || []).map((group: ServiceGroupOption) => ({
+                                id: group.id,
+                                name: group.name,
+                            })))
+                        }
+                    }
                 } else {
                     toast.error(tToast('loadError'))
                     router.push('/admin/users')
@@ -104,6 +123,20 @@ export default function EditUserPage() {
             const data = await response.json()
 
             if (data.success) {
+                if (user.role === 'customer' && selectedServiceGroupId) {
+                    const assignmentResponse = await fetch(`/api/admin/customers/${userId}/service-group`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ serviceGroupId: Number(selectedServiceGroupId) }),
+                    })
+
+                    const assignmentData = await assignmentResponse.json().catch(() => ({}))
+                    if (!assignmentResponse.ok || !assignmentData.success) {
+                        toast.error(assignmentData.error || tToast('updateError'))
+                        return
+                    }
+                }
+
                 toast.success(tToast('updateSuccess'))
                 router.push(`/admin/users/${userId}`)
             } else {
@@ -208,7 +241,7 @@ export default function EditUserPage() {
                                 </SelectContent>
                             </Select>
                             <p className="text-xs text-muted-foreground">
-                                {t('roles.staffRegionHint')}
+                                {user.role === 'customer' ? t('serviceGroup.regionHint') : t('roles.staffRegionHint')}
                             </p>
                         </div>
 
@@ -220,8 +253,23 @@ export default function EditUserPage() {
                                         {t('serviceGroup.title')}
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent>
+                                <CardContent className="space-y-4">
                                     <p className="font-medium">{user.service_group?.name || '-'}</p>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="service-group">{t('serviceGroup.title')}</Label>
+                                        <Select value={selectedServiceGroupId} onValueChange={setSelectedServiceGroupId}>
+                                            <SelectTrigger id="service-group">
+                                                <SelectValue placeholder={t('serviceGroup.placeholder')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {serviceGroups.map((group) => (
+                                                    <SelectItem key={group.id} value={String(group.id)}>
+                                                        {group.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </CardContent>
                             </Card>
                         )}

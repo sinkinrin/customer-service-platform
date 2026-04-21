@@ -6,6 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Note: older changelog content in this repository had encoding corruption. This file has been normalized into a readable summary entrypoint. Historical 2025 releases remain archived under `changelogs/`.
 
+## [0.3.0] - 2026-04-21
+
+### ✨ 新增
+
+#### Service Group 驱动的客户归属与后台管理
+- **提交**: `084c224`, `998f0e8`, `cf9fc1b`, `04b343c`, `b009bf1`, `5b3fef2`, `50bf116`, `b5d662e`, `f992d87`
+- **变更**:
+  - 新增 `ServiceGroup` / `CustomerGroupAssignment` 模型与相关数据服务
+  - 将客户归属、工单创建、邮件路由、会话地区推导切换到 assignment-first 语义
+  - 新增管理端 Service Group 页面、客户服务分组编辑入口与新建客户表单支持
+  - 新建与导入 customer 统一改为显式选择 `service group`，`region` 改为派生展示值
+  - 为 customer 创建补上 assignment 失败时的 Zammad 用户回滚，减少半成功状态
+- **影响**: 客户归属、地区派生、工单路由和后台操作入口的语义统一，分区管理能力正式落地
+
+### 🔧 重构
+
+#### 移除旧的 customer region 主控路径
+- **提交**: `94a1021`, `8c87f19`
+- **变更**:
+  - 移除 binding-first 运行时分配路径
+  - 将 customer `region` 从后台主控字段收敛为由 service group 派生
+- **影响**: 旧的 `note.Region` / binding 双轨语义被进一步清理，后续维护成本下降
+
+### 🐛 修复
+
+#### 修复工单流程与相关前端状态问题
+- **提交**: `a93a536`, `08d46e0`, `0f4a62a`
+- **变更**:
+  - 修复 ticket workflow 与前端状态处理中的回归问题
+  - 将 welcome 流程从 `Region` note 标记中解耦
+  - 修正若干 assignment-first 路径下的行为细节
+- **影响**: 工单流转更稳定，service-group cutover 后的前后端行为更一致
+
+### 🧪 测试
+
+#### 增加 service-group cutover 与后台回归测试
+- **提交**: `84adb3e`, `f992d87`
+- **变更**:
+  - 增加 service-group cutover smoke test
+  - 补充后台 service group 管理、新建 customer、customer 编辑与导入链路测试
+- **影响**: 本次归属模型切换有了更完整的回归保护
+
+### 📝 文档
+
+#### 补充部署 runbook 与文档整理
+- **提交**: `0ca2e9e`, `a1d0339`
+- **变更**:
+  - 新增 service group 部署 runbook
+  - 清理旧文档并整理 OpenSpec / 历史归档
+- **影响**: 部署与后续维护的文档入口更清晰
+
 ## [0.2.2] - 2026-04-16
 
 ### 📝 文档

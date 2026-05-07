@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Note: older changelog content in this repository had encoding corruption. This file has been normalized into a readable summary entrypoint. Historical 2025 releases remain archived under `changelogs/`.
 
+## [0.4.0] - 2026-05-07
+
+### ✨ 新增
+
+#### FastGPT Pro 对话模式
+- **提交**: `21e1900`
+- **变更**:
+  - 新增客户 AI 对话 Flash / Pro 模式切换
+  - Pro 模式使用独立 FastGPT appId / API key 配置
+  - 管理端 AI 设置支持配置 Pro 应用
+  - 补充 Pro 模式、流式请求和敏感凭据过滤测试
+- **影响**: 客户 AI 对话可在快速模式和更强模型应用之间切换，同时避免 Pro API key 写入持久化配置文件
+
 ## [0.3.0] - 2026-04-21
 
 ### ✨ 新增

@@ -44,6 +44,7 @@ AI 配置现在采用混合持久化：
 - `provider`
 - `fastgptUrl`
 - `fastgptAppId`
+- `fastgptProAppId`
 - `openaiUrl`
 - `openaiModel`
 - `yuxiUrl`
@@ -59,6 +60,7 @@ AI 配置现在采用混合持久化：
 敏感字段不会被写回 JSON 文件。当前敏感字段包括：
 
 - `fastgptApiKey`
+- `fastgptProApiKey`
 - `openaiApiKey`
 - `yuxiUsername`
 - `yuxiPassword`
@@ -74,8 +76,10 @@ AI 配置现在采用混合持久化：
 字段：
 
 - `fastgptUrl`
-- `fastgptAppId`
-- `fastgptApiKey`
+- `fastgptAppId` / `fastgptApiKey`：客户 AI 对话 Flash 应用
+- `fastgptProAppId` / `fastgptProApiKey`：客户 AI 对话 Pro 应用
+
+客户对话调用 FastGPT chat completions 时由应用专属 API key 选择应用；`appId` 会被保存并随模式映射保留，供需要 `appId` 的非 chat 接口使用。
 
 ### `openai`
 
@@ -120,6 +124,8 @@ AI 配置现在采用混合持久化：
 当前环境变量覆盖示例：
 
 - `FASTGPT_API_KEY` / `AI_FASTGPT_API_KEY`
+- `FASTGPT_PRO_APP_ID` / `AI_FASTGPT_PRO_APP_ID`
+- `FASTGPT_PRO_API_KEY` / `AI_FASTGPT_PRO_API_KEY`
 - `AI_OPENAI_API_KEY`
 - `AI_YUXI_USERNAME`
 - `AI_YUXI_PASSWORD`

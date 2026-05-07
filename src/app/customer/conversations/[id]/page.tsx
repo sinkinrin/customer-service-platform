@@ -16,7 +16,7 @@ import { FeedbackDialog } from '@/components/ai/feedback-dialog'
 import { toast } from 'sonner'
 import { Loading } from '@/components/common/loading'
 import { useTranslations } from 'next-intl'
-import { ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Copy, Check, Sparkles, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStreamingChat } from '@/hooks/use-streaming-chat'
 import { getConversationLastVisitKey } from '@/lib/constants/conversation'
@@ -30,6 +30,8 @@ interface AiMsg {
   feedback?: string | null
 }
 
+type AIChatMode = 'flash' | 'pro'
+
 export default function ConversationDetailPage() {
   const t = useTranslations('customer.conversations.detail')
   const tPlaceholders = useTranslations('customer.conversations.placeholders')
@@ -42,6 +44,7 @@ export default function ConversationDetailPage() {
 
   const [aiMessages, setAiMessages] = useState<AiMsg[]>([])
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [aiChatMode, setAiChatMode] = useState<AIChatMode>('flash')
 
   // Feedback dialog state
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false)
@@ -255,7 +258,7 @@ export default function ConversationDetailPage() {
         body: JSON.stringify({
           content: trimmedContent,
           message_type: 'text',
-          metadata: { aiMode: true, role: 'customer' }
+          metadata: { aiMode: true, role: 'customer', aiChatMode }
         }),
       })
       const persistData = await persistRes.json()
@@ -281,6 +284,7 @@ export default function ConversationDetailPage() {
       {
         conversationId,
         message: trimmedContent,
+        mode: aiChatMode,
         history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
       },
       tempAiMessageId,
@@ -297,7 +301,7 @@ export default function ConversationDetailPage() {
         body: JSON.stringify({
           content: aiContent,
           message_type: 'text',
-          metadata: { aiMode: true, role: 'ai' }
+          metadata: { aiMode: true, role: 'ai', aiChatMode }
         }),
       })
       const aiPersistData = await aiPersistRes.json()
@@ -338,6 +342,11 @@ export default function ConversationDetailPage() {
       role: msg.role === 'user' ? ('customer' as const) : ('staff' as const),
     },
   }))
+
+  const modeOptions: Array<{ value: AIChatMode; label: string; icon: typeof Zap }> = [
+    { value: 'flash', label: t('chatMode.flash'), icon: Zap },
+    { value: 'pro', label: t('chatMode.pro'), icon: Sparkles },
+  ]
 
   return (
     <div className="flex flex-col bg-gradient-to-b from-background to-muted/20 flex-1 min-h-0 overflow-hidden">
@@ -415,6 +424,37 @@ export default function ConversationDetailPage() {
       {/* Input Area - Fixed at bottom */}
       <div className="flex-shrink-0 bg-gradient-to-t from-background via-background to-background/80 pt-2 pb-4">
         <div className="max-w-4xl mx-auto px-4">
+          <div className="flex justify-center mb-2">
+            <div
+              className="inline-flex h-9 items-center rounded-md border border-border/60 bg-background p-0.5 shadow-sm"
+              role="tablist"
+              aria-label={t('chatMode.label')}
+            >
+              {modeOptions.map(({ value, label, icon: Icon }) => {
+                const selected = aiChatMode === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    disabled={isAiLoading}
+                    onClick={() => setAiChatMode(value)}
+                    className={cn(
+                      'inline-flex h-8 min-w-24 items-center justify-center gap-1.5 rounded px-3 text-sm font-medium transition-colors',
+                      selected
+                        ? 'bg-foreground text-background shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      isAiLoading && 'cursor-not-allowed opacity-60'
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           <MessageInput
             onSend={handleAIMessage}
             isSending={isAiLoading}

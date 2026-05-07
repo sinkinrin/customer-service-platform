@@ -1256,7 +1256,12 @@
         "sseError": "Обновления в реальном времени недоступны: {error}",
         "closedMessage": "Беседа закрыта. Пожалуйста, начните новый чат для продолжения.",
         "aiDisclaimer": "ИИ может ошибаться. Пожалуйста, проверяйте информацию.",
-        "humanModeHint": "Вы общаетесь с оператором."
+        "humanModeHint": "Вы общаетесь с оператором.",
+        "chatMode": {
+          "label": "Режим ИИ-чата",
+          "flash": "Flash",
+          "pro": "Pro"
+        }
       },
       "placeholders": {
         "aiMode": "Спросите ИИ-ассистента...",
@@ -1705,10 +1710,16 @@
         "title": "Конфигурация FastGPT",
         "url": "URL FastGPT",
         "urlHint": "URL сервера FastGPT",
+        "flashTitle": "Приложение Flash",
         "appId": "ID приложения FastGPT",
         "appIdHint": "ID приложения FastGPT",
         "apiKey": "API-ключ FastGPT",
-        "apiKeyHint": "API-ключ FastGPT"
+        "apiKeyHint": "API-ключ FastGPT",
+        "proTitle": "Приложение Pro",
+        "proAppId": "ID приложения Pro",
+        "proAppIdHint": "ID приложения FastGPT Pro",
+        "proApiKey": "API-ключ Pro",
+        "proApiKeyHint": "API-ключ FastGPT Pro"
       },
       "openai": {
         "title": "OpenAI Compatible Configuration",

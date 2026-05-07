@@ -1300,7 +1300,12 @@
         "sseError": "Real-time updates unavailable: {error}",
         "closedMessage": "Conversation is closed. Please start a new chat to continue.",
         "aiDisclaimer": "AI may make mistakes. Please verify carefully or feel free to contact our support team.",
-        "humanModeHint": "You are now chatting with a human agent."
+        "humanModeHint": "You are now chatting with a human agent.",
+        "chatMode": {
+          "label": "AI chat mode",
+          "flash": "Flash",
+          "pro": "Pro"
+        }
       },
       "placeholders": {
         "aiMode": "Ask the AI assistant...",
@@ -1749,10 +1754,16 @@
         "title": "FastGPT configuration",
         "url": "FastGPT URL",
         "urlHint": "FastGPT server URL",
+        "flashTitle": "Flash app",
         "appId": "FastGPT app ID",
         "appIdHint": "FastGPT app ID",
         "apiKey": "FastGPT API key",
-        "apiKeyHint": "FastGPT API key"
+        "apiKeyHint": "FastGPT API key",
+        "proTitle": "Pro app",
+        "proAppId": "Pro app ID",
+        "proAppIdHint": "FastGPT Pro app ID",
+        "proApiKey": "Pro API key",
+        "proApiKeyHint": "FastGPT Pro API key"
       },
       "openai": {
         "title": "OpenAI Compatible Configuration",

@@ -82,6 +82,25 @@ describe('Admin settings APIs', () => {
       const response = await GET_AI_SETTINGS(createRequest('http://localhost:3000/api/admin/settings/ai'))
       expect(response.status).toBe(401)
     })
+
+    it('returns masked pro FastGPT credentials', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'flash-app',
+        fastgptApiKey: 'flash-key',
+        fastgptProAppId: 'pro-app',
+        fastgptProApiKey: 'pro-key',
+      } as any)
+
+      const response = await GET_AI_SETTINGS(createRequest('http://localhost:3000/api/admin/settings/ai'))
+      const payload = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(payload.data.fastgpt_pro_appid).toBe('pro-app')
+      expect(payload.data.fastgpt_pro_api_key).toBe('********')
+    })
   })
 
   describe('PUT /api/admin/settings/ai', () => {
@@ -118,6 +137,8 @@ describe('Admin settings APIs', () => {
           fastgpt_url: 'http://fastgpt',
           fastgpt_appid: 'app',
           fastgpt_api_key: 'key',
+          fastgpt_pro_appid: 'pro-app',
+          fastgpt_pro_api_key: 'pro-key',
           openai_api_key: 'openai-key',
           yuxi_username: 'agent-user',
           yuxi_password: 'agent-pass',
@@ -138,6 +159,8 @@ describe('Admin settings APIs', () => {
           fastgptUrl: 'http://fastgpt',
           fastgptAppId: 'app',
           fastgptApiKey: 'key',
+          fastgptProAppId: 'pro-app',
+          fastgptProApiKey: 'pro-key',
           openaiApiKey: 'openai-key',
           yuxiUsername: 'agent-user',
           yuxiPassword: 'agent-pass',
@@ -145,6 +168,10 @@ describe('Admin settings APIs', () => {
       )
       expect(process.env.FASTGPT_API_KEY).toBe('key')
       expect(process.env.AI_FASTGPT_API_KEY).toBe('key')
+      expect(process.env.FASTGPT_PRO_APP_ID).toBe('pro-app')
+      expect(process.env.AI_FASTGPT_PRO_APP_ID).toBe('pro-app')
+      expect(process.env.FASTGPT_PRO_API_KEY).toBe('pro-key')
+      expect(process.env.AI_FASTGPT_PRO_API_KEY).toBe('pro-key')
       expect(process.env.AI_OPENAI_API_KEY).toBe('openai-key')
       expect(process.env.AI_YUXI_USERNAME).toBe('agent-user')
       expect(process.env.AI_YUXI_PASSWORD).toBe('agent-pass')

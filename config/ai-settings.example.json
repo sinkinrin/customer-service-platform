@@ -1,6 +1,9 @@
 {
   "enabled": true,
   "fastgptUrl": "http:// localhost:3000",
-  "fastgptAppId": "68f745651aa1aa7ef005932f"
+  "fastgptAppId": "68f745651aa1aa7ef005932f",
+  "fastgptApiKey": "fastgpt-flash-key",
+  "fastgptProAppId": "pro-app-id",
+  "fastgptProApiKey": "fastgpt-pro-key"
 }
 

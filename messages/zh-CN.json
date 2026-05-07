@@ -1300,7 +1300,12 @@
         "sseError": "实时更新不可用：{error}",
         "closedMessage": "对话已关闭。请开启新对话以继续。",
         "aiDisclaimer": "AI 可能会犯错，请仔细甄别，或者联系我们的技术支持获取帮助。",
-        "humanModeHint": "您正在与人工客服对话中。"
+        "humanModeHint": "您正在与人工客服对话中。",
+        "chatMode": {
+          "label": "AI 对话模式",
+          "flash": "Flash",
+          "pro": "Pro"
+        }
       },
       "placeholders": {
         "aiMode": "向 AI 助手提问...",
@@ -1749,10 +1754,16 @@
         "title": "FastGPT 配置",
         "url": "FastGPT URL",
         "urlHint": "FastGPT 服务器 URL",
+        "flashTitle": "Flash 应用",
         "appId": "FastGPT 应用 ID",
         "appIdHint": "FastGPT 应用 ID",
         "apiKey": "FastGPT API 密钥",
-        "apiKeyHint": "FastGPT API 密钥"
+        "apiKeyHint": "FastGPT API 密钥",
+        "proTitle": "Pro 应用",
+        "proAppId": "Pro 应用 ID",
+        "proAppIdHint": "FastGPT Pro 应用 ID",
+        "proApiKey": "Pro API 密钥",
+        "proApiKeyHint": "FastGPT Pro API 密钥"
       },
       "openai": {
         "title": "OpenAI 兼容配置",

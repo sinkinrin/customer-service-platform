@@ -26,6 +26,8 @@ const AISettingsSchema = z.object({
   fastgpt_url: z.string().optional(),
   fastgpt_appid: z.string().optional(),
   fastgpt_api_key: z.string().optional(),
+  fastgpt_pro_appid: z.string().optional(),
+  fastgpt_pro_api_key: z.string().optional(),
 
   // OpenAI Compatible
   openai_url: z.string().optional(),
@@ -59,6 +61,8 @@ export async function GET() {
       fastgpt_url: settings.fastgptUrl,
       fastgpt_appid: settings.fastgptAppId,
       fastgpt_api_key: settings.fastgptApiKey ? '********' : '', // Mask
+      fastgpt_pro_appid: settings.fastgptProAppId,
+      fastgpt_pro_api_key: settings.fastgptProApiKey ? '********' : '',
       // OpenAI
       openai_url: settings.openaiUrl,
       openai_api_key: settings.openaiApiKey ? '********' : '',
@@ -114,6 +118,10 @@ export async function PUT(request: NextRequest) {
     if (data.fastgpt_api_key && data.fastgpt_api_key !== '********') {
       settings.fastgptApiKey = data.fastgpt_api_key
     }
+    if (data.fastgpt_pro_appid !== undefined) settings.fastgptProAppId = data.fastgpt_pro_appid
+    if (data.fastgpt_pro_api_key && data.fastgpt_pro_api_key !== '********') {
+      settings.fastgptProApiKey = data.fastgpt_pro_api_key
+    }
 
     // OpenAI
     if (data.openai_url !== undefined) settings.openaiUrl = data.openai_url
@@ -140,6 +148,16 @@ export async function PUT(request: NextRequest) {
     if (data.fastgpt_api_key && data.fastgpt_api_key !== '********') {
       process.env.FASTGPT_API_KEY = data.fastgpt_api_key
       process.env.AI_FASTGPT_API_KEY = data.fastgpt_api_key
+    }
+
+    if (data.fastgpt_pro_appid !== undefined) {
+      process.env.FASTGPT_PRO_APP_ID = data.fastgpt_pro_appid
+      process.env.AI_FASTGPT_PRO_APP_ID = data.fastgpt_pro_appid
+    }
+
+    if (data.fastgpt_pro_api_key && data.fastgpt_pro_api_key !== '********') {
+      process.env.FASTGPT_PRO_API_KEY = data.fastgpt_pro_api_key
+      process.env.AI_FASTGPT_PRO_API_KEY = data.fastgpt_pro_api_key
     }
 
     if (data.openai_api_key && data.openai_api_key !== '********') {

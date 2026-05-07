@@ -12,6 +12,7 @@ import path from 'path'
 import { logger } from '@/lib/utils/logger'
 
 export type AIProvider = 'fastgpt' | 'openai' | 'yuxi-legacy'
+export type AIChatMode = 'flash' | 'pro'
 
 export interface AISettings {
   enabled: boolean
@@ -21,6 +22,8 @@ export interface AISettings {
   fastgptUrl: string
   fastgptAppId: string
   fastgptApiKey: string
+  fastgptProAppId: string
+  fastgptProApiKey: string
 
   // OpenAI Compatible
   openaiUrl: string
@@ -59,6 +62,8 @@ const DEFAULT_SETTINGS: AISettings = {
   fastgptUrl: '',
   fastgptAppId: '',
   fastgptApiKey: '',
+  fastgptProAppId: '',
+  fastgptProApiKey: '',
 
   // OpenAI Compatible
   openaiUrl: '',
@@ -99,6 +104,8 @@ export function readAISettings(): AISettings {
       ...fileSettings,
       // Environment variables take priority, then fall back to persisted settings.
       fastgptApiKey: process.env.FASTGPT_API_KEY || process.env.AI_FASTGPT_API_KEY || fileSettings.fastgptApiKey || '',
+      fastgptProAppId: process.env.FASTGPT_PRO_APP_ID || process.env.AI_FASTGPT_PRO_APP_ID || fileSettings.fastgptProAppId || '',
+      fastgptProApiKey: process.env.FASTGPT_PRO_API_KEY || process.env.AI_FASTGPT_PRO_API_KEY || fileSettings.fastgptProApiKey || '',
       openaiApiKey: process.env.AI_OPENAI_API_KEY || fileSettings.openaiApiKey || '',
       yuxiUsername: process.env.AI_YUXI_USERNAME || fileSettings.yuxiUsername || '',
       yuxiPassword: process.env.AI_YUXI_PASSWORD || fileSettings.yuxiPassword || '',
@@ -109,6 +116,38 @@ export function readAISettings(): AISettings {
     })
     return DEFAULT_SETTINGS
   }
+}
+
+export function resolveAIChatSettings(settings: AISettings, mode: AIChatMode): AISettings {
+  if (settings.provider !== 'fastgpt' || mode === 'flash') {
+    return settings
+  }
+
+  return {
+    ...settings,
+    // FastGPT chat completions select the app through the app-specific API key.
+    // Keep appId aligned for related non-chat endpoints that require it.
+    fastgptAppId: settings.fastgptProAppId || settings.fastgptAppId,
+    fastgptApiKey: settings.fastgptProApiKey,
+  }
+}
+
+type PersistedAISettings = Omit<
+  Partial<AISettings>,
+  'fastgptApiKey' | 'fastgptProApiKey' | 'openaiApiKey' | 'yuxiUsername' | 'yuxiPassword'
+>
+
+export function sanitizeAISettingsForFile(settings: Partial<AISettings>): PersistedAISettings {
+  const {
+    fastgptApiKey: _fastgptApiKey,
+    fastgptProApiKey: _fastgptProApiKey,
+    openaiApiKey: _openaiApiKey,
+    yuxiUsername: _yuxiUsername,
+    yuxiPassword: _yuxiPassword,
+    ...persistable
+  } = settings
+
+  return persistable
 }
 
 /**
@@ -125,8 +164,9 @@ export function writeAISettings(settings: Partial<AISettings>): void {
 
     const currentSettings = readAISettings()
     const newSettings = { ...currentSettings, ...settings }
+    const fileSettings = sanitizeAISettingsForFile(newSettings)
 
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(newSettings, null, 2), 'utf-8')
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(fileSettings, null, 2), 'utf-8')
     logger.info('AIConfig', 'Settings saved', { data: { provider: newSettings.provider } })
   } catch (error) {
     logger.error('AIConfig', 'Error writing settings', {

@@ -1256,7 +1256,12 @@
         "sseError": "Atualizações em tempo real indisponíveis: {error}",
         "closedMessage": "A conversa está fechada. Por favor, inicie um novo chat para continuar.",
         "aiDisclaimer": "A IA pode cometer erros. Verifique com cuidado ou entre em contato com nossa equipe de suporte.",
-        "humanModeHint": "Agora voc? est? conversando com um agente humano."
+        "humanModeHint": "Agora voc? est? conversando com um agente humano.",
+        "chatMode": {
+          "label": "Modo de chat de IA",
+          "flash": "Flash",
+          "pro": "Pro"
+        }
       },
       "placeholders": {
         "aiMode": "Pergunte ao assistente de IA...",
@@ -1705,10 +1710,16 @@
         "title": "Configuração do FastGPT",
         "url": "URL do FastGPT",
         "urlHint": "URL do servidor FastGPT",
+        "flashTitle": "App Flash",
         "appId": "ID do app FastGPT",
         "appIdHint": "ID do aplicativo FastGPT",
         "apiKey": "Chave da API FastGPT",
-        "apiKeyHint": "Chave da API FastGPT"
+        "apiKeyHint": "Chave da API FastGPT",
+        "proTitle": "App Pro",
+        "proAppId": "ID do app Pro",
+        "proAppIdHint": "ID do app FastGPT Pro",
+        "proApiKey": "Chave API Pro",
+        "proApiKeyHint": "Chave API FastGPT Pro"
       },
       "openai": {
         "title": "OpenAI Compatible Configuration",

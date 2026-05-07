@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { readAISettings } from '@/lib/utils/ai-config'
+import { readAISettings, resolveAIChatSettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import { aiProviders } from '@/lib/ai/providers'
 import { createStreamResponse } from '@/lib/ai/stream-helpers'
@@ -19,6 +19,7 @@ const ChatRequestSchema = z.object({
     )
     .optional(),
   stream: z.boolean().optional(),
+  mode: z.enum(['flash', 'pro']).optional().default('flash'),
 })
 
 export const runtime = 'nodejs'
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     // Rate limiting (H7+M11)
     const rateLimitKey = `ai-chat:${user.id}`
-    const { allowed, remaining, resetAt } = aiChatLimiter.check(rateLimitKey)
+    const { allowed, resetAt } = aiChatLimiter.check(rateLimitKey)
     if (!allowed) {
       return NextResponse.json(
         { success: false, error: 'Rate limit exceeded. Please try again later.' },
@@ -63,10 +64,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unknown AI provider' }, { status: 500 })
     }
 
-    const { conversationId, message, history, stream } = parsed.data
+    const { conversationId, message, history, stream, mode } = parsed.data
+    const chatSettings = resolveAIChatSettings(settings, mode)
 
     log.info('Chat request', {
       provider: settings.provider,
+      mode,
       conversationId,
       messageLength: message.length,
       historyLength: history?.length || 0,
@@ -80,10 +83,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (stream && 'chatStream' in provider && typeof provider.chatStream === 'function') {
-      const streamResult = await provider.chatStream(chatRequest, settings)
+      const streamResult = await provider.chatStream(chatRequest, chatSettings)
 
       log.info('Chat stream response', {
         provider: settings.provider,
+        mode,
         success: streamResult.success,
         latencyMs: Date.now() - startedAt,
       })
@@ -95,10 +99,11 @@ export async function POST(request: NextRequest) {
       return createStreamResponse(streamResult.data.stream)
     }
 
-    const result = await provider.chat(chatRequest, settings)
+    const result = await provider.chat(chatRequest, chatSettings)
 
     log.info('Chat response', {
       provider: settings.provider,
+      mode,
       success: result.success,
       latencyMs: Date.now() - startedAt,
       responseLength: result.data?.message?.length,

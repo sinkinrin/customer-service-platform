@@ -21,6 +21,8 @@ interface AISettings {
   fastgpt_url: string
   fastgpt_appid: string
   fastgpt_api_key: string
+  fastgpt_pro_appid: string
+  fastgpt_pro_api_key: string
   // OpenAI
   openai_url: string
   openai_api_key: string
@@ -42,6 +44,8 @@ const DEFAULT_SETTINGS: AISettings = {
   fastgpt_url: '',
   fastgpt_appid: '',
   fastgpt_api_key: '',
+  fastgpt_pro_appid: '',
+  fastgpt_pro_api_key: '',
   openai_url: '',
   openai_api_key: '',
   openai_model: '',
@@ -198,6 +202,8 @@ export default function SettingsPage() {
                         </p>
                       </div>
 
+                      <h4 className="text-sm font-medium">{t('fastgpt.flashTitle')}</h4>
+
                       <div className="space-y-2">
                         <Label htmlFor="fastgpt-appid">{t('fastgpt.appId')}</Label>
                         <Input
@@ -226,6 +232,39 @@ export default function SettingsPage() {
                         />
                         <p className="text-xs text-muted-foreground">
                           {t('fastgpt.apiKeyHint')}
+                        </p>
+                      </div>
+
+                      <h4 className="text-sm font-medium pt-2">{t('fastgpt.proTitle')}</h4>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="fastgpt-pro-appid">{t('fastgpt.proAppId')}</Label>
+                        <Input
+                          id="fastgpt-pro-appid"
+                          value={aiSettings.fastgpt_pro_appid}
+                          onChange={(e) =>
+                            setAISettings({ ...aiSettings, fastgpt_pro_appid: e.target.value })
+                          }
+                          placeholder="your-pro-app-id"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t('fastgpt.proAppIdHint')}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="fastgpt-pro-api-key">{t('fastgpt.proApiKey')}</Label>
+                        <Input
+                          id="fastgpt-pro-api-key"
+                          type="password"
+                          value={aiSettings.fastgpt_pro_api_key}
+                          onChange={(e) =>
+                            setAISettings({ ...aiSettings, fastgpt_pro_api_key: e.target.value })
+                          }
+                          placeholder="fastgpt-xxxxxx"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t('fastgpt.proApiKeyHint')}
                         </p>
                       </div>
                     </div>

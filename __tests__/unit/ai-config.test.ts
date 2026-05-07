@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { sanitizeAISettingsForFile } from '@/lib/utils/ai-config'
 
 describe('AI 配置工具测试', () => {
   const originalEnv = { ...process.env }
@@ -118,6 +119,27 @@ describe('AI 配置工具测试', () => {
   })
 
   describe('API Key 过滤', () => {
+    it('保存 AI 设置前应排除所有敏感凭据', () => {
+      const filtered = sanitizeAISettingsForFile({
+        enabled: true,
+        fastgptAppId: 'flash-app',
+        fastgptApiKey: 'flash-secret',
+        fastgptProAppId: 'pro-app',
+        fastgptProApiKey: 'pro-secret',
+        openaiApiKey: 'openai-secret',
+        yuxiUsername: 'agent-user',
+        yuxiPassword: 'agent-secret',
+      })
+
+      expect(filtered.fastgptAppId).toBe('flash-app')
+      expect(filtered.fastgptProAppId).toBe('pro-app')
+      expect(filtered.fastgptApiKey).toBeUndefined()
+      expect(filtered.fastgptProApiKey).toBeUndefined()
+      expect(filtered.openaiApiKey).toBeUndefined()
+      expect(filtered.yuxiUsername).toBeUndefined()
+      expect(filtered.yuxiPassword).toBeUndefined()
+    })
+
     it('保存时应排除 API Key', () => {
       const settings = {
         enabled: true,

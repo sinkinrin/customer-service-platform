@@ -5,9 +5,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-vi.mock('@/lib/utils/ai-config', () => ({
-  readAISettings: vi.fn(),
-}))
+vi.mock('@/lib/utils/ai-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/utils/ai-config')>()
+  return {
+    ...actual,
+    readAISettings: vi.fn(),
+  }
+})
 
 const mockStaffUser = {
   id: 'staff-1',
@@ -127,6 +131,66 @@ describe('AI APIs', () => {
       expect(response.status).toBe(200)
       expect(payload.success).toBe(true)
       expect(payload.data.message).toBe('hello there')
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://fastgpt/api/v1/chat/completions',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer key',
+          }),
+        })
+      )
+    })
+
+    it('uses the pro FastGPT app credentials when pro mode is requested', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        model: 'FastGPT',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'flash-app',
+        fastgptApiKey: 'flash-key',
+        fastgptProAppId: 'pro-app',
+        fastgptProApiKey: 'pro-key',
+      } as any)
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          choices: [{ message: { content: 'pro answer' } }],
+        }),
+      })
+      global.fetch = fetchMock as any
+
+      const response = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', mode: 'pro' }),
+        })
+      )
+      const payload = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(payload.success).toBe(true)
+      expect(payload.data.message).toBe('pro answer')
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://fastgpt/api/v1/chat/completions',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer pro-key',
+          }),
+        })
+      )
+    })
+
+    it('rejects unknown AI chat modes', async () => {
+      const response = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', mode: 'ultra' }),
+        })
+      )
+
+      expect(response.status).toBe(400)
     })
 
     it('allows authenticated customers to use direct AI chat', async () => {
@@ -199,6 +263,52 @@ describe('AI APIs', () => {
       expect(response.headers.get('content-type')).toContain('text/event-stream')
       expect(text).toContain('event: answer')
       expect(text).toContain('"hello"')
+    })
+
+    it('uses the pro FastGPT app credentials for pro stream mode', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        model: 'FastGPT',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'flash-app',
+        fastgptApiKey: 'flash-key',
+        fastgptProAppId: 'pro-app',
+        fastgptProApiKey: 'pro-key',
+      } as any)
+
+      const encoder = new TextEncoder()
+      const upstreamStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('event: answer\ndata: {"choices":[{"delta":{"content":"pro"}}]}\n\n'))
+          controller.enqueue(encoder.encode('event: done\ndata: {}\n\n'))
+          controller.close()
+        },
+      })
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        body: upstreamStream,
+      })
+      global.fetch = fetchMock as any
+
+      const response = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', mode: 'pro', stream: true }),
+        })
+      )
+
+      expect(response.status).toBe(200)
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://fastgpt/api/v1/chat/completions',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer pro-key',
+          }),
+          body: expect.stringContaining('"stream":true'),
+        })
+      )
     })
   })
 

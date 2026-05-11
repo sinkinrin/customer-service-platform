@@ -65,11 +65,17 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const rawLimit = parseInt(searchParams.get('limit') || '20', 10)
+    const rawOffset = parseInt(searchParams.get('offset') || '0', 10)
+    const limit = Number.isFinite(rawLimit) ? rawLimit : 20
+    const offset = Number.isFinite(rawOffset) ? rawOffset : 0
 
     // Get customer's conversations only
-    const conversations = await getCustomerConversations(user.email)
+    const conversations = await getCustomerConversations(user.email, {
+      status,
+      limit,
+      offset,
+    })
 
     // Transform to API format (message count included via _count)
     const transformedConversations = conversations.map((conv: (typeof conversations)[number]) => {
@@ -91,18 +97,7 @@ export async function GET(request: NextRequest) {
         }
     })
 
-    // Apply filters, sort, and paginate
-    const filtered = status
-      ? transformedConversations.filter((c: (typeof transformedConversations)[number]) => c.status === status)
-      : transformedConversations
-
-    filtered.sort((a: (typeof transformedConversations)[number], b: (typeof transformedConversations)[number]) =>
-      new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
-    )
-
-    const paginatedConversations = filtered.slice(offset, offset + limit)
-
-    return successResponse(paginatedConversations)
+    return successResponse(transformedConversations)
   } catch (error: any) {
     logger.error('Conversations', 'Failed to get conversations', { data: { error: error instanceof Error ? error.message : error } })
     const message = error?.message || 'Unknown error'

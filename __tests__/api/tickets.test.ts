@@ -66,6 +66,10 @@ vi.mock('@/lib/zammad/ensure-user', () => ({
   ensureZammadUser: vi.fn().mockResolvedValue({ id: 100 }),
 }))
 
+vi.mock('@/lib/notification', () => ({
+  notifyTicketCreated: vi.fn(),
+}))
+
 vi.mock('@/lib/service-groups/customer-assignment-service', () => ({
   findCustomerServiceGroup: vi.fn().mockResolvedValue(null),
 }))
@@ -76,6 +80,7 @@ import { checkZammadHealth } from '@/lib/zammad/health-check'
 import { autoAssignSingleTicket, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
 import { ensureZammadUser } from '@/lib/zammad/ensure-user'
 import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
+import { notifyTicketCreated } from '@/lib/notification'
 
 // Test users
 const mockCustomer = {
@@ -436,6 +441,14 @@ describe('Tickets API 集成测试', () => {
       const data = await response.json()
       expect(data.success).toBe(true)
       expect(data.data.ticket.id).toBe(1)
+      expect(notifyTicketCreated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientUserId: 'cust_001',
+          ticketId: 1,
+          ticketNumber: '10001',
+          ticketTitle: 'Test Ticket',
+        })
+      )
     })
 
     describe('auto-assignment on creation', () => {

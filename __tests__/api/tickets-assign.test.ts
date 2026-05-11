@@ -28,11 +28,18 @@ vi.mock('next-intl/server', async (importOriginal) => {
   }
 })
 
+vi.mock('@/lib/notification', () => ({
+  notifyTicketAssigned: vi.fn(),
+  notifyTicketUnassigned: vi.fn(),
+  resolveLocalUserIdsForZammadUserId: vi.fn(),
+}))
+
 import { PUT } from '@/app/api/tickets/[id]/assign/route'
 import { getTranslations } from 'next-intl/server'
 
 import { requireRole } from '@/lib/utils/auth'
 import { zammadClient } from '@/lib/zammad/client'
+import { notifyTicketAssigned, notifyTicketUnassigned, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 
 function createMockRequest(url: string, body: any): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
@@ -51,6 +58,9 @@ describe('Ticket Assignment API', () => {
     } as any)
 
     vi.mocked(getTranslations).mockResolvedValue((key: string) => key)
+    vi.mocked(resolveLocalUserIdsForZammadUserId).mockImplementation(
+      async (zammadUserId: number) => [`zammad-${zammadUserId}`]
+    )
   })
 
   afterEach(() => {
@@ -98,6 +108,14 @@ describe('Ticket Assignment API', () => {
     expect(zammadClient.updateTicket).toHaveBeenCalledWith(
       1,
       expect.objectContaining({ owner_id: 5, state_id: 2 })
+    )
+    expect(notifyTicketAssigned).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserId: 'zammad-5',
+        ticketId: 1,
+        ticketNumber: '10001',
+        ticketTitle: 'Test Ticket',
+      })
     )
   })
 
@@ -151,6 +169,14 @@ describe('Ticket Assignment API', () => {
         ticket_id: 2,
         type: 'email',
         to: 'prev.owner@test.com',
+      })
+    )
+    expect(notifyTicketUnassigned).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserId: 'zammad-10',
+        ticketId: 2,
+        ticketNumber: '10002',
+        ticketTitle: 'Reassign Ticket',
       })
     )
   })

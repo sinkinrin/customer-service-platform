@@ -50,6 +50,17 @@ describe('MessageInput', () => {
 
       expect(screen.getByTitle('attachFile')).toBeInTheDocument()
     })
+
+    it('应该在发送按钮左侧渲染辅助控件', () => {
+      render(
+        <MessageInput
+          onSend={mockOnSend}
+          sendLeadingControl={<button type="button">Flash</button>}
+        />
+      )
+
+      expect(screen.getByRole('button', { name: 'Flash' })).toBeInTheDocument()
+    })
   })
 
   describe('文本输入', () => {

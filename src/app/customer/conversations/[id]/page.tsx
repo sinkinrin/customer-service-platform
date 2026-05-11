@@ -19,7 +19,11 @@ import { useTranslations } from 'next-intl'
 import { ThumbsUp, ThumbsDown, Copy, Check, Sparkles, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStreamingChat } from '@/hooks/use-streaming-chat'
-import { getConversationLastVisitKey } from '@/lib/constants/conversation'
+import {
+  INITIAL_AI_MESSAGES_LIMIT,
+  getConversationAiChatModeKey,
+  getConversationLastVisitKey,
+} from '@/lib/constants/conversation'
 
 interface AiMsg {
   id: string
@@ -45,6 +49,7 @@ export default function ConversationDetailPage() {
   const [aiMessages, setAiMessages] = useState<AiMsg[]>([])
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [aiChatMode, setAiChatMode] = useState<AIChatMode>('flash')
+  const [isAiChatModeLoaded, setIsAiChatModeLoaded] = useState(false)
 
   // Feedback dialog state
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false)
@@ -82,6 +87,26 @@ export default function ConversationDetailPage() {
     },
   })
 
+  useEffect(() => {
+    try {
+      const savedMode = localStorage.getItem(getConversationAiChatModeKey(user?.id))
+      setAiChatMode(savedMode === 'pro' ? 'pro' : 'flash')
+    } catch {
+      setAiChatMode('flash')
+    } finally {
+      setIsAiChatModeLoaded(true)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!isAiChatModeLoaded) return
+    try {
+      localStorage.setItem(getConversationAiChatModeKey(user?.id), aiChatMode)
+    } catch {
+      // localStorage may be unavailable in restricted browser contexts.
+    }
+  }, [aiChatMode, isAiChatModeLoaded, user?.id])
+
   // Track visit timestamp for the auto-new-conversation logic
   useEffect(() => {
     setAiMessages([])
@@ -100,7 +125,9 @@ export default function ConversationDetailPage() {
       const loadMessages = async () => {
         try {
           setIsInitialLoading(true)
-          const response = await fetch(`/api/conversations/${conversationId}/messages?limit=1000`)
+          const response = await fetch(
+            `/api/conversations/${conversationId}/messages?limit=${INITIAL_AI_MESSAGES_LIMIT}`
+          )
           const data = await response.json()
 
           if (data.success && data.data?.messages) {
@@ -424,42 +451,42 @@ export default function ConversationDetailPage() {
       {/* Input Area - Fixed at bottom */}
       <div className="flex-shrink-0 bg-gradient-to-t from-background via-background to-background/80 pt-2 pb-4">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="flex justify-center mb-2">
-            <div
-              className="inline-flex h-9 items-center rounded-md border border-border/60 bg-background p-0.5 shadow-sm"
-              role="tablist"
-              aria-label={t('chatMode.label')}
-            >
-              {modeOptions.map(({ value, label, icon: Icon }) => {
-                const selected = aiChatMode === value
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    disabled={isAiLoading}
-                    onClick={() => setAiChatMode(value)}
-                    className={cn(
-                      'inline-flex h-8 min-w-24 items-center justify-center gap-1.5 rounded px-3 text-sm font-medium transition-colors',
-                      selected
-                        ? 'bg-foreground text-background shadow-sm'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                      isAiLoading && 'cursor-not-allowed opacity-60'
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span>{label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
           <MessageInput
             onSend={handleAIMessage}
             isSending={isAiLoading}
             disabled={isAiLoading}
             placeholder={tPlaceholders('aiMode')}
+            sendLeadingControl={
+              <div
+                className="inline-flex h-10 items-center rounded-full border border-border/60 bg-background p-0.5 shadow-sm"
+                role="tablist"
+                aria-label={t('chatMode.label')}
+              >
+                {modeOptions.map(({ value, label, icon: Icon }) => {
+                  const selected = aiChatMode === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      disabled={isAiLoading}
+                      onClick={() => setAiChatMode(value)}
+                      className={cn(
+                        'inline-flex h-9 min-w-16 items-center justify-center gap-1 rounded-full px-2.5 text-xs font-medium transition-colors sm:min-w-20 sm:text-sm',
+                        selected
+                          ? 'bg-foreground text-background shadow-sm'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                        isAiLoading && 'cursor-not-allowed opacity-60'
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            }
           />
           <p className="text-[11px] text-muted-foreground/60 text-center mt-2 pb-[env(safe-area-inset-bottom)]">
             {t('aiDisclaimer')}

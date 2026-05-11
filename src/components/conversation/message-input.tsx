@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useState, useRef, useEffect, KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, KeyboardEvent, ReactNode } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { ArrowUp, Paperclip, X, FileText, Loader2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,6 +21,7 @@ interface MessageInputProps {
   disabled?: boolean
   placeholder?: string
   maxLength?: number
+  sendLeadingControl?: ReactNode
 }
 
 export function MessageInput({
@@ -29,6 +30,7 @@ export function MessageInput({
   disabled = false,
   placeholder,
   maxLength = 2000,
+  sendLeadingControl,
 }: MessageInputProps) {
   const t = useTranslations('components.conversation.messageInput')
   const tToast = useTranslations('toast.components.messageInput')
@@ -300,6 +302,12 @@ export function MessageInput({
             )}
             rows={1}
           />
+
+          {sendLeadingControl && (
+            <div className="flex-shrink-0">
+              {sendLeadingControl}
+            </div>
+          )}
 
           {/* Send button - circular like ChatGPT */}
           <button

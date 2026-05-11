@@ -76,11 +76,22 @@ export async function getConversation(id: string) {
 /**
  * Get conversations for a customer by email, with message count
  */
-export async function getCustomerConversations(customerEmail: string) {
+export async function getCustomerConversations(
+  customerEmail: string,
+  options?: { status?: string | null; limit?: number; offset?: number }
+) {
+  const limit = Math.min(Math.max(options?.limit ?? 20, 1), 100)
+  const offset = Math.max(options?.offset ?? 0, 0)
+
   return prisma.aiConversation.findMany({
-    where: { customerEmail },
+    where: {
+      customerEmail,
+      ...(options?.status ? { status: options.status } : {}),
+    },
     include: { _count: { select: { messages: true } } },
     orderBy: { lastMessageAt: 'desc' },
+    take: limit,
+    skip: offset,
   })
 }
 

@@ -39,7 +39,7 @@ export default function ConversationsPage() {
       try {
         setIsProcessing(true)
         setConversationsLoaded(false)
-        await fetchConversations()
+        await fetchConversations('active', 1)
         setConversationsLoaded(true)
       } catch (error) {
         console.error('Error fetching conversations:', error)

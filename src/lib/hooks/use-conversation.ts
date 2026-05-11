@@ -30,13 +30,13 @@ export function useConversation() {
   /**
    * Fetch conversations list
    */
-  const fetchConversations = useCallback(async (status?: string) => {
+  const fetchConversations = useCallback(async (status?: string, limit = 20) => {
     setLoadingConversations(true)
 
     try {
       const params = new URLSearchParams()
       if (status) params.append('status', status)
-      params.append('limit', '20')
+      params.append('limit', String(limit))
 
       const response = await fetch(`/api/conversations?${params.toString()}`)
 

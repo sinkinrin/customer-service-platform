@@ -34,6 +34,18 @@ function escapeCSV(value: string | null | undefined): string {
   return str
 }
 
+function getAiMode(metadata: string | null | undefined): string {
+  if (!metadata) return ''
+  try {
+    const parsed = JSON.parse(metadata)
+    return parsed?.aiChatMode === 'flash' || parsed?.aiChatMode === 'pro'
+      ? parsed.aiChatMode
+      : ''
+  } catch {
+    return ''
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     await requireRole(['staff', 'admin'])
@@ -81,6 +93,7 @@ export async function GET(request: NextRequest) {
       'Customer Email',
       'Customer Question',
       'AI Response',
+      'AI Mode',
       'Customer Rating',
       'Rating Feedback',
       'Review Status',
@@ -124,6 +137,7 @@ export async function GET(request: NextRequest) {
         escapeCSV(aiMsg.conversation.customerEmail),
         escapeCSV(question),
         escapeCSV(aiMsg.content),
+        escapeCSV(getAiMode(aiMsg.metadata)),
         escapeCSV(aiMsg.rating?.rating || ''),
         escapeCSV(aiMsg.rating?.feedback || ''),
         escapeCSV(aiMsg.review?.status || ''),

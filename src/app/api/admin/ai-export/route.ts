@@ -27,6 +27,18 @@ function escapeCSV(value: string | null | undefined): string {
   return str
 }
 
+function getAiMode(metadata: string | null | undefined): string {
+  if (!metadata) return ''
+  try {
+    const parsed = JSON.parse(metadata)
+    return parsed?.aiChatMode === 'flash' || parsed?.aiChatMode === 'pro'
+      ? parsed.aiChatMode
+      : ''
+  } catch {
+    return ''
+  }
+}
+
 // Safety limit to prevent exporting unbounded data
 const MAX_EXPORT_ROWS = 5000
 
@@ -68,7 +80,7 @@ export async function GET(request: NextRequest) {
     if (aiMessages.length === 0) {
       // Return CSV with headers only
       const BOM = '\uFEFF'
-      const headers = ['Time', 'Conversation ID', 'Customer Email', 'Customer Question', 'AI Response', 'Customer Rating', 'Rating Feedback']
+      const headers = ['Time', 'Conversation ID', 'Customer Email', 'Customer Question', 'AI Response', 'AI Mode', 'Customer Rating', 'Rating Feedback']
       return new Response(BOM + headers.join(','), {
         status: 200,
         headers: {
@@ -124,6 +136,7 @@ export async function GET(request: NextRequest) {
         escapeCSV(aiMsg.conversation.customerEmail),
         escapeCSV(customerQuestion),
         escapeCSV(aiMsg.content),
+        escapeCSV(getAiMode(aiMsg.metadata)),
         escapeCSV(aiMsg.rating?.rating || ''),
         escapeCSV(aiMsg.rating?.feedback || ''),
       ].join(',')
@@ -131,7 +144,7 @@ export async function GET(request: NextRequest) {
 
     // 5. Generate CSV
     const BOM = '\uFEFF'
-    const headers = ['Time', 'Conversation ID', 'Customer Email', 'Customer Question', 'AI Response', 'Customer Rating', 'Rating Feedback']
+    const headers = ['Time', 'Conversation ID', 'Customer Email', 'Customer Question', 'AI Response', 'AI Mode', 'Customer Rating', 'Rating Feedback']
     const csvContent = BOM + [headers.join(','), ...rows].join('\n')
     const filename = `ai-qa-export-${from.toISOString().split('T')[0]}_${to.toISOString().split('T')[0]}.csv`
 

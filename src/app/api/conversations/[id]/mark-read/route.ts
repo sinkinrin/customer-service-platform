@@ -44,7 +44,7 @@ export async function POST(
     }
 
     // Verify the user has access to this conversation
-    if (conversation.customerEmail !== user.email && user.role === 'customer') {
+    if (conversation.customerId !== user.id) {
       return notFoundResponse('Conversation not found')
     }
 

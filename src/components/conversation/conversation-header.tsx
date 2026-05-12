@@ -8,22 +8,27 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/hooks/use-auth'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Bot, Plus, Loader2 } from 'lucide-react'
+import { Bot, Plus, Loader2, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
+import { getConversationJustCreatedKey } from '@/lib/constants/conversation'
+import { useConversationStore } from '@/lib/stores/conversation-store'
 
 interface ConversationHeaderProps {
   mode?: 'ai'
   currentConversationId?: string
+  onOpenHistory?: () => void
 }
 
-export function ConversationHeader({ mode: _mode = 'ai', currentConversationId }: ConversationHeaderProps) {
+export function ConversationHeader({ mode: _mode = 'ai', currentConversationId: _currentConversationId, onOpenHistory }: ConversationHeaderProps) {
   const t = useTranslations('components.conversation.header')
   const tToast = useTranslations('toast.customer.conversations')
   const router = useRouter()
+  const { user } = useAuth()
   const [isCreating, setIsCreating] = useState(false)
 
   const displayName = t('aiAssistant')
@@ -48,16 +53,15 @@ export function ConversationHeader({ mode: _mode = 'ai', currentConversationId }
       const data = await response.json()
 
       if (data.success && data.data?.id) {
-        if (currentConversationId) {
-          fetch(`/api/conversations/${currentConversationId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'closed' }),
-          }).catch((error) => {
-            console.warn('Failed to close previous conversation after creating a new one:', error)
-          })
+        if (user?.id) {
+          useConversationStore.getState().invalidateHistoryListCache(user.id)
         }
-        router.push(`/customer/conversations/${data.data.id}`)
+        try {
+          sessionStorage.setItem(getConversationJustCreatedKey(user?.id), data.data.id)
+        } catch {
+          // sessionStorage may be unavailable in restricted browser contexts.
+        }
+        router.push(`/customer/conversations/${data.data.id}?new=1`)
       } else {
         throw new Error('Invalid response')
       }
@@ -100,26 +104,35 @@ export function ConversationHeader({ mode: _mode = 'ai', currentConversationId }
         </p>
       </div>
 
-      {/* New Conversation Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleNewConversation}
-        disabled={isCreating}
-        className="shrink-0"
-      >
-        {isCreating ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            {t('buttons.creatingNew')}
-          </>
-        ) : (
-          <>
-            <Plus className="h-4 w-4 mr-1.5" />
-            {t('buttons.newConversation')}
-          </>
-        )}
-      </Button>
+      <div className="flex items-center gap-2 shrink-0">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onOpenHistory}
+          aria-label={t('buttons.history')}
+        >
+          <History className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleNewConversation}
+          disabled={isCreating}
+          className="shrink-0"
+        >
+          {isCreating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              {t('buttons.creatingNew')}
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-1.5" />
+              {t('buttons.newConversation')}
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   )
 }

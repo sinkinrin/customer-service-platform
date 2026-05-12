@@ -5,7 +5,68 @@
  */
 
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import {
+  HISTORY_CACHE_MAX_BYTES,
+  HISTORY_CACHE_TTL_MS,
+  HISTORY_LIST_MAX,
+  HISTORY_MESSAGE_MAX_CONVERSATIONS,
+  HISTORY_MESSAGE_MAX_PER_CONVERSATION,
+} from '@/lib/constants/conversation'
+
+type HistoryListCacheEntry = { items: Conversation[]; updatedAt: number; cursor: number | null; lastAccessAt: number }
+type HistoryMessageCacheEntry = { items: Message[]; updatedAt: number; cursor: number | null; lastAccessAt: number }
+
+function getLastAccessAt(value: { lastAccessAt?: number; updatedAt: number }) {
+  return value.lastAccessAt ?? value.updatedAt
+}
+
+function measureBytes(value: unknown): number {
+  return new Blob([JSON.stringify(value)]).size
+}
+
+export function pruneHistoryCachesForLimits(
+  historyListCache: Record<string, HistoryListCacheEntry>,
+  historyMessageCache: Record<string, HistoryMessageCacheEntry>,
+  context?: { currentUserId: string | null; conversations: Conversation[] }
+) {
+  const listTrimmed = Object.fromEntries(
+    Object.entries(historyListCache).map(([key, value]) => [key, { ...value, items: value.items.slice(0, HISTORY_LIST_MAX) }])
+  )
+  const msgEntries = Object.entries(historyMessageCache)
+    .sort((a, b) => getLastAccessAt(b[1]) - getLastAccessAt(a[1]))
+    .slice(0, HISTORY_MESSAGE_MAX_CONVERSATIONS)
+  const msgTrimmed = Object.fromEntries(msgEntries)
+
+  const base = {
+    currentUserId: context?.currentUserId ?? null,
+    conversations: context?.conversations ?? [],
+  }
+  let next = { historyListCache: listTrimmed, historyMessageCache: msgTrimmed }
+  if (measureBytes({ ...base, ...next }) <= HISTORY_CACHE_MAX_BYTES) {
+    return next
+  }
+
+  const mutableMsg = [...msgEntries]
+  while (mutableMsg.length > 0) {
+    mutableMsg.pop()
+    next = { ...next, historyMessageCache: Object.fromEntries(mutableMsg) }
+    if (measureBytes({ ...base, ...next }) <= HISTORY_CACHE_MAX_BYTES) {
+      return next
+    }
+  }
+
+  const mutableList = Object.entries(listTrimmed).sort((a, b) => getLastAccessAt(b[1]) - getLastAccessAt(a[1]))
+  while (mutableList.length > 0) {
+    mutableList.pop()
+    next = { historyMessageCache: {}, historyListCache: Object.fromEntries(mutableList) }
+    if (measureBytes({ ...base, ...next }) <= HISTORY_CACHE_MAX_BYTES) {
+      return next
+    }
+  }
+
+  return { historyMessageCache: {}, historyListCache: {} }
+}
 
 export interface Message {
   id: string
@@ -30,6 +91,11 @@ export interface Message {
     avatar_url?: string
     role: string
   }
+  rating?: {
+    id: string
+    rating: 'positive' | 'negative'
+    feedback?: string | null
+  } | null
 }
 
 export interface Conversation {
@@ -73,6 +139,8 @@ interface ConversationState {
   isLoadingConversations: boolean
   isLoadingMessages: boolean
   isSendingMessage: boolean
+  historyListCache: Record<string, HistoryListCacheEntry>
+  historyMessageCache: Record<string, HistoryMessageCacheEntry>
 
   // Actions
   setConversations: (conversations: Conversation[]) => void
@@ -87,6 +155,16 @@ interface ConversationState {
   setLoadingConversations: (loading: boolean) => void
   setLoadingMessages: (loading: boolean) => void
   setSendingMessage: (sending: boolean) => void
+  setHistoryListCache: (userId: string, items: Conversation[], cursor: number | null) => void
+  setHistoryMessagesCache: (userId: string, conversationId: string, items: Message[], cursor: number | null) => void
+  touchHistoryListCache: (userId: string) => void
+  touchHistoryMessagesCache: (userId: string, conversationId: string) => void
+  removeConversationCache: (userId: string, conversationId: string) => void
+  invalidateHistoryListCache: (userId: string) => void
+  updateMessageRatingCache: (userId: string, conversationId: string, messageId: string, rating: 'positive' | 'negative' | null, feedback?: string | null) => void
+  pruneExpiredCache: () => void
+  enforceCacheLimits: () => void
+  clearHistoryCacheForUser: (userId: string) => void
   resetForUser: (userId: string | null) => void
 
   reset: () => void
@@ -100,12 +178,176 @@ const initialState = {
   isLoadingConversations: false,
   isLoadingMessages: false,
   isSendingMessage: false,
+  historyListCache: {},
+  historyMessageCache: {},
+}
+
+const noopStorage = {
+  getItem: (_name: string) => null,
+  setItem: (_name: string, _value: string) => undefined,
+  removeItem: (_name: string) => undefined,
+}
+
+type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
+
+export function createConversationStorageAdapter(storageImpl?: StorageLike) {
+  const storage = storageImpl ?? (typeof localStorage === 'undefined' ? noopStorage : localStorage)
+  return {
+    getItem: (name: string) => storage.getItem(name),
+    setItem: (name: string, value: string) => {
+      try {
+        storage.setItem(name, value)
+      } catch {
+        const fallback = buildFallbackStateForQuota(value)
+        try {
+          storage.setItem(name, fallback)
+        } catch {
+          // Ignore quota failures to keep chat send/receive path functional.
+        }
+      }
+    },
+    removeItem: (name: string) => storage.removeItem(name),
+  }
+}
+
+export function buildFallbackStateForQuota(serializedValue: string) {
+  try {
+    const parsed = JSON.parse(serializedValue)
+    const state = parsed?.state
+    if (!state) return serializedValue
+    const pruned = pruneHistoryCachesForLimits(
+      state.historyListCache || {},
+      state.historyMessageCache || {},
+      { currentUserId: state.currentUserId ?? null, conversations: state.conversations ?? [] }
+    )
+    return JSON.stringify({
+      ...parsed,
+      state: {
+        ...state,
+        ...pruned,
+      },
+    })
+  } catch {
+    return serializedValue
+  }
 }
 
 export const useConversationStore = create<ConversationState>()(
   persist(
     (set, _get) => ({
       ...initialState,
+
+      setHistoryListCache: (userId, items, cursor) => set((state) => {
+        const nextItems = items.slice(0, HISTORY_LIST_MAX)
+        const now = Date.now()
+        return {
+          historyListCache: {
+            ...state.historyListCache,
+            [userId]: { items: nextItems, updatedAt: now, cursor, lastAccessAt: now },
+          },
+        }
+      }),
+
+      setHistoryMessagesCache: (userId, conversationId, items, cursor) => set((state) => {
+        const key = `${userId}:${conversationId}`
+        const trimmedItems = items.slice(-HISTORY_MESSAGE_MAX_PER_CONVERSATION)
+        const now = Date.now()
+        return {
+          historyMessageCache: {
+            ...state.historyMessageCache,
+            [key]: { items: trimmedItems, updatedAt: now, cursor, lastAccessAt: now },
+          },
+        }
+      }),
+
+      touchHistoryListCache: (userId) => set((state) => {
+        const cache = state.historyListCache[userId]
+        if (!cache) return state
+        return {
+          historyListCache: {
+            ...state.historyListCache,
+            [userId]: { ...cache, lastAccessAt: Date.now() },
+          },
+        }
+      }),
+
+      touchHistoryMessagesCache: (userId, conversationId) => set((state) => {
+        const key = `${userId}:${conversationId}`
+        const cache = state.historyMessageCache[key]
+        if (!cache) return state
+        return {
+          historyMessageCache: {
+            ...state.historyMessageCache,
+            [key]: { ...cache, lastAccessAt: Date.now() },
+          },
+        }
+      }),
+
+      removeConversationCache: (userId, conversationId) => set((state) => {
+        const key = `${userId}:${conversationId}`
+        const historyMessageCache = { ...state.historyMessageCache }
+        delete historyMessageCache[key]
+        return { historyMessageCache }
+      }),
+
+      invalidateHistoryListCache: (userId) => set((state) => {
+        const historyListCache = { ...state.historyListCache }
+        delete historyListCache[userId]
+        return { historyListCache }
+      }),
+
+      updateMessageRatingCache: (userId, conversationId, messageId, rating, feedback) => set((state) => {
+        const key = `${userId}:${conversationId}`
+        const cache = state.historyMessageCache[key]
+        if (!cache) return state
+        return {
+          historyMessageCache: {
+            ...state.historyMessageCache,
+            [key]: {
+              ...cache,
+              lastAccessAt: Date.now(),
+              updatedAt: Date.now(),
+              items: cache.items.map((message) => message.id === messageId
+                ? {
+                  ...message,
+                  rating: rating ? { id: `local-${messageId}`, rating, feedback: feedback ?? null } : null,
+                } as Message
+                : message),
+            },
+          },
+        }
+      }),
+
+      clearHistoryCacheForUser: (userId) => set((state) => {
+        const historyListCache = { ...state.historyListCache }
+        const historyMessageCache = { ...state.historyMessageCache }
+        delete historyListCache[userId]
+        Object.keys(historyMessageCache).forEach((key) => {
+          if (key.startsWith(`${userId}:`)) {
+            delete historyMessageCache[key]
+          }
+        })
+        return { historyListCache, historyMessageCache }
+      }),
+
+      pruneExpiredCache: () => set((state) => {
+        const now = Date.now()
+        const historyListCache = Object.fromEntries(
+          Object.entries(state.historyListCache).filter(([, value]) => now - value.updatedAt <= HISTORY_CACHE_TTL_MS)
+        )
+        const historyMessageCache = Object.fromEntries(
+          Object.entries(state.historyMessageCache).filter(([, value]) => now - value.updatedAt <= HISTORY_CACHE_TTL_MS)
+        )
+        return { historyListCache, historyMessageCache }
+      }),
+
+      enforceCacheLimits: () => set((state) => {
+        return pruneHistoryCachesForLimits(
+          state.historyListCache,
+          state.historyMessageCache,
+          { currentUserId: state.currentUserId, conversations: state.conversations }
+        )
+      }),
 
       resetForUser: (userId) => set((state) => {
         if (!userId) {
@@ -174,10 +416,13 @@ export const useConversationStore = create<ConversationState>()(
     }),
     {
       name: 'conversation-storage',
+      storage: createJSONStorage(() => createConversationStorageAdapter()),
       // Only persist conversations list, not messages or loading states
       partialize: (state) => ({
         currentUserId: state.currentUserId,
         conversations: state.conversations,
+        historyListCache: state.historyListCache,
+        historyMessageCache: state.historyMessageCache,
       }),
       // Migrate function to fix corrupted state
       migrate: (persistedState: any, _version: number) => {
@@ -187,7 +432,7 @@ export const useConversationStore = create<ConversationState>()(
         }
         return persistedState as ConversationState
       },
-      version: 2, // Bump version to clear old state
+      version: 3, // Bump version to clear old state
     }
   )
 )

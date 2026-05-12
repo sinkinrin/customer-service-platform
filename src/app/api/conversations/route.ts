@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     const offset = Number.isFinite(rawOffset) ? rawOffset : 0
 
     // Get customer's conversations only
-    const conversations = await getCustomerConversations(user.email, {
+    const conversations = await getCustomerConversations(user.id, {
       status,
       limit,
       offset,

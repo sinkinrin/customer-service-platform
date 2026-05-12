@@ -73,7 +73,7 @@ describe('Conversation detail APIs', () => {
     it('returns 404 when accessing another customer conversation', async () => {
       vi.mocked(getConversation).mockResolvedValue({
         ...baseConversation,
-        customerEmail: 'other@test.com',
+        customerId: 'cust_2',
       } as any)
 
       const response = await GET_CONVERSATION(createRequest('http://localhost:3000/api/conversations/conv_1'), {
@@ -135,6 +135,18 @@ describe('Conversation detail APIs', () => {
   })
 
   describe('GET /api/conversations/[id]/messages', () => {
+    it('returns 404 when accessing another customer conversation messages', async () => {
+      vi.mocked(getConversation).mockResolvedValue({
+        ...baseConversation,
+        customerId: 'cust_2',
+      } as any)
+
+      const request = createRequest('http://localhost:3000/api/conversations/conv_1/messages?limit=10&offset=0')
+      const response = await GET_MESSAGES(request, { params: Promise.resolve({ id: 'conv_1' }) })
+
+      expect(response.status).toBe(404)
+    })
+
     it('returns messages with sender names', async () => {
       vi.mocked(getConversation).mockResolvedValue(baseConversation as any)
       vi.mocked(getConversationMessages).mockResolvedValue([

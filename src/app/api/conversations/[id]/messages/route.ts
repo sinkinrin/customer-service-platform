@@ -39,14 +39,16 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Verify access: customer can only access their own conversations
-    if (conversation.customerEmail !== user.email) {
+    if (conversation.customerId !== user.id) {
       return notFoundResponse('Conversation not found')
     }
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const rawLimit = parseInt(searchParams.get('limit') || '50', 10)
+    const rawOffset = parseInt(searchParams.get('offset') || '0', 10)
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 100) : 50
+    const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0
 
     // Get messages with database-level pagination (newest first)
     const [messages, total] = await Promise.all([
@@ -122,7 +124,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     }
 
     // Verify access: customer can only post to their own conversations
-    if (conversation.customerEmail !== user.email) {
+    if (conversation.customerId !== user.id) {
       return notFoundResponse('Conversation not found')
     }
 

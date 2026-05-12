@@ -37,7 +37,7 @@ describe('GET /api/conversations list query', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(getCustomerConversations).toHaveBeenCalledWith('customer@test.com', {
+    expect(getCustomerConversations).toHaveBeenCalledWith('cust_1', {
       status: 'active',
       limit: 5,
       offset: 10,

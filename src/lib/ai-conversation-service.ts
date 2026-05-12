@@ -37,6 +37,9 @@ export async function createAIConversation(
   customerEmail: string
 ) {
   const conversation = await prisma.$transaction(async (tx) => {
+    // Serialize concurrent creation requests for the same customer.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${customerId}))`
+
     // Close all existing active conversations for this customer
     await tx.aiConversation.updateMany({
       where: {
@@ -74,10 +77,10 @@ export async function getConversation(id: string) {
 }
 
 /**
- * Get conversations for a customer by email, with message count
+ * Get conversations for a customer by id, with message count
  */
 export async function getCustomerConversations(
-  customerEmail: string,
+  customerId: string,
   options?: { status?: string | null; limit?: number; offset?: number }
 ) {
   const limit = Math.min(Math.max(options?.limit ?? 20, 1), 100)
@@ -85,7 +88,7 @@ export async function getCustomerConversations(
 
   return prisma.aiConversation.findMany({
     where: {
-      customerEmail,
+      customerId,
       ...(options?.status ? { status: options.status } : {}),
     },
     include: { _count: { select: { messages: true } } },

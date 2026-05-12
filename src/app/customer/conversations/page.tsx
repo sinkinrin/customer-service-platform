@@ -16,94 +16,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-import { getConversationLastVisitKey } from '@/lib/constants/conversation'
-
-// If the user left the conversation page more than this many ms ago,
-// we treat it as a "return" and start fresh.
-const NEW_CONVERSATION_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
+import { getConversationJustCreatedKey } from '@/lib/constants/conversation'
 
 export default function ConversationsPage() {
   const t = useTranslations('customer.conversations.starting')
   const tToast = useTranslations('toast.customer.conversations')
 
   const router = useRouter()
-  const { user } = useAuth()
-  const { conversations, fetchConversations, createConversation } = useConversation()
+  const { user, isLoading: isAuthLoading } = useAuth()
+  const { createConversation } = useConversation()
   const [isProcessing, setIsProcessing] = useState(true)
-  const [conversationsLoaded, setConversationsLoaded] = useState(false)
   const hasRedirected = useRef(false)
 
-  // Fetch conversations first
   useEffect(() => {
-    const loadConversations = async () => {
-      try {
-        setIsProcessing(true)
-        setConversationsLoaded(false)
-        await fetchConversations('active', 1)
-        setConversationsLoaded(true)
-      } catch (error) {
-        console.error('Error fetching conversations:', error)
-        toast.error(tToast('loadError'))
-        setIsProcessing(false)
-      }
+    if (!isProcessing) return
+    if (isAuthLoading) return
+    if (!user) {
+      setIsProcessing(false)
+      return
     }
-
-    loadConversations()
-  }, [fetchConversations])
-
-  // Redirect once conversations are loaded
-  useEffect(() => {
-    if (!conversationsLoaded || !isProcessing) return
     // Guard against double execution (conversations change triggers re-run)
     if (hasRedirected.current) return
     hasRedirected.current = true
 
     const handleRedirect = async () => {
       try {
-        const conversationsList = Array.isArray(conversations) ? conversations : []
-
-        // Find ALL active (non-closed) conversations
-        const activeConversations = conversationsList.filter(
-          (conv) => conv.status !== 'closed'
-        )
-
-        // Check how long the user has been away
-        let elapsed = 0 // default: treat as "quick switch" (reuse existing)
+        const newConversation = await createConversation()
         try {
-          const lastVisit = sessionStorage.getItem(getConversationLastVisitKey(user?.id))
-          if (lastVisit) {
-            elapsed = Date.now() - parseInt(lastVisit, 10)
-          }
+          sessionStorage.setItem(getConversationJustCreatedKey(user.id), newConversation.id)
         } catch {
-          // sessionStorage unavailable (e.g., incognito restrictions) — treat as quick switch
+          // sessionStorage may be unavailable in restricted browser contexts.
         }
-
-        const shouldStartFresh = activeConversations.length === 0 || elapsed >= NEW_CONVERSATION_THRESHOLD_MS
-
-        if (!shouldStartFresh && activeConversations.length > 0) {
-          // Quick page switch — reuse the most recent active conversation
-          const latest = activeConversations[0]
-          router.replace(`/customer/conversations/${latest.id}`)
-        } else {
-          // Intentional product behavior:
-          // after a long absence, we explicitly end stale active threads and
-          // start a fresh one so the customer lands in a clean context.
-          // Close ALL active conversations to prevent orphans
-          for (const conv of activeConversations) {
-            try {
-              await fetch(`/api/conversations/${conv.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'closed' }),
-              })
-            } catch (e) {
-              console.warn('[Conversations] Failed to close stale conversation:', conv.id, e)
-            }
-          }
-
-          const newConversation = await createConversation()
-          router.replace(`/customer/conversations/${newConversation.id}`)
-        }
+        router.replace(`/customer/conversations/${newConversation.id}?new=1`)
       } catch (error) {
         console.error('Error handling conversation:', error)
         toast.error(tToast('startError'))
@@ -113,7 +57,7 @@ export default function ConversationsPage() {
     }
 
     handleRedirect()
-  }, [conversationsLoaded, conversations, isProcessing, router, createConversation, user?.id])
+  }, [isProcessing, isAuthLoading, router, createConversation, user, tToast])
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

@@ -100,10 +100,11 @@ describe('PUT /api/conversations/[id]/messages/[messageId]/rating', () => {
     expect(payload.error.message).toBe('Conversation not found')
   })
 
-  it('returns 404 when conversation belongs to another user', async () => {
+  it('returns 404 when conversation belongs to another user id even if email matches', async () => {
     vi.mocked(getConversation).mockResolvedValue({
       ...baseConversation,
-      customerEmail: 'other@test.com',
+      customerId: 'cust_2',
+      customerEmail: 'customer@test.com',
     } as any)
 
     const request = createRequest(
@@ -123,6 +124,39 @@ describe('PUT /api/conversations/[id]/messages/[messageId]/rating', () => {
     expect(payload.success).toBe(false)
     expect(payload.error.code).toBe('NOT_FOUND')
     expect(payload.error.message).toBe('Conversation not found')
+  })
+
+  it('allows rating when conversation customerId matches even if email differs', async () => {
+    vi.mocked(getConversation).mockResolvedValue({
+      ...baseConversation,
+      customerId: 'cust_1',
+      customerEmail: 'other@test.com',
+    } as any)
+    vi.mocked(verifyMessageOwnership).mockResolvedValue(true)
+    vi.mocked(rateMessage).mockResolvedValue({
+      id: 'rating_1',
+      messageId: 'msg_1',
+      userId: 'cust_1',
+      rating: 'positive',
+      feedback: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any)
+
+    const request = createRequest(
+      'http://localhost:3000/api/conversations/conv_1/messages/msg_1/rating',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ rating: 'positive' }),
+      }
+    )
+
+    const response = await PUT(request, {
+      params: Promise.resolve({ id: 'conv_1', messageId: 'msg_1' }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(rateMessage).toHaveBeenCalledWith('msg_1', 'cust_1', 'positive', undefined)
   })
 
   it('returns 404 when message does not belong to the conversation', async () => {

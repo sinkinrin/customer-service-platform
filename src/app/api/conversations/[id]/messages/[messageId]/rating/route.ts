@@ -42,7 +42,7 @@ export async function PUT(
       return notFoundResponse('Conversation not found')
     }
 
-    if (conversation.customerEmail !== user.email) {
+    if (conversation.customerId !== user.id) {
       return notFoundResponse('Conversation not found')
     }
 

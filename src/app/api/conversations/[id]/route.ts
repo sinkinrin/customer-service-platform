@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Verify access: customer can only access their own conversations
-    if (conversation.customerEmail !== user.email) {
+    if (conversation.customerId !== user.id) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     // Verify access: customer can only update their own conversations
-    if (conversation.customerEmail !== user.email) {
+    if (conversation.customerId !== user.id) {
       return notFoundResponse('Conversation not found')
     }
 
@@ -156,7 +156,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     }
 
     // Verify access: customer can only delete their own conversations
-    if (conversation.customerEmail !== user.email) {
+    if (conversation.customerId !== user.id) {
       return notFoundResponse('Conversation not found')
     }
 

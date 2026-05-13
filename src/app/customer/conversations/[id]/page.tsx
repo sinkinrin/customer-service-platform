@@ -72,7 +72,7 @@ export default function ConversationDetailPage() {
 
   const [aiMessages, setAiMessages] = useState<AiMsg[]>([])
   const [materializedConversationId, setMaterializedConversationId] = useState<string | null>(null)
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(() => !isDraftConversation)
   const [aiChatMode, setAiChatMode] = useState<AIChatMode>('flash')
   const [isAiChatModeLoaded, setIsAiChatModeLoaded] = useState(false)
 
@@ -189,8 +189,8 @@ export default function ConversationDetailPage() {
     setHistoryMessageOffset(0)
     setHistoryMessageHasMore(false)
     setIsLoadingEarlierMessages(false)
-    setIsInitialLoading(true)
-  }, [conversationId])
+    setIsInitialLoading(!isDraftConversation)
+  }, [conversationId, isDraftConversation])
 
   useEffect(() => {
     sendRequestGenRef.current += 1

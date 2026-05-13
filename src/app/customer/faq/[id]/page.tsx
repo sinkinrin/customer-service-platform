@@ -9,7 +9,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
-import DOMPurify from 'dompurify'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useFAQ, type FAQItem } from '@/lib/hooks/use-faq'
@@ -57,6 +56,7 @@ export default function FAQArticlePage() {
         const data = await response.json()
         const fetchedArticle = data.data.item
         setArticle(fetchedArticle)
+        setIsLoading(false)
 
         // Fetch related articles from the same category
         if (fetchedArticle.category_id) {
@@ -254,5 +254,4 @@ export default function FAQArticlePage() {
     </div>
   )
 }
-
 

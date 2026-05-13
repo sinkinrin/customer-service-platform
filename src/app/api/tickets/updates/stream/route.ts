@@ -10,11 +10,42 @@
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { sseEmitter } from '@/lib/sse/emitter'
+import { logger } from '@/lib/utils/logger'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+function isTicketRealtimeRoute(pathname: string): boolean {
+  return (
+    pathname.startsWith('/customer/my-tickets') ||
+    pathname.startsWith('/staff/tickets') ||
+    pathname.startsWith('/admin/tickets')
+  )
+}
+
 export async function GET(request: NextRequest) {
+  const referer = request.headers.get('referer')
+  const refererPath = (() => {
+    if (!referer) return null
+    try {
+      return new URL(referer).pathname
+    } catch {
+      return null
+    }
+  })()
+
+  if (refererPath && !isTicketRealtimeRoute(refererPath)) {
+    logger.info('SSE', 'Skipped stream for non-ticket page', {
+      data: { refererPath },
+    })
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Cache-Control': 'no-cache, no-transform',
+      },
+    })
+  }
+
   // Authenticate
   const session = await auth()
   if (!session?.user) {
@@ -23,6 +54,10 @@ export async function GET(request: NextRequest) {
 
   const userId = session.user.id
   const userRole = session.user.role
+
+  logger.info('SSE', 'Stream request accepted', {
+    data: { userId, userRole, refererPath },
+  })
 
   // Create SSE stream
   const encoder = new TextEncoder()

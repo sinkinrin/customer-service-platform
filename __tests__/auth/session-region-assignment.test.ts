@@ -167,31 +167,28 @@ describe('session region assignment', () => {
     expect(user?.region).toBe('asia-pacific')
   })
 
-  it('refreshes customer JWT region from current assignment on callback', async () => {
-    mockFindCustomerServiceGroup.mockResolvedValue({
-      customerZammadId: 101,
-      serviceGroup: {
-        id: 1,
-        name: '亚太 1',
-        baseRegion: 'ASIA_PACIFIC',
-      },
-    })
-
+  it('persists customer identity and region into JWT on sign-in', async () => {
     const authConfig = (globalThis as any).__TEST_AUTH_CONFIG__
     const token = await authConfig.callbacks.jwt({
-      token: {
+      token: {},
+      user: {
+        id: 'zammad-101',
+        email: 'customer@example.com',
         role: 'customer',
+        full_name: 'Customer',
+        region: 'asia-pacific',
         zammad_id: 101,
-        region: 'north-america',
+        group_ids: [],
       },
     })
 
+    expect(token.id).toBe('zammad-101')
+    expect(token.email).toBe('customer@example.com')
+    expect(token.zammad_id).toBe(101)
     expect(token.region).toBe('asia-pacific')
   })
 
-  it('clears customer JWT region when assignment no longer exists', async () => {
-    mockFindCustomerServiceGroup.mockResolvedValue(null)
-
+  it('does not query service-group assignment during token-only JWT callback', async () => {
     const authConfig = (globalThis as any).__TEST_AUTH_CONFIG__
     const token = await authConfig.callbacks.jwt({
       token: {
@@ -201,6 +198,7 @@ describe('session region assignment', () => {
       },
     })
 
-    expect(token.region).toBeUndefined()
+    expect(mockFindCustomerServiceGroup).not.toHaveBeenCalled()
+    expect(token.region).toBe('north-america')
   })
 })

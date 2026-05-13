@@ -13,12 +13,15 @@ import { FileText, Download, Bot } from 'lucide-react'
 import { type Message } from '@/lib/stores/conversation-store'
 import { cn } from '@/lib/utils'
 import { SystemMessage } from './system-message'
-import { MarkdownMessage } from './markdown-message'
 import { AIThinkingIndicator } from './ai-thinking-indicator'
 import { useLocale, useTranslations } from 'next-intl'
 import { isImageType, isVideoType, formatFileSize } from '@/lib/constants/attachments'
 import { MediaRenderer } from '@/components/ui/media-renderer'
 import { ImageLightbox } from '@/components/ui/image-lightbox'
+
+const MarkdownMessage = React.lazy(() =>
+  import('./markdown-message').then((module) => ({ default: module.MarkdownMessage }))
+)
 
 interface MessageListProps {
   messages: Message[]
@@ -111,10 +114,18 @@ export function MessageList({
       // Use Markdown rendering for AI messages
       if (isAI) {
         return (
-          <MarkdownMessage
-            content={message.content}
-            className="text-foreground"
-          />
+          <React.Suspense
+            fallback={
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words text-foreground">
+                {message.content}
+              </p>
+            }
+          >
+            <MarkdownMessage
+              content={message.content}
+              className="text-foreground"
+            />
+          </React.Suspense>
         )
       }
       return (

@@ -324,13 +324,6 @@ const authConfig: NextAuthConfig = {
         token.group_ids = user.group_ids
       }
 
-      if (token.role === 'customer' && typeof token.zammad_id === 'number') {
-        token.region = await resolveCustomerAssignmentRegion(
-          token.zammad_id,
-          token.region as string | undefined
-        )
-      }
-
       return token
     },
 

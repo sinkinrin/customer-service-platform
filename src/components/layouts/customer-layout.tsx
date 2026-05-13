@@ -164,6 +164,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
   // Check if current page is a conversation detail page
   const isConversationDetailPage = pathname.match(/\/conversations\/[^/]+$/)
+  const isConversationPage = pathname.startsWith('/customer/conversations')
 
   // Ticket detail page should behave like a full-height conversation view
   // Matches /customer/my-tickets/123 (with optional query params handling if needed)
@@ -199,7 +200,7 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 
             {/* Right Side */}
             <div className="flex items-center space-x-4">
-              <NotificationCenter />
+              {!isConversationPage && <NotificationCenter />}
               <LanguageSelector />
               {user && (
                 <DropdownMenu>
@@ -340,4 +341,3 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
 }
 
 export default CustomerLayout
-

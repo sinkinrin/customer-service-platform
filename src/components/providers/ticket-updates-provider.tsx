@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useSWRConfig } from 'swr'
 import { useTicketUpdates, TicketUpdate } from '@/lib/hooks/use-ticket-updates'
@@ -23,8 +23,17 @@ function markProcessed(id: string) {
   setTimeout(() => processedUpdates.delete(id), DEDUP_WINDOW_MS)
 }
 
+function isTicketRealtimeRoute(pathname: string): boolean {
+  return (
+    pathname.startsWith('/customer/my-tickets') ||
+    pathname.startsWith('/staff/tickets') ||
+    pathname.startsWith('/admin/tickets')
+  )
+}
+
 export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { user } = useAuth()
   const tToast = useTranslations('toast.tickets')
   const { incrementCount } = useUnreadStore()
@@ -33,6 +42,7 @@ export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) 
   // SSE connection state
   const [sseConnected, setSSEConnected] = useState(false)
   const [sseFailed, setSSEFailed] = useState(false)
+  const updatesEnabled = !!user && isTicketRealtimeRoute(pathname)
 
   // Process a single update (used by both SSE and polling)
   const processUpdate = useCallback((update: TicketUpdate) => {
@@ -139,7 +149,7 @@ export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) 
 
   // Use SSE as primary, with auto-fallback to polling
   useTicketSSE({
-    enabled: !!user && !sseFailed,
+    enabled: updatesEnabled && !sseFailed,
     onUpdate: handleSSEUpdate,
     onConnectionChange: handleSSEConnectionChange,
     onError: handleSSEError,
@@ -148,14 +158,14 @@ export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) 
   // Use polling as fallback when SSE is not connected or has failed
   // Also use polling with longer interval when SSE is connected (as backup)
   useTicketUpdates({
-    enabled: !!user && (!sseConnected || sseFailed),
+    enabled: updatesEnabled && (!sseConnected || sseFailed),
     onUpdate: handlePollingUpdates,
     userId: user?.id,
   })
 
   // Log mode on mount/change
   useEffect(() => {
-    if (!user) return
+    if (!updatesEnabled) return
     if (sseConnected) {
       console.log('[Provider] Mode: SSE (real-time)')
     } else if (sseFailed) {
@@ -163,7 +173,7 @@ export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) 
     } else {
       console.log('[Provider] Mode: Connecting SSE...')
     }
-  }, [user, sseConnected, sseFailed])
+  }, [updatesEnabled, sseConnected, sseFailed])
 
   return <>{children}</>
 }

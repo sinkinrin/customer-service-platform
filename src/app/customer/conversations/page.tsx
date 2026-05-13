@@ -16,7 +16,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-import { getConversationJustCreatedKey } from '@/lib/constants/conversation'
+import {
+  CONVERSATION_REUSE_WINDOW_MS,
+  DRAFT_CONVERSATION_ID,
+  getConversationLastVisitKey,
+} from '@/lib/constants/conversation'
 
 export default function ConversationsPage() {
   const t = useTranslations('customer.conversations.starting')
@@ -24,7 +28,7 @@ export default function ConversationsPage() {
 
   const router = useRouter()
   const { user, isLoading: isAuthLoading } = useAuth()
-  const { createConversation } = useConversation()
+  const { conversations, fetchConversations } = useConversation()
   const [isProcessing, setIsProcessing] = useState(true)
   const hasRedirected = useRef(false)
 
@@ -41,13 +45,37 @@ export default function ConversationsPage() {
 
     const handleRedirect = async () => {
       try {
-        const newConversation = await createConversation()
-        try {
-          sessionStorage.setItem(getConversationJustCreatedKey(user.id), newConversation.id)
-        } catch {
-          // sessionStorage may be unavailable in restricted browser contexts.
+        const lastVisitAt = (() => {
+          try {
+            return Number(sessionStorage.getItem(getConversationLastVisitKey(user.id)) || 0)
+          } catch {
+            return 0
+          }
+        })()
+        const canReuseRecentConversation = lastVisitAt > 0 && Date.now() - lastVisitAt <= CONVERSATION_REUSE_WINDOW_MS
+        if (canReuseRecentConversation) {
+          let candidateConversations = conversations
+          try {
+            candidateConversations = await fetchConversations('active', 20)
+          } catch {
+            candidateConversations = []
+          }
+
+          const reusableConversation = candidateConversations
+            .filter((conversation) => conversation.status === 'active')
+            .sort((a, b) => {
+              const aTime = Date.parse(a.last_message_at || a.created_at || '')
+              const bTime = Date.parse(b.last_message_at || b.created_at || '')
+              return (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime)
+            })[0]
+
+          if (reusableConversation) {
+            router.replace(`/customer/conversations/${reusableConversation.id}`)
+            return
+          }
         }
-        router.replace(`/customer/conversations/${newConversation.id}?new=1`)
+
+        router.replace(`/customer/conversations/${DRAFT_CONVERSATION_ID}`)
       } catch (error) {
         console.error('Error handling conversation:', error)
         toast.error(tToast('startError'))
@@ -57,7 +85,7 @@ export default function ConversationsPage() {
     }
 
     handleRedirect()
-  }, [isProcessing, isAuthLoading, router, createConversation, user, tToast])
+  }, [isProcessing, isAuthLoading, router, conversations, user, tToast, fetchConversations])
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

@@ -202,6 +202,8 @@ model AiConversation {
   messages AiMessage[]
 
   @@index([customerId])
+  @@index([customerId, status])
+  @@index([customerId, lastMessageAt])
   @@index([customerEmail])
   @@index([status])
   @@map("ai_conversations")

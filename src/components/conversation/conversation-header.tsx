@@ -6,71 +6,30 @@
 
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/hooks/use-auth'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Bot, Plus, Loader2, History } from 'lucide-react'
+import { Bot, Plus, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
-import { toast } from 'sonner'
-import { getConversationJustCreatedKey } from '@/lib/constants/conversation'
-import { useConversationStore } from '@/lib/stores/conversation-store'
+import { DRAFT_CONVERSATION_ID } from '@/lib/constants/conversation'
 
 interface ConversationHeaderProps {
   mode?: 'ai'
   currentConversationId?: string
   onOpenHistory?: () => void
+  onNewConversation?: () => void
 }
 
-export function ConversationHeader({ mode: _mode = 'ai', currentConversationId: _currentConversationId, onOpenHistory }: ConversationHeaderProps) {
+export function ConversationHeader({ mode: _mode = 'ai', currentConversationId: _currentConversationId, onOpenHistory, onNewConversation }: ConversationHeaderProps) {
   const t = useTranslations('components.conversation.header')
-  const tToast = useTranslations('toast.customer.conversations')
   const router = useRouter()
-  const { user } = useAuth()
-  const [isCreating, setIsCreating] = useState(false)
 
   const displayName = t('aiAssistant')
 
-  const handleNewConversation = async () => {
-    if (isCreating) return
-
-    try {
-      setIsCreating(true)
-
-      // Create new conversation
-      const response = await fetch('/api/conversations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create conversation')
-      }
-
-      const data = await response.json()
-
-      if (data.success && data.data?.id) {
-        if (user?.id) {
-          useConversationStore.getState().invalidateHistoryListCache(user.id)
-        }
-        try {
-          sessionStorage.setItem(getConversationJustCreatedKey(user?.id), data.data.id)
-        } catch {
-          // sessionStorage may be unavailable in restricted browser contexts.
-        }
-        router.push(`/customer/conversations/${data.data.id}?new=1`)
-      } else {
-        throw new Error('Invalid response')
-      }
-    } catch (error) {
-      console.error('Failed to create new conversation:', error)
-      toast.error(tToast('startError'))
-    } finally {
-      setIsCreating(false)
-    }
+  const handleNewConversation = () => {
+    onNewConversation?.()
+    router.push(`/customer/conversations/${DRAFT_CONVERSATION_ID}`)
   }
 
   return (
@@ -117,20 +76,10 @@ export function ConversationHeader({ mode: _mode = 'ai', currentConversationId: 
           variant="outline"
           size="sm"
           onClick={handleNewConversation}
-          disabled={isCreating}
           className="shrink-0"
         >
-          {isCreating ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-              {t('buttons.creatingNew')}
-            </>
-          ) : (
-            <>
-              <Plus className="h-4 w-4 mr-1.5" />
-              {t('buttons.newConversation')}
-            </>
-          )}
+          <Plus className="h-4 w-4 mr-1.5" />
+          {t('buttons.newConversation')}
         </Button>
       </div>
     </div>

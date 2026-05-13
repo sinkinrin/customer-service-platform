@@ -3,6 +3,7 @@ import {
   INITIAL_AI_MESSAGES_LIMIT,
   getConversationAiChatModeKey,
   getConversationLastVisitKey,
+  getConversationMaterializedDraftKey,
 } from '@/lib/constants/conversation'
 
 describe('conversation last visit key', () => {
@@ -19,5 +20,10 @@ describe('conversation last visit key', () => {
 
   it('limits initial AI message loading to the recent thread window', () => {
     expect(INITIAL_AI_MESSAGES_LIMIT).toBe(100)
+  })
+
+  it('namespaces the materialized draft marker by user id', () => {
+    expect(getConversationMaterializedDraftKey('user-a')).toBe('conversationMaterializedDraft:user-a')
+    expect(getConversationMaterializedDraftKey()).toBe('conversationMaterializedDraft:anonymous')
   })
 })

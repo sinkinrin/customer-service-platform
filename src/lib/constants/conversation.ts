@@ -5,6 +5,7 @@
 const CONVERSATION_LAST_VISIT_KEY_PREFIX = 'conversationLastVisitAt'
 const CONVERSATION_AI_CHAT_MODE_KEY_PREFIX = 'conversationAiChatMode'
 const CONVERSATION_JUST_CREATED_KEY_PREFIX = 'conversationJustCreated'
+const CONVERSATION_MATERIALIZED_DRAFT_KEY_PREFIX = 'conversationMaterializedDraft'
 
 export const HISTORY_LIST_PAGE_SIZE = 20
 export const HISTORY_MESSAGE_PAGE_SIZE = 50
@@ -13,8 +14,10 @@ export const HISTORY_LIST_MAX = 50
 export const HISTORY_MESSAGE_MAX_CONVERSATIONS = 10
 export const HISTORY_MESSAGE_MAX_PER_CONVERSATION = 100
 export const HISTORY_CACHE_MAX_BYTES = 2 * 1024 * 1024
+export const CONVERSATION_REUSE_WINDOW_MS = 30 * 60 * 1000
 
 export const INITIAL_AI_MESSAGES_LIMIT = 100
+export const DRAFT_CONVERSATION_ID = 'new'
 
 /** sessionStorage key for tracking last conversation page visit */
 export function getConversationLastVisitKey(userId?: string | null): string {
@@ -28,4 +31,8 @@ export function getConversationAiChatModeKey(userId?: string | null): string {
 
 export function getConversationJustCreatedKey(userId?: string | null): string {
   return `${CONVERSATION_JUST_CREATED_KEY_PREFIX}:${userId || 'anonymous'}`
+}
+
+export function getConversationMaterializedDraftKey(userId?: string | null): string {
+  return `${CONVERSATION_MATERIALIZED_DRAFT_KEY_PREFIX}:${userId || 'anonymous'}`
 }

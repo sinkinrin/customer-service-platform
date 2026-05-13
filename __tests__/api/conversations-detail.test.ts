@@ -171,6 +171,20 @@ describe('Conversation detail APIs', () => {
       expect(payload.success).toBe(true)
       expect(payload.data.messages[0].sender.full_name).toBe('AI Assistant')
     })
+
+    it('skips exact total count when include_total=false', async () => {
+      vi.mocked(getConversation).mockResolvedValue(baseConversation as any)
+      vi.mocked(getConversationMessages).mockResolvedValue([] as any)
+
+      const request = createRequest('http://localhost:3000/api/conversations/conv_1/messages?limit=10&offset=0&include_total=false')
+      const response = await GET_MESSAGES(request, { params: Promise.resolve({ id: 'conv_1' }) })
+      const payload = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(payload.success).toBe(true)
+      expect(getConversationMessageCount).not.toHaveBeenCalled()
+      expect(payload.data.pagination.total).toBeNull()
+    })
   })
 
   describe('POST /api/conversations/[id]/messages', () => {

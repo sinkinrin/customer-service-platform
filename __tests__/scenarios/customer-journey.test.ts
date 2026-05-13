@@ -34,6 +34,7 @@ const prismaMock = vi.hoisted(() => {
       findMany: vi.fn(),
       groupBy: vi.fn(),
     },
+    $executeRaw: vi.fn(),
     $transaction: vi.fn(),
   }
 

@@ -2,12 +2,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ConversationDetailPage from '@/app/customer/conversations/[id]/page'
+import { getConversationMaterializedDraftKey } from '@/lib/constants/conversation'
 
 const mockPush = vi.fn()
 const mockReplace = vi.fn()
 const mockFetchHistoryConversations = vi.fn()
 const mockFetchHistoryMessages = vi.fn()
 const mockFetchConversationById = vi.fn()
+const mockApplyRatingToCache = vi.fn()
+const mockAppendHistoryMessageToCache = vi.fn()
+const mockSendStreamingRequest = vi.fn()
+const mockAbortStreamingRequest = vi.fn()
+let streamingMode: 'success' | 'empty' | 'throw' | 'pending' = 'success'
+let pendingStreamingPromise: Promise<string> | null = null
+let resolvePendingStreaming: ((value: string) => void) | null = null
+const mockHistoryReplaceState = vi.spyOn(window.history, 'replaceState')
 const mockTouchHistoryListCache = vi.fn()
 const mockTouchHistoryMessagesCache = vi.fn()
 const mockStoreGetState = vi.fn(() => ({
@@ -52,8 +61,8 @@ vi.mock('@/lib/hooks/use-conversation', () => ({
     fetchHistoryConversations: mockFetchHistoryConversations,
     fetchHistoryMessages: mockFetchHistoryMessages,
     fetchConversationById: mockFetchConversationById,
-    applyRatingToCache: vi.fn(),
-    appendHistoryMessageToCache: vi.fn(),
+    applyRatingToCache: mockApplyRatingToCache,
+    appendHistoryMessageToCache: mockAppendHistoryMessageToCache,
   }),
 }))
 
@@ -64,24 +73,63 @@ vi.mock('@/lib/stores/conversation-store', () => ({
 }))
 
 vi.mock('@/hooks/use-streaming-chat', () => ({
-  useStreamingChat: () => ({
+  useStreamingChat: (options: any) => ({
     isLoading: false,
     isWaitingFirstToken: false,
     toolStatus: null,
-    sendStreamingRequest: vi.fn(),
+    abort: mockAbortStreamingRequest,
+    sendStreamingRequest: async (...args: any[]) => {
+      mockSendStreamingRequest(...args)
+      if (streamingMode === 'throw') {
+        throw new Error('stream failed')
+      }
+      if (streamingMode === 'empty') {
+        return ''
+      }
+      if (streamingMode === 'pending') {
+        if (!pendingStreamingPromise) {
+          pendingStreamingPromise = new Promise((resolve) => {
+            resolvePendingStreaming = (value) => {
+              const tempId = args[2] as string
+              options?.onAddMessage?.(tempId, value)
+              resolve(value)
+            }
+          })
+        }
+        return pendingStreamingPromise
+      }
+      const tempId = args[2] as string
+      options?.onAddMessage?.(tempId, 'AI response')
+      return 'AI response'
+    },
   }),
 }))
 
 vi.mock('@/components/conversation/message-list', () => ({
-  MessageList: ({ messages }: any) => <div data-testid="message-list">{messages.length}</div>,
+  MessageList: ({ messages, renderMessageActions }: any) => (
+    <div>
+      <div data-testid="message-list">{messages.length}</div>
+      {messages.map((message: any) => (
+        <div key={message.id} data-testid={`msg-${message.id}`}>
+          <span>{message.content}</span>
+          {renderMessageActions ? renderMessageActions(message) : null}
+        </div>
+      ))}
+    </div>
+  ),
 }))
 
 vi.mock('@/components/conversation/message-input', () => ({
-  MessageInput: () => <div data-testid="message-input" />,
+  MessageInput: ({ onSend }: any) => <button onClick={() => onSend('hello from draft')} data-testid="message-input-send">send</button>,
 }))
 
 vi.mock('@/components/conversation/conversation-header', () => ({
-  ConversationHeader: ({ onOpenHistory }: any) => <button onClick={onOpenHistory}>open-history</button>,
+  ConversationHeader: ({ onOpenHistory, onNewConversation }: any) => (
+    <div>
+      <button onClick={onOpenHistory}>open-history</button>
+      <button onClick={onNewConversation} data-testid="header-new-conversation">new</button>
+    </div>
+  ),
 }))
 
 vi.mock('@/components/ai/feedback-dialog', () => ({
@@ -108,6 +156,14 @@ describe('Conversation detail history UI', () => {
       touchHistoryListCache: mockTouchHistoryListCache,
       touchHistoryMessagesCache: mockTouchHistoryMessagesCache,
     })
+    mockApplyRatingToCache.mockReset()
+    mockAppendHistoryMessageToCache.mockReset()
+    mockSendStreamingRequest.mockReset()
+    mockAbortStreamingRequest.mockReset()
+    mockHistoryReplaceState.mockClear()
+    streamingMode = 'success'
+    pendingStreamingPromise = null
+    resolvePendingStreaming = null
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true }) }))
     mockFetchHistoryMessages.mockResolvedValue({
       items: [{ id: 'm-1', metadata: { aiMode: true, role: 'customer' }, content: 'hello', created_at: '2025-01-01T00:00:00.000Z' }],
@@ -275,6 +331,1000 @@ describe('Conversation detail history UI', () => {
     expect(mockFetchHistoryMessages).toHaveBeenCalledTimes(1)
   })
 
+  it('does not call mark-read on mount because read state is not persisted', async () => {
+    render(<ConversationDetailPage />)
+
+    await waitFor(() => {
+      expect(mockFetchHistoryMessages).toHaveBeenCalledWith('conv-1', 0, 50)
+    })
+
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      '/api/conversations/conv-1/mark-read',
+      expect.anything()
+    )
+  })
+
+  it('draft conversation does not fetch history or mark-read on open', async () => {
+    currentConversationId = 'new'
+    render(<ConversationDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-input-send')).toBeTruthy()
+    })
+
+    expect(mockFetchHistoryMessages).not.toHaveBeenCalled()
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      '/api/conversations/new/mark-read',
+      expect.anything()
+    )
+  })
+
+  it('draft conversation with materialized marker clears marker and navigates to real conversation', async () => {
+    currentConversationId = 'new'
+    sessionStorage.setItem(getConversationMaterializedDraftKey('user-1'), 'conv-real-on-mount')
+    render(<ConversationDetailPage />)
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-real-on-mount')
+    })
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBeNull()
+    expect(mockFetchHistoryMessages).not.toHaveBeenCalled()
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      '/api/conversations/new/mark-read',
+      expect.anything()
+    )
+  })
+
+  it('does not send rating request to /new when switched to unmaterialized draft', async () => {
+    const user = userEvent.setup()
+    mockFetchHistoryMessages.mockResolvedValueOnce({
+      items: [{ id: 'ai-1', metadata: { aiMode: true, role: 'ai' }, content: 'hello', created_at: '2025-01-01T00:00:00.000Z' }],
+      pageItems: [{ id: 'ai-1', metadata: { aiMode: true, role: 'ai' }, content: 'hello', created_at: '2025-01-01T00:00:00.000Z' }],
+      hasMore: false,
+      nextOffset: 0,
+    })
+
+    currentConversationId = 'conv-1'
+    const { rerender } = render(<ConversationDetailPage />)
+    await waitFor(() => {
+      expect(screen.getByTitle('helpful')).toBeTruthy()
+    })
+
+    currentConversationId = 'new'
+    rerender(<ConversationDetailPage />)
+    const helpful = screen.queryByTitle('helpful')
+    if (helpful) {
+      await user.click(helpful)
+    }
+
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('/api/conversations/new/messages/ai-1/rating'),
+      expect.anything()
+    )
+  })
+
+  it('first draft send materializes conversation then uses real id for stream/save/cache/rating', async () => {
+    currentConversationId = 'new'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-1' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-1',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-1/messages' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              id: 'msg-ai-1',
+              conversation_id: 'conv-real-1',
+              sender_id: 'ai',
+              sender_role: 'ai',
+              content: 'AI response',
+              message_type: 'text',
+              metadata: { aiMode: true, role: 'ai', aiChatMode: 'flash' },
+              created_at: '2026-05-12T00:00:01.000Z',
+              updated_at: '2026-05-12T00:00:01.000Z',
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-1/messages/msg-ai-1/rating' && init?.method === 'PUT') {
+        return { ok: true, json: async () => ({ success: true }) } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/conversations', expect.objectContaining({ method: 'POST' }))
+    })
+    expect(mockHistoryReplaceState).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/new/messages', expect.anything())
+    expect(mockSendStreamingRequest).toHaveBeenCalledWith(
+      '/api/ai/chat',
+      expect.objectContaining({ conversationId: 'conv-real-1' }),
+      expect.any(String)
+    )
+    expect(mockAppendHistoryMessageToCache).toHaveBeenCalledWith('conv-real-1', expect.objectContaining({ id: 'msg-user-1' }))
+    expect(mockAppendHistoryMessageToCache).toHaveBeenCalledWith('conv-real-1', expect.objectContaining({ id: 'msg-ai-1' }))
+
+    await waitFor(() => {
+      expect(screen.getByTitle('helpful')).toBeTruthy()
+    })
+    await user.click(screen.getByTitle('helpful'))
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/conversations/conv-real-1/messages/msg-ai-1/rating',
+      expect.objectContaining({ method: 'PUT' })
+    )
+    expect(mockApplyRatingToCache).toHaveBeenCalledWith('conv-real-1', 'msg-ai-1', 'positive', null)
+    expect(mockApplyRatingToCache).not.toHaveBeenCalledWith('new', expect.anything(), expect.anything(), expect.anything())
+    expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-real-1')
+  })
+
+  it('streaming empty replaces route after stream ends, clears marker, and does not request /new/messages', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'empty'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-empty' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-empty',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-real-empty')
+    })
+    expect(mockHistoryReplaceState).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/new/messages', expect.anything())
+  })
+
+  it('materialization success + streaming pending does not replace URL and stores draft marker', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'pending'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-pending' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-pending',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-pending/messages' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              id: 'msg-ai-1',
+              conversation_id: 'conv-real-pending',
+              sender_id: 'ai',
+              sender_role: 'ai',
+              content: 'AI response',
+              message_type: 'text',
+              metadata: { aiMode: true, role: 'ai', aiChatMode: 'flash' },
+              created_at: '2026-05-12T00:00:01.000Z',
+              updated_at: '2026-05-12T00:00:01.000Z',
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+
+    await waitFor(() => {
+      expect(mockSendStreamingRequest).toHaveBeenCalledWith(
+        '/api/ai/chat',
+        expect.objectContaining({ conversationId: 'conv-real-pending' }),
+        expect.any(String)
+      )
+    })
+    expect(mockHistoryReplaceState).not.toHaveBeenCalled()
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-pending')
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBe('conv-real-pending')
+
+    await act(async () => {
+      resolvePendingStreaming?.('AI response')
+      await pendingStreamingPromise
+    })
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-real-pending')
+    })
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/new/messages', expect.anything())
+  })
+
+  it('does not replace old real id when user leaves draft during pending stream', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'pending'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-pending-leave' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-pending-leave',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-pending-leave/messages' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              id: 'msg-ai-1',
+              conversation_id: 'conv-real-pending-leave',
+              sender_id: 'ai',
+              sender_role: 'ai',
+              content: 'AI response',
+              message_type: 'text',
+              metadata: { aiMode: true, role: 'ai', aiChatMode: 'flash' },
+              created_at: '2026-05-12T00:00:01.000Z',
+              updated_at: '2026-05-12T00:00:01.000Z',
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    const { rerender } = render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+    await waitFor(() => {
+      expect(mockSendStreamingRequest).toHaveBeenCalledWith(
+        '/api/ai/chat',
+        expect.objectContaining({ conversationId: 'conv-real-pending-leave' }),
+        expect.any(String)
+      )
+    })
+
+    currentConversationId = 'conv-2'
+    rerender(<ConversationDetailPage />)
+    await waitFor(() => {
+      expect(mockFetchHistoryMessages).toHaveBeenCalledWith('conv-2', 0, 50)
+    })
+
+    await act(async () => {
+      resolvePendingStreaming?.('AI response')
+      await pendingStreamingPromise
+    })
+
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-pending-leave')
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBe('conv-real-pending-leave')
+    expect(screen.queryByText('AI response')).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/new/messages', expect.anything())
+  })
+
+  it('aborts and invalidates pending draft stream before selecting a history conversation', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'pending'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-history-select' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-history-select',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-history-select/messages' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              id: 'msg-ai-1',
+              conversation_id: 'conv-real-history-select',
+              sender_id: 'ai',
+              sender_role: 'ai',
+              content: 'AI response',
+              message_type: 'text',
+              metadata: { aiMode: true, role: 'ai', aiChatMode: 'flash' },
+              created_at: '2026-05-12T00:00:01.000Z',
+              updated_at: '2026-05-12T00:00:01.000Z',
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+    await waitFor(() => {
+      expect(mockSendStreamingRequest).toHaveBeenCalledWith(
+        '/api/ai/chat',
+        expect.objectContaining({ conversationId: 'conv-real-history-select' }),
+        expect.any(String)
+      )
+    })
+
+    mockAbortStreamingRequest.mockClear()
+    await user.click(screen.getByRole('button', { name: 'open-history' }))
+    await waitFor(() => {
+      expect(screen.getByText('U2')).toBeTruthy()
+    })
+    await user.click(screen.getByText('U2'))
+
+    expect(mockAbortStreamingRequest).toHaveBeenCalled()
+    expect(mockPush).toHaveBeenCalledWith('/customer/conversations/conv-2')
+
+    await act(async () => {
+      resolvePendingStreaming?.('AI response')
+      await pendingStreamingPromise
+    })
+
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-history-select')
+    expect(screen.queryByText('AI response')).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/conv-real-history-select/messages', expect.anything())
+  })
+
+  it('does not replace old real id when user starts a new draft during pending stream', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'pending'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-pending-new-click' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-pending-new-click',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-pending-new-click/messages' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              id: 'msg-ai-1',
+              conversation_id: 'conv-real-pending-new-click',
+              sender_id: 'ai',
+              sender_role: 'ai',
+              content: 'AI response',
+              message_type: 'text',
+              metadata: { aiMode: true, role: 'ai', aiChatMode: 'flash' },
+              created_at: '2026-05-12T00:00:01.000Z',
+              updated_at: '2026-05-12T00:00:01.000Z',
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+    await waitFor(() => {
+      expect(mockSendStreamingRequest).toHaveBeenCalledWith(
+        '/api/ai/chat',
+        expect.objectContaining({ conversationId: 'conv-real-pending-new-click' }),
+        expect.any(String)
+      )
+    })
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBe('conv-real-pending-new-click')
+
+    mockAbortStreamingRequest.mockClear()
+    await user.click(screen.getByTestId('header-new-conversation'))
+    expect(mockAbortStreamingRequest).toHaveBeenCalled()
+
+    await act(async () => {
+      resolvePendingStreaming?.('AI response')
+      await pendingStreamingPromise
+    })
+
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-pending-new-click')
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBeNull()
+    expect(screen.queryByText('AI response')).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/new/messages', expect.anything())
+  })
+
+  it('does not update cache or UI when AI save returns after starting a new conversation', async () => {
+    currentConversationId = 'new'
+    const user = userEvent.setup()
+    let resolveAiSave: ((value: any) => void) | null = null
+    const aiSavePromise = new Promise<any>((resolve) => {
+      resolveAiSave = resolve
+    })
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-save-race' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-save-race',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-save-race/messages' && init?.method === 'POST') {
+        return aiSavePromise as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/conversations/conv-real-save-race/messages', expect.objectContaining({ method: 'POST' }))
+    })
+
+    await user.click(screen.getByTestId('header-new-conversation'))
+
+    await act(async () => {
+      resolveAiSave?.({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            id: 'msg-ai-after-new',
+            conversation_id: 'conv-real-save-race',
+            sender_id: 'ai',
+            sender_role: 'ai',
+            content: 'AI response',
+            message_type: 'text',
+            metadata: { aiMode: true, role: 'ai', aiChatMode: 'flash' },
+            created_at: '2026-05-12T00:00:01.000Z',
+            updated_at: '2026-05-12T00:00:01.000Z',
+          },
+        }),
+      })
+      await aiSavePromise
+    })
+
+    expect(mockAppendHistoryMessageToCache).not.toHaveBeenCalledWith('conv-real-save-race', expect.objectContaining({ id: 'msg-ai-after-new' }))
+    expect(screen.queryByText('AI response')).toBeNull()
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-save-race')
+  })
+
+  it('aborts and ignores pending stream when user changes on the same route', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'pending'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-user-switch' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-user-switch',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-user-switch/messages' && init?.method === 'POST') {
+        return { ok: true, json: async () => ({ success: true }) } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    const { rerender } = render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+    await waitFor(() => {
+      expect(mockSendStreamingRequest).toHaveBeenCalledWith(
+        '/api/ai/chat',
+        expect.objectContaining({ conversationId: 'conv-real-user-switch' }),
+        expect.any(String)
+      )
+    })
+
+    mockAbortStreamingRequest.mockClear()
+    currentUserId = 'user-2'
+    mockConversationHookState.userId = 'user-2'
+    rerender(<ConversationDetailPage />)
+
+    await waitFor(() => {
+      expect(mockAbortStreamingRequest).toHaveBeenCalled()
+    })
+
+    await act(async () => {
+      resolvePendingStreaming?.('AI response')
+      await pendingStreamingPromise
+    })
+
+    expect(screen.queryByText('AI response')).toBeNull()
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-user-switch')
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/conv-real-user-switch/messages', expect.anything())
+  })
+
+  it('clears materialized draft id when user changes on the same draft route', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'empty'
+    const user = userEvent.setup()
+    let materializeCount = 0
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        materializeCount += 1
+        const conversationId = materializeCount === 1 ? 'conv-user-1-materialized' : 'conv-user-2-materialized'
+        const senderId = materializeCount === 1 ? 'user-1' : 'user-2'
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: conversationId },
+              message: {
+                id: `msg-${senderId}`,
+                conversation_id: conversationId,
+                sender_id: senderId,
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    const { rerender } = render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-user-1-materialized')
+    })
+
+    currentUserId = 'user-2'
+    mockConversationHookState.userId = 'user-2'
+    mockReplace.mockClear()
+    fetchMock.mockClear()
+    rerender(<ConversationDetailPage />)
+    await waitFor(() => {
+      expect(screen.getByTestId('message-input-send')).toBeTruthy()
+    })
+
+    await user.click(screen.getByTestId('message-input-send'))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/conversations', expect.objectContaining({ method: 'POST' }))
+    })
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/conv-user-1-materialized/messages', expect.anything())
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-user-2-materialized')
+    })
+  })
+
+  it('clears materialized draft marker when starting a new conversation from a real conversation page', async () => {
+    currentConversationId = 'conv-2'
+    sessionStorage.setItem(getConversationMaterializedDraftKey('user-1'), 'conv-old-pending')
+    render(<ConversationDetailPage />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('header-new-conversation')).toBeTruthy()
+    })
+    mockAbortStreamingRequest.mockClear()
+    await userEvent.click(screen.getByTestId('header-new-conversation'))
+
+    expect(mockAbortStreamingRequest).toHaveBeenCalled()
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBeNull()
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-old-pending')
+  })
+
+  it('does not materialize current UI or start streaming when materialize returns after route switch', async () => {
+    currentConversationId = 'new'
+    const user = userEvent.setup()
+    let resolveMaterialize: ((value: any) => void) | null = null
+    const materializePromise = new Promise<any>((resolve) => {
+      resolveMaterialize = resolve
+    })
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return materializePromise
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    const { rerender } = render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/conversations', expect.objectContaining({ method: 'POST' }))
+    })
+
+    currentConversationId = 'conv-2'
+    rerender(<ConversationDetailPage />)
+
+    await act(async () => {
+      resolveMaterialize?.({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            conversation: { id: 'conv-real-materialize-late' },
+            message: {
+              id: 'msg-user-1',
+              conversation_id: 'conv-real-materialize-late',
+              sender_id: 'user-1',
+              sender_role: 'customer',
+              content: 'hello from draft',
+              message_type: 'text',
+              metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+              created_at: '2026-05-12T00:00:00.000Z',
+              updated_at: '2026-05-12T00:00:00.000Z',
+            },
+          },
+        }),
+      } as any)
+      await materializePromise
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(mockSendStreamingRequest).not.toHaveBeenCalled()
+    expect(mockAppendHistoryMessageToCache).not.toHaveBeenCalledWith('conv-real-materialize-late', expect.anything())
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBeNull()
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-materialize-late')
+  })
+
+  it('does not replace old real id after component unmounts during pending stream', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'pending'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-pending-unmount' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-pending-unmount',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-pending-unmount/messages' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              id: 'msg-ai-1',
+              conversation_id: 'conv-real-pending-unmount',
+              sender_id: 'ai',
+              sender_role: 'ai',
+              content: 'AI response',
+              message_type: 'text',
+              metadata: { aiMode: true, role: 'ai', aiChatMode: 'flash' },
+              created_at: '2026-05-12T00:00:01.000Z',
+              updated_at: '2026-05-12T00:00:01.000Z',
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    const { unmount } = render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+    await waitFor(() => {
+      expect(mockSendStreamingRequest).toHaveBeenCalledWith(
+        '/api/ai/chat',
+        expect.objectContaining({ conversationId: 'conv-real-pending-unmount' }),
+        expect.any(String)
+      )
+    })
+
+    unmount()
+
+    await act(async () => {
+      resolvePendingStreaming?.('AI response')
+      await pendingStreamingPromise
+    })
+
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-pending-unmount')
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBe('conv-real-pending-unmount')
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/new/messages', expect.anything())
+  })
+
+  it('streaming throw replaces route in catch, clears marker, and does not request /new/messages', async () => {
+    currentConversationId = 'new'
+    streamingMode = 'throw'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-throw' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-throw',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-real-throw')
+    })
+    expect(mockHistoryReplaceState).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/new/messages', expect.anything())
+  })
+
+  it('keeps marker and does not replace route when AI response persistence fails', async () => {
+    currentConversationId = 'new'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-ai-save-fail' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-ai-save-fail',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-ai-save-fail/messages' && init?.method === 'POST') {
+        return { ok: true, json: async () => ({ success: false }) } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+
+    await waitFor(() => {
+      expect(mockSendStreamingRequest).toHaveBeenCalledWith(
+        '/api/ai/chat',
+        expect.objectContaining({ conversationId: 'conv-real-ai-save-fail' }),
+        expect.any(String)
+      )
+    })
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-real-ai-save-fail')
+    expect(sessionStorage.getItem(getConversationMaterializedDraftKey('user-1'))).toBe('conv-real-ai-save-fail')
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/conversations/new/messages', expect.anything())
+  })
+
+  it('does not submit rating request for temporary AI message id', async () => {
+    currentConversationId = 'new'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'conv-real-temp-rating' },
+              message: {
+                id: 'msg-user-1',
+                conversation_id: 'conv-real-temp-rating',
+                sender_id: 'user-1',
+                sender_role: 'customer',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'customer', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/conv-real-temp-rating/messages' && init?.method === 'POST') {
+        return { ok: true, json: async () => ({ success: false }) } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<ConversationDetailPage />)
+    await user.click(screen.getByTestId('message-input-send'))
+
+    await waitFor(() => {
+      expect(screen.getByTitle('helpful')).toBeTruthy()
+    })
+    await user.click(screen.getByTitle('helpful'))
+
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining('/rating'),
+      expect.objectContaining({ method: 'PUT' })
+    )
+  })
+
   it('does not display expired cached history messages', async () => {
     mockStoreGetState.mockReturnValue({
       historyMessageCache: {
@@ -294,7 +1344,7 @@ describe('Conversation detail history UI', () => {
     })
   })
 
-  it('applies new=1 once only when id matches just-created marker and removes marker from URL', async () => {
+  it('applies new=1 once only when id matches just-created marker without blocking on server validation', async () => {
     currentSearchParams = new URLSearchParams('new=1')
     sessionStorage.setItem('conversationJustCreated:user-1', 'conv-1')
 
@@ -303,15 +1353,14 @@ describe('Conversation detail history UI', () => {
     await waitFor(() => {
       expect(mockFetchHistoryMessages).not.toHaveBeenCalled()
     })
-    expect(mockFetchConversationById).toHaveBeenCalledWith('conv-1')
+    expect(mockFetchConversationById).not.toHaveBeenCalled()
     expect(sessionStorage.getItem('conversationJustCreated:user-1')).toBeNull()
     expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-1')
 
     currentSearchParams = new URLSearchParams('')
     rerender(<ConversationDetailPage />)
-    await waitFor(() => {
-      expect(mockFetchHistoryMessages).toHaveBeenCalledWith('conv-1', 0, 50)
-    })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(mockFetchHistoryMessages).not.toHaveBeenCalled()
   })
 
   it('loads messages again when revisiting same conversation after one-time new=1 skip', async () => {
@@ -345,22 +1394,6 @@ describe('Conversation detail history UI', () => {
 
     render(<ConversationDetailPage />)
 
-    await waitFor(() => {
-      expect(mockFetchHistoryMessages).toHaveBeenCalledWith('conv-1', 0, 50)
-    })
-    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/conv-1')
-  })
-
-  it('does not skip load when new=1 marker matches but server validation fails', async () => {
-    currentSearchParams = new URLSearchParams('new=1')
-    sessionStorage.setItem('conversationJustCreated:user-1', 'conv-1')
-    mockFetchConversationById.mockRejectedValueOnce(new Error('not found'))
-
-    render(<ConversationDetailPage />)
-
-    await waitFor(() => {
-      expect(mockFetchConversationById).toHaveBeenCalledWith('conv-1')
-    })
     await waitFor(() => {
       expect(mockFetchHistoryMessages).toHaveBeenCalledWith('conv-1', 0, 50)
     })

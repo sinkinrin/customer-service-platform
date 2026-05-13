@@ -43,6 +43,7 @@ export interface PaginatedResponse<T> {
 export const CreateConversationSchema = z.object({
   business_type_id: z.string().uuid().optional(),
   initial_message: z.string().min(1).max(5000).optional(),
+  initial_metadata: z.record(z.any()).optional(),
 })
 
 export type CreateConversationRequest = z.infer<typeof CreateConversationSchema>

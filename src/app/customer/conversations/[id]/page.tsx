@@ -22,11 +22,13 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useStreamingChat } from '@/hooks/use-streaming-chat'
 import {
+  DRAFT_CONVERSATION_ID,
   HISTORY_CACHE_TTL_MS,
   HISTORY_MESSAGE_PAGE_SIZE,
   getConversationAiChatModeKey,
   getConversationJustCreatedKey,
   getConversationLastVisitKey,
+  getConversationMaterializedDraftKey,
 } from '@/lib/constants/conversation'
 import { useConversation } from '@/lib/hooks/use-conversation'
 import { useConversationStore, type Conversation } from '@/lib/stores/conversation-store'
@@ -57,11 +59,11 @@ export default function ConversationDetailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const conversationId = params.id as string
+  const isDraftConversation = conversationId === DRAFT_CONVERSATION_ID
   const { user } = useAuth()
   const {
     fetchHistoryConversations,
     fetchHistoryMessages,
-    fetchConversationById,
     historyListCache,
     applyRatingToCache,
     appendHistoryMessageToCache,
@@ -69,6 +71,7 @@ export default function ConversationDetailPage() {
   } = useConversation()
 
   const [aiMessages, setAiMessages] = useState<AiMsg[]>([])
+  const [materializedConversationId, setMaterializedConversationId] = useState<string | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [aiChatMode, setAiChatMode] = useState<AIChatMode>('flash')
   const [isAiChatModeLoaded, setIsAiChatModeLoaded] = useState(false)
@@ -87,7 +90,20 @@ export default function ConversationDetailPage() {
   const [historyMessageHasMore, setHistoryMessageHasMore] = useState(false)
   const [isLoadingEarlierMessages, setIsLoadingEarlierMessages] = useState(false)
   const messageRequestGenRef = useRef(0)
+  const sendRequestGenRef = useRef(0)
+  const isMountedRef = useRef(false)
+  const activeConversationIdRef = useRef(conversationId)
+  const activeUserIdRef = useRef(userId)
+  const activeMaterializedConversationIdRef = useRef<string | null>(null)
+  const activeStreamingMessageIdRef = useRef<string | null>(null)
   const historyRequestGenRef = useRef(0)
+  const skipNextHistoryLoadForConversationRef = useRef<string | null>(null)
+  const effectiveConversationId = materializedConversationId || (isDraftConversation ? null : conversationId)
+  const materializedDraftKey = useMemo(() => getConversationMaterializedDraftKey(user?.id), [user?.id])
+
+  activeConversationIdRef.current = conversationId
+  activeUserIdRef.current = userId
+  activeMaterializedConversationIdRef.current = materializedConversationId
 
   const historyMessageCacheKey = useMemo(() => (userId ? `${userId}:${conversationId}` : null), [userId, conversationId])
   const cachedHistoryListEntry = userId ? historyListCache[userId] : null
@@ -97,8 +113,9 @@ export default function ConversationDetailPage() {
     Date.now() - cachedHistoryListEntry.updatedAt <= HISTORY_CACHE_TTL_MS
   )
 
-  const { isLoading: isAiLoading, isWaitingFirstToken, toolStatus, sendStreamingRequest } = useStreamingChat({
+  const { isLoading: isAiLoading, isWaitingFirstToken, toolStatus, sendStreamingRequest, abort: abortStreamingRequest } = useStreamingChat({
     onAddMessage: (id, content) => {
+      if (activeStreamingMessageIdRef.current !== id) return
       setAiMessages(prev => [
         ...prev,
         {
@@ -110,11 +127,13 @@ export default function ConversationDetailPage() {
       ])
     },
     onUpdateMessage: (id, content) => {
+      if (activeStreamingMessageIdRef.current !== id) return
       setAiMessages(prev =>
         prev.map(msg => (msg.id === id ? { ...msg, content } : msg))
       )
     },
     onRemoveMessage: (id) => {
+      if (activeStreamingMessageIdRef.current !== id) return
       setAiMessages(prev => prev.filter(msg => msg.id !== id))
     },
     onError: (error: any) => {
@@ -129,6 +148,31 @@ export default function ConversationDetailPage() {
   })
 
   useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    activeConversationIdRef.current = conversationId
+  }, [conversationId])
+
+  useEffect(() => {
+    activeUserIdRef.current = userId
+  }, [userId])
+
+  useEffect(() => {
+    activeMaterializedConversationIdRef.current = materializedConversationId
+  }, [materializedConversationId])
+
+  useEffect(() => {
+    if (
+      skipNextHistoryLoadForConversationRef.current &&
+      skipNextHistoryLoadForConversationRef.current !== conversationId
+    ) {
+      skipNextHistoryLoadForConversationRef.current = null
+    }
     historyRequestGenRef.current += 1
     setHistoryLoading(false)
     setHistoryError(null)
@@ -139,7 +183,9 @@ export default function ConversationDetailPage() {
 
   useEffect(() => {
     messageRequestGenRef.current += 1
+    activeStreamingMessageIdRef.current = null
     setAiMessages([])
+    setMaterializedConversationId(null)
     setHistoryMessageOffset(0)
     setHistoryMessageHasMore(false)
     setIsLoadingEarlierMessages(false)
@@ -147,6 +193,9 @@ export default function ConversationDetailPage() {
   }, [conversationId])
 
   useEffect(() => {
+    sendRequestGenRef.current += 1
+    activeStreamingMessageIdRef.current = null
+    abortStreamingRequest()
     historyRequestGenRef.current += 1
     messageRequestGenRef.current += 1
     setHistoryOpen(false)
@@ -157,10 +206,11 @@ export default function ConversationDetailPage() {
     setLoadedHistoryList([])
 
     setAiMessages([])
+    setMaterializedConversationId(null)
     setHistoryMessageOffset(0)
     setHistoryMessageHasMore(false)
     setIsLoadingEarlierMessages(false)
-  }, [userId])
+  }, [abortStreamingRequest, userId])
 
   useEffect(() => {
     try {
@@ -197,14 +247,36 @@ export default function ConversationDetailPage() {
   // Load existing AI messages on mount
   useEffect(() => {
     if (conversationId) {
+      if (isDraftConversation) {
+        const materializedDraftConversationId = (() => {
+          try {
+            return sessionStorage.getItem(materializedDraftKey)
+          } catch {
+            return null
+          }
+        })()
+        if (materializedDraftConversationId) {
+          try {
+            sessionStorage.removeItem(materializedDraftKey)
+          } catch {}
+          router.replace(`/customer/conversations/${materializedDraftConversationId}`)
+          setIsInitialLoading(false)
+          return
+        }
+        setAiMessages([])
+        setHistoryMessageOffset(0)
+        setHistoryMessageHasMore(false)
+        setIsInitialLoading(false)
+        return
+      }
       const loadMessages = async () => {
         const requestGen = messageRequestGenRef.current
         const requestUserId = userId
         const requestConversationId = conversationId
         const isActive = () => (
           messageRequestGenRef.current === requestGen &&
-          userId === requestUserId &&
-          conversationId === requestConversationId
+          activeUserIdRef.current === requestUserId &&
+          activeConversationIdRef.current === requestConversationId
         )
         try {
           const shouldApplyNewMarker = searchParams.get('new') === '1' && (() => {
@@ -216,12 +288,12 @@ export default function ConversationDetailPage() {
           })()
           if (shouldApplyNewMarker) {
             try {
-              await fetchConversationById(conversationId)
               if (!isActive()) return
               setAiMessages([])
               setHistoryMessageOffset(0)
               setHistoryMessageHasMore(false)
               setIsInitialLoading(false)
+              skipNextHistoryLoadForConversationRef.current = conversationId
               try {
                 sessionStorage.removeItem(getConversationJustCreatedKey(user?.id))
               } catch {}
@@ -233,6 +305,14 @@ export default function ConversationDetailPage() {
               if (!isActive()) return
               console.error('Failed to validate conversation for new marker:', error)
             }
+          }
+          if (skipNextHistoryLoadForConversationRef.current === conversationId) {
+            skipNextHistoryLoadForConversationRef.current = null
+            setAiMessages([])
+            setHistoryMessageOffset(0)
+            setHistoryMessageHasMore(false)
+            setIsInitialLoading(false)
+            return
           }
           const cachedEntry = historyMessageCacheKey
             ? useConversationStore.getState().historyMessageCache[historyMessageCacheKey]
@@ -293,25 +373,19 @@ export default function ConversationDetailPage() {
       }
 
       loadMessages()
-
-      // Mark conversation as read
-      fetch(`/api/conversations/${conversationId}/mark-read`, {
-        method: 'POST',
-      }).catch((error) => {
-        console.error('Failed to mark conversation as read:', error)
-      })
     }
-  }, [conversationId, fetchConversationById, fetchHistoryMessages, historyMessageCacheKey, router, searchParams, user?.id, userId])
+  }, [conversationId, fetchHistoryMessages, historyMessageCacheKey, isDraftConversation, materializedDraftKey, router, searchParams, user?.id, userId])
 
   const loadEarlierMessages = useCallback(async () => {
+    if (isDraftConversation) return
     if (isLoadingEarlierMessages) return
     const requestGen = messageRequestGenRef.current
     const requestUserId = userId
     const requestConversationId = conversationId
     const isActive = () => (
       messageRequestGenRef.current === requestGen &&
-      userId === requestUserId &&
-      conversationId === requestConversationId
+      activeUserIdRef.current === requestUserId &&
+      activeConversationIdRef.current === requestConversationId
     )
     try {
       setIsLoadingEarlierMessages(true)
@@ -346,7 +420,7 @@ export default function ConversationDetailPage() {
       if (!isActive()) return
       setIsLoadingEarlierMessages(false)
     }
-  }, [conversationId, fetchHistoryMessages, historyMessageOffset, isLoadingEarlierMessages, userId])
+  }, [conversationId, fetchHistoryMessages, historyMessageOffset, isDraftConversation, isLoadingEarlierMessages, userId])
 
   const loadHistory = useCallback(async (offset = 0) => {
     const requestGen = historyRequestGenRef.current
@@ -354,8 +428,8 @@ export default function ConversationDetailPage() {
     const requestConversationId = conversationId
     const isActive = () => (
       historyRequestGenRef.current === requestGen &&
-      userId === requestUserId &&
-      conversationId === requestConversationId
+      activeUserIdRef.current === requestUserId &&
+      activeConversationIdRef.current === requestConversationId
     )
     try {
       setHistoryError(null)
@@ -401,14 +475,33 @@ export default function ConversationDetailPage() {
     void loadHistory(0)
   }, [cachedHistoryListEntry?.cursor, cachedHistoryListEntry?.items, hasUsableHistoryListCache, loadHistory, loadedHistoryList.length, userId])
 
+  const handleStartNewConversation = useCallback(() => {
+    sendRequestGenRef.current += 1
+    activeStreamingMessageIdRef.current = null
+    abortStreamingRequest()
+    try {
+      sessionStorage.removeItem(materializedDraftKey)
+    } catch {}
+    if (!isDraftConversation) return
+    setMaterializedConversationId(null)
+    setAiMessages([])
+    setHistoryMessageOffset(0)
+    setHistoryMessageHasMore(false)
+    setIsLoadingEarlierMessages(false)
+    setIsInitialLoading(false)
+  }, [abortStreamingRequest, isDraftConversation, materializedDraftKey])
+
   const handleSelectHistoryConversation = useCallback((id: string) => {
     if (id === conversationId) {
       setHistoryOpen(false)
       return
     }
+    sendRequestGenRef.current += 1
+    activeStreamingMessageIdRef.current = null
+    abortStreamingRequest()
     router.push(`/customer/conversations/${id}`)
     setHistoryOpen(false)
-  }, [conversationId, router])
+  }, [abortStreamingRequest, conversationId, router])
 
   // Rate a message
   const submitRating = useCallback(async (
@@ -416,6 +509,9 @@ export default function ConversationDetailPage() {
     rating: 'positive' | 'negative' | null,
     feedback?: string
   ) => {
+    if (!effectiveConversationId) return
+    if (messageId.startsWith('temp-')) return
+
     // Optimistic update
     setAiMessages(prev =>
       prev.map(msg =>
@@ -431,14 +527,14 @@ export default function ConversationDetailPage() {
 
     try {
       await fetch(
-        `/api/conversations/${conversationId}/messages/${messageId}/rating`,
+        `/api/conversations/${effectiveConversationId}/messages/${messageId}/rating`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ rating, feedback }),
         }
       )
-      applyRatingToCache(conversationId, messageId, rating, rating === 'positive' ? null : (feedback || null))
+      applyRatingToCache(effectiveConversationId, messageId, rating, rating === 'positive' ? null : (feedback || null))
     } catch (error) {
       console.error('Failed to rate message:', error)
       // Revert optimistic update on error
@@ -450,7 +546,7 @@ export default function ConversationDetailPage() {
         )
       )
     }
-  }, [applyRatingToCache, conversationId])
+  }, [applyRatingToCache, effectiveConversationId])
 
   // Handle thumbs up click
   const handleThumbsUp = useCallback((messageId: string, currentRating: string | null | undefined) => {
@@ -520,55 +616,148 @@ export default function ConversationDetailPage() {
       timestamp: new Date().toISOString(),
     }
     setAiMessages(prev => [...prev, newUserMessage])
+    const sendRequestGen = ++sendRequestGenRef.current
+    const sendRequestMessageGen = messageRequestGenRef.current
+    const sendStartedConversationId = conversationId
+    const sendStartedUserId = userId
+    const isCurrentSendContextActive = (resolvedId?: string | null) => {
+      if (!isMountedRef.current) return false
+      if (sendRequestGenRef.current !== sendRequestGen) return false
+      if (messageRequestGenRef.current !== sendRequestMessageGen) return false
+      if (activeConversationIdRef.current !== sendStartedConversationId) return false
+      if (activeUserIdRef.current !== sendStartedUserId) return false
+      if (sendStartedConversationId !== DRAFT_CONVERSATION_ID) return true
+      if (!resolvedId) return activeConversationIdRef.current === DRAFT_CONVERSATION_ID
+      if (activeConversationIdRef.current !== DRAFT_CONVERSATION_ID) return false
+      const activeMaterializedId = activeMaterializedConversationIdRef.current
+      return !activeMaterializedId || activeMaterializedId === resolvedId
+    }
 
+    let resolvedConversationId: string | null = effectiveConversationId
+    let shouldSyncRouterToMaterializedConversation = false
     // Persist user message
     let persistedUserMsgId: string | null = null
     try {
-      const persistRes = await fetch(`/api/conversations/${conversationId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: trimmedContent,
-          message_type: 'text',
-          metadata: { aiMode: true, role: 'customer', aiChatMode }
-        }),
-      })
-      const persistData = await persistRes.json()
-      if (persistData.success && persistData.data?.id) {
-        persistedUserMsgId = persistData.data.id
-        appendHistoryMessageToCache(conversationId, persistData.data)
-        setAiMessages(prev =>
-          prev.map(msg =>
-            msg.id === newUserMessage.id
-              ? { ...msg, id: persistedUserMsgId! }
-              : msg
+      if (isDraftConversation && !materializedConversationId) {
+        const materializeRes = await fetch('/api/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            initial_message: trimmedContent,
+            initial_metadata: { aiMode: true, role: 'customer', aiChatMode },
+          }),
+        })
+        if (!materializeRes.ok) {
+          throw new Error('Failed to create draft conversation')
+        }
+        const materializeData = await materializeRes.json()
+        if (!materializeData.success || !materializeData.data?.conversation?.id || !materializeData.data?.message?.id) {
+          throw new Error('Invalid materialized conversation response')
+        }
+        const createdConversationId = String(materializeData.data.conversation.id)
+        resolvedConversationId = createdConversationId
+        shouldSyncRouterToMaterializedConversation = true
+        if (!isCurrentSendContextActive(createdConversationId)) {
+          return
+        }
+        setMaterializedConversationId(resolvedConversationId)
+        try {
+          sessionStorage.setItem(materializedDraftKey, createdConversationId)
+        } catch {}
+        persistedUserMsgId = materializeData.data.message.id
+        appendHistoryMessageToCache(createdConversationId, materializeData.data.message)
+        setAiMessages(prev => prev.map(msg => msg.id === newUserMessage.id ? { ...msg, id: persistedUserMsgId! } : msg))
+      } else {
+        if (!resolvedConversationId) {
+          throw new Error('Missing conversation id for message persistence')
+        }
+        const persistRes = await fetch(`/api/conversations/${resolvedConversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: trimmedContent,
+            message_type: 'text',
+            metadata: { aiMode: true, role: 'customer', aiChatMode }
+          }),
+        })
+        const persistData = await persistRes.json()
+        if (persistData.success && persistData.data?.id) {
+          persistedUserMsgId = persistData.data.id
+          appendHistoryMessageToCache(resolvedConversationId, persistData.data)
+          setAiMessages(prev =>
+            prev.map(msg =>
+              msg.id === newUserMessage.id
+                ? { ...msg, id: persistedUserMsgId! }
+                : msg
+            )
           )
-        )
+        }
       }
     } catch (error) {
       console.error('Failed to persist user AI message:', error)
+      setAiMessages(prev => prev.filter(msg => msg.id !== newUserMessage.id))
+      return
+    }
+    if (!resolvedConversationId) {
+      setAiMessages(prev => prev.filter(msg => msg.id !== newUserMessage.id))
+      return
     }
 
     const tempAiMessageId = `temp-ai-${Date.now()}`
+    activeStreamingMessageIdRef.current = tempAiMessageId
 
     // Send streaming AI request via hook
-    const aiContent = await sendStreamingRequest(
-      '/api/ai/chat',
-      {
-        conversationId,
-        message: trimmedContent,
-        mode: aiChatMode,
-        history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
-      },
-      tempAiMessageId,
-    )
+    let aiContent = ''
+    try {
+      aiContent = await sendStreamingRequest(
+        '/api/ai/chat',
+        {
+          conversationId: resolvedConversationId,
+          message: trimmedContent,
+          mode: aiChatMode,
+          history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
+        },
+        tempAiMessageId,
+      )
+    } catch (error) {
+      console.error('Failed to stream AI response:', error)
+      if (shouldSyncRouterToMaterializedConversation && resolvedConversationId && isCurrentSendContextActive(resolvedConversationId)) {
+        try {
+          sessionStorage.removeItem(materializedDraftKey)
+        } catch {}
+        router.replace(`/customer/conversations/${resolvedConversationId}`)
+      }
+      if (activeStreamingMessageIdRef.current === tempAiMessageId) {
+        activeStreamingMessageIdRef.current = null
+      }
+      return
+    }
 
-    if (!aiContent) return // aborted or error (hook already handled cleanup)
+    if (!aiContent) {
+      if (shouldSyncRouterToMaterializedConversation && resolvedConversationId && isCurrentSendContextActive(resolvedConversationId)) {
+        try {
+          sessionStorage.removeItem(materializedDraftKey)
+        } catch {}
+        router.replace(`/customer/conversations/${resolvedConversationId}`)
+      }
+      if (activeStreamingMessageIdRef.current === tempAiMessageId) {
+        activeStreamingMessageIdRef.current = null
+      }
+      return
+    }
+
+    if (!isCurrentSendContextActive(resolvedConversationId)) {
+      if (activeStreamingMessageIdRef.current === tempAiMessageId) {
+        activeStreamingMessageIdRef.current = null
+      }
+      return
+    }
 
     // Persist AI response and get the real message id
     let aiMsgId = tempAiMessageId
+    let aiResponsePersisted = false
     try {
-      const aiPersistRes = await fetch(`/api/conversations/${conversationId}/messages`, {
+      const aiPersistRes = await fetch(`/api/conversations/${resolvedConversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -578,9 +767,16 @@ export default function ConversationDetailPage() {
         }),
       })
       const aiPersistData = await aiPersistRes.json()
+      if (!isCurrentSendContextActive(resolvedConversationId)) {
+        if (activeStreamingMessageIdRef.current === tempAiMessageId) {
+          activeStreamingMessageIdRef.current = null
+        }
+        return
+      }
       if (aiPersistData.success && aiPersistData.data?.id) {
         aiMsgId = aiPersistData.data.id
-        appendHistoryMessageToCache(conversationId, aiPersistData.data)
+        appendHistoryMessageToCache(resolvedConversationId, aiPersistData.data)
+        aiResponsePersisted = true
       }
     } catch (error) {
       console.error('Failed to persist AI response:', error)
@@ -593,6 +789,25 @@ export default function ConversationDetailPage() {
           : msg
       )
     )
+
+    if (shouldSyncRouterToMaterializedConversation && resolvedConversationId && aiResponsePersisted && isCurrentSendContextActive(resolvedConversationId)) {
+      let shouldReplaceAfterSave = false
+      try {
+        const markerValue = sessionStorage.getItem(materializedDraftKey)
+        shouldReplaceAfterSave = markerValue === resolvedConversationId
+      } catch {
+        shouldReplaceAfterSave = true
+      }
+      if (shouldReplaceAfterSave) {
+        try {
+          sessionStorage.removeItem(materializedDraftKey)
+        } catch {}
+        router.replace(`/customer/conversations/${resolvedConversationId}`)
+      }
+    }
+    if (activeStreamingMessageIdRef.current === tempAiMessageId) {
+      activeStreamingMessageIdRef.current = null
+    }
   }
 
   if (isInitialLoading) {
@@ -602,7 +817,7 @@ export default function ConversationDetailPage() {
   // Convert AI messages to display format with rating buttons
   const displayMessages = aiMessages.map((msg) => ({
     id: msg.id,
-    conversation_id: conversationId,
+    conversation_id: effectiveConversationId || '',
     sender_id: msg.role === 'user' ? 'user' : 'ai',
     content: msg.content,
     message_type: 'text' as const,
@@ -627,7 +842,12 @@ export default function ConversationDetailPage() {
       {/* Header */}
       <div className="flex-shrink-0 border-b bg-background/80 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4">
-          <ConversationHeader mode="ai" currentConversationId={conversationId} onOpenHistory={handleOpenHistory} />
+          <ConversationHeader
+            mode="ai"
+            currentConversationId={conversationId}
+            onOpenHistory={handleOpenHistory}
+            onNewConversation={handleStartNewConversation}
+          />
         </div>
       </div>
 

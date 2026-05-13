@@ -72,7 +72,9 @@ export function useConversation() {
       }
 
       const data = await response.json()
-      setConversations(data.data?.conversations || data.data || [])
+      const items = data.data?.conversations || data.data || []
+      setConversations(items)
+      return items as Conversation[]
     } catch (err) {
       const error = err as Error
       console.error('Error fetching conversations:', error)
@@ -105,7 +107,7 @@ export function useConversation() {
       }
 
       const data = await response.json()
-      const conversation = data.data as Conversation
+      const conversation = (data.data?.conversation ?? data.data) as Conversation
 
       addConversation(conversation)
       setMessages([]) // Clear messages for new conversation
@@ -263,7 +265,7 @@ export function useConversation() {
       return inflightRequests.get(dedupeKey)!
     }
     const request = (async () => {
-      const response = await fetch(`/api/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`)
+      const response = await fetch(`/api/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}&include_total=false`)
       if (!response.ok) throw new Error('Failed to fetch conversation messages')
       const data = await response.json()
       const fetchedMessages = (data.data?.messages || []) as Message[]

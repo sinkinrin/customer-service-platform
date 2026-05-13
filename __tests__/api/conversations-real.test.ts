@@ -212,7 +212,10 @@ describe('Conversations API 真实集成测试', () => {
       expect(response.status).toBe(201)
       const data = await response.json()
       expect(data.success).toBe(true)
-      expect(data.data.message_count).toBe(1) // 有初始消息
+      expect(data.data.message_count).toBe(1) // 兼容旧契约
+      expect(data.data.conversation.id).toBeDefined()
+      expect(data.data.message.id).toBeDefined()
+      expect(data.data.message.metadata.sender_name).toBe(mockCustomer.full_name)
     })
 
     it('新对话应继承用户区域', async () => {

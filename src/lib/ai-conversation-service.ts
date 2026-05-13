@@ -67,6 +67,60 @@ export async function createAIConversation(
   return conversation
 }
 
+export async function createAIConversationWithInitialMessage(
+  customerId: string,
+  customerEmail: string,
+  initialMessage: string,
+  metadata?: Record<string, any>
+) {
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${customerId}))`
+
+    await tx.aiConversation.updateMany({
+      where: { customerId, status: 'active' },
+      data: { status: 'closed' },
+    })
+
+    const conversation = await tx.aiConversation.create({
+      data: {
+        customerId,
+        customerEmail,
+        status: 'active',
+      },
+    })
+
+    const message = await tx.aiMessage.create({
+      data: {
+        conversationId: conversation.id,
+        senderRole: 'customer',
+        senderId: customerId,
+        content: initialMessage,
+        messageType: 'text',
+        metadata: metadata ? JSON.stringify(metadata) : null,
+      },
+    })
+
+    const updatedConversation = await tx.aiConversation.update({
+      where: { id: conversation.id },
+      data: { lastMessageAt: new Date() },
+    })
+
+    return { conversation: updatedConversation, message }
+  })
+
+  logger.info('AiConversationService', 'Created new AI conversation with initial message', {
+    data: { conversationId: result.conversation.id, customerId },
+  })
+
+  return {
+    conversation: result.conversation,
+    message: {
+      ...result.message,
+      metadata: safeJsonParse(result.message.metadata),
+    },
+  }
+}
+
 /**
  * Get conversation by ID
  */

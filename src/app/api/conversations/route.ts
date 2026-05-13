@@ -55,7 +55,7 @@ import { CreateConversationSchema } from '@/types/api.types'
 import {
   createAIConversation,
   getCustomerConversations,
-  addMessage,
+  createAIConversationWithInitialMessage,
 } from '@/lib/ai-conversation-service'
 
 export async function GET(request: NextRequest) {
@@ -120,19 +120,23 @@ export async function POST(request: NextRequest) {
       return validationErrorResponse(validation.error.errors)
     }
 
-    // Create local AI conversation
-    const conversation = await createAIConversation(user.id, user.email)
-
-    // Save initial message if provided
+    let conversation
     let initialMessage = null
     if (validation.data.initial_message) {
-      initialMessage = await addMessage(
-        conversation.id,
-        'customer',
+      const initialMetadata = {
+        ...validation.data.initial_metadata,
+        sender_name: user.full_name || user.email,
+      }
+      const materialized = await createAIConversationWithInitialMessage(
         user.id,
+        user.email,
         validation.data.initial_message,
-        { sender_name: user.full_name || user.email }
+        initialMetadata
       )
+      conversation = materialized.conversation
+      initialMessage = materialized.message
+    } else {
+      conversation = await createAIConversation(user.id, user.email)
     }
 
     // Transform to API format
@@ -146,6 +150,23 @@ export async function POST(request: NextRequest) {
       created_at: conversation.createdAt.toISOString(),
       updated_at: conversation.updatedAt.toISOString(),
       last_message_at: conversation.lastMessageAt.toISOString(),
+    }
+
+    if (initialMessage) {
+      return successResponse({
+        ...response,
+        conversation: response,
+        message: {
+          id: initialMessage.id,
+          conversation_id: initialMessage.conversationId,
+          sender_id: initialMessage.senderId,
+          sender_role: initialMessage.senderRole,
+          content: initialMessage.content,
+          message_type: initialMessage.messageType,
+          metadata: initialMessage.metadata,
+          created_at: initialMessage.createdAt.toISOString(),
+        },
+      }, 201)
     }
 
     return successResponse(response, 201)

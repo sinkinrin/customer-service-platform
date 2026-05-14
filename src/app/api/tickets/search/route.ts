@@ -29,7 +29,7 @@ import { ensureZammadUser } from '@/lib/zammad/ensure-user'
 // Query Building Helpers
 // ============================================================================
 
-const VALID_STATUS = new Set(['open', 'closed', 'new', 'pending'])
+const VALID_STATUS = new Set(['open', 'closed', 'new', 'pending', 'resolved'])
 const VALID_SORT = new Set(['created_at', 'updated_at', 'priority'])
 const VALID_ORDER = new Set(['asc', 'desc'])
 const VALID_QUERY_MODE = new Set(['auto', 'keyword', 'dsl'])
@@ -125,6 +125,7 @@ export async function GET(request: NextRequest) {
     const order = searchParams.get('order') || 'desc'
     const limit = parseInt(searchParams.get('limit') || '10')
     const page = parseInt(searchParams.get('page') || '1')
+    const includeTotal = searchParams.get('includeTotal') !== 'false'
 
     // Validate pagination
     if (!Number.isFinite(limit) || limit < 1 || limit > 200) {
@@ -141,7 +142,7 @@ export async function GET(request: NextRequest) {
 
     // Validate filter and sort parameters
     if (status && !VALID_STATUS.has(status)) {
-      return errorResponse('INVALID_STATUS', 'Status must be one of: open, closed, new, pending', undefined, 400)
+      return errorResponse('INVALID_STATUS', 'Status must be one of: open, closed, new, pending, resolved', undefined, 400)
     }
 
     let priority: number | undefined
@@ -226,12 +227,17 @@ export async function GET(request: NextRequest) {
         groupId,
       })
       log.debug('Search API - Calling searchTickets for admin', { effectiveQuery })
-      const [searchResult, count] = await Promise.all([
-        zammadClient.searchTicketsRawQuery(effectiveQuery, limit, undefined, page, sortBy, orderBy),
-        zammadClient.searchTicketsTotalCountRawQuery(effectiveQuery),
-      ])
+      const [searchResult, count] = includeTotal
+        ? await Promise.all([
+            zammadClient.searchTicketsRawQuery(effectiveQuery, limit, undefined, page, sortBy, orderBy),
+            zammadClient.searchTicketsTotalCountRawQuery(effectiveQuery),
+          ])
+        : [
+            await zammadClient.searchTicketsRawQuery(effectiveQuery, limit, undefined, page, sortBy, orderBy),
+            0,
+          ]
       result = searchResult
-      total = count
+      total = includeTotal ? count : 0
       log.debug('Search API - Result', { result: JSON.stringify(result, null, 2) })
     } else if (user.role === 'customer') {
       // Customer: Search tickets on behalf of user (only their own tickets)
@@ -243,12 +249,17 @@ export async function GET(request: NextRequest) {
         groupId,
       })
       log.debug('Search API - Calling searchTickets for customer', { email: user.email, effectiveQuery })
-      const [searchResult, count] = await Promise.all([
-        zammadClient.searchTicketsRawQuery(effectiveQuery, limit, user.email, page, sortBy, orderBy),
-        zammadClient.searchTicketsTotalCountRawQuery(effectiveQuery, user.email),
-      ])
+      const [searchResult, count] = includeTotal
+        ? await Promise.all([
+            zammadClient.searchTicketsRawQuery(effectiveQuery, limit, user.email, page, sortBy, orderBy),
+            zammadClient.searchTicketsTotalCountRawQuery(effectiveQuery, user.email),
+          ])
+        : [
+            await zammadClient.searchTicketsRawQuery(effectiveQuery, limit, user.email, page, sortBy, orderBy),
+            0,
+          ]
       result = searchResult
-      total = count
+      total = includeTotal ? count : 0
       log.debug('Search API - Result', { result: JSON.stringify(result, null, 2) })
     } else {
       const permissionUser: PermissionUser = {
@@ -274,12 +285,17 @@ export async function GET(request: NextRequest) {
       })
 
       log.debug('Search API - Calling scoped search for staff', { scopedQuery, page, limit })
-      const [searchResult, count] = await Promise.all([
-        zammadClient.searchTicketsRawQuery(scopedQuery, limit, undefined, page, sortBy, orderBy),
-        zammadClient.searchTicketsTotalCountRawQuery(scopedQuery),
-      ])
+      const [searchResult, count] = includeTotal
+        ? await Promise.all([
+            zammadClient.searchTicketsRawQuery(scopedQuery, limit, undefined, page, sortBy, orderBy),
+            zammadClient.searchTicketsTotalCountRawQuery(scopedQuery),
+          ])
+        : [
+            await zammadClient.searchTicketsRawQuery(scopedQuery, limit, undefined, page, sortBy, orderBy),
+            0,
+          ]
       result = searchResult
-      total = count
+      total = includeTotal ? count : 0
       log.debug('Search API - Before permission filter', { ticketCount: result.tickets?.length || 0, total })
 
       // Apply unified permission filtering for staff (same as /api/tickets list)
@@ -340,6 +356,7 @@ export async function GET(request: NextRequest) {
     return successResponse({
       tickets: transformedTickets,
       total,
+      total_included: includeTotal,
       query: rawQuery,
       queryMode,
       limit,

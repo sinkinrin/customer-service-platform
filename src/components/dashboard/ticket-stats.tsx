@@ -25,7 +25,7 @@ export function TicketStats({ stats, isLoading }: TicketStatsProps) {
       icon: AlertCircle,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900',
-      onClick: () => router.push('/staff/tickets?status=open'),
+      onClick: () => router.push('/staff/tickets?tab=open'),
     },
     {
       title: 'Pending',
@@ -33,7 +33,7 @@ export function TicketStats({ stats, isLoading }: TicketStatsProps) {
       icon: Clock,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100 dark:bg-blue-900',
-      onClick: () => router.push('/staff/tickets?status=pending'),
+      onClick: () => router.push('/staff/tickets?tab=pending'),
     },
     {
       title: 'Resolved',
@@ -41,7 +41,7 @@ export function TicketStats({ stats, isLoading }: TicketStatsProps) {
       icon: CheckCircle2,
       color: 'text-green-600',
       bgColor: 'bg-green-100 dark:bg-green-900',
-      onClick: () => router.push('/staff/tickets?status=resolved'),
+      onClick: () => router.push('/staff/tickets?tab=resolved'),
     },
     {
       title: 'Closed',
@@ -49,7 +49,7 @@ export function TicketStats({ stats, isLoading }: TicketStatsProps) {
       icon: XCircle,
       color: 'text-gray-600',
       bgColor: 'bg-gray-100 dark:bg-gray-900',
-      onClick: () => router.push('/staff/tickets?status=closed'),
+      onClick: () => router.push('/staff/tickets?tab=closed'),
     },
   ]
 

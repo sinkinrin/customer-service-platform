@@ -63,6 +63,8 @@
       "operational": "运行中",
       "healthy": "健康",
       "connected": "已连接",
+      "disconnected": "未连接",
+      "error": "错误",
       "notConfigured": "未配置",
       "assigned": "已分配",
       "allSystemsOperational": "所有系统运行正常",
@@ -125,6 +127,7 @@
     "logout": "退出登录",
     "profile": "个人资料",
     "customers": "客户",
+    "aiAssistant": "AI 助手",
     "aiQa": "AI 质检",
     "myTickets": "我的工单",
     "feedback": "反馈建议",
@@ -1294,6 +1297,9 @@
       },
       "detail": {
         "loadingText": "加载对话中...",
+        "title": "AI 对话历史",
+        "aiDescription": "查看历史 AI 对话，并继续之前的话题。",
+        "noMessages": "暂无对话历史",
         "me": "我",
         "aiAssistant": "AI助手",
         "newMessageNotification": "收到新消息 - 向下滚动查看",
@@ -1675,6 +1681,7 @@
         "all": "所有工单",
         "open": "开启",
         "pending": "待处理",
+        "resolved": "已解决",
         "closed": "已关闭"
       },
       "detail": {
@@ -2110,6 +2117,7 @@
           "switchToAI": "切换到AI",
           "switchingToAI": "切换中...",
           "transferToHuman": "转人工",
+          "history": "对话历史",
           "newConversation": "新对话",
           "creatingNew": "创建中..."
         }

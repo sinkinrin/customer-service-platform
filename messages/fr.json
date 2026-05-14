@@ -63,6 +63,8 @@
       "operational": "Opérationnel",
       "healthy": "Sain",
       "connected": "Connecté",
+      "disconnected": "Déconnecté",
+      "error": "Erreur",
       "notConfigured": "Non configuré",
       "assigned": "Assigné",
       "allSystemsOperational": "Tous les systèmes opérationnels",
@@ -124,6 +126,7 @@
     "logout": "Déconnexion",
     "profile": "Profil",
     "customers": "Clients",
+    "aiAssistant": "Assistant IA",
     "aiQa": "QA IA",
     "myTickets": "Mes tickets",
     "feedback": "Commentaires",
@@ -1250,6 +1253,9 @@
       },
       "detail": {
         "loadingText": "Chargement de la conversation...",
+        "title": "Historique du chat IA",
+        "aiDescription": "Consultez les conversations IA précédentes et reprenez là où vous vous étiez arrêté.",
+        "noMessages": "Aucun historique de conversation pour le moment",
         "me": "Moi",
         "aiAssistant": "Assistant IA",
         "newMessageNotification": "Nouveau message reçu - faites défiler vers le bas pour voir",
@@ -1628,6 +1634,7 @@
         "all": "Tous les tickets",
         "open": "Ouverts",
         "pending": "En attente",
+        "resolved": "Résolus",
         "closed": "Fermés"
       },
       "detail": {
@@ -2046,6 +2053,7 @@
           "switchToAI": "Passer à l'IA",
           "switchingToAI": "Basculement...",
           "transferToHuman": "Transférer à un humain",
+          "history": "Historique des conversations",
           "newConversation": "Nouvelle conversation",
           "creatingNew": "Création..."
         },

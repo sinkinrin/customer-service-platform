@@ -142,11 +142,13 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       return validationErrorResponse(validation.error.errors)
     }
 
-    // Determine sender role
-    // Allow customers to save AI messages (metadata.role='ai')
-    let senderRole: 'customer' | 'ai'
+    // Determine sender role. Staff/admin assistant messages are stored as staff
+    // so they do not mix with customer QA analytics.
+    let senderRole: 'customer' | 'staff' | 'ai'
     if (validation.data.metadata?.role === 'ai') {
       senderRole = 'ai'
+    } else if (user.role === 'staff' || user.role === 'admin') {
+      senderRole = 'staff'
     } else {
       senderRole = 'customer'
     }

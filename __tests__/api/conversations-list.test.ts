@@ -83,7 +83,8 @@ describe('GET /api/conversations list query', () => {
       'cust_1',
       'customer@test.com',
       'hello',
-      { aiMode: true, role: 'customer', aiChatMode: 'flash', sender_name: 'Customer' }
+      { aiMode: true, role: 'customer', aiChatMode: 'flash', sender_name: 'Customer' },
+      'customer'
     )
     expect(payload.success).toBe(true)
     expect(payload.data.conversation.id).toBe('conv_1')

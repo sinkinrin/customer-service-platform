@@ -169,6 +169,58 @@ describe('Ticket Search API', () => {
     )
   })
 
+  it('accepts resolved status and maps it to pending-close states', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { role: 'admin', email: 'admin@test.com' },
+    } as any)
+
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [],
+      tickets_count: 0,
+    } as any)
+    vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(0)
+    vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
+
+    const request = createRequest('http://localhost:3000/api/tickets/search?status=resolved&limit=1')
+    const response = await GET(request)
+
+    expect(response.status).toBe(200)
+    expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
+      expect.stringContaining('(state_id:6 OR state_id:7)'),
+      1,
+      undefined,
+      1,
+      'created_at',
+      'desc'
+    )
+  })
+
+  it('maps pending status without overlapping resolved pending-close states', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { role: 'admin', email: 'admin@test.com' },
+    } as any)
+
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [],
+      tickets_count: 0,
+    } as any)
+    vi.mocked(zammadClient.searchTicketsTotalCountRawQuery).mockResolvedValue(0)
+    vi.mocked(zammadClient.getUsersByIds).mockResolvedValue([] as any)
+
+    const request = createRequest('http://localhost:3000/api/tickets/search?status=pending&limit=1')
+    const response = await GET(request)
+
+    expect(response.status).toBe(200)
+    expect(zammadClient.searchTicketsRawQuery).toHaveBeenCalledWith(
+      'state_id:3',
+      1,
+      undefined,
+      1,
+      'created_at',
+      'desc'
+    )
+  })
+
   it('staff searches and filters by region', async () => {
     const asiaGroupId = getGroupIdByRegion('asia-pacific')
     const europeGroupId = getGroupIdByRegion('europe-zone-1')

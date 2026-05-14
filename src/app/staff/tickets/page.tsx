@@ -11,7 +11,7 @@ import { TicketList } from '@/components/ticket/ticket-list'
 import { useTicketsSearch } from '@/lib/hooks/use-tickets-swr'
 import { toast } from 'sonner'
 
-type TicketTab = 'all' | 'open' | 'pending' | 'closed'
+type TicketTab = 'all' | 'open' | 'pending' | 'resolved' | 'closed'
 
 export default function TicketsPage() {
   const t = useTranslations('staff.tickets')
@@ -23,7 +23,7 @@ export default function TicketsPage() {
 
   // Read initial tab from URL, localStorage, or default to 'all'
   const tabFromUrl = searchParams.get('tab') as TicketTab | null
-  const validTabs = ['all', 'open', 'pending', 'closed']
+  const validTabs = ['all', 'open', 'pending', 'resolved', 'closed']
 
   // Get initial tab: prioritize URL > localStorage > default 'all'
   const getInitialTab = () => {
@@ -151,7 +151,7 @@ export default function TicketsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="all" className="min-w-[120px]">
             {t('tabs.all')}
           </TabsTrigger>
@@ -160,6 +160,9 @@ export default function TicketsPage() {
           </TabsTrigger>
           <TabsTrigger value="pending" className="min-w-[120px]">
             {t('tabs.pending')}
+          </TabsTrigger>
+          <TabsTrigger value="resolved" className="min-w-[120px]">
+            {t('tabs.resolved')}
           </TabsTrigger>
           <TabsTrigger value="closed" className="min-w-[120px]">
             {t('tabs.closed')}

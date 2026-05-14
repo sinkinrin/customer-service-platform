@@ -59,14 +59,11 @@ export default function StaffCustomersPage() {
   const loadCustomers = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/users')
+      const response = await fetch('/api/admin/users?role=customer&status=active&limit=100')
       if (!response.ok) throw new Error('Failed to fetch customers')
 
       const data = await response.json()
-      // Filter only active customers (exclude inactive/disabled users)
-      const customerList = (data.data?.users || []).filter(
-        (user: Customer & { active?: boolean }) => user.role === 'customer' && user.active !== false
-      )
+      const customerList = data.data?.users || []
       setCustomers(customerList)
     } catch (error) {
       console.error('Failed to load customers:', error)

@@ -71,7 +71,8 @@ export async function createAIConversationWithInitialMessage(
   customerId: string,
   customerEmail: string,
   initialMessage: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
+  initialSenderRole: 'customer' | 'staff' = 'customer'
 ) {
   const result = await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${customerId}))`
@@ -92,7 +93,7 @@ export async function createAIConversationWithInitialMessage(
     const message = await tx.aiMessage.create({
       data: {
         conversationId: conversation.id,
-        senderRole: 'customer',
+        senderRole: initialSenderRole,
         senderId: customerId,
         content: initialMessage,
         messageType: 'text',
@@ -218,7 +219,7 @@ export async function getConversationMessageCount(conversationId: string) {
  */
 export async function addMessage(
   conversationId: string,
-  senderRole: 'customer' | 'ai' | 'system',
+  senderRole: 'customer' | 'staff' | 'ai' | 'system',
   senderId: string,
   content: string,
   metadata?: Record<string, any>,
@@ -361,6 +362,12 @@ export async function rateMessage(
  * Uses groupBy to reduce query count where possible.
  */
 export async function getAiConversationDashboardStats() {
+  const customerConversationWhere = {
+    messages: {
+      some: { senderRole: 'customer' },
+    },
+  }
+
   const [
     conversationsByStatus,
     messagesByRole,
@@ -369,18 +376,24 @@ export async function getAiConversationDashboardStats() {
   ] = await Promise.all([
     prisma.aiConversation.groupBy({
       by: ['status'],
+      where: customerConversationWhere,
       _count: true,
     }),
     prisma.aiMessage.groupBy({
       by: ['senderRole'],
+      where: { conversation: customerConversationWhere },
       _count: true,
     }),
     prisma.aiMessageRating.groupBy({
       by: ['rating'],
+      where: { message: { conversation: customerConversationWhere } },
       _count: true,
     }),
     prisma.aiMessageRating.findMany({
-      where: { rating: 'negative' },
+      where: {
+        rating: 'negative',
+        message: { conversation: customerConversationWhere },
+      },
       include: { message: true },
       orderBy: { createdAt: 'desc' },
       take: 5,

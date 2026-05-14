@@ -14,6 +14,7 @@ import {
   Globe,
   ChevronDown,
   ClipboardCheck,
+  Bot,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -60,10 +61,13 @@ export function StaffLayout({
   const tRoles = useTranslations('common.roles')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
-  const { unreadCount } = useNotifications({ enabled: !!user })
+  const isConversationPage = pathname.startsWith('/staff/conversations')
+  const { unreadCount } = useNotifications({ enabled: !!user && !isConversationPage })
 
   // Matches /staff/tickets/123
   const isTicketDetailPage = /^\/staff\/tickets\/\d+$/.test(pathname)
+  const isConversationDetailPage = /^\/staff\/conversations\/[^/]+$/.test(pathname)
+  const isFullHeightPage = isTicketDetailPage || isConversationDetailPage
 
   const navigation = [
     {
@@ -76,6 +80,11 @@ export function StaffLayout({
       name: tNav('customers'),
       href: "/staff/customers",
       icon: Users,
+    },
+    {
+      name: tNav('aiAssistant'),
+      href: "/staff/conversations",
+      icon: Bot,
     },
     {
       name: tNav('aiQa'),
@@ -98,7 +107,7 @@ export function StaffLayout({
   }
 
   return (
-    <div className={cn('flex bg-background', isTicketDetailPage ? 'h-[100dvh] overflow-hidden' : 'min-h-screen')}>
+    <div className={cn('flex bg-background', isFullHeightPage ? 'h-[100dvh] overflow-hidden' : 'min-h-screen')}>
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
@@ -232,7 +241,7 @@ export function StaffLayout({
 
           {/* Right Side */}
           <div className="flex items-center space-x-4">
-            <NotificationCenter />
+            {!isConversationPage && <NotificationCenter />}
             <LanguageSelector />
             {user && (
               <DropdownMenu>
@@ -272,15 +281,18 @@ export function StaffLayout({
         </header>
 
         {/* Page Content */}
-        <main className={cn('flex-1 flex flex-col min-h-0 p-6', isTicketDetailPage ? 'overflow-hidden' : 'overflow-auto')}>
+        <main className={cn(
+          'flex-1 flex flex-col min-h-0',
+          isFullHeightPage ? 'overflow-hidden p-0' : 'overflow-auto p-6'
+        )}>
           <PageTransition
             key={pathname}
-            className={cn(isTicketDetailPage && 'flex-1 flex flex-col min-h-0 overflow-hidden')}
+            className={cn(isFullHeightPage && 'flex-1 flex flex-col min-h-0 overflow-hidden')}
           >
             {children}
           </PageTransition>
         </main>
-        {!isTicketDetailPage && (
+        {!isFullHeightPage && (
           <footer className="py-6 border-t bg-background">
             <div className="container px-4 mx-auto text-center text-muted-foreground text-sm">
               <p>© HowenTechnologies All rights reserved.</p>

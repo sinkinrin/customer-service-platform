@@ -11,6 +11,7 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response'
 import { logger } from '@/lib/utils/logger'
+import { categoriesCache } from '@/lib/cache/simple-cache'
 
 // ============================================================================
 // GET /api/faq/categories
@@ -21,6 +22,14 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const language = searchParams.get('language') || 'en'
+    const cacheKey = `faq:categories:${language}`
+    const cached = categoriesCache.get(cacheKey)
+    if (cached) {
+      return successResponse({
+        ...cached,
+        cached: true,
+      })
+    }
 
     // Get categories from database
     const categories = await prisma.faqCategory.findMany({
@@ -43,7 +52,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return successResponse({
+    const response = {
       categories: categories.map((cat: typeof categories[number]) => ({
         id: cat.id,
         name: cat.name,
@@ -54,7 +63,10 @@ export async function GET(request: NextRequest) {
       total: categories.length,
       language,
       source: 'database',
-    })
+    }
+
+    categoriesCache.set(cacheKey, response, 1800)
+    return successResponse(response)
   } catch (error) {
     logger.error('FAQ', 'Failed to fetch FAQ categories', { data: { error: error instanceof Error ? error.message : error } })
 

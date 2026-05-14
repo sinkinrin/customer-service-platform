@@ -8,9 +8,25 @@ import { RecentTickets } from '@/components/dashboard/recent-tickets'
 import { PageTransition } from '@/components/ui/page-transition'
 import { Plus, Search, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useTicket } from '@/lib/hooks/use-ticket'
 import type { ZammadTicket } from '@/lib/stores/ticket-store'
 import { useTranslations } from 'next-intl'
+
+async function fetchTicketSearch(params: Record<string, string>) {
+  const searchParams = new URLSearchParams({
+    query: 'state:*',
+    queryMode: 'dsl',
+    ...params,
+  })
+  const response = await fetch(`/api/tickets/search?${searchParams}`)
+  if (!response.ok) {
+    throw new Error('Failed to load tickets')
+  }
+  const data = await response.json()
+  return {
+    tickets: (data.data?.tickets || []) as ZammadTicket[],
+    total: Number(data.data?.total || 0),
+  }
+}
 
 export default function StaffDashboardPage() {
   const router = useRouter()
@@ -21,7 +37,6 @@ export default function StaffDashboardPage() {
   const [stats, setStats] = useState({ open: 0, pending: 0, resolved: 0, closed: 0 })
   const [recentTickets, setRecentTickets] = useState<ZammadTicket[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { searchTickets } = useTicket()
 
   useEffect(() => {
     loadDashboardData()
@@ -31,30 +46,20 @@ export default function StaffDashboardPage() {
   const loadDashboardData = async () => {
     setIsLoading(true)
     try {
-      // Use higher limit to ensure accurate stats (counts are calculated from fetched tickets)
-      const result = await searchTickets('state:*', 200)
-      if (result) {
-        const tickets = result.tickets
-        // Single-pass count calculation (performance optimization)
-        const counts = tickets.reduce(
-          (acc, t) => {
-            const stateLower = t.state.toLowerCase()
-            if (stateLower.includes('new') || stateLower.includes('open')) {
-              acc.open++
-            } else if (stateLower.includes('pending')) {
-              acc.pending++
-            } else if (stateLower.includes('resolved')) {
-              acc.resolved++
-            } else if (stateLower.includes('closed')) {
-              acc.closed++
-            }
-            return acc
-          },
-          { open: 0, pending: 0, resolved: 0, closed: 0 }
-        )
-        setStats(counts)
-        setRecentTickets(tickets.slice(0, 10))
-      }
+      const [recent, open, pending, resolved, closed] = await Promise.all([
+        fetchTicketSearch({ limit: '10', includeTotal: 'false' }),
+        fetchTicketSearch({ limit: '1', status: 'open' }),
+        fetchTicketSearch({ limit: '1', status: 'pending' }),
+        fetchTicketSearch({ limit: '1', status: 'resolved' }),
+        fetchTicketSearch({ limit: '1', status: 'closed' }),
+      ])
+      setStats({
+        open: open.total,
+        pending: pending.total,
+        resolved: resolved.total,
+        closed: closed.total,
+      })
+      setRecentTickets(recent.tickets)
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
     } finally {
@@ -97,7 +102,7 @@ export default function StaffDashboardPage() {
                 <Search className="h-4 w-4 mr-2" />
                 {tActions('viewAllTickets')}
               </Button>
-              <Button className="w-full justify-start" variant="outline" onClick={() => router.push('/staff/tickets?status=open')}>
+              <Button className="w-full justify-start" variant="outline" onClick={() => router.push('/staff/tickets?tab=open')}>
                 <Plus className="h-4 w-4 mr-2" />
                 {tActions('openTickets')}
               </Button>

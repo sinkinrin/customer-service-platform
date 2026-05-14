@@ -21,6 +21,7 @@ export const ZAMMAD_STATE_IDS = {
     CLOSED: 4,
     MERGED: 5,
     PENDING_CLOSE: 6,
+    PENDING_CLOSE_ALT: 7,
 } as const
 
 export const ZAMMAD_STATE_NAMES: Record<number, string> = {
@@ -30,6 +31,7 @@ export const ZAMMAD_STATE_NAMES: Record<number, string> = {
     4: 'closed',
     5: 'merged',
     6: 'pending close',
+    7: 'pending close',
 }
 
 /**
@@ -49,6 +51,7 @@ export function isActiveState(stateId: number): boolean {
         ZAMMAD_STATE_IDS.OPEN,
         ZAMMAD_STATE_IDS.PENDING_REMINDER,
         ZAMMAD_STATE_IDS.PENDING_CLOSE,
+        ZAMMAD_STATE_IDS.PENDING_CLOSE_ALT,
     ]
     return activeStates.includes(stateId)
 }
@@ -62,5 +65,6 @@ export function getActiveStateIds(): number[] {
         ZAMMAD_STATE_IDS.OPEN,
         ZAMMAD_STATE_IDS.PENDING_REMINDER,
         ZAMMAD_STATE_IDS.PENDING_CLOSE,
+        ZAMMAD_STATE_IDS.PENDING_CLOSE_ALT,
     ]
 }

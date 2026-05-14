@@ -63,6 +63,8 @@
       "operational": "Operacional",
       "healthy": "Saudável",
       "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "error": "Erro",
       "notConfigured": "Não configurado",
       "assigned": "Atribuído",
       "allSystemsOperational": "Todos os sistemas operacionais",
@@ -124,6 +126,7 @@
     "logout": "Sair",
     "profile": "Perfil",
     "customers": "Clientes",
+    "aiAssistant": "Assistente de IA",
     "aiQa": "QA IA",
     "myTickets": "Meus tickets",
     "feedback": "Feedback",
@@ -1250,6 +1253,9 @@
       },
       "detail": {
         "loadingText": "Carregando conversa...",
+        "title": "Histórico do chat de IA",
+        "aiDescription": "Revise conversas anteriores com a IA e continue de onde parou.",
+        "noMessages": "Ainda não há histórico de conversas",
         "me": "Eu",
         "aiAssistant": "Assistente de IA",
         "newMessageNotification": "Nova mensagem recebida - role para baixo para ver",
@@ -1628,6 +1634,7 @@
         "all": "Todos os tickets",
         "open": "Abertos",
         "pending": "Pendentes",
+        "resolved": "Resolvidos",
         "closed": "Fechados"
       },
       "detail": {
@@ -2046,6 +2053,7 @@
           "switchToAI": "Mudar para IA",
           "switchingToAI": "Mudando...",
           "transferToHuman": "Transferir para humano",
+          "history": "Histórico de conversas",
           "newConversation": "Nova conversa",
           "creatingNew": "Criando..."
         },

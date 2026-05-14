@@ -63,6 +63,8 @@
       "operational": "Работает",
       "healthy": "Исправен",
       "connected": "Подключён",
+      "disconnected": "Отключён",
+      "error": "Ошибка",
       "notConfigured": "Не настроен",
       "assigned": "Назначен",
       "allSystemsOperational": "Все системы работают",
@@ -124,6 +126,7 @@
     "logout": "Выход",
     "profile": "Профиль",
     "customers": "Клиенты",
+    "aiAssistant": "ИИ-ассистент",
     "aiQa": "QA ИИ",
     "myTickets": "Мои заявки",
     "feedback": "Отзывы",
@@ -1250,6 +1253,9 @@
       },
       "detail": {
         "loadingText": "Загрузка беседы...",
+        "title": "История чата с ИИ",
+        "aiDescription": "Просмотрите прошлые беседы с ИИ и продолжите с нужного места.",
+        "noMessages": "Истории бесед пока нет",
         "me": "Я",
         "aiAssistant": "ИИ-ассистент",
         "newMessageNotification": "Получено новое сообщение - прокрутите вниз для просмотра",
@@ -1628,6 +1634,7 @@
         "all": "Все заявки",
         "open": "Открытые",
         "pending": "В ожидании",
+        "resolved": "Решенные",
         "closed": "Закрытые"
       },
       "detail": {
@@ -2046,6 +2053,7 @@
           "switchToAI": "К ИИ",
           "switchingToAI": "Переключение...",
           "transferToHuman": "Перевести на оператора",
+          "history": "История бесед",
           "newConversation": "Новый диалог",
           "creatingNew": "Создание..."
         },

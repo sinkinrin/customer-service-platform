@@ -127,11 +127,13 @@ export async function POST(request: NextRequest) {
         ...validation.data.initial_metadata,
         sender_name: user.full_name || user.email,
       }
+      const initialSenderRole = user.role === 'staff' || user.role === 'admin' ? 'staff' : 'customer'
       const materialized = await createAIConversationWithInitialMessage(
         user.id,
         user.email,
         validation.data.initial_message,
-        initialMetadata
+        initialMetadata,
+        initialSenderRole
       )
       conversation = materialized.conversation
       initialMessage = materialized.message

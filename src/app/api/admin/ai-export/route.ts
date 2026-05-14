@@ -68,6 +68,11 @@ export async function GET(request: NextRequest) {
       where: {
         senderRole: 'ai',
         createdAt: { gte: from, lte: to },
+        conversation: {
+          messages: {
+            some: { senderRole: 'customer' },
+          },
+        },
       },
       include: {
         conversation: { select: { customerEmail: true } },

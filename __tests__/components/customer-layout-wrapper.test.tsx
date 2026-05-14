@@ -43,7 +43,7 @@ describe('CustomerLayoutWrapper', () => {
     })
   })
 
-  it('restricts customer routes to customer role only', () => {
+  it('allows only customer users on customer routes', () => {
     render(
       <CustomerLayoutWrapper>
         <div>Customer Content</div>
@@ -51,7 +51,7 @@ describe('CustomerLayoutWrapper', () => {
     )
 
     expect(screen.getByTestId('protected-route')).toBeInTheDocument()
-    expect(capturedProtectedRouteProps[0]?.requiredRole).toBe('customer')
-    expect(capturedProtectedRouteProps[0]?.requiredRoles).toBeUndefined()
+    expect(capturedProtectedRouteProps[0]?.requiredRole).toBeUndefined()
+    expect(capturedProtectedRouteProps[0]?.requiredRoles).toEqual(['customer'])
   })
 })

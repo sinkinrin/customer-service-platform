@@ -226,6 +226,7 @@ model AiMessage {
 
   @@index([conversationId])
   @@index([conversationId, createdAt])
+  @@index([senderRole, createdAt])
   @@map("ai_messages")
 }
 

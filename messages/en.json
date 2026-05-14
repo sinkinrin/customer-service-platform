@@ -63,6 +63,8 @@
       "operational": "Operational",
       "healthy": "Healthy",
       "connected": "Connected",
+      "disconnected": "Disconnected",
+      "error": "Error",
       "notConfigured": "Not Configured",
       "assigned": "Assigned",
       "allSystemsOperational": "All Systems Operational",
@@ -125,6 +127,7 @@
     "logout": "Logout",
     "profile": "Profile",
     "customers": "Customers",
+    "aiAssistant": "AI Assistant",
     "aiQa": "AI QA",
     "myTickets": "My Tickets",
     "feedback": "Feedback",
@@ -1294,6 +1297,9 @@
       },
       "detail": {
         "loadingText": "Loading conversation...",
+        "title": "AI chat history",
+        "aiDescription": "Review previous AI conversations and continue where you left off.",
+        "noMessages": "No conversation history yet",
         "me": "Me",
         "aiAssistant": "AI Assistant",
         "newMessageNotification": "New message received - scroll down to view",
@@ -1675,6 +1681,7 @@
         "all": "All Tickets",
         "open": "Open",
         "pending": "Pending",
+        "resolved": "Resolved",
         "closed": "Closed"
       },
       "detail": {
@@ -2110,6 +2117,7 @@
           "switchToAI": "Switch to AI",
           "switchingToAI": "Switching...",
           "transferToHuman": "Transfer to Human",
+          "history": "Conversation history",
           "newConversation": "New Conversation",
           "creatingNew": "Creating..."
         }

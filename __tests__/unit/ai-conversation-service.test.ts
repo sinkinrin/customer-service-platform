@@ -5,20 +5,38 @@ const {
   mockExecuteRaw,
   mockUpdateMany,
   mockCreate,
+  mockConversationGroupBy,
+  mockMessageGroupBy,
+  mockRatingGroupBy,
+  mockRatingFindMany,
 } = vi.hoisted(() => ({
   mockTransaction: vi.fn(),
   mockExecuteRaw: vi.fn(),
   mockUpdateMany: vi.fn(),
   mockCreate: vi.fn(),
+  mockConversationGroupBy: vi.fn(),
+  mockMessageGroupBy: vi.fn(),
+  mockRatingGroupBy: vi.fn(),
+  mockRatingFindMany: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     $transaction: mockTransaction,
+    aiConversation: {
+      groupBy: mockConversationGroupBy,
+    },
+    aiMessage: {
+      groupBy: mockMessageGroupBy,
+    },
+    aiMessageRating: {
+      groupBy: mockRatingGroupBy,
+      findMany: mockRatingFindMany,
+    },
   },
 }))
 
-import { createAIConversation } from '@/lib/ai-conversation-service'
+import { createAIConversation, getAiConversationDashboardStats } from '@/lib/ai-conversation-service'
 
 describe('ai-conversation-service createAIConversation', () => {
   beforeEach(() => {
@@ -90,5 +108,31 @@ describe('ai-conversation-service createAIConversation', () => {
     const active = db.filter((row) => row.customerId === 'user-1' && row.status === 'active')
     expect(active).toHaveLength(1)
     expect(db.filter((row) => row.customerId === 'user-1')).toHaveLength(3)
+  })
+
+  it('excludes staff-only assistant conversations from dashboard stats', async () => {
+    mockConversationGroupBy.mockResolvedValue([{ status: 'active', _count: 2 }])
+    mockMessageGroupBy.mockResolvedValue([{ senderRole: 'customer', _count: 3 }, { senderRole: 'ai', _count: 3 }])
+    mockRatingGroupBy.mockResolvedValue([{ rating: 'positive', _count: 1 }])
+    mockRatingFindMany.mockResolvedValue([])
+
+    await getAiConversationDashboardStats()
+
+    const customerConversationWhere = { messages: { some: { senderRole: 'customer' } } }
+    expect(mockConversationGroupBy).toHaveBeenCalledWith(expect.objectContaining({
+      where: customerConversationWhere,
+    }))
+    expect(mockMessageGroupBy).toHaveBeenCalledWith(expect.objectContaining({
+      where: { conversation: customerConversationWhere },
+    }))
+    expect(mockRatingGroupBy).toHaveBeenCalledWith(expect.objectContaining({
+      where: { message: { conversation: customerConversationWhere } },
+    }))
+    expect(mockRatingFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        rating: 'negative',
+        message: { conversation: customerConversationWhere },
+      },
+    }))
   })
 })

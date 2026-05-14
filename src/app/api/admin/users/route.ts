@@ -272,11 +272,17 @@ export async function GET(request: NextRequest) {
             break
           }
 
+          const customerAssignmentRegions = await listCustomerAssignmentRegions(
+            batch
+              .filter((user) => getRoleFromZammad(user.role_ids || []) === 'customer')
+              .map((user) => user.id)
+          )
+
           for (const item of batch) {
             const mapped = mapZammadUser(
               item,
               getRoleFromZammad(item.role_ids || []) === 'customer'
-                ? await getCustomerAssignmentRegion(item.id)
+                ? customerAssignmentRegions.get(item.id)
                 : undefined
             )
             if (!matchesLocalFilters(mapped, search, roleFilter, regionFilter, statusFilter)) {

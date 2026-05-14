@@ -37,7 +37,8 @@ export function getStatusSearchQuery(status?: string | null): string | null {
   if (status === 'open') return '(state_id:1 OR state_id:2)'
   if (status === 'closed') return 'state_id:4'
   if (status === 'new') return 'state_id:1'
-  if (status === 'pending') return '(state_id:3 OR state_id:7)'
+  if (status === 'pending') return 'state_id:3'
+  if (status === 'resolved') return '(state_id:6 OR state_id:7)'
   return null
 }
 

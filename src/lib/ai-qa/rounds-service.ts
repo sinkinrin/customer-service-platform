@@ -7,8 +7,9 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { findQuestionForAiMessage, buildConversationMessageMap } from './qa-pair-extractor'
+import { Prisma } from '@prisma/client'
 import type { QaRound, QaStats, QaRoundsResponse, RoundsQueryParams, FilterStatus } from './types'
+import { buildConversationMessageMap, findQuestionForAiMessage } from './qa-pair-extractor'
 
 /**
  * Build the Prisma where clause for AiQaReview filtering.
@@ -25,134 +26,157 @@ function buildReviewFilter(status: FilterStatus) {
   return {}
 }
 
+function buildReviewSql(status: FilterStatus) {
+  if (status === 'unreviewed') {
+    return Prisma.sql`AND (review."id" IS NULL OR review."status" IS NULL)`
+  }
+  if (status === 'correct' || status === 'incorrect') {
+    return Prisma.sql`AND review."status" = ${status}`
+  }
+  return Prisma.empty
+}
+
 /**
  * Query Q&A rounds with filtering, pagination, and stats.
  */
 export async function queryRounds(params: RoundsQueryParams): Promise<QaRoundsResponse> {
   const { status, from, to, page, pageSize } = params
 
-  const baseWhere = {
+  const dateWhere = {
     senderRole: 'ai',
     createdAt: { gte: from, lte: to },
-    ...buildReviewFilter(status),
-  }
-
-  // Fetch AI messages with related data
-  const [aiMessages, total] = await Promise.all([
-    prisma.aiMessage.findMany({
-      where: baseWhere,
-      include: {
-        conversation: { select: { customerEmail: true } },
-        rating: { select: { rating: true, feedback: true } },
-        review: {
-          select: {
-            status: true,
-            reviewNote: true,
-            retestAnswer: true,
-            retestAt: true,
-          },
-        },
+    conversation: {
+      messages: {
+        some: { senderRole: 'customer' },
       },
-      orderBy: { createdAt: 'desc' },
-      // We fetch all matching for sorting purposes, then paginate in-memory
-      // This is acceptable given date-range scoping (typically < 1000 rows)
-    }),
-    prisma.aiMessage.count({ where: baseWhere }),
+    },
+  }
+  const skip = (page - 1) * pageSize
+
+  const [
+    aiMessages,
+    totalAll,
+    totalUnreviewed,
+    totalCorrect,
+    totalIncorrect,
+  ] = await Promise.all([
+    prisma.$queryRaw<Array<{ id: string; conversationId: string; content: string; createdAt: Date }>>(Prisma.sql`
+      SELECT
+        message."id",
+        message."conversationId",
+        message."content",
+        message."createdAt"
+      FROM "ai_messages" message
+      LEFT JOIN "ai_message_ratings" rating ON rating."messageId" = message."id"
+      LEFT JOIN "ai_qa_reviews" review ON review."messageId" = message."id"
+      WHERE message."senderRole" = 'ai'
+        AND message."createdAt" >= ${from}
+        AND message."createdAt" <= ${to}
+        AND EXISTS (
+          SELECT 1
+          FROM "ai_messages" customer_message
+          WHERE customer_message."conversationId" = message."conversationId"
+            AND customer_message."senderRole" = 'customer'
+        )
+        ${buildReviewSql(status)}
+      ORDER BY
+        CASE
+          WHEN rating."rating" = 'negative' THEN 0
+          WHEN rating."rating" IS NULL THEN 1
+          WHEN rating."rating" = 'positive' THEN 2
+          ELSE 1
+        END ASC,
+        message."createdAt" DESC
+      OFFSET ${skip}
+      LIMIT ${pageSize}
+    `),
+    prisma.aiMessage.count({ where: dateWhere }),
+    prisma.aiMessage.count({ where: { ...dateWhere, ...buildReviewFilter('unreviewed') } }),
+    prisma.aiMessage.count({ where: { ...dateWhere, ...buildReviewFilter('correct') } }),
+    prisma.aiMessage.count({ where: { ...dateWhere, ...buildReviewFilter('incorrect') } }),
   ])
+
+  const stats: QaStats = {
+    total: totalAll,
+    unreviewed: totalUnreviewed,
+    correct: totalCorrect,
+    incorrect: totalIncorrect,
+  }
+  const total = status === 'all' ? totalAll : stats[status]
 
   if (aiMessages.length === 0) {
     return {
       rounds: [],
-      total: 0,
+      total,
       page,
       pageSize,
-      stats: { total: 0, unreviewed: 0, correct: 0, incorrect: 0 },
+      stats,
     }
   }
 
-  // Fetch all messages from the relevant conversations for Q&A pairing
+  // Fetch page-scoped related data only. Avoid Prisma relation include here because
+  // this page is latency-sensitive and relation joins were the measured bottleneck.
+  const messageIds = aiMessages.map((m) => m.id)
   const conversationIds = [...new Set(aiMessages.map((m) => m.conversationId))]
-  const allMessages = await prisma.aiMessage.findMany({
-    where: { conversationId: { in: conversationIds } },
-    orderBy: { createdAt: 'asc' },
-    select: {
-      id: true,
-      conversationId: true,
-      senderRole: true,
-      content: true,
-      createdAt: true,
-    },
-  })
-
-  const msgsByConv = buildConversationMessageMap(allMessages)
+  const latestPageMessageAt = aiMessages.reduce(
+    (latest, message) => (message.createdAt > latest ? message.createdAt : latest),
+    aiMessages[0].createdAt
+  )
+  const [ratings, reviews, conversations, conversationMessages] = await Promise.all([
+    prisma.aiMessageRating.findMany({
+      where: { messageId: { in: messageIds } },
+      select: { messageId: true, rating: true, feedback: true },
+    }),
+    prisma.aiQaReview.findMany({
+      where: { messageId: { in: messageIds } },
+      select: { messageId: true, status: true, reviewNote: true, retestAnswer: true, retestAt: true },
+    }),
+    prisma.aiConversation.findMany({
+      where: { id: { in: conversationIds } },
+      select: { id: true, customerEmail: true },
+    }),
+    prisma.aiMessage.findMany({
+      where: {
+        conversationId: { in: conversationIds },
+        senderRole: { in: ['customer', 'ai'] },
+        createdAt: { lte: latestPageMessageAt },
+      },
+      select: { id: true, conversationId: true, senderRole: true, content: true, createdAt: true },
+      orderBy: [{ conversationId: 'asc' }, { createdAt: 'asc' }],
+    }),
+  ])
+  const ratingByMessageId = new Map(ratings.map((rating) => [rating.messageId, rating]))
+  const reviewByMessageId = new Map(reviews.map((review) => [review.messageId, review]))
+  const emailByConversationId = new Map(conversations.map((conversation) => [conversation.id, conversation.customerEmail]))
+  const messagesByConversationId = buildConversationMessageMap(conversationMessages)
 
   // Build rounds
-  const allRounds: (QaRound & { _sortRating: number })[] = aiMessages.map((aiMsg) => {
-    const convMessages = msgsByConv.get(aiMsg.conversationId) || []
-    const question = findQuestionForAiMessage(aiMsg.id, convMessages)
-    const customerRating = (aiMsg.rating?.rating as 'positive' | 'negative') || null
-
-    // Sort priority: negative=0 (highest), null=1, positive=2 (lowest)
-    let sortRating = 1
-    if (customerRating === 'negative') sortRating = 0
-    else if (customerRating === 'positive') sortRating = 2
+  const rounds: QaRound[] = aiMessages.map((aiMsg) => {
+    const rating = ratingByMessageId.get(aiMsg.id)
+    const review = reviewByMessageId.get(aiMsg.id)
+    const customerRating = (rating?.rating as 'positive' | 'negative') || null
 
     return {
       messageId: aiMsg.id,
-      question,
+      question: findQuestionForAiMessage(aiMsg.id, messagesByConversationId.get(aiMsg.conversationId) || []),
       answer: aiMsg.content,
-      customerEmail: aiMsg.conversation.customerEmail,
+      customerEmail: emailByConversationId.get(aiMsg.conversationId) || '',
       customerRating,
-      customerFeedback: aiMsg.rating?.feedback || null,
-      reviewStatus: (aiMsg.review?.status as 'correct' | 'incorrect') || null,
-      reviewNote: aiMsg.review?.reviewNote || null,
-      retestAnswer: aiMsg.review?.retestAnswer || null,
-      retestAt: aiMsg.review?.retestAt?.toISOString() || null,
+      customerFeedback: rating?.feedback || null,
+      reviewStatus: (review?.status as 'correct' | 'incorrect') || null,
+      reviewNote: review?.reviewNote || null,
+      retestAnswer: review?.retestAnswer || null,
+      retestAt: review?.retestAt?.toISOString() || null,
       qaTime: aiMsg.createdAt.toISOString(),
       conversationId: aiMsg.conversationId,
-      _sortRating: sortRating,
     }
   })
 
-  // Sort: negative rating first -> no rating -> positive rating -> qaTime desc
-  allRounds.sort((a, b) => {
-    if (a._sortRating !== b._sortRating) return a._sortRating - b._sortRating
-    return new Date(b.qaTime).getTime() - new Date(a.qaTime).getTime()
-  })
-
-  // Compute stats from all records (before pagination)
-  const stats = computeStats(allRounds)
-
-  // Paginate
-  const startIdx = (page - 1) * pageSize
-  const paginatedRounds: QaRound[] = allRounds
-    .slice(startIdx, startIdx + pageSize)
-    .map(({ _sortRating, ...round }) => round)
-
   return {
-    rounds: paginatedRounds,
+    rounds,
     total,
     page,
     pageSize,
     stats,
-  }
-}
-
-function computeStats(rounds: { reviewStatus: string | null }[]): QaStats {
-  let unreviewed = 0
-  let correct = 0
-  let incorrect = 0
-
-  for (const r of rounds) {
-    if (r.reviewStatus === null) unreviewed++
-    else if (r.reviewStatus === 'correct') correct++
-    else if (r.reviewStatus === 'incorrect') incorrect++
-  }
-
-  return {
-    total: rounds.length,
-    unreviewed,
-    correct,
-    incorrect,
   }
 }

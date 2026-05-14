@@ -17,19 +17,21 @@ import { DRAFT_CONVERSATION_ID } from '@/lib/constants/conversation'
 interface ConversationHeaderProps {
   mode?: 'ai'
   currentConversationId?: string
+  basePath?: string
   onOpenHistory?: () => void
   onNewConversation?: () => void
 }
 
-export function ConversationHeader({ mode: _mode = 'ai', currentConversationId: _currentConversationId, onOpenHistory, onNewConversation }: ConversationHeaderProps) {
+export function ConversationHeader({ mode: _mode = 'ai', currentConversationId: _currentConversationId, basePath = '/customer/conversations', onOpenHistory, onNewConversation }: ConversationHeaderProps) {
   const t = useTranslations('components.conversation.header')
   const router = useRouter()
+  const normalizedBasePath = basePath.replace(/\/$/, '')
 
   const displayName = t('aiAssistant')
 
   const handleNewConversation = () => {
     onNewConversation?.()
-    router.push(`/customer/conversations/${DRAFT_CONVERSATION_ID}`)
+    router.push(`${normalizedBasePath}/${DRAFT_CONVERSATION_ID}`)
   }
 
   return (

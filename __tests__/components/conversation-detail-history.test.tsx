@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ConversationDetailPage from '@/app/customer/conversations/[id]/page'
+import { AiConversationPage } from '@/components/conversation/ai-conversation-page'
 import { getConversationMaterializedDraftKey } from '@/lib/constants/conversation'
 
 const mockPush = vi.fn()
@@ -484,6 +485,69 @@ describe('Conversation detail history UI', () => {
     expect(mockApplyRatingToCache).toHaveBeenCalledWith('conv-real-1', 'msg-ai-1', 'positive', null)
     expect(mockApplyRatingToCache).not.toHaveBeenCalledWith('new', expect.anything(), expect.anything(), expect.anything())
     expect(mockReplace).toHaveBeenCalledWith('/customer/conversations/conv-real-1')
+  })
+
+  it('staff draft send stays on the staff conversation route after materializing', async () => {
+    currentConversationId = 'new'
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input)
+      if (url === '/api/conversations' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              conversation: { id: 'staff-conv-1' },
+              message: {
+                id: 'staff-msg-user-1',
+                conversation_id: 'staff-conv-1',
+                sender_id: 'staff-1',
+                sender_role: 'staff',
+                content: 'hello from draft',
+                message_type: 'text',
+                metadata: { aiMode: true, role: 'staff', aiChatMode: 'flash' },
+                created_at: '2026-05-12T00:00:00.000Z',
+                updated_at: '2026-05-12T00:00:00.000Z',
+              },
+            },
+          }),
+        } as any
+      }
+      if (url === '/api/conversations/staff-conv-1/messages' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              id: 'staff-msg-ai-1',
+              conversation_id: 'staff-conv-1',
+              sender_id: 'ai',
+              sender_role: 'ai',
+              content: 'AI response',
+              message_type: 'text',
+              metadata: { aiMode: true, role: 'ai', aiChatMode: 'flash' },
+              created_at: '2026-05-12T00:00:01.000Z',
+              updated_at: '2026-05-12T00:00:01.000Z',
+            },
+          }),
+        } as any
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any
+    })
+    vi.stubGlobal('fetch', fetchMock as any)
+
+    render(<AiConversationPage basePath="/staff/conversations" humanMessageRole="staff" />)
+    await user.click(screen.getByTestId('message-input-send'))
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/staff/conversations/staff-conv-1')
+    })
+    expect(fetchMock).toHaveBeenCalledWith('/api/conversations', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('"role":"staff"'),
+    }))
+    expect(mockReplace).not.toHaveBeenCalledWith('/customer/conversations/staff-conv-1')
   })
 
   it('streaming empty replaces route after stream ends, clears marker, and does not request /new/messages', async () => {

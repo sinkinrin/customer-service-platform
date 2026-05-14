@@ -81,6 +81,11 @@ describe('AI Q&A export APIs', () => {
     const lines = csv.split('\n')
 
     expect(response.status).toBe(200)
+    expect(prisma.aiMessage.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      where: expect.objectContaining({
+        conversation: { messages: { some: { senderRole: 'customer' } } },
+      }),
+    }))
     expect(lines[0]).toContain('AI Mode')
     expect(lines[1]).toContain(',pro,')
   })
@@ -96,6 +101,11 @@ describe('AI Q&A export APIs', () => {
     const lines = csv.split('\n')
 
     expect(response.status).toBe(200)
+    expect(prisma.aiMessage.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      where: expect.objectContaining({
+        conversation: { messages: { some: { senderRole: 'customer' } } },
+      }),
+    }))
     expect(lines[0]).toContain('AI Mode')
     expect(lines[1]).toContain(',pro,')
   })

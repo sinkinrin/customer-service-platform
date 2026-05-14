@@ -76,14 +76,15 @@ export function useTicket() {
 
   const searchTickets = useCallback(async (
     query: string,
-    limit: number = 10
+    limit: number = 10,
+    includeTotal: boolean = true
   ): Promise<SearchTicketsResult | null> => {
     setIsLoading(true)
     setError(null)
 
     try {
       const response = await fetch(
-        `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&queryMode=dsl`
+        `/api/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&queryMode=dsl&includeTotal=${includeTotal}`
       )
 
       if (!response.ok) {

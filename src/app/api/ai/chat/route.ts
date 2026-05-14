@@ -67,6 +67,15 @@ export async function POST(request: NextRequest) {
     const { conversationId, message, history, stream, mode } = parsed.data
     const chatSettings = resolveAIChatSettings(settings, mode)
 
+    if (settings.provider === 'fastgpt' && mode === 'pro' && !settings.fastgptProApiKey) {
+      log.error('FastGPT Pro is not configured', {
+        provider: settings.provider,
+        mode,
+        hasProAppId: !!settings.fastgptProAppId,
+      })
+      return NextResponse.json({ success: false, error: 'FastGPT Pro is not configured' }, { status: 500 })
+    }
+
     log.info('Chat request', {
       provider: settings.provider,
       mode,

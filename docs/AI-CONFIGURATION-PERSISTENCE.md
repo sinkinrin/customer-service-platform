@@ -156,9 +156,11 @@ AI 配置现在采用混合持久化：
 - 更新或插入 `.env.local` 里的 `FASTGPT_API_KEY=...`
 - 由管理端 AI 设置路由用于 FastGPT API Key 更新
 
-当前限制：
+当前行为：
 
-- 这个 helper 只处理 FastGPT key
+- `updateEnvFile(apiKey)` 仍兼容更新 `FASTGPT_API_KEY`
+- `updateEnvFileValues(values)` 可更新多个 `.env.local` 键
+- 管理端保存 FastGPT Pro、OpenAI、Yuxi 等敏感凭据时，会同步写入 `.env.local`
 - 环境变量变更是否立即生效仍取决于运行进程，通常可能需要重启
 
 ---

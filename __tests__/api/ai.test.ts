@@ -182,6 +182,31 @@ describe('AI APIs', () => {
       )
     })
 
+    it('returns a clear error when pro mode is missing FastGPT pro credentials', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        model: 'FastGPT',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'flash-app',
+        fastgptApiKey: 'flash-key',
+        fastgptProAppId: 'pro-app',
+        fastgptProApiKey: '',
+      } as any)
+
+      const response = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', mode: 'pro' }),
+        })
+      )
+      const payload = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(payload.success).toBe(false)
+      expect(payload.error).toBe('FastGPT Pro is not configured')
+    })
+
     it('rejects unknown AI chat modes', async () => {
       const response = await POST_CHAT(
         createRequest('http://localhost:3000/api/ai/chat', {

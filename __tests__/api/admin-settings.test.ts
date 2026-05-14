@@ -13,10 +13,11 @@ vi.mock('@/lib/utils/auth', () => ({
 vi.mock('@/lib/utils/ai-config', () => ({
   readAISettings: vi.fn(),
   writeAISettings: vi.fn(),
+  updateEnvFileValues: vi.fn(),
 }))
 
 import { requireAuth, requireRole } from '@/lib/utils/auth'
-import { readAISettings, writeAISettings } from '@/lib/utils/ai-config'
+import { readAISettings, updateEnvFileValues, writeAISettings } from '@/lib/utils/ai-config'
 
 import { GET as GET_SETTINGS, PUT as PUT_SETTINGS } from '@/app/api/admin/settings/route'
 import { GET as GET_AI_SETTINGS, PUT as PUT_AI_SETTINGS } from '@/app/api/admin/settings/ai/route'
@@ -175,6 +176,17 @@ describe('Admin settings APIs', () => {
       expect(process.env.AI_OPENAI_API_KEY).toBe('openai-key')
       expect(process.env.AI_YUXI_USERNAME).toBe('agent-user')
       expect(process.env.AI_YUXI_PASSWORD).toBe('agent-pass')
+      expect(updateEnvFileValues).toHaveBeenCalledWith(expect.objectContaining({
+        FASTGPT_API_KEY: 'key',
+        AI_FASTGPT_API_KEY: 'key',
+        FASTGPT_PRO_APP_ID: 'pro-app',
+        AI_FASTGPT_PRO_APP_ID: 'pro-app',
+        FASTGPT_PRO_API_KEY: 'pro-key',
+        AI_FASTGPT_PRO_API_KEY: 'pro-key',
+        AI_OPENAI_API_KEY: 'openai-key',
+        AI_YUXI_USERNAME: 'agent-user',
+        AI_YUXI_PASSWORD: 'agent-pass',
+      }))
     })
   })
 

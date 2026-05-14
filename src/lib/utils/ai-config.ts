@@ -178,6 +178,10 @@ export function writeAISettings(settings: Partial<AISettings>): void {
 
 // Keep existing updateEnvFile for backwards compatibility
 export function updateEnvFile(apiKey: string): void {
+  updateEnvFileValues({ FASTGPT_API_KEY: apiKey })
+}
+
+export function updateEnvFileValues(values: Record<string, string>): void {
   const envPath = path.join(process.cwd(), '.env.local')
   try {
     let envContent = ''
@@ -185,11 +189,13 @@ export function updateEnvFile(apiKey: string): void {
       envContent = fs.readFileSync(envPath, 'utf-8')
     }
 
-    const keyPattern = /^FASTGPT_API_KEY=.*$/m
-    if (keyPattern.test(envContent)) {
-      envContent = envContent.replace(keyPattern, `FASTGPT_API_KEY=${apiKey}`)
-    } else {
-      envContent += `\nFASTGPT_API_KEY=${apiKey}`
+    for (const [key, value] of Object.entries(values)) {
+      const keyPattern = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=.*$`, 'm')
+      if (keyPattern.test(envContent)) {
+        envContent = envContent.replace(keyPattern, `${key}=${value}`)
+      } else {
+        envContent += `${envContent.endsWith('\n') || envContent.length === 0 ? '' : '\n'}${key}=${value}\n`
+      }
     }
 
     fs.writeFileSync(envPath, envContent.trim() + '\n', 'utf-8')

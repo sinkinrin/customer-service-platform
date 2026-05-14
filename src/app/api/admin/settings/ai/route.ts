@@ -16,7 +16,7 @@ import {
 } from '@/lib/utils/api-response'
 import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'
-import { readAISettings, writeAISettings } from '@/lib/utils/ai-config'
+import { readAISettings, updateEnvFileValues, writeAISettings } from '@/lib/utils/ai-config'
 
 const AISettingsSchema = z.object({
   enabled: z.boolean(),
@@ -145,31 +145,46 @@ export async function PUT(request: NextRequest) {
 
     writeAISettings(settings)
 
+    const envUpdates: Record<string, string> = {}
+
     if (data.fastgpt_api_key && data.fastgpt_api_key !== '********') {
       process.env.FASTGPT_API_KEY = data.fastgpt_api_key
       process.env.AI_FASTGPT_API_KEY = data.fastgpt_api_key
+      envUpdates.FASTGPT_API_KEY = data.fastgpt_api_key
+      envUpdates.AI_FASTGPT_API_KEY = data.fastgpt_api_key
     }
 
     if (data.fastgpt_pro_appid !== undefined) {
       process.env.FASTGPT_PRO_APP_ID = data.fastgpt_pro_appid
       process.env.AI_FASTGPT_PRO_APP_ID = data.fastgpt_pro_appid
+      envUpdates.FASTGPT_PRO_APP_ID = data.fastgpt_pro_appid
+      envUpdates.AI_FASTGPT_PRO_APP_ID = data.fastgpt_pro_appid
     }
 
     if (data.fastgpt_pro_api_key && data.fastgpt_pro_api_key !== '********') {
       process.env.FASTGPT_PRO_API_KEY = data.fastgpt_pro_api_key
       process.env.AI_FASTGPT_PRO_API_KEY = data.fastgpt_pro_api_key
+      envUpdates.FASTGPT_PRO_API_KEY = data.fastgpt_pro_api_key
+      envUpdates.AI_FASTGPT_PRO_API_KEY = data.fastgpt_pro_api_key
     }
 
     if (data.openai_api_key && data.openai_api_key !== '********') {
       process.env.AI_OPENAI_API_KEY = data.openai_api_key
+      envUpdates.AI_OPENAI_API_KEY = data.openai_api_key
     }
 
     if (data.yuxi_username !== undefined) {
       process.env.AI_YUXI_USERNAME = data.yuxi_username
+      envUpdates.AI_YUXI_USERNAME = data.yuxi_username
     }
 
     if (data.yuxi_password && data.yuxi_password !== '********') {
       process.env.AI_YUXI_PASSWORD = data.yuxi_password
+      envUpdates.AI_YUXI_PASSWORD = data.yuxi_password
+    }
+
+    if (Object.keys(envUpdates).length > 0) {
+      updateEnvFileValues(envUpdates)
     }
 
     return successResponse({ message: 'Settings saved successfully' })

@@ -80,9 +80,9 @@ export function withStreamTimeout(
  */
 export function createStreamResponse(
     stream: ReadableStream<Uint8Array>,
-    timeoutMs = STREAM_TIMEOUT_MS
+    timeoutMs: number | null = STREAM_TIMEOUT_MS
 ): Response {
-    const safeStream = withStreamTimeout(stream, timeoutMs)
+    const safeStream = timeoutMs === null ? stream : withStreamTimeout(stream, timeoutMs)
 
     return new Response(safeStream, {
         headers: {

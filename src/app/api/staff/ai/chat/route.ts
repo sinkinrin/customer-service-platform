@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     // Isolate upstream conversation context (FastGPT chatId) per user + panel session
     const stableId = sessionId
       ? `staff-${user.id}-${sessionId}`
-      : `staff-${user.id}-${Date.now()}`
+      : `staff-${user.id}-${crypto.randomUUID()}`
 
     const chatRequest = {
       conversationId: stableId,

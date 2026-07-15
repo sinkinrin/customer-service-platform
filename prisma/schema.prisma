@@ -213,6 +213,7 @@ model AiConversation {
 model AiMessage {
   id             String   @id @default(cuid())
   conversationId String
+  aiRequestId    String?
   senderRole     String   // customer | ai | system
   senderId       String
   content        String
@@ -227,6 +228,7 @@ model AiMessage {
   @@index([conversationId])
   @@index([conversationId, createdAt])
   @@index([senderRole, createdAt])
+  @@unique([conversationId, aiRequestId])
   @@map("ai_messages")
 }
 

@@ -24,7 +24,7 @@ const DEFAULT_PROMPT = `请用 Markdown 回答：给我一个客服 AI 流式渲
 3. 一个引用块
 4. 一个简短列表`
 
-type StreamState = 'idle' | 'streaming' | 'done' | 'error'
+type StreamState = 'idle' | 'streaming' | 'done' | 'stopped' | 'error'
 type PaneKey = 'current' | 'markstream'
 
 interface StreamMetrics {
@@ -211,7 +211,7 @@ export function AiStreamMarkdownDemoClient() {
         (err as { name?: string })?.name === 'AbortError'
       ) {
         updateStreamMetrics({ completedAt: Date.now() })
-        setState(streamMetricsRef.current.receivedChars > 0 ? 'done' : 'idle')
+        setState(streamMetricsRef.current.receivedChars > 0 ? 'stopped' : 'idle')
         return
       }
 

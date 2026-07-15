@@ -217,9 +217,8 @@ export async function getConversationMessageCount(conversationId: string) {
  * Add a message to a conversation.
  * Updates the conversation's lastMessageAt timestamp atomically.
  *
- * Idempotency guard for AI messages: while server-side persistence and the
- * legacy client-side write coexist, writes carrying the same aiRequestId are
- * resolved to the existing message instead of creating a duplicate.
+ * AI request IDs are protected by a database composite unique constraint.
+ * A concurrent retry that loses the insert race resolves to the winner.
  */
 export async function addMessage(
   conversationId: string,
@@ -233,43 +232,48 @@ export async function addMessage(
     ? metadata.aiRequestId
     : null
 
-  if (aiRequestId) {
-    const recentDuplicate = await prisma.aiMessage.findFirst({
-      where: {
-        conversationId,
-        senderRole: 'ai',
-        metadata: { contains: `\"aiRequestId\":${JSON.stringify(aiRequestId)}` },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-    if (recentDuplicate) {
-      return {
-        ...recentDuplicate,
-        metadata: safeJsonParse(recentDuplicate.metadata),
+  try {
+    const [message] = await prisma.$transaction([
+      prisma.aiMessage.create({
+        data: {
+          conversationId,
+          aiRequestId,
+          senderRole,
+          senderId,
+          content,
+          messageType: messageType || 'text',
+          metadata: metadata ? JSON.stringify(metadata) : null,
+        },
+      }),
+      prisma.aiConversation.update({
+        where: { id: conversationId },
+        data: { lastMessageAt: new Date() },
+      }),
+    ])
+
+    return {
+      ...message,
+      metadata: safeJsonParse(message.metadata),
+    }
+  } catch (error) {
+    if (
+      aiRequestId &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      const existing = await prisma.aiMessage.findUnique({
+        where: {
+          conversationId_aiRequestId: { conversationId, aiRequestId },
+        },
+      })
+      if (existing) {
+        return {
+          ...existing,
+          metadata: safeJsonParse(existing.metadata),
+        }
       }
     }
-  }
-
-  const [message] = await prisma.$transaction([
-    prisma.aiMessage.create({
-      data: {
-        conversationId,
-        senderRole,
-        senderId,
-        content,
-        messageType: messageType || 'text',
-        metadata: metadata ? JSON.stringify(metadata) : null,
-      },
-    }),
-    prisma.aiConversation.update({
-      where: { id: conversationId },
-      data: { lastMessageAt: new Date() },
-    }),
-  ])
-
-  return {
-    ...message,
-    metadata: safeJsonParse(message.metadata),
+    throw error
   }
 }
 

@@ -716,7 +716,7 @@ export function AiConversationPage({
       return
     }
 
-    const tempAiMessageId = `temp-ai-${Date.now()}`
+    const tempAiMessageId = `temp-ai-${crypto.randomUUID()}`
     activeStreamingMessageIdRef.current = tempAiMessageId
 
     // Send streaming AI request via hook

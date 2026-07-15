@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { withPersistence } from '@/lib/ai/stream-helpers'
+import { withPersistence, withStreamTimeout } from '@/lib/ai/stream-helpers'
 import { readAIChatResponse } from '@/lib/ai/stream-client'
 
 const encoder = new TextEncoder()
@@ -153,6 +153,30 @@ describe('withPersistence', () => {
 
     await drain(stream)
     expect(onComplete).toHaveBeenCalledWith('real text', { completed: false })
+  })
+
+  it('persists partial text before forwarding an idle-timeout error', async () => {
+    let sent = false
+    const idleStream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (!sent) {
+          sent = true
+          controller.enqueue(sseChunk(deltaEvent('partial answer')))
+        }
+      },
+    })
+    const onComplete = vi.fn(async () => {
+      await new Promise(resolve => setTimeout(resolve, 20))
+      return { messageId: 'timeout-msg' }
+    })
+    const stream = withPersistence(withStreamTimeout(idleStream, 20), onComplete)
+
+    const output = await drain(stream)
+
+    expect(onComplete).toHaveBeenCalledWith('partial answer', { completed: false })
+    expect(output.indexOf('event: persisted')).toBeLessThan(output.indexOf('event: error'))
+    expect(output).toContain('timeout-msg')
+    expect(output).toContain('Stream timeout')
   })
 
   it('onComplete failure does not break the stream', async () => {

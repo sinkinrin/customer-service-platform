@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { readAISettings, resolveAIChatSettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import { aiProviders } from '@/lib/ai/providers'
-import { createStreamResponse, prependSSEEvent, withPersistence } from '@/lib/ai/stream-helpers'
+import { createStreamResponse, prependSSEEvent, withPersistence, withStreamTimeout } from '@/lib/ai/stream-helpers'
 import { requireAuth } from '@/lib/utils/auth'
 import { aiChatLimiter } from '@/lib/utils/rate-limit'
 import { getConversation, addMessage } from '@/lib/ai-conversation-service'
@@ -160,9 +160,14 @@ export async function POST(request: NextRequest) {
           })
         : streamResult.data.stream
 
-      // Persistence wrapper sits INSIDE the timeout wrapper (applied by
-      // createStreamResponse) so text received before a timeout is captured.
-      return createStreamResponse(withPersistence(responseStream, persistAiReply))
+      // Timeout is applied to the provider stream first. Persistence then sees
+      // timeout as a terminal SSE error and finishes the database write before
+      // forwarding that error to the client.
+      const persistedStream = withPersistence(
+        withStreamTimeout(responseStream),
+        persistAiReply
+      )
+      return createStreamResponse(persistedStream, null)
     }
 
     const result = await provider.chat(chatRequest, chatSettings)

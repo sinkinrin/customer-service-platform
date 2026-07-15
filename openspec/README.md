@@ -1,34 +1,32 @@
 # OpenSpec
 
-此目录用于管理当前规格、变更提案与设计决策。
+此目录只保留**仍然代表当前系统事实或长期约束**的 OpenSpec 内容。
 
 ## 从这里开始
 
-1. 阅读 [`project.md`](./project.md) 了解当前项目上下文与长期约束
-2. 查看 `specs/` 了解当前已建立的系统规格
-3. 查看 `changes/` 了解待实施或讨论中的变更提案
-4. 在变更完成后，将提案归档到 `changes/archive/`
+1. 阅读 [`project.md`](./project.md) 了解项目上下文与长期约束
+2. 查看 `specs/` 了解当前仍然保留的系统规格
+3. 如果以后真的需要新的提案，再临时创建 `changes/<change-id>/`
 
-> `PROJECT-CONTEXT.md` 仍然保留，但仅作为兼容入口，供旧提案和历史文档跳转使用；维护中的项目上下文以 `project.md` 为准。
+## 当前目录原则
+
+当前仓库不再长期保留大批 proposal、tasks、design 与 archive 树。这里现在只适合放两类内容：
+
+- **当前规格**：仍然能描述今天系统行为或边界的 spec
+- **长期约束**：短期内不会频繁变化、但值得保留的设计边界
+
+如果某份 OpenSpec 材料只是一次性实施计划、已经漂移的提案，或纯历史归档，就不应继续保留在仓库里。
 
 ## 目录结构
 
 ```text
 openspec/
-├── project.md              # 项目上下文与长期约束（维护中的入口）
-├── PROJECT-CONTEXT.md      # 兼容旧链接的上下文入口
-├── specs/                  # 当前系统规格
+├── project.md              # 项目上下文与长期约束
+├── specs/                  # 当前仍然保留的系统规格
 │   └── <spec-name>/
 │       ├── spec.md
-│       └── design.md
-├── changes/                # 提议中的或待归档的变更
-│   ├── <change-id>/
-│   │   ├── proposal.md
-│   │   ├── tasks.md
-│   │   ├── design.md
-│   │   └── specs/
-│   └── archive/            # 已完成的变更提案归档
-└── AGENTS.md               # OpenSpec 工作流说明
+│       └── design.md       # 仅在确有长期价值时保留
+└── AGENTS.md               # 精简后的 OpenSpec 使用规则
 ```
 
 ## 与 `docs/` 的边界
@@ -36,16 +34,16 @@ openspec/
 为避免重复与漂移，请明确分工：
 
 - `docs/`：记录**当前已实现系统**的说明、导航、运维与开发参考
-- `openspec/`：记录**规格、设计决策、变更提案与未来方向**
+- `openspec/`：记录**仍值得长期保存的规格与约束**
 
-如果某个主题已经在代码和 `docs/` 中有实现事实，请不要在 `openspec/` 里复制实现细节；在 `openspec/` 中更适合记录“为什么要改、准备怎么改、约束是什么”。
+如果某个主题已经完全可以由代码和 `docs/` 说明清楚，就不要再额外保留一套 proposal/history 文档。
 
-## 工作规则
+## 使用规则
 
 - **当前行为** → 先看 `specs/` 与当前代码
-- **提议中的变更** → 在 `changes/<change-id>/` 下创建提案
-- **已完成提案** → 归档到 `changes/archive/`
-- **历史说明** → 优先归档，不要继续放在主导航层
+- **当前实现说明** → 优先写进 `docs/`
+- **新的重大变更提案** → 仅在确有需要时再创建 `changes/<change-id>/`
+- **已完成且无长期价值的提案** → 直接删除，不再默认归档
 
 ## 如何检查当前状态
 
@@ -56,17 +54,12 @@ cat openspec/project.md
 # 查看当前规格
 ls openspec/specs/
 
-# 查看待处理变更
-ls openspec/changes/
-
 # 查看某个规格
 cat openspec/specs/<spec-name>/spec.md
-
-# 查看某个变更提案
-cat openspec/changes/<change-id>/proposal.md
 ```
 
 ## 备注
 
-- 不要在这里硬编码“当前有哪些 proposal/spec”的静态列表；目录本身才是最不容易过期的入口。
-- 如果旧文档仍引用 `PROJECT-CONTEXT.md`，这是预期行为；新文档请优先引用 `project.md`。
+- 不要在这里维护大量静态提案目录说明
+- OpenSpec 现在是“精简保留”，不是历史资料仓库
+- 如果当前事实与旧 OpenSpec 材料冲突，以代码和 `docs/` 为准

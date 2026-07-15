@@ -2,18 +2,16 @@
 
 > 客户服务平台当前实现架构说明。
 
-**最后更新**：2026-04-20
-**当前版本**：`0.3.0`
-
----
+**最后更新**：2026-07-03
+**当前版本**：`0.4.0`
 
 ## 总览
 
 当前系统是一个基于 Next.js 16 App Router 的单仓三端平台：
 
 - **Customer**：FAQ、AI 对话、建单、工单跟踪、附件回复
-- **Staff**：工单处理、分配流程、AI 质检、回复模板
-- **Admin**：用户/FAQ/设置管理、统计、customer-staff binding 管理
+- **Staff**：工单处理、分配流程、AI 助手、AI QA review
+- **Admin**：用户 / FAQ / AI 设置 / customer-staff binding / 统计与运维配置
 
 当前运行边界：
 
@@ -21,8 +19,6 @@
 - **Zammad** 仍然是 ticket、ticket article、group 路由以及大量用户数据的事实来源
 - **Prisma + PostgreSQL** 负责本地支撑数据，如 FAQ、通知、上传文件元数据、工单评分、TicketUpdate、AI 对话与审核数据、customer-staff binding
 - **AI provider** 可配置，代码中存在 FastGPT、OpenAI-compatible、Yuxi legacy 三条路径
-
----
 
 ## 技术栈
 
@@ -40,8 +36,6 @@
 | State | Zustand + SWR |
 | Testing | Vitest + Playwright |
 
----
-
 ## 关键入口
 
 - 根布局与 Provider：`src/app/layout.tsx`
@@ -55,8 +49,6 @@
 - SSE Emitter：`src/lib/sse/emitter.ts`
 - Webhook 入站：`src/app/api/webhooks/zammad/route.ts`
 - AI Provider Registry：`src/lib/ai/providers/index.ts`
-
----
 
 ## 应用结构
 
@@ -76,11 +68,9 @@
 - `src/lib/notification/` - 站内通知服务
 - `src/lib/sse/` - SSE 广播
 - `src/lib/utils/` - 认证、权限、日志、AI 配置等工具
-- `src/lib/hooks/` - 客户端 hook
+- `src/hooks/` - 客户端共享 hook
 - `messages/` - 多语言文案
 - `prisma/` - schema、migration、seed
-
----
 
 ## 根 Provider 结构
 
@@ -93,8 +83,6 @@
 5. `Toaster`
 
 也就是说，认证、多语言、工单实时更新和通知中心都在根布局统一接入。
-
----
 
 ## 认证与权限模型
 
@@ -122,8 +110,6 @@
 
 工单级权限还会经过 `src/lib/utils/permission.ts` 的 owner / customer / group 规则过滤。
 
----
-
 ## 工单架构
 
 ### 真相来源
@@ -139,7 +125,7 @@ Zammad 是以下数据的真相来源：
 
 ### 当前分配模型
 
-当前并不是旧文档里的“纯 region 分配”，而是 **binding-aware auto assign**：
+当前不是旧文档里的“纯 region 分配”，而是 **binding-aware auto assign**：
 
 1. 先查 customer-staff binding
 2. 绑定坐席不可用时处理替补或失效绑定
@@ -151,8 +137,6 @@ Zammad 是以下数据的真相来源：
 - `src/lib/ticket/auto-assign.ts`
 - `src/lib/ticket/customer-binding.ts`
 - `src/app/api/admin/customer-bindings/route.ts`
-
----
 
 ## 实时更新链路
 
@@ -174,8 +158,6 @@ Zammad 是以下数据的真相来源：
 - `src/app/api/tickets/updates/route.ts`
 - `src/components/providers/ticket-updates-provider.tsx`
 
----
-
 ## 通知系统
 
 站内通知是本地持久化能力，不等同于 SSE：
@@ -191,8 +173,6 @@ Zammad 是以下数据的真相来源：
 - `TicketUpdatesProvider` 负责实时 toast / 工单更新处理
 - `NotificationProvider` 负责通知中心数据的轮询刷新
 
----
-
 ## FAQ 架构
 
 FAQ 当前是 **本地 Prisma 驱动**，不是 Zammad Knowledge Base。
@@ -205,10 +185,6 @@ FAQ 当前是 **本地 Prisma 驱动**，不是 Zammad Knowledge Base。
 - FAQ 点赞/点踩：`POST /api/faq/[id]/rating`
 - 基于标题/内容/关键词的简单搜索：`src/app/api/faq/route.ts`
 - 轻量内存缓存：`src/lib/cache/simple-cache.ts`
-
-所以旧文档里提到的 SQLite FAQ、Redis FAQ 缓存、Zammad KB FAQ 都应视为历史说明。
-
----
 
 ## 文件与附件处理
 
@@ -223,8 +199,6 @@ FAQ 当前是 **本地 Prisma 驱动**，不是 Zammad Knowledge Base。
 
 整理文档时不能把这两条链路混成同一种存储模式。
 
----
-
 ## AI 架构
 
 AI 不是单一 FastGPT 绑定实现，当前代码存在多 provider：
@@ -233,23 +207,29 @@ AI 不是单一 FastGPT 绑定实现，当前代码存在多 provider：
 - `openai`
 - `yuxi-legacy`
 
+客户 AI 对话当前重点行为：
+
+- `/api/ai/chat` 支持同步和 SSE 流式返回
+- 流式路径通过 `withPersistence()` 在服务端累积文本并持久化 AI 回复
+- 客户端 `useStreamingChat()` 通过 `persisted` SSE 事件接收真实消息 ID
+- `addMessage()` 对 AI 消息带有短时间幂等保护，避免流式迁移期双写重复
+
+staff AI 助手当前边界：
+
+- 入口路由是 `/api/staff/ai/chat`
+- 上游 chatId 按 `staff-{userId}-{sessionId}` 隔离
+- 仅维持面板会话上下文，不写入客户 AI 对话表
+
 关键文件：
 
-- AI 设置持久化：`src/lib/utils/ai-config.ts`
-- provider registry：`src/lib/ai/providers/index.ts`
-- FastGPT provider：`src/lib/ai/providers/fastgpt.ts`
-- Admin AI 设置 API：`src/app/api/admin/settings/ai/route.ts`
-- 客户对话 API：`src/app/api/conversations/route.ts`
-- 坐席 AI QA review：`src/app/api/staff/ai-qa/review/route.ts`
-
-本地持久化模型：
-
-- `AiConversation`
-- `AiMessage`
-- `AiMessageRating`
-- `AiQaReview`
-
----
+- `src/lib/utils/ai-config.ts`
+- `src/lib/ai/providers/index.ts`
+- `src/app/api/ai/chat/route.ts`
+- `src/app/api/staff/ai/chat/route.ts`
+- `src/hooks/use-streaming-chat.ts`
+- `src/lib/ai/stream-client.ts`
+- `src/lib/ai/stream-helpers.ts`
+- `src/lib/ai-conversation-service.ts`
 
 ## 国际化
 
@@ -265,8 +245,6 @@ AI 不是单一 FastGPT 绑定实现，当前代码存在多 provider：
 定义位置：`src/i18n.ts`
 文案位置：`messages/`
 
----
-
 ## 测试架构
 
 当前测试分成两层：
@@ -281,22 +259,15 @@ AI 不是单一 FastGPT 绑定实现，当前代码存在多 provider：
 - `__tests__/setup.ts`
 - `.github/workflows/test.yml`
 
-当前已覆盖的范围包括 auth、FAQ、notifications、ticket routes、assignment、binding、AI routes、files 和多条 E2E 流程。
-
----
-
 ## 文档边界
 
 推荐这样理解当前文档系统：
 
 - `README.md` - 项目总览与快速启动
 - `docs/` - 当前实现与运维 / 开发参考
-- `openspec/` - 需求、约束、设计意图、提案
-- `docs/archive/` - 历史材料
+- `openspec/` - 少量当前规格与长期约束
 
-如果历史文档与代码冲突，先信代码，再决定修正文档、归档文档或删除冗余文档。
-
----
+如果历史文档与代码冲突，先信代码，再修正文档。
 
 ## 相关文档
 

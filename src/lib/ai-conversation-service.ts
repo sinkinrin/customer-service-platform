@@ -216,6 +216,10 @@ export async function getConversationMessageCount(conversationId: string) {
 /**
  * Add a message to a conversation.
  * Updates the conversation's lastMessageAt timestamp atomically.
+ *
+ * Idempotency guard for AI messages: while server-side persistence and the
+ * legacy client-side write coexist, writes carrying the same aiRequestId are
+ * resolved to the existing message instead of creating a duplicate.
  */
 export async function addMessage(
   conversationId: string,
@@ -225,6 +229,27 @@ export async function addMessage(
   metadata?: Record<string, any>,
   messageType?: 'text' | 'image' | 'file' | 'system'
 ) {
+  const aiRequestId = senderRole === 'ai' && typeof metadata?.aiRequestId === 'string'
+    ? metadata.aiRequestId
+    : null
+
+  if (aiRequestId) {
+    const recentDuplicate = await prisma.aiMessage.findFirst({
+      where: {
+        conversationId,
+        senderRole: 'ai',
+        metadata: { contains: `\"aiRequestId\":${JSON.stringify(aiRequestId)}` },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (recentDuplicate) {
+      return {
+        ...recentDuplicate,
+        metadata: safeJsonParse(recentDuplicate.metadata),
+      }
+    }
+  }
+
   const [message] = await prisma.$transaction([
     prisma.aiMessage.create({
       data: {

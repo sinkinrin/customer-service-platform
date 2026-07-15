@@ -721,17 +721,21 @@ export function AiConversationPage({
 
     // Send streaming AI request via hook
     let aiContent = ''
+    let serverPersistedMsgId: string | null = null
     try {
-      aiContent = await sendStreamingRequest(
+      const streamResult = await sendStreamingRequest(
         '/api/ai/chat',
         {
           conversationId: resolvedConversationId,
           message: trimmedContent,
           mode: aiChatMode,
           history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
+          requestId: tempAiMessageId,
         },
         tempAiMessageId,
       )
+      aiContent = streamResult.text
+      serverPersistedMsgId = streamResult.persistedMessageId
     } catch (error) {
       console.error('Failed to stream AI response:', error)
       if (shouldSyncRouterToMaterializedConversation && resolvedConversationId && isCurrentSendContextActive(resolvedConversationId)) {
@@ -766,33 +770,56 @@ export function AiConversationPage({
       return
     }
 
-    // Persist AI response and get the real message id
+    // Persist AI response and get the real message id.
+    // Preferred path: server already persisted during streaming (persisted event).
+    // Fallback: legacy client-side POST (kept for the transition window; the
+    // server-side idempotency guard dedupes if both run).
     let aiMsgId = tempAiMessageId
     let aiResponsePersisted = false
-    try {
-      const aiPersistRes = await fetch(`/api/conversations/${resolvedConversationId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: aiContent,
-          message_type: 'text',
-          metadata: { aiMode: true, role: 'ai', aiChatMode }
-        }),
+    if (serverPersistedMsgId) {
+      aiMsgId = serverPersistedMsgId
+      aiResponsePersisted = true
+      appendHistoryMessageToCache(resolvedConversationId, {
+        id: serverPersistedMsgId,
+        conversation_id: resolvedConversationId,
+        sender_id: 'ai',
+        content: aiContent,
+        message_type: 'text',
+        metadata: {
+          aiMode: true,
+          role: 'ai',
+          aiChatMode,
+          sender_name: 'AI Assistant',
+          aiRequestId: tempAiMessageId,
+        },
+        created_at: new Date().toISOString(),
       })
-      const aiPersistData = await aiPersistRes.json()
-      if (!isCurrentSendContextActive(resolvedConversationId)) {
-        if (activeStreamingMessageIdRef.current === tempAiMessageId) {
-          activeStreamingMessageIdRef.current = null
+    } else {
+      try {
+        const aiPersistRes = await fetch(`/api/conversations/${resolvedConversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: aiContent,
+            message_type: 'text',
+            metadata: { aiMode: true, role: 'ai', aiChatMode, aiRequestId: tempAiMessageId }
+          }),
+        })
+        const aiPersistData = await aiPersistRes.json()
+        if (!isCurrentSendContextActive(resolvedConversationId)) {
+          if (activeStreamingMessageIdRef.current === tempAiMessageId) {
+            activeStreamingMessageIdRef.current = null
+          }
+          return
         }
-        return
+        if (aiPersistData.success && aiPersistData.data?.id) {
+          aiMsgId = aiPersistData.data.id
+          appendHistoryMessageToCache(resolvedConversationId, aiPersistData.data)
+          aiResponsePersisted = true
+        }
+      } catch (error) {
+        console.error('Failed to persist AI response:', error)
       }
-      if (aiPersistData.success && aiPersistData.data?.id) {
-        aiMsgId = aiPersistData.data.id
-        appendHistoryMessageToCache(resolvedConversationId, aiPersistData.data)
-        aiResponsePersisted = true
-      }
-    } catch (error) {
-      console.error('Failed to persist AI response:', error)
     }
 
     setAiMessages(prev =>

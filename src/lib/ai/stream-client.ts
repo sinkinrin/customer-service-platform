@@ -1,3 +1,5 @@
+import { parseSSEEvent, getDeltaText, getErrorText, getFlowNodeStatus } from './sse-parse'
+
 interface AIChatApiResponse {
   success?: boolean
   data?: {
@@ -5,23 +7,6 @@ interface AIChatApiResponse {
   }
   error?: string
   message?: string
-}
-
-/** Extract a human-readable status from a FastGPT flowNodeStatus SSE event */
-function getFlowNodeStatus(data: string): string {
-  if (!data) return ''
-  try {
-    const parsed = JSON.parse(data) as {
-      name?: string
-      status?: string
-      moduleName?: string
-      moduleType?: string
-    }
-    // FastGPT sends node name in various fields depending on version
-    return parsed.name || parsed.moduleName || ''
-  } catch {
-    return ''
-  }
 }
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -53,62 +38,6 @@ async function progressivelyRenderText(
   }
 }
 
-function parseSSEEvent(rawEvent: string): { event: string; data: string } {
-  const lines = rawEvent.replace(/\r/g, '').split('\n')
-  let event = ''
-  const dataLines: string[] = []
-
-  for (const line of lines) {
-    if (line.startsWith('event:')) {
-      event = line.slice(6).trim()
-      continue
-    }
-    if (line.startsWith('data:')) {
-      dataLines.push(line.slice(5).trimStart())
-    }
-  }
-
-  return {
-    event,
-    data: dataLines.join('\n'),
-  }
-}
-
-function getDeltaText(data: string): string {
-  if (!data || data === '[DONE]') return ''
-
-  try {
-    const parsed = JSON.parse(data) as {
-      choices?: Array<{ delta?: { content?: unknown }; message?: { content?: unknown } }>
-      response?: unknown
-    }
-    const delta = parsed.choices?.[0]?.delta?.content
-    if (typeof delta === 'string') return delta
-
-    const message = parsed.choices?.[0]?.message?.content
-    if (typeof message === 'string') return message
-
-    const response = parsed.response
-    if (typeof response === 'string') return response
-  } catch {
-    return ''
-  }
-
-  return ''
-}
-
-function getErrorText(data: string): string {
-  if (!data) return 'AI response failed'
-  try {
-    const parsed = JSON.parse(data) as { error?: unknown; message?: unknown }
-    if (typeof parsed.error === 'string') return parsed.error
-    if (typeof parsed.message === 'string') return parsed.message
-  } catch {
-    return data
-  }
-  return 'AI response failed'
-}
-
 async function readErrorMessage(response: Response): Promise<string> {
   const text = await response.text()
   if (!text) return `Request failed with status ${response.status}`
@@ -124,7 +53,8 @@ async function readErrorMessage(response: Response): Promise<string> {
 async function readSSEText(
   response: Response,
   onTextUpdate: (text: string) => void,
-  onStatusUpdate?: (status: string) => void
+  onStatusUpdate?: (status: string) => void,
+  onPersisted?: (messageId: string) => void
 ): Promise<string> {
   if (!response.body) {
     throw new Error('No response body')
@@ -149,6 +79,17 @@ async function readSSEText(
     if (event === 'error') {
       streamError = getErrorText(data)
       doneReceived = true
+      return
+    }
+
+    // Server-side persistence confirmation (carries the saved message id)
+    if (event === 'persisted') {
+      try {
+        const parsed = JSON.parse(data) as { messageId?: string }
+        if (parsed.messageId && onPersisted) onPersisted(parsed.messageId)
+      } catch {
+        // ignore malformed persisted event
+      }
       return
     }
 
@@ -216,7 +157,8 @@ async function readSSEText(
 export async function readAIChatResponse(
   response: Response,
   onTextUpdate: (text: string) => void,
-  onStatusUpdate?: (status: string) => void
+  onStatusUpdate?: (status: string) => void,
+  onPersisted?: (messageId: string) => void
 ): Promise<string> {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response))
@@ -224,12 +166,18 @@ export async function readAIChatResponse(
 
   const contentType = response.headers.get('content-type') || ''
   if (contentType.includes('text/event-stream')) {
-    return readSSEText(response, onTextUpdate, onStatusUpdate)
+    return readSSEText(response, onTextUpdate, onStatusUpdate, onPersisted)
   }
 
-  const payload = (await response.json()) as AIChatApiResponse
+  const payload = (await response.json()) as AIChatApiResponse & {
+    data?: { message?: string; persistedMessageId?: string }
+  }
   if (!payload.success) {
     throw new Error(payload.error || 'Failed to get AI response')
+  }
+
+  if (payload.data?.persistedMessageId && onPersisted) {
+    onPersisted(payload.data.persistedMessageId)
   }
 
   const message = payload.data?.message || ''

@@ -22,7 +22,7 @@ export interface StreamingChatActions {
         url: string,
         body: Record<string, unknown>,
         messageId: string,
-    ) => Promise<string>
+    ) => Promise<{ text: string; persistedMessageId: string | null }>
     /** Abort the current in-flight request (if any) */
     abort: () => void
 }
@@ -74,7 +74,7 @@ export function useStreamingChat(callbacks: StreamingChatCallbacks): StreamingCh
             url: string,
             body: Record<string, unknown>,
             messageId: string,
-        ): Promise<string> => {
+        ): Promise<{ text: string; persistedMessageId: string | null }> => {
             // Abort any previous in-flight request
             abortRef.current?.abort()
             const controller = new AbortController()
@@ -84,6 +84,7 @@ export function useStreamingChat(callbacks: StreamingChatCallbacks): StreamingCh
             setIsWaitingFirstToken(true)
 
             let aiMessageAdded = false
+            let persistedMessageId: string | null = null
 
             try {
                 const response = await fetch(url, {
@@ -108,20 +109,23 @@ export function useStreamingChat(callbacks: StreamingChatCallbacks): StreamingCh
                         setToolStatus(status)
                         if (status && !aiMessageAdded) setIsWaitingFirstToken(true)
                     },
+                    (msgId) => {
+                        persistedMessageId = msgId
+                    },
                 )
 
                 if (!fullText.trim()) {
                     throw new Error('Failed to get AI response')
                 }
 
-                return fullText
+                return { text: fullText, persistedMessageId }
             } catch (error) {
                 // AbortError is intentional — not a real error
                 if (
                     error instanceof DOMException && error.name === 'AbortError' ||
                     (error as any)?.name === 'AbortError'
                 ) {
-                    return ''
+                    return { text: '', persistedMessageId }
                 }
 
                 // Clean up the temporary AI message
@@ -130,7 +134,7 @@ export function useStreamingChat(callbacks: StreamingChatCallbacks): StreamingCh
                 }
 
                 cbRef.current.onError?.(error)
-                return ''
+                return { text: '', persistedMessageId }
             } finally {
                 setIsLoading(false)
                 setIsWaitingFirstToken(false)

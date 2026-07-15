@@ -3,7 +3,10 @@
  *
  * - createStreamResponse: build a standard SSE Response from a ReadableStream
  * - withStreamTimeout:   wrap an upstream stream with a safety timeout
+ * - withPersistence:     capture accumulated answer text for server-side persistence
  */
+
+import { parseSSEEvent, getDeltaText } from './sse-parse'
 
 const STREAM_TIMEOUT_MS = 60_000 // 60 seconds
 
@@ -17,10 +20,14 @@ export function withStreamTimeout(
     timeoutMs = STREAM_TIMEOUT_MS
 ): ReadableStream<Uint8Array> {
     let timer: ReturnType<typeof setTimeout> | null = null
+    let timedOut = false
+
+    const reader = upstream.getReader()
 
     const resetTimer = (controller: ReadableStreamDefaultController<Uint8Array>) => {
         if (timer) clearTimeout(timer)
         timer = setTimeout(() => {
+            timedOut = true
             try {
                 // Send an SSE error event before closing so the client can surface it
                 const encoder = new TextEncoder()
@@ -31,10 +38,11 @@ export function withStreamTimeout(
             } catch {
                 // stream already closed – ignore
             }
+            // Cancel the upstream reader so inner wrappers (e.g. withPersistence)
+            // get their cancel() callback and can finalize with partial text.
+            reader.cancel().catch(() => {})
         }, timeoutMs)
     }
-
-    const reader = upstream.getReader()
 
     return new ReadableStream<Uint8Array>({
         start(controller) {
@@ -44,6 +52,7 @@ export function withStreamTimeout(
         async pull(controller) {
             try {
                 const { done, value } = await reader.read()
+                if (timedOut) return
                 if (done) {
                     if (timer) clearTimeout(timer)
                     controller.close()
@@ -53,13 +62,14 @@ export function withStreamTimeout(
                 controller.enqueue(value)
             } catch (err) {
                 if (timer) clearTimeout(timer)
+                if (timedOut) return
                 controller.error(err)
             }
         },
 
-        cancel() {
+        async cancel() {
             if (timer) clearTimeout(timer)
-            reader.cancel()
+            await reader.cancel().catch(() => {})
         },
     })
 }
@@ -80,6 +90,185 @@ export function createStreamResponse(
             'Cache-Control': 'no-cache, no-transform',
             Connection: 'keep-alive',
             'X-Accel-Buffering': 'no',
+        },
+    })
+}
+
+/**
+ * Capture the accumulated answer text of an AI SSE stream for server-side
+ * persistence. Must wrap the raw upstream BEFORE withStreamTimeout so that
+ * text received prior to a timeout/abort is still captured.
+ *
+ * - Terminal SSE event: persists first, then emits `event: persisted` before
+ *   forwarding `[DONE]` / `event: done` / `event: error` to the client.
+ * - EOF without a terminal event: persists and appends `event: persisted`.
+ * - Client abort / timeout-induced cancel: attempts to persist partial text.
+ */
+export function withPersistence(
+    upstream: ReadableStream<Uint8Array>,
+    onComplete: (fullText: string, info: { completed: boolean }) => Promise<{ messageId: string } | null>
+): ReadableStream<Uint8Array> {
+    const reader = upstream.getReader()
+    const decoder = new TextDecoder()
+    const encoder = new TextEncoder()
+
+    let buffer = ''
+    let fullText = ''
+    let finalized = false
+
+    type TerminalEvent = 'done' | 'error'
+
+    const consumeRawEvent = (rawEvent: string): TerminalEvent | null => {
+        const { event, data } = parseSSEEvent(rawEvent)
+        if (data === '[DONE]' || event === 'done') return 'done'
+        if (event === 'error') return 'error'
+        if (event === 'flowNodeStatus') return null
+        fullText += getDeltaText(data)
+        return null
+    }
+
+    const consumeBuffer = (flush = false): Array<{ rawEvent: string; terminal: TerminalEvent | null }> => {
+        const events: Array<{ rawEvent: string; terminal: TerminalEvent | null }> = []
+        let separatorIndex = buffer.indexOf('\n\n')
+        while (separatorIndex !== -1) {
+            const rawEvent = buffer.slice(0, separatorIndex)
+            buffer = buffer.slice(separatorIndex + 2).replace(/^\n+/, '')
+            events.push({ rawEvent, terminal: consumeRawEvent(rawEvent) })
+            separatorIndex = buffer.indexOf('\n\n')
+        }
+        if (flush && buffer.trim()) {
+            events.push({ rawEvent: buffer, terminal: consumeRawEvent(buffer) })
+            buffer = ''
+        }
+        return events
+    }
+
+    const finalize = (completed: boolean): Promise<{ messageId: string } | null> => {
+        if (finalized) return Promise.resolve(null)
+        finalized = true
+        consumeBuffer(true)
+        return onComplete(fullText, { completed }).catch(() => null)
+    }
+
+    const enqueueEvent = (
+        controller: ReadableStreamDefaultController<Uint8Array>,
+        rawEvent: string
+    ) => {
+        controller.enqueue(encoder.encode(`${rawEvent}\n\n`))
+    }
+
+    const enqueuePersisted = (
+        controller: ReadableStreamDefaultController<Uint8Array>,
+        persisted: { messageId: string } | null
+    ) => {
+        if (persisted?.messageId) {
+            enqueueEvent(controller, `event: persisted\ndata: ${JSON.stringify(persisted)}`)
+        }
+    }
+
+    return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+            try {
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) {
+                        const events = consumeBuffer(true)
+                        const terminalIndex = events.findIndex(event => event.terminal)
+
+                        if (terminalIndex !== -1) {
+                            for (const event of events.slice(0, terminalIndex)) {
+                                enqueueEvent(controller, event.rawEvent)
+                            }
+                            const terminalEvent = events[terminalIndex]
+                            const persisted = await finalize(terminalEvent.terminal === 'done')
+                            enqueuePersisted(controller, persisted)
+                            enqueueEvent(controller, terminalEvent.rawEvent)
+                            controller.close()
+                            return
+                        }
+
+                        for (const event of events) {
+                            enqueueEvent(controller, event.rawEvent)
+                        }
+                        const persisted = await finalize(true)
+                        enqueuePersisted(controller, persisted)
+                        controller.close()
+                        return
+                    }
+
+                    buffer += decoder.decode(value, { stream: true }).replace(/\r/g, '')
+                    const events = consumeBuffer()
+                    if (events.length === 0) {
+                        continue
+                    }
+
+                    const terminalIndex = events.findIndex(event => event.terminal)
+
+                    if (terminalIndex === -1) {
+                        for (const event of events) enqueueEvent(controller, event.rawEvent)
+                        return
+                    }
+
+                    for (const event of events.slice(0, terminalIndex)) {
+                        enqueueEvent(controller, event.rawEvent)
+                    }
+
+                    const terminalEvent = events[terminalIndex]
+                    const persisted = await finalize(terminalEvent.terminal === 'done')
+                    enqueuePersisted(controller, persisted)
+                    enqueueEvent(controller, terminalEvent.rawEvent)
+                    await reader.cancel().catch(() => {})
+                    controller.close()
+                    return
+                }
+            } catch (err) {
+                await finalize(false)
+                controller.error(err)
+            }
+        },
+
+        async cancel() {
+            await Promise.allSettled([
+                finalize(false),
+                reader.cancel(),
+            ])
+        },
+    })
+}
+
+/**
+ * Prefix an upstream SSE stream with one local SSE event.
+ * Used by diagnostics so clients can measure from the API route receive time
+ * without changing normal stream payloads.
+ */
+export function prependSSEEvent(
+    upstream: ReadableStream<Uint8Array>,
+    event: string,
+    data: unknown
+): ReadableStream<Uint8Array> {
+    const reader = upstream.getReader()
+    const encoder = new TextEncoder()
+    let prefixed = false
+
+    return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+            if (!prefixed) {
+                prefixed = true
+                controller.enqueue(
+                    encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+                )
+            }
+
+            const { done, value } = await reader.read()
+            if (done) {
+                controller.close()
+                return
+            }
+            controller.enqueue(value)
+        },
+
+        cancel() {
+            reader.cancel()
         },
     })
 }

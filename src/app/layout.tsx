@@ -22,9 +22,9 @@ export const metadata: Metadata = {
   description:
     "AI-powered customer service platform with Supabase and Zammad integration",
   icons: {
-    icon: "/logo-with-bg.svg",
-    shortcut: "/logo-with-bg.svg",
-    apple: "/logo-with-bg.svg",
+    icon: "/透明-彩黑-大.png",
+    shortcut: "/透明-彩黑-大.png",
+    apple: "/透明-彩黑-大.png",
   },
 }
 

@@ -73,7 +73,6 @@ const getNavigation = (t: (key: string) => string): NavItem[] => [
 ]
 
 export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps) {
-  const t = useTranslations('auth.layout')
   const tCommon = useTranslations('common')
   const tNav = useTranslations('nav')
   const tSidebar = useTranslations('nav.customer')
@@ -190,11 +189,8 @@ export function CustomerLayout({ children, user, onLogout }: CustomerLayoutProps
               >
                 {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-              <Link href="/customer/dashboard" className="flex items-center space-x-2">
+              <Link href="/customer/dashboard" aria-label="HOWEN customer dashboard">
                 <Logo size="md" />
-                <span className="font-semibold text-lg hidden sm:inline-block">
-                  {t('brandName')}
-                </span>
               </Link>
             </div>
 

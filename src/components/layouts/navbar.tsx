@@ -33,7 +33,6 @@ interface NavbarProps {
 }
 
 export function Navbar({ user, onLogout, showLanguageSelector = true }: NavbarProps) {
-  const t = useTranslations('auth.layout')
   const tCommon = useTranslations('common')
   const tNav = useTranslations('nav')
   const tRoles = useTranslations('common.roles')
@@ -50,11 +49,8 @@ export function Navbar({ user, onLogout, showLanguageSelector = true }: NavbarPr
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" aria-label="HOWEN home">
             <Logo size="md" />
-            <span className="font-semibold text-lg hidden sm:inline-block">
-              {t('brandName')}
-            </span>
           </Link>
 
           {/* Desktop Navigation */}

@@ -80,6 +80,14 @@ export function AiAssistantPanel({
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const msgIdCounter = useRef(0)
   const idPrefix = useId()
+  // Stable per-panel-mount session id for upstream conversation isolation
+  const sessionIdRef = useRef<string>('')
+  if (!sessionIdRef.current) {
+    sessionIdRef.current =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  }
 
   const { isLoading: isChatLoading, isWaitingFirstToken, toolStatus, sendStreamingRequest } = useStreamingChat({
     onAddMessage: (id, content) => {
@@ -198,6 +206,7 @@ export function AiAssistantPanel({
       {
         message: msg,
         history: chatMessages.map(m => ({ role: m.role, content: m.content })),
+        sessionId: sessionIdRef.current,
         ticketContext: {
           ticketTitle,
           customerName,

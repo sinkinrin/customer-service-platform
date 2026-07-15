@@ -40,17 +40,9 @@ const StaffChatSchema = z.object({
         .optional(),
     })
     .optional(),
+  sessionId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
   stream: z.boolean().optional(),
 })
-
-/** Deterministic string hash (djb2) — used to build a stable conversationId */
-function djb2Hash(str: string): string {
-  let hash = 5381
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0
-  }
-  return hash.toString(36)
-}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,7 +52,7 @@ export async function POST(request: NextRequest) {
   const startedAt = Date.now()
 
   try {
-    await requireRole(['staff', 'admin'])
+    const user = await requireRole(['staff', 'admin'])
 
     const body = await request.json()
     const parsed = StaffChatSchema.safeParse(body)
@@ -83,7 +75,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unknown AI provider' }, { status: 500 })
     }
 
-    const { message, history, ticketContext, stream } = parsed.data
+    const { message, history, ticketContext, sessionId, stream } = parsed.data
 
     // Build context-enhanced message
     let contextPrefix = ''
@@ -103,12 +95,13 @@ export async function POST(request: NextRequest) {
       hasContext: !!ticketContext,
       historyLength: history?.length || 0,
       stream: !!stream,
+      hasSessionId: !!sessionId,
     })
 
-    // Use a stable conversationId so FastGPT can maintain conversation context
-    const stableId = ticketContext
-      ? `staff-ticket-${djb2Hash(ticketContext.ticketTitle)}`
-      : `staff-chat-${Date.now()}`
+    // Isolate upstream conversation context (FastGPT chatId) per user + panel session
+    const stableId = sessionId
+      ? `staff-${user.id}-${sessionId}`
+      : `staff-${user.id}-${Date.now()}`
 
     const chatRequest = {
       conversationId: stableId,

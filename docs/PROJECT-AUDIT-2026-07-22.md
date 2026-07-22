@@ -587,6 +587,18 @@
 - customer ticket row 与 staff recent ticket entry 补齐同样的键盘导航，并阻止行内按钮键盘事件冒泡。
 - staff ticket stats 改用六种语言结构一致的翻译键；组件与 i18n 定向 22 个测试、type-check、i18n validation 和 lint 均通过。
 
+### AUD-041：评分统计为三个计数加载整张 TicketRating 表（P2，已修复）
+
+证据：
+
+- `/api/admin/stats/ratings` 原先 `findMany()` 读取每条评分的 ID、ticket、rating、reason 与时间，再在 Node.js 中计算 total/positive/negative。
+- 页面实际只需要三个聚合计数和最近五条 negative；数据量增长会线性增加数据库传输、server memory 与序列处理。
+
+修复：
+
+- total 改为数据库 `count()`，正负数量改为 `groupBy()`，最近负评改为带 `where`、排序和 `take: 5` 的有界查询。
+- 三个只读查询并行执行，响应契约不变；admin stats 定向 10 个测试、type-check 与 lint 通过。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -621,6 +633,7 @@ npm run test -- __tests__/api/tickets.test.ts __tests__/api/ai.test.ts __tests__
 npm run test -- __tests__/api/user-profile.test.ts
 npm run test -- __tests__/unit/zammad-health-check.test.ts
 npm run test -- __tests__/components/card.test.tsx __tests__/unit/i18n-completeness.test.ts
+npm run test -- __tests__/api/admin-stats.test.ts
 npx playwright test --list
 ```
 

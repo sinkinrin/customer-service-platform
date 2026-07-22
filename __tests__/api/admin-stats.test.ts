@@ -25,6 +25,8 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     ticketRating: {
+      count: vi.fn(),
+      groupBy: vi.fn(),
       findMany: vi.fn(),
     },
   },
@@ -232,10 +234,13 @@ describe('Admin stats APIs', () => {
 
     it('computes satisfaction rate from ratings', async () => {
       vi.mocked(auth).mockResolvedValue({ user: { role: 'admin' } } as any)
+      vi.mocked(prisma.ticketRating.count).mockResolvedValue(3)
+      vi.mocked(prisma.ticketRating.groupBy).mockResolvedValue([
+        { rating: 'positive', _count: { _all: 2 } },
+        { rating: 'negative', _count: { _all: 1 } },
+      ] as any)
       vi.mocked(prisma.ticketRating.findMany).mockResolvedValue([
-        { rating: 'positive', ticketId: 1, reason: null, createdAt: new Date('2024-01-01') },
-        { rating: 'positive', ticketId: 2, reason: null, createdAt: new Date('2024-01-02') },
-        { rating: 'negative', ticketId: 3, reason: 'slow', createdAt: new Date('2024-01-03') },
+        { ticketId: 3, reason: 'slow', createdAt: new Date('2024-01-03') },
       ] as any)
 
       const response = await GET_RATINGS()
@@ -248,6 +253,10 @@ describe('Admin stats APIs', () => {
       expect(payload.data.negative).toBe(1)
       expect(payload.data.satisfactionRate).toBe(67)
       expect(payload.data.recentNegative).toHaveLength(1)
+      expect(prisma.ticketRating.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { rating: 'negative' },
+        take: 5,
+      }))
     })
   })
 })

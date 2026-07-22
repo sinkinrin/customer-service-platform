@@ -23,42 +23,29 @@ export async function GET() {
     }
 
     try {
-      // Try to get rating statistics from database
-      const ratings = await prisma.ticketRating?.findMany({
-        select: {
-          id: true,
-          ticketId: true,
-          rating: true,
-          reason: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      })
-
-      if (!ratings) {
-        // Table doesn't exist yet
-        return NextResponse.json({
-          success: true,
-          data: {
-            total: 0,
-            positive: 0,
-            negative: 0,
-            satisfactionRate: 0,
-            recentNegative: [],
+      const [total, ratingsByValue, recentNegativeRatings] = await Promise.all([
+        prisma.ticketRating.count(),
+        prisma.ticketRating.groupBy({
+          by: ['rating'],
+          _count: { _all: true },
+        }),
+        prisma.ticketRating.findMany({
+          where: { rating: 'negative' },
+          select: {
+            ticketId: true,
+            reason: true,
+            createdAt: true,
           },
-        })
-      }
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        }),
+      ])
 
-      const total = ratings.length
-      const positive = ratings.filter((r: any) => r.rating === 'positive').length
-      const negative = ratings.filter((r: any) => r.rating === 'negative').length
+      const positive = ratingsByValue.find((item) => item.rating === 'positive')?._count._all ?? 0
+      const negative = ratingsByValue.find((item) => item.rating === 'negative')?._count._all ?? 0
       const satisfactionRate = total > 0 ? Math.round((positive / total) * 100) : 0
 
-      // Get recent negative ratings with reasons
-      const recentNegative = ratings
-        .filter((r: any) => r.rating === 'negative')
-        .slice(0, 5)
-        .map((r: any) => ({
+      const recentNegative = recentNegativeRatings.map((r) => ({
           ticketId: r.ticketId,
           reason: r.reason || 'No reason provided',
           createdAt: r.createdAt,

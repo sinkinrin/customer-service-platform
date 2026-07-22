@@ -59,19 +59,32 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('query') || ''
     const language = searchParams.get('language') || 'en'
     // Support both camelCase (categoryId) and snake_case (category_id) for backwards compatibility
-    const categoryId = searchParams.get('categoryId') || searchParams.get('category_id')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    // FIX: Add forceRefresh parameter to bypass cache (for admin edits verification)
-    const forceRefresh = searchParams.get('forceRefresh') === 'true'
+    const categoryIdParam = searchParams.get('categoryId') || searchParams.get('category_id')
+    const categoryId = categoryIdParam === null || !/^\d+$/.test(categoryIdParam)
+      ? null
+      : Number(categoryIdParam)
+    const limitParam = searchParams.get('limit')
+    const limit = limitParam === null || /^\d+$/.test(limitParam)
+      ? Number(limitParam ?? 10)
+      : Number.NaN
 
     // Validate limit (allow up to 1000 for admin pages)
-    if (limit < 1 || limit > 1000) {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
       return errorResponse('INVALID_LIMIT', 'Limit must be between 1 and 1000', undefined, 400)
     }
+    if (query.length > 200) {
+      return errorResponse('INVALID_QUERY', 'Query must not exceed 200 characters', undefined, 400)
+    }
+    if (
+      categoryIdParam !== null &&
+      (categoryId === null || !Number.isSafeInteger(categoryId) || categoryId < 1)
+    ) {
+      return errorResponse('INVALID_CATEGORY_ID', 'Invalid category ID', undefined, 400)
+    }
 
-    // PERFORMANCE: Check cache first (for non-search queries and non-force-refresh)
-    if (!query && !forceRefresh) {
-      const cacheKey = `faq:list:${language}:${categoryId || 'all'}:${limit}`
+    // PERFORMANCE: Check cache first for non-search queries.
+    if (!query) {
+      const cacheKey = `faq:list:${language}:${categoryId ?? 'all'}:${limit}`
       const cached = faqCache.get(cacheKey)
       if (cached) {
         return successResponse({
@@ -93,8 +106,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter by category if provided
-    if (categoryId) {
-      where.categoryId = parseInt(categoryId)
+    if (categoryId !== null) {
+      where.categoryId = categoryId
     }
 
     // PERFORMANCE: Get articles with optimized include (fixed N+1 problem)
@@ -183,14 +196,14 @@ export async function GET(request: NextRequest) {
 
     // PERFORMANCE: Cache non-search results for 10 minutes
     if (!query) {
-      const cacheKey = `faq:list:${language}:${categoryId || 'all'}:${limit}`
+      const cacheKey = `faq:list:${language}:${categoryId ?? 'all'}:${limit}`
       faqCache.set(cacheKey, response, 600)
     }
 
     return successResponse(response)
   } catch (error) {
     logger.error('FAQ', 'Failed to fetch FAQ articles', { data: { error: error instanceof Error ? error.message : error } })
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+    return serverErrorResponse('Failed to fetch FAQ articles')
   }
 }
 

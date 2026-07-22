@@ -52,6 +52,6 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
     if (error.code === 'ENOENT') {
       return notFoundResponse('File not found on disk')
     }
-    return serverErrorResponse('Failed to download file', error.message)
+    return serverErrorResponse('Failed to download file')
   }
 }

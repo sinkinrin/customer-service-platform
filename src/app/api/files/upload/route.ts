@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     }
 
     log.error('File upload failed', { error: error instanceof Error ? error.message : error })
-    return serverErrorResponse('Failed to upload file', error.message)
+    return serverErrorResponse('Failed to upload file')
   }
 }
 

@@ -12,7 +12,23 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/utils/logger'
 
 // Storage configuration
-const UPLOAD_BASE_DIR = path.join(process.cwd(), 'uploads')
+const UPLOAD_BASE_DIR = path.resolve(process.cwd(), 'uploads')
+
+function resolveUploadPath(filePath: string): string {
+  const resolvedPath = path.resolve(UPLOAD_BASE_DIR, filePath)
+  const relativePath = path.relative(UPLOAD_BASE_DIR, resolvedPath)
+
+  if (
+    !relativePath ||
+    relativePath === '..' ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new Error('Invalid stored file path')
+  }
+
+  return resolvedPath
+}
 
 // Ensure upload directories exist
 async function ensureDirectories() {
@@ -59,7 +75,7 @@ export async function uploadFile(options: {
   const fileExt = file.name.split('.').pop() || 'bin'
   const fileName = `${fileId}.${fileExt}`
   const filePath = path.join(bucketName, fileName)
-  const absoluteFilePath = path.join(UPLOAD_BASE_DIR, filePath)
+  const absoluteFilePath = resolveUploadPath(filePath)
 
   // Ensure bucket directory exists
   await fs.mkdir(path.dirname(absoluteFilePath), { recursive: true })
@@ -111,7 +127,7 @@ export async function getFilePath(fileId: string): Promise<string | null> {
   const file = await getFileMetadata(fileId)
   if (!file) return null
 
-  return path.join(UPLOAD_BASE_DIR, file.filePath)
+  return resolveUploadPath(file.filePath)
 }
 
 /**
@@ -128,7 +144,7 @@ export async function deleteFile(fileId: string, userId?: string): Promise<boole
     }
 
     // Delete physical file
-    const absoluteFilePath = path.join(UPLOAD_BASE_DIR, file.filePath)
+    const absoluteFilePath = resolveUploadPath(file.filePath)
     try {
       await fs.unlink(absoluteFilePath)
     } catch (error) {

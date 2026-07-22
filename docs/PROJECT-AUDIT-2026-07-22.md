@@ -224,7 +224,7 @@
 - 正式 production build 被 middleware 和 route 双重阻止；当前没有生产直达证据。
 - 若 staging、演示或临时环境以非 production 模式对外暴露，匿名用户可直接取得管理员 mock session。应增加默认关闭的 server-side 开关，并让 staging 保持关闭。
 
-### AUD-016：API 广泛把内部异常返回给调用方（P1，待分批治理）
+### AUD-016：API 广泛把内部异常返回给调用方（P1，部分修复）
 
 证据：
 
@@ -234,14 +234,72 @@
 
 结论：
 
-- 本批先修复健康检查和 AI health 的确定泄露面。
+- 已分批修复健康检查、AI health、webhook、公开 FAQ 和本地文件 API 的确定泄露面。
 - 后续应优先清理匿名 route，再治理已认证 route；服务端保留带 request ID 的详细日志，客户端统一返回稳定错误码和通用消息。全局修改 helper 可能影响现有前端错误契约，应分批加测试而不是一次性静默丢弃所有 details。
+
+### AUD-017：webhook 在验签前解析无上限 body，并返回原始异常（P1，已修复）
+
+证据：
+
+- 修复前 route 先执行 `request.text()` 和 `JSON.parse()`，之后才检查 HMAC；无效签名请求仍会消耗完整 body 读取与 JSON 解析资源。
+- 没有显式 body size 上限；公开调用方可以发送远大于正常 Zammad webhook 的请求体。
+- JSON 语法错误和内部异常会进入最外层 catch，并把原始 `error.message` 作为 500 响应消息。
+- 缺少 `ticket` 时会把整个解析后的 payload 写入日志，可能记录不必要的客户内容。
+
+修复：
+
+- 新增 1 MiB 上限：先检查声明长度，同时对实际 `ReadableStream` 按字节累计并在超限时取消读取，不能只依赖客户端 header。
+- bounded raw body 读取后先验签，再解析 JSON；无效签名不再进入 JSON 解析。
+- 超限返回 413，非法 JSON 返回稳定 400，意外异常返回通用 500；详细错误只写服务端日志。
+- 无效 payload 日志不再附带整个 body。
+
+### AUD-018：公开 FAQ 可绕过缓存，输入解析宽松且泄露数据库异常（P2，已修复）
+
+证据：
+
+- `/api/faq` 是匿名路由，修复前任何人都可传 `forceRefresh=true` 跳过内存缓存；精确搜索只发现 route 和测试使用该参数，admin mutation 本身已经会清理 FAQ cache。
+- `parseInt()` 让 `limit=1.5`、`categoryId=1abc` 等非规范值被截断接受，而 `limit=abc` 的 `NaN` 可绕过范围比较并进入 Prisma。
+- FAQ list/detail/categories/rating 的 catch 会把数据库原始异常作为 message 或 details 返回。
+- categories route 仍带有 SQLite 专用错误文案，但当前数据库是 PostgreSQL。
+
+修复：
+
+- 公共 `forceRefresh` 不再影响缓存；管理员写操作继续通过已有 `faqCache.clear()`/`categoriesCache.clear()` 生效。
+- limit、category/article ID 改为严格整数校验，搜索词限制为 200 字符，rating 非法 JSON 返回 400。
+- FAQ 错误响应统一为稳定通用消息，原始数据库异常只进入服务端日志。
+
+### AUD-019：本地文件路径没有 uploads containment 校验（P2，已加固）
+
+证据：
+
+- 修复前 upload/read/delete 都直接对 bucket 或数据库中的 `filePath` 执行 `path.join(UPLOAD_BASE_DIR, ...)`。
+- 当前正常上传路径由受控 reference type、环境 bucket、UUID 和文件扩展生成；本轮没有证明远程用户可直接写入任意数据库 `filePath`，因此不把它描述为已可利用的路径穿越。
+- 但错误环境 bucket、损坏/迁移数据或未来新增写路径一旦包含 `..`/绝对路径，就可能让文件操作离开 `uploads`。
+
+修复：
+
+- 所有 upload/read/delete 路径统一经 `path.resolve()` + `path.relative()` containment 检查。
+- 空路径、父目录逃逸和绝对路径均在任何 mkdir/read/write/unlink 前拒绝。
+- 新增安全路径、存储记录逃逸和 bucket 逃逸单测。
+
+### AUD-020：webhook 限流信任代理头且仅在单进程内生效（P2，待部署边界确认）
+
+证据：
+
+- webhook limiter key 取 `x-forwarded-for` 的第一个值；若边缘代理不覆盖客户端传入值，调用方可伪造不同 IP 绕过限制。
+- limiter 与登录限流一样使用进程内 `Map`，跨实例不共享。
+- 当前仓库没有声明可信代理层如何重写 `x-forwarded-for`，无法仅凭应用代码判断该头是否可信。
+
+结论：
+
+- 暂不盲目改成全局 key：公开攻击者可先耗尽全局窗口，从而阻断真实 Zammad webhook。
+- 部署侧应确认唯一可信代理及 header overwrite 规则；之后再选择共享存储的 source/IP + signature-aware 限流。1 MiB body 上限已经先降低单请求资源风险。
 
 ### 本轮权限边界核对结果
 
 - `X-On-Behalf-Of` 只在 Zammad client 内构造；当前 route 传入值来自已认证 session 的 `user.email`，没有发现从客户端请求头透传代理身份的代码路径。
 - 本地 `/api/files/[id]` metadata/download 已检查 owner 或 admin，delete 会把当前 user ID 传入存储层；当前没有发现直接的跨用户本地文件读取。
-- `file-storage.ts` 对数据库中的 `filePath` 直接执行 `path.join()`，尚无基目录 containment 校验。当前上传路径由 UUID、受控 bucket 映射和文件扩展构造，本轮未证明外部用户可写入任意 `filePath`，因此暂记为下一步加固点，不写成已可利用的路径穿越。
+- 本地文件的 upload/read/delete 已统一增加 `uploads` 基目录 containment；仍需在部署产物中验证持久卷、symlink 和 NFT trace 行为。
 
 ## 已完成的依赖处置
 
@@ -295,10 +353,20 @@ npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
 - 未运行 E2E、迁移、`db push`、seed 或任何真实 Zammad/AI provider 请求。
 
+## 第三批验证结果
+
+- FAQ、webhook 与文件存储定向回归：6 个文件、40 个测试通过；补充真实 `NextRequest` body stream、超限 stream 和实际受控目录写入覆盖后，相关定向复跑均通过，最终 webhook 单文件 12 个测试通过。
+- `npm run lint`：通过，0 error / 18 个既有 warning。
+- `npm run type-check`：通过。
+- `npm run test:coverage:ci`：121 个文件、1126 个测试全部通过；statements 66.70%、branches 52.19%、functions 66.64%、lines 68.02%。
+- `npm run i18n:validate`：通过。
+- 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告，trace 指向 `next.config.js`、`file-storage.ts` 与 avatar route。
+- 构建使用不可连接的 PostgreSQL/Zammad 占位地址；未运行 E2E、迁移、`db push`、seed 或任何真实 Zammad/AI provider 请求。
+
 ## 下一步
 
-1. 提交本批健康检查与 AI health 安全修复，保持 worktree 清爽。
-2. 优先治理匿名 webhook/FAQ 的原始异常外泄，并验证 webhook body size、代理 IP 信任和跨实例限流方案。
-3. 为 env fallback credential、登录组合限流和 dev auto-login 显式开关形成兼容迁移方案后再改生产行为。
-4. 继续验证文件路径 containment、附件权限缓存，以及数据/Zammad 事务、幂等与补偿边界。
+1. 为 env fallback credential、登录组合限流和 dev auto-login 显式开关形成兼容迁移方案后再改生产行为。
+2. 确认唯一可信代理、`x-forwarded-for` overwrite 规则与共享限流存储，再处置 AUD-020。
+3. 继续按匿名、低权限、高权限顺序清理 AUD-016 的剩余原始异常响应，并用稳定错误契约保护前端兼容性。
+4. 在部署产物中验证 uploads 持久卷、symlink 与 NFT trace 行为，并继续核对附件权限缓存、数据/Zammad 事务、幂等与补偿边界。
 5. 对 Sharp/Next 漏洞链建立独立兼容性验证，不把 npm 的错误降级建议直接应用到主线。

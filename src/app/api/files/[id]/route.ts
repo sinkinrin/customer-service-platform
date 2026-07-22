@@ -70,7 +70,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
-    return serverErrorResponse('Failed to get file', error.message)
+    return serverErrorResponse('Failed to get file')
   }
 }
 
@@ -93,7 +93,7 @@ export async function DELETE(
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
-    return serverErrorResponse('Failed to delete file', error.message)
+    return serverErrorResponse('Failed to delete file')
   }
 }
 

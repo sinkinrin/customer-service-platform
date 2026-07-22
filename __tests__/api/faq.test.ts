@@ -138,6 +138,30 @@ describe('FAQ API 集成测试', () => {
       expect(data.success).toBe(false)
     })
 
+    it('非整数 limit 应返回 400', async () => {
+      const request = createMockRequest('http://localhost:3000/api/faq?limit=1.5')
+      const response = await GET(request)
+
+      expect(response.status).toBe(400)
+      expect(prisma.faqArticle.findMany).not.toHaveBeenCalled()
+    })
+
+    it('无效的分类 ID 应返回 400', async () => {
+      const request = createMockRequest('http://localhost:3000/api/faq?categoryId=abc')
+      const response = await GET(request)
+
+      expect(response.status).toBe(400)
+      expect(prisma.faqArticle.findMany).not.toHaveBeenCalled()
+    })
+
+    it('过长搜索词应返回 400', async () => {
+      const request = createMockRequest(`http://localhost:3000/api/faq?query=${'x'.repeat(201)}`)
+      const response = await GET(request)
+
+      expect(response.status).toBe(400)
+      expect(prisma.faqArticle.findMany).not.toHaveBeenCalled()
+    })
+
     it('应使用缓存（非搜索查询）', async () => {
       const cachedData = {
         items: [{ id: '1', question: 'Cached FAQ' }],
@@ -154,15 +178,28 @@ describe('FAQ API 集成测试', () => {
       expect(prisma.faqArticle.findMany).not.toHaveBeenCalled()
     })
 
-    it('forceRefresh 应绕过缓存', async () => {
-      vi.mocked(faqCache.get).mockReturnValue({ items: [] })
-      vi.mocked(prisma.faqArticle.findMany).mockResolvedValue([mockFaqArticle] as any)
+    it('public forceRefresh 参数不应绕过缓存', async () => {
+      vi.mocked(faqCache.get).mockReturnValue({ items: [{ id: 'cached' }] })
 
       const request = createMockRequest('http://localhost:3000/api/faq?forceRefresh=true')
       const response = await GET(request)
 
       expect(response.status).toBe(200)
-      expect(prisma.faqArticle.findMany).toHaveBeenCalled()
+      expect(prisma.faqArticle.findMany).not.toHaveBeenCalled()
+    })
+
+    it('数据库异常不应暴露给匿名调用方', async () => {
+      vi.mocked(prisma.faqArticle.findMany).mockRejectedValue(
+        new Error('database unavailable at 10.0.0.20:5432')
+      )
+
+      const request = createMockRequest('http://localhost:3000/api/faq?query=test')
+      const response = await GET(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(data.error.message).toBe('Failed to fetch FAQ articles')
+      expect(JSON.stringify(data)).not.toContain('10.0.0.20')
     })
   })
 })

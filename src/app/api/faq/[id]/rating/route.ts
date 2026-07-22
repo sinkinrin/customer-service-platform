@@ -25,15 +25,23 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     // Require authentication
     const user = await requireAuth()
 
-    const articleId = parseInt(params.id)
+    const articleId = /^\d+$/.test(params.id) ? Number(params.id) : Number.NaN
 
-    if (isNaN(articleId)) {
+    if (!Number.isSafeInteger(articleId) || articleId < 1) {
       return errorResponse('INVALID_ID', 'Invalid article ID', undefined, 400)
     }
 
     // Parse request body
-    const body = await request.json()
-    const { is_helpful } = body
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return errorResponse('INVALID_JSON', 'Invalid request body', undefined, 400)
+    }
+    if (!body || typeof body !== 'object') {
+      return errorResponse('INVALID_TYPE', 'Request body must be an object', undefined, 400)
+    }
+    const { is_helpful } = body as { is_helpful?: unknown }
 
     if (typeof is_helpful !== 'boolean') {
       return errorResponse('INVALID_TYPE', 'is_helpful must be a boolean', undefined, 400)
@@ -110,7 +118,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     if (error.message === 'Unauthorized') {
       return unauthorizedResponse()
     }
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+    return serverErrorResponse('Failed to submit FAQ rating')
   }
 }
 

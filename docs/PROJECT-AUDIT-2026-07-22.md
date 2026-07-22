@@ -599,6 +599,14 @@
 - total 改为数据库 `count()`，正负数量改为 `groupBy()`，最近负评改为带 `where`、排序和 `take: 5` 的有界查询。
 - 三个只读查询并行执行，响应契约不变；admin stats 定向 10 个测试、type-check 与 lint 通过。
 
+### AUD-042：logger 的表达式式 ternary 制造 8 个无业务价值 lint warning（P3，已修复）
+
+证据与修复：
+
+- server/client logger 用 `condition ? console(...) : console(...)` 作为独立语句，被 `no-unused-expressions` 报告 8 次。
+- 改为等价的 `if/else` 后输出级别、参数和 file logging 路径均不变。
+- logger 定向 21 个测试、type-check 通过；全仓 lint 从 18 个 warning 降至 10 个，剩余全部是需要逐项判断 lifecycle 的 React effect dependency。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -634,6 +642,7 @@ npm run test -- __tests__/api/user-profile.test.ts
 npm run test -- __tests__/unit/zammad-health-check.test.ts
 npm run test -- __tests__/components/card.test.tsx __tests__/unit/i18n-completeness.test.ts
 npm run test -- __tests__/api/admin-stats.test.ts
+npm run test -- __tests__/unit/logger.test.ts
 npx playwright test --list
 ```
 

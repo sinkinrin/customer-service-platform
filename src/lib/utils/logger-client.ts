@@ -70,16 +70,20 @@ class ClientLogger {
 
     switch (level) {
       case LogLevel.DEBUG:
-        data !== undefined ? console.log(output, data) : console.log(output)
+        if (data !== undefined) console.log(output, data)
+        else console.log(output)
         break
       case LogLevel.INFO:
-        data !== undefined ? console.info(output, data) : console.info(output)
+        if (data !== undefined) console.info(output, data)
+        else console.info(output)
         break
       case LogLevel.WARNING:
-        data !== undefined ? console.warn(output, data) : console.warn(output)
+        if (data !== undefined) console.warn(output, data)
+        else console.warn(output)
         break
       case LogLevel.ERROR:
-        data !== undefined ? console.error(output, data) : console.error(output)
+        if (data !== undefined) console.error(output, data)
+        else console.error(output)
         break
     }
   }

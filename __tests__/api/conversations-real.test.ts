@@ -21,6 +21,30 @@ vi.mock('@/lib/sse/conversation-broadcaster', () => ({
 // Import mocked auth
 import { auth } from '@/auth'
 
+function isExplicitTestDatabase(databaseUrl: string | undefined): boolean {
+  if (!databaseUrl) return false
+
+  try {
+    const databaseName = new URL(databaseUrl).pathname.replace(/^\//, '').toLowerCase()
+    return databaseName.includes('test')
+  } catch {
+    return false
+  }
+}
+
+const databaseIntegrationRequested = process.env.RUN_DATABASE_INTEGRATION_TESTS === 'true'
+const hasSafeTestDatabase = isExplicitTestDatabase(process.env.DATABASE_URL)
+
+if (databaseIntegrationRequested && !hasSafeTestDatabase) {
+  throw new Error(
+    'Database integration tests require DATABASE_URL to reference a database whose name contains "test".'
+  )
+}
+
+const describeDatabaseIntegration = databaseIntegrationRequested && hasSafeTestDatabase
+  ? describe
+  : describe.skip
+
 // Test users
 const mockCustomer = {
   id: 'cust_001',
@@ -50,7 +74,7 @@ function createMockRequest(url: string, options?: RequestInit): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), options)
 }
 
-describe('Conversations API 真实集成测试', () => {
+describeDatabaseIntegration('Conversations API 真实集成测试', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

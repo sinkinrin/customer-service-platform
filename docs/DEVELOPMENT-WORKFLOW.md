@@ -45,6 +45,16 @@ npm run i18n:check      # 多语言或文案变更
 npm run build           # 依赖、路由、构建配置或发布前检查
 ```
 
+## 生产隔离规则
+
+1. 默认验证不得连接生产 PostgreSQL、Zammad 或 AI provider；在 shell 中显式覆盖为测试地址，不依赖来源不明的 `.env.local`。
+2. 不在生产或共享数据库执行 `prisma migrate`、`prisma db push`、seed、测试清理脚本。
+3. `npm run test:e2e` 可能创建真实业务对象，仅允许在独立数据库和隔离 Zammad / mock 环境运行。
+4. 真实数据库集成测试必须显式设置 `RUN_DATABASE_INTEGRATION_TESTS=true`，且数据库名必须包含 `test`。
+5. 需要验证生产配置时，优先做静态检查或只读健康检查；任何写操作都必须由用户明确批准并说明回滚方式。
+
+普通 Vitest、覆盖率和构建可使用不可连接的本地占位地址，防止测试代码意外落到生产服务。连接失败日志可能是隔离措施的预期结果，最终判断以退出码和测试断言为准。
+
 建议至少执行：
 
 - 共享逻辑或 API：`npm run test` + `npm run type-check`
@@ -68,5 +78,6 @@ npm run build           # 依赖、路由、构建配置或发布前检查
 - 实际运行了哪些验证命令
 - 哪些检查因环境依赖未执行
 - 是否存在需要后续处理的安全、迁移或兼容性风险
+- 验证使用的环境类型，以及是否确认未触达生产 Zammad / 数据库
 
 禁止提交真实密钥、密码、token、客户数据和 `.env.local` 内容。

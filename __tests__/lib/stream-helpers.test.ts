@@ -43,7 +43,6 @@ describe('createStreamResponse', () => {
 
     it('passes through data from the upstream stream', async () => {
         const encoder = new TextEncoder()
-        const decoder = new TextDecoder()
         const data = 'event: answer\ndata: {"text":"hello"}\n\n'
         const stream = makeStream([encoder.encode(data)])
         const response = createStreamResponse(stream)

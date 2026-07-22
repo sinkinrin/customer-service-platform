@@ -9,7 +9,7 @@
 
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
-import { sseEmitter } from '@/lib/sse/emitter'
+import { sseEmitter, type SSESubscription } from '@/lib/sse/emitter'
 import { logger } from '@/lib/utils/logger'
 
 export const dynamic = 'force-dynamic'
@@ -62,22 +62,34 @@ export async function GET(request: NextRequest) {
   // Create SSE stream
   const encoder = new TextEncoder()
   let isConnected = true
-  let unsub: (() => void) | null = null
+  let subscription: SSESubscription | null = null
+  let heartbeatInterval: ReturnType<typeof setInterval> | null = null
+
+  const cleanup = () => {
+    if (!isConnected && !subscription && !heartbeatInterval) return
+    isConnected = false
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval)
+      heartbeatInterval = null
+    }
+    subscription?.unsubscribe()
+    subscription = null
+  }
 
   const stream = new ReadableStream({
     start(controller) {
       // Subscribe to ticket updates (checks connection limits)
-      unsub = sseEmitter.subscribe(userId, userRole, (update) => {
+      subscription = sseEmitter.subscribe(userId, userRole, (update) => {
         if (!isConnected) return
         try {
           const eventData = `event: ticket-update\ndata: ${JSON.stringify(update)}\n\n`
           controller.enqueue(encoder.encode(eventData))
         } catch {
-          isConnected = false
+          cleanup()
         }
       })
 
-      if (!unsub) {
+      if (!subscription) {
         // Connection limit exceeded — close the stream immediately
         controller.enqueue(encoder.encode('event: error\ndata: {"error":"Too many connections"}\n\n'))
         controller.close()
@@ -92,29 +104,26 @@ export async function GET(request: NextRequest) {
       controller.enqueue(encoder.encode(connectEvent))
 
       // Heartbeat to keep connection alive
-      const heartbeatInterval = setInterval(() => {
+      heartbeatInterval = setInterval(() => {
         if (!isConnected) {
-          clearInterval(heartbeatInterval)
+          cleanup()
           return
         }
         try {
           controller.enqueue(encoder.encode(': heartbeat\n\n'))
+          subscription?.touch()
         } catch {
-          isConnected = false
-          clearInterval(heartbeatInterval)
+          cleanup()
         }
       }, 30000) // 30 second heartbeat
 
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
-        isConnected = false
-        clearInterval(heartbeatInterval)
-        if (unsub) unsub()
+        cleanup()
       })
     },
     cancel() {
-      isConnected = false
-      if (unsub) unsub()
+      cleanup()
     }
   })
 

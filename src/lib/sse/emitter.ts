@@ -8,7 +8,8 @@
  * use Redis pub/sub instead.
  */
 
-import { TicketUpdate } from '@/lib/hooks/use-ticket-updates'
+import { randomUUID } from 'crypto'
+import type { TicketUpdate } from '@/lib/hooks/use-ticket-updates'
 import { logger } from '@/lib/utils/logger'
 
 type SubscriberCallback = (update: TicketUpdate) => void
@@ -20,13 +21,18 @@ interface Subscriber {
   lastActivity: number
 }
 
+export interface SSESubscription {
+  touch: () => void
+  unsubscribe: () => void
+}
+
 // Connection limits
 const MAX_CONNECTIONS_PER_USER = 5
 const MAX_GLOBAL_CONNECTIONS = 500
 // Stale connection threshold: 10 minutes without any activity (broadcast delivery or heartbeat)
 const STALE_CONNECTION_MS = 10 * 60 * 1000
 
-class SSEEmitter {
+export class SSEEmitter {
   private subscribers: Map<string, Subscriber> = new Map()
   private cleanupInterval: ReturnType<typeof setInterval> | null = null
 
@@ -40,13 +46,13 @@ class SSEEmitter {
 
   /**
    * Subscribe to ticket updates with connection limits (H8)
-   * @returns Unsubscribe function, or null if limit exceeded
+   * @returns Subscription lifecycle handle, or null if limit exceeded
    */
   subscribe(
     userId: string,
     userRole: string,
     callback: SubscriberCallback
-  ): (() => void) | null {
+  ): SSESubscription | null {
     // Global connection limit
     if (this.subscribers.size >= MAX_GLOBAL_CONNECTIONS) {
       logger.warning('SSE', 'Global connection limit reached', {
@@ -67,7 +73,7 @@ class SSEEmitter {
       return null
     }
 
-    const subscriberId = `${userId}-${Date.now()}`
+    const subscriberId = `${userId}-${randomUUID()}`
     this.subscribers.set(subscriberId, {
       userId,
       userRole,
@@ -79,9 +85,19 @@ class SSEEmitter {
       data: { subscriberId, userRole, totalConnections: this.subscribers.size },
     })
 
-    return () => {
-      this.subscribers.delete(subscriberId)
-      logger.info('SSE', 'Subscriber removed', { data: { subscriberId } })
+    let subscribed = true
+
+    return {
+      touch: () => {
+        const subscriber = this.subscribers.get(subscriberId)
+        if (subscriber) subscriber.lastActivity = Date.now()
+      },
+      unsubscribe: () => {
+        if (!subscribed) return
+        subscribed = false
+        this.subscribers.delete(subscriberId)
+        logger.info('SSE', 'Subscriber removed', { data: { subscriberId } })
+      },
     }
   }
 
@@ -165,6 +181,14 @@ class SSEEmitter {
       byRole[subscriber.userRole] = (byRole[subscriber.userRole] || 0) + 1
     })
     return { total: this.subscribers.size, byRole }
+  }
+
+  dispose(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+    }
+    this.subscribers.clear()
   }
 }
 

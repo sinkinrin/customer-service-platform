@@ -18,6 +18,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:ci": "vitest run --coverage --coverage.thresholds.statements=66 --coverage.thresholds.branches=51 --coverage.thresholds.functions=66 --coverage.thresholds.lines=67",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

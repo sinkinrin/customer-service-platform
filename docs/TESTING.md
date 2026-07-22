@@ -2,7 +2,7 @@
 
 > 当前测试栈、覆盖范围与执行方式。
 
-**最后更新**：2026-04-20
+**最后更新**：2026-07-22
 
 ---
 
@@ -30,6 +30,7 @@ npm run test
 npm run test:watch
 npm run test:ui
 npm run test:coverage
+npm run test:coverage:ci
 npm run test:e2e
 npm run test:e2e:ui
 npm run test:e2e:headed
@@ -38,6 +39,25 @@ npm run type-check
 ```
 
 这些命令来自 `package.json`。
+
+## 安全边界
+
+- 默认 Vitest 必须使用 mock 或不可连接的本地占位地址，不能读取或写入生产 PostgreSQL / Zammad。
+- `__tests__/api/conversations-real.test.ts` 默认跳过。只有同时满足 `RUN_DATABASE_INTEGRATION_TESTS=true` 且 `DATABASE_URL` 的数据库名包含 `test` 时才会执行，否则拒绝运行。
+- Playwright 流程可能创建用户、工单、回复和附件。只允许连接专用测试数据库与隔离 Zammad；不得把生产地址、token 或生产 `.env.local` 用于 E2E。
+- 禁止在共享或生产数据库上执行 `prisma db push`、迁移、seed 或测试清理脚本。
+
+安全运行 Vitest 的 PowerShell 示例：
+
+```powershell
+$env:DATABASE_URL='postgresql://test:test@127.0.0.1:1/unit_test'
+$env:ZAMMAD_URL='http://127.0.0.1:65535/'
+$env:ZAMMAD_API_TOKEN='test-only-placeholder'
+$env:RUN_DATABASE_INTEGRATION_TESTS='false'
+npm run test
+```
+
+不可连接地址是防误连措施，测试日志中可能出现预期的连接失败信息；应以最终测试退出码为准。
 
 ---
 
@@ -183,12 +203,17 @@ GitHub Actions 工作流位于：
 当前工作流会：
 
 - 安装依赖
-- 安装 Playwright Chromium
-- 复制 `.env.example` 到 `.env.local`
-- 执行 `npx prisma generate`
-- 执行 `npx prisma db push`
-- 运行 `npm run test:e2e`
-- 上传 Playwright report
+- 使用不可连接的本地占位 PostgreSQL / Zammad 地址运行单元、API 和覆盖率测试
+- 用当前覆盖率基线作为 CI 防回退门槛：statements 66%、branches 51%、functions 66%、lines 67%
+- 执行 ESLint、TypeScript 检查和 Prisma Client 生成
+- 监听 `master`、`main`、`develop` 的 push / pull request
+- 默认跳过 E2E；只有仓库变量 `ENABLE_ISOLATED_E2E=true` 且满足工作流分支条件时才进入 E2E job
+- E2E job 使用独立 PostgreSQL service，不复用应用或生产数据库
+- 上传覆盖率、Vitest 结果和启用后的 Playwright 结果
+
+当前 E2E job 将 Zammad 指向不可连接的本地端口，因此即使显式启用，也不会误写生产 Zammad；依赖真实工单链路的用例需要先配置隔离 Zammad 或可靠 mock，不能通过替换为生产地址来“让测试通过”。
+
+仓库目标阈值为 statements 80%、branches 70%、functions 85%、lines 80%。截至 2026-07-22，完整测试本身通过，但全局覆盖率仍低于目标，因此 `npm run test:coverage` 会失败。CI 暂时通过 `npm run test:coverage:ci` 执行当前基线防回退，覆盖率继续下降会阻断；目标阈值本身没有下调，后续应通过补测逐步提高 CI 基线。
 
 所以测试文档不应继续假设旧的 CI 步骤或旧目录结构。
 

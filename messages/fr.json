@@ -121,6 +121,7 @@
     "tickets": "Tickets",
     "knowledgeBase": "Base de connaissances",
     "users": "Utilisateurs",
+    "serviceGroups": "Groupes de service",
     "settings": "Paramètres",
     "systemSettings": "Paramètres système",
     "logout": "Déconnexion",
@@ -654,7 +655,8 @@
         "owner": "Responsable du groupe de service",
         "placeholder": "Sélectionner un groupe de service",
         "assign": "Assigner le groupe de service",
-        "assigning": "Attribution..."
+        "assigning": "Attribution...",
+        "regionHint": "La région du client est déterminée par le groupe de service assigné."
       },
       "importDialog": {
         "title": "Importation massive d'utilisateurs",
@@ -689,6 +691,48 @@
         "retry": "Réessayer",
         "noTickets": "Aucun ticket trouv? pour cet utilisateur",
         "count": "{count} tickets trouvés"
+      }
+    },
+    "serviceGroups": {
+      "pageTitle": "Groupes de service",
+      "pageDescription": "Créer et gérer des segments de clientèle détaillés depuis la console d’administration",
+      "title": "Liste des groupes de service",
+      "description": "Chaque groupe de service appartient à une région de base et à un responsable.",
+      "createButton": "Nouveau groupe de service",
+      "refreshButton": "Actualiser",
+      "deactivateButton": "Désactiver",
+      "empty": "Aucun groupe de service",
+      "table": {
+        "name": "Nom",
+        "baseRegion": "Région de base",
+        "owner": "Responsable",
+        "status": "Statut",
+        "updatedAt": "Mis à jour le",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif"
+      },
+      "form": {
+        "name": "Nom",
+        "namePlaceholder": "Priorité Asie-Pacifique",
+        "baseRegion": "Région de base",
+        "staff": "Responsable assigné",
+        "staffPlaceholder": "Sélectionner un membre du personnel",
+        "noStaff": "Aucun membre du personnel n’est disponible actuellement",
+        "transferTarget": "Transférer les clients vers",
+        "transferTargetPlaceholder": "Sélectionner un groupe de service cible"
+      },
+      "dialog": {
+        "createTitle": "Créer un groupe de service",
+        "createDescription": "Créer un nouveau segment dans une région de base existante.",
+        "createConfirm": "Créer",
+        "editTitle": "Modifier le groupe de service",
+        "editDescription": "Modifier le nom, la région de base ou le responsable du groupe de service.",
+        "deactivateTitle": "Désactiver le groupe de service",
+        "deactivateDescription": "Désactiver {name} et transférer ses clients vers un autre groupe de service actif.",
+        "noTransferTargets": "Créez d’abord un autre groupe de service actif avant de désactiver celui-ci."
       }
     },
     "faq": {
@@ -1807,6 +1851,18 @@
         "deleteSuccess": "Utilisateur supprimé",
         "deleteError": "Échec de la suppression de l'utilisateur",
         "importSuccess": "Importation réussie de {count} utilisateurs"
+      },
+      "serviceGroups": {
+        "loadError": "Échec du chargement des groupes de service",
+        "staffLoadError": "Échec du chargement de la liste du personnel",
+        "validationError": "Le nom et le responsable assigné sont obligatoires",
+        "transferRequired": "Sélectionnez d’abord une destination de transfert",
+        "createSuccess": "Groupe de service créé avec succès",
+        "createError": "Échec de la création du groupe de service",
+        "updateSuccess": "Groupe de service mis à jour avec succès",
+        "updateError": "Échec de la mise à jour du groupe de service",
+        "deactivateSuccess": "Groupe de service désactivé avec succès",
+        "deactivateError": "Échec de la désactivation du groupe de service"
       },
       "faq": {
         "createSuccess": "Article créé avec succès !",

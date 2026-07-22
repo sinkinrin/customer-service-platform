@@ -22,6 +22,7 @@ const nextConfig = {
   },
 
   turbopack: {
+    root: __dirname,
     resolveAlias: {
       '@antv/infographic': './src/lib/shims/markstream-optional-peer.ts',
       '@terrastruct/d2': './src/lib/shims/markstream-optional-peer.ts',

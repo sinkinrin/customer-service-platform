@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Verify current user is admin (M13: use requireRole for consistency)
-    const currentUser = await requireRole(['admin'])
+    await requireRole(['admin'])
 
     const targetUserId = id
     const nextRole = parsed.data.role

@@ -20,6 +20,21 @@ function getRetentionStartDate(retentionDays: number): Date {
   return new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
 }
 
+function getActiveNotificationWhere(
+  userId: string,
+  retentionDays: number,
+  now: Date
+): Prisma.NotificationWhereInput {
+  return {
+    userId,
+    createdAt: { gte: getRetentionStartDate(retentionDays) },
+    OR: [
+      { expiresAt: null },
+      { expiresAt: { gt: now } },
+    ],
+  }
+}
+
 export class NotificationService {
   async create(input: CreateNotificationInput): Promise<void> {
     const dataString = input.data ? stableStringify(input.data) : null
@@ -79,11 +94,10 @@ export class NotificationService {
     const limit = Math.min(Math.max(params.limit ?? DEFAULT_LIST_LIMIT, 1), 100)
     const offset = Math.max(params.offset ?? 0, 0)
     const retentionDays = Math.max(params.retentionDays ?? DEFAULT_RETENTION_DAYS, 1)
+    const now = new Date()
 
-    const where: Prisma.NotificationWhereInput = {
-      userId: params.userId,
-      createdAt: { gte: getRetentionStartDate(retentionDays) },
-    }
+    const activeWhere = getActiveNotificationWhere(params.userId, retentionDays, now)
+    const where: Prisma.NotificationWhereInput = { ...activeWhere }
 
     if (params.unread === true) {
       where.read = false
@@ -99,7 +113,7 @@ export class NotificationService {
         skip: offset,
       }),
       prisma.notification.count({ where }),
-      prisma.notification.count({ where: { userId: params.userId, read: false } }),
+      prisma.notification.count({ where: { ...activeWhere, read: false } }),
     ])
 
     return {
@@ -119,8 +133,17 @@ export class NotificationService {
     }
   }
 
-  async getUnreadCount(userId: string): Promise<number> {
-    return prisma.notification.count({ where: { userId, read: false } })
+  async getUnreadCount(
+    userId: string,
+    retentionDays: number = DEFAULT_RETENTION_DAYS
+  ): Promise<number> {
+    const normalizedRetentionDays = Math.max(retentionDays, 1)
+    return prisma.notification.count({
+      where: {
+        ...getActiveNotificationWhere(userId, normalizedRetentionDays, new Date()),
+        read: false,
+      },
+    })
   }
 
   async markAsRead(notificationId: string, userId: string): Promise<boolean> {
@@ -146,9 +169,16 @@ export class NotificationService {
     return result.count > 0
   }
 
-  async cleanupExpired(): Promise<number> {
+  async cleanupExpired(retentionDays: number = DEFAULT_RETENTION_DAYS): Promise<number> {
+    const normalizedRetentionDays = Math.max(retentionDays, 1)
+    const now = new Date()
     const result = await prisma.notification.deleteMany({
-      where: { expiresAt: { lt: new Date() } },
+      where: {
+        OR: [
+          { expiresAt: { lt: now } },
+          { createdAt: { lt: getRetentionStartDate(normalizedRetentionDays) } },
+        ],
+      },
     })
     return result.count
   }

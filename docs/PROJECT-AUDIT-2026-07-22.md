@@ -461,6 +461,47 @@
 
 - 应先盘点生产 legacy binding 与 service-group assignment 数据，确定一次性迁移/冻结/回滚步骤，再把开关语义、默认值和部署验证写入运维文档，并更新架构事实。未在缺少生产数据与兼容决策时擅自改变默认行为。
 
+### AUD-032：通知 retention 与 unread count/cleanup 口径不一致（P2，已修复）
+
+证据：
+
+- 通知列表只查询最近 30 天，但 `unreadCount` 和独立 unread-count API 修复前统计该用户全部未读行；旧未读通知会从列表消失，却继续出现在 badge 中。
+- 列表查询也不排除已经到达 `expiresAt` 的行，是否仍显示取决于 lazy cleanup 是否恰好运行。
+- webhook cleanup 和 `NotificationService.cleanupExpired()` 修复前都只删除显式 `expiresAt` 已过期的行；绝大多数 ticket notification 没有设置 `expiresAt`，因此即使超过列表 retention 也不会删除，表会持续增长。
+
+修复：
+
+- list、total 和 unread count 统一使用“最近 30 天且未显式过期”的 active notification 条件。
+- cleanup 同时删除显式过期行和超过 retention 的行，webhook lazy cleanup 复用同一 service 语义。
+- 新增单测验证列表/count 查询条件以及显式过期、retention 过期的双重清理。
+
+### AUD-033：webhook 类型声明有显式 event，但运行时完全依赖时间启发式（P1，待隔离 payload 验证）
+
+证据：
+
+- `src/lib/zammad/types.ts` 与 `src/types/api.types.ts` 的 `ZammadWebhookPayload` 都要求 `event: ticket.create | ticket.update | ticket.close | ticket.escalation`，但 route 从不读取 `webhookPayload.event`。
+- 有 article 时，仅凭 ticket/article `created_at` 相差小于 5 秒判定 `created`；否则判定 `article_created`。
+- 没有 article 时，仅凭 `updated_at` 与 `last_owner_update_at` 相差小于 5 秒判定 `assigned`；否则统一判定 `status_changed`，没有比较前后 owner/state 值。
+- 当前测试 fixture 多数通过 `any` 省略 `event`，因此无法证明类型契约与实际 Zammad webhook template 一致。
+
+影响与结论：
+
+- 创建后 5 秒内的第二篇 article 可被误当成 created 并再次触发 routing/welcome；owner 变更附近的其他字段更新可被误当成 assigned；不带 article 的 create payload 也会落为 status change。
+- 先在完全隔离的 Zammad 测试环境保存各 trigger 的实际签名 payload 与重投样本，再决定使用显式 event、trigger-specific endpoint，还是带稳定 source ID/version 的规范化 envelope。未在没有真实 payload 证据时按过期 TypeScript 声明直接改生产分支。
+
+### AUD-034：TicketUpdate/Notification retention 依赖 webhook 内 fire-and-forget 清理（P2，待运维修复）
+
+证据：
+
+- `maybeRunCleanup()` 只从 webhook route 调用，使用进程内 `lastCleanupAt`，并在请求返回前以 `void runCleanup()` 启动未等待任务。
+- serverless 或容器请求结束后不保证该 Promise 完成；失败后本实例仍会因为提前更新 `lastCleanupAt` 而等待一小时才重试。
+- 多实例各自拥有独立时间戳，可能重复执行；没有数据库 lease/advisory lock，也没有 scheduler/cron 配置或成功时间监控。
+- notification retention 查询口径已由 AUD-032 修复，但物理删除和 7 天 `TicketUpdate` retention 仍依赖这个 best-effort 入口。
+
+影响与结论：
+
+- 应迁移到显式 scheduler/worker，并用数据库 lease 或 advisory lock 保证单次执行；记录 last success、deleted counts 和 failure 告警。请求内 cleanup 只能作为临时优化，不能作为 retention 保证。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -489,6 +530,7 @@ rg / targeted PowerShell scans for API role checks, impersonation, file access a
 npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.test.ts __tests__/api/ai.test.ts
 npm run test -- __tests__/unit/zammad-client.test.ts
 npm run test -- __tests__/components/ticket-updates-provider.test.tsx __tests__/api/tickets-updates.test.ts __tests__/lib/sse-emitter.test.ts
+npm run test -- __tests__/unit/notification-service.test.ts __tests__/api/notifications.test.ts __tests__/api/webhooks-zammad.test.ts
 ```
 
 ## 第一批验证结果
@@ -555,6 +597,16 @@ npm run test -- __tests__/components/ticket-updates-provider.test.tsx __tests__/
 - `npm run i18n:validate`：通过。
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
 - 全部验证使用不可连接 PostgreSQL/Zammad 占位地址；未运行 E2E、迁移、`db push`、seed 或真实外部服务写入。
+
+## 第七批验证结果
+
+- notification retention 定向回归：3 个文件、23 个测试通过。
+- `npm run lint`：通过，0 error / 18 个既有 warning。
+- `npm run type-check`：通过。
+- `npm run test:coverage:ci`：122 个文件、1135 个测试全部通过；statements 66.72%、branches 52.14%、functions 66.42%、lines 68.05%。
+- `npm run i18n:validate`：通过。
+- 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
+- 全部数据库行为通过 mock 或不可连接占位地址验证；未执行真实 notification cleanup、迁移或外部服务请求。
 
 ## 下一步
 

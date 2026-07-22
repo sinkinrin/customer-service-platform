@@ -88,8 +88,16 @@ export function RecentTickets({ tickets, isLoading }: RecentTicketsProps) {
             {tickets.map((ticket) => (
               <div
                 key={ticket.id}
-                className="flex items-start gap-4 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                className="flex items-start gap-4 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => router.push(`/staff/tickets/${ticket.id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    router.push(`/staff/tickets/${ticket.id}`)
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <div className="flex-shrink-0">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">

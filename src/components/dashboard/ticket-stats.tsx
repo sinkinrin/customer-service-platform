@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface TicketStatsProps {
   stats: {
@@ -17,10 +18,11 @@ interface TicketStatsProps {
 
 export function TicketStats({ stats, isLoading }: TicketStatsProps) {
   const router = useRouter()
+  const t = useTranslations('dashboardComponents.ticketStats')
 
   const cards = [
     {
-      title: 'Open Tickets',
+      title: t('open'),
       value: stats.open,
       icon: AlertCircle,
       color: 'text-yellow-600',
@@ -28,7 +30,7 @@ export function TicketStats({ stats, isLoading }: TicketStatsProps) {
       onClick: () => router.push('/staff/tickets?tab=open'),
     },
     {
-      title: 'Pending',
+      title: t('pending'),
       value: stats.pending,
       icon: Clock,
       color: 'text-blue-600',
@@ -36,7 +38,7 @@ export function TicketStats({ stats, isLoading }: TicketStatsProps) {
       onClick: () => router.push('/staff/tickets?tab=pending'),
     },
     {
-      title: 'Resolved',
+      title: t('resolved'),
       value: stats.resolved,
       icon: CheckCircle2,
       color: 'text-green-600',
@@ -44,7 +46,7 @@ export function TicketStats({ stats, isLoading }: TicketStatsProps) {
       onClick: () => router.push('/staff/tickets?tab=resolved'),
     },
     {
-      title: 'Closed',
+      title: t('closed'),
       value: stats.closed,
       icon: XCircle,
       color: 'text-gray-600',

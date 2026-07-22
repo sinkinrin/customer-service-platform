@@ -2243,6 +2243,12 @@
     }
   },
   "dashboardComponents": {
+    "ticketStats": {
+      "open": "进行中工单",
+      "pending": "待处理",
+      "resolved": "已解决",
+      "closed": "已关闭"
+    },
     "recentActivity": {
       "title": "最近活动",
       "noActivity": "暂无最近活动",

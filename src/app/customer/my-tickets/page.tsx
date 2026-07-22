@@ -194,8 +194,16 @@ export default function MyTicketsPage() {
                 {filteredTickets.map((ticket) => (
                   <TableRow
                     key={ticket.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className="cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => router.push(`/customer/my-tickets/${ticket.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        router.push(`/customer/my-tickets/${ticket.id}`)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <TableCell className="font-medium">#{ticket.number}</TableCell>
                     <TableCell className="max-w-md truncate">{ticket.title}</TableCell>
@@ -224,6 +232,7 @@ export default function MyTicketsPage() {
                           e.stopPropagation()
                           router.push(`/customer/my-tickets/${ticket.id}`)
                         }}
+                        onKeyDown={(event) => event.stopPropagation()}
                       >
                         {t('table.view')}
                       </Button>

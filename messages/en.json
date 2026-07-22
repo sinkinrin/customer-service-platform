@@ -2243,6 +2243,12 @@
     }
   },
   "dashboardComponents": {
+    "ticketStats": {
+      "open": "Open Tickets",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
     "recentActivity": {
       "title": "Recent Activity",
       "noActivity": "No recent activity",

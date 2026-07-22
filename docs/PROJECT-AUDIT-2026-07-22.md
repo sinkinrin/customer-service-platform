@@ -573,6 +573,20 @@
 - probe 的 abort timer 在成功、HTTP 失败和异常路径都会清理。
 - 新增并发回归测试，五个同时调用只产生一个 upstream fetch；顺序调用继续命中缓存。
 
+### AUD-040：关键导航卡片与工单行只支持鼠标，staff 统计固定显示英文（P2，已修复）
+
+证据：
+
+- customer dashboard quick actions、FAQ category/article cards 与 staff ticket stats 都把 `onClick` 直接挂在普通 `div` Card 上，没有 button role、tab stop 或 Enter/Space 激活。
+- customer my-tickets 的整行导航和 staff recent tickets 也只有 mouse click；同仓库较新的 ticket list/admin user row 已经实现键盘行为，说明各入口不一致。
+- `TicketStats` 在六语言应用中硬编码 `Open Tickets`、`Pending`、`Resolved`、`Closed`，而且该组件正由 staff dashboard 使用。
+
+修复：
+
+- Card 对带 click handler 的实例自动提供 button role、tab stop、focus ring 与 Enter/Space 激活；被动 Card 保持原语义。
+- customer ticket row 与 staff recent ticket entry 补齐同样的键盘导航，并阻止行内按钮键盘事件冒泡。
+- staff ticket stats 改用六种语言结构一致的翻译键；组件与 i18n 定向 22 个测试、type-check、i18n validation 和 lint 均通过。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -606,6 +620,7 @@ npm run test -- __tests__/unit/e2e-safety.test.ts
 npm run test -- __tests__/api/tickets.test.ts __tests__/api/ai.test.ts __tests__/api/tickets-rating.test.ts
 npm run test -- __tests__/api/user-profile.test.ts
 npm run test -- __tests__/unit/zammad-health-check.test.ts
+npm run test -- __tests__/components/card.test.tsx __tests__/unit/i18n-completeness.test.ts
 npx playwright test --list
 ```
 

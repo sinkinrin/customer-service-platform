@@ -7,20 +7,50 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, interactive = false, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm",
-        interactive && [
-          "transition-all duration-200 cursor-pointer",
-          "hover:shadow-md hover:border-border/80",
-        ],
-        className
-      )}
-      {...props}
-    />
-  )
+  (
+    {
+      className,
+      interactive = false,
+      onClick,
+      onKeyDown,
+      role,
+      tabIndex,
+      ...props
+    },
+    ref
+  ) => {
+    const isInteractive = interactive || Boolean(onClick)
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "rounded-lg border bg-card text-card-foreground shadow-sm",
+          interactive && [
+            "transition-all duration-200 cursor-pointer",
+            "hover:shadow-md hover:border-border/80",
+          ],
+          isInteractive && "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          className
+        )}
+        onClick={onClick}
+        onKeyDown={(event) => {
+          onKeyDown?.(event)
+          if (
+            !event.defaultPrevented &&
+            onClick &&
+            (event.key === 'Enter' || event.key === ' ')
+          ) {
+            event.preventDefault()
+            event.currentTarget.click()
+          }
+        }}
+        role={role ?? (isInteractive ? 'button' : undefined)}
+        tabIndex={tabIndex ?? (isInteractive ? 0 : undefined)}
+        {...props}
+      />
+    )
+  }
 )
 Card.displayName = "Card"
 

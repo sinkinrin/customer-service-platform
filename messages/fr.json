@@ -2247,6 +2247,12 @@
     }
   },
   "dashboardComponents": {
+    "ticketStats": {
+      "open": "Tickets ouverts",
+      "pending": "En attente",
+      "resolved": "Résolus",
+      "closed": "Fermés"
+    },
     "recentActivity": {
       "title": "Activité récente",
       "noActivity": "Aucune activité récente",

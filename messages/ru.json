@@ -2247,6 +2247,12 @@
     }
   },
   "dashboardComponents": {
+    "ticketStats": {
+      "open": "Открытые заявки",
+      "pending": "В ожидании",
+      "resolved": "Решённые",
+      "closed": "Закрытые"
+    },
     "recentActivity": {
       "title": "Недавняя активность",
       "noActivity": "Нет недавней активности",

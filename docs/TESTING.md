@@ -45,6 +45,8 @@ npm run type-check
 - 默认 Vitest 必须使用 mock 或不可连接的本地占位地址，不能读取或写入生产 PostgreSQL / Zammad。
 - `__tests__/api/conversations-real.test.ts` 默认跳过。只有同时满足 `RUN_DATABASE_INTEGRATION_TESTS=true` 且 `DATABASE_URL` 的数据库名包含 `test` 时才会执行，否则拒绝运行。
 - Playwright 流程可能创建用户、工单、回复和附件。只允许连接专用测试数据库与隔离 Zammad；不得把生产地址、token 或生产 `.env.local` 用于 E2E。
+- Playwright 默认拒绝启动；必须设置 `RUN_ISOLATED_E2E=true`，数据库名必须包含 `test`。默认只允许 loopback PostgreSQL/Zammad；专用远程测试系统还需显式设置 `ALLOW_REMOTE_E2E_SERVICES=true`。
+- Playwright 不复用已经运行的本地 server，避免测试误接到以共享或生产凭据启动的进程。运行前应先释放 3010 端口。
 - 禁止在共享或生产数据库上执行 `prisma db push`、迁移、seed 或测试清理脚本。
 
 安全运行 Vitest 的 PowerShell 示例：
@@ -173,6 +175,8 @@ npm run test
 - `testDir: './e2e'`
 - 默认 base URL: `http://localhost:3010`
 - `webServer.command = 'npm run dev'`
+- 配置加载时执行 isolated E2E 安全校验
+- `reuseExistingServer = false`
 - CI 下：
   - `retries = 2`
   - `workers = 1`
@@ -208,6 +212,7 @@ GitHub Actions 工作流位于：
 - 执行 ESLint、TypeScript 检查和 Prisma Client 生成
 - 监听 `master`、`main`、`develop` 的 push / pull request
 - 默认跳过 E2E；只有仓库变量 `ENABLE_ISOLATED_E2E=true` 且满足工作流分支条件时才进入 E2E job
+- E2E job 还会显式设置 `RUN_ISOLATED_E2E=true`
 - E2E job 使用独立 PostgreSQL service，不复用应用或生产数据库
 - 上传覆盖率、Vitest 结果和启用后的 Playwright 结果
 

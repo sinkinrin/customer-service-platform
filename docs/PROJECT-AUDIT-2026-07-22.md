@@ -502,6 +502,35 @@
 
 - 应迁移到显式 scheduler/worker，并用数据库 lease 或 advisory lock 保证单次执行；记录 last success、deleted counts 和 failure 告警。请求内 cleanup 只能作为临时优化，不能作为 retention 保证。
 
+### AUD-035：本地 Playwright 会复用任意 3010 server，缺少写测试显式隔离门槛（P1，已修复）
+
+证据：
+
+- E2E 包含创建工单、回复、附件和管理 mutation；`npm run test:e2e` 修复前不要求任何 opt-in。
+- Playwright 在非 CI 环境设置 `reuseExistingServer: true`。若开发者已经启动一个读取共享/生产 `.env.local` 的 server，E2E 会直接附着到该进程，Playwright 自身的 shell 环境变量无法约束 server 已加载的凭据。
+- CI job 有仓库级开关和不可连接 Zammad，但这个保护不覆盖本地直接执行或 `npm run test:all`。
+
+修复：
+
+- Playwright 配置加载时强制要求 `RUN_ISOLATED_E2E=true`、数据库名包含 `test`、以及有效 `DATABASE_URL`/`ZAMMAD_URL`。
+- 默认只允许 loopback PostgreSQL 与 Zammad；专用远程测试系统必须再显式设置 `ALLOW_REMOTE_E2E_SERVICES=true`。
+- 禁止复用已经运行的本地 server；端口被占用时失败，而不是冒险附着。
+- gated CI E2E job 显式设置 opt-in。新增 5 个单测，并通过 `playwright test --list` 验证 12 个文件、130 个用例可被安全枚举；未实际执行 E2E。
+
+### AUD-036：现有 E2E 数量很多，但关键流程可条件空跑且与当前路由漂移（P2，待重写）
+
+证据：
+
+- CI E2E 即使开启，Zammad 仍固定指向不可连接的 `127.0.0.1:65535`，也没有 Zammad mock/fixture server；依赖工单写入和读取的真实旅程无法成立。
+- `customer-flows-extended.spec.ts` 访问已经不存在的 `/customer/tickets`，创建工单用例只有在按钮/输入可见时才填写，最后仅断言 URL 仍含 `/customer`，没有提交或验证创建结果。
+- ticket detail 用例在没有工单时直接记录日志后通过，reply 用例在没有 ticket/reply area 时也无断言。
+- 多个“跨角色完整流程”只验证两个页面能打开，没有建立 customer 创建的数据被 staff 看见、处理并由 customer 再读取的确定 fixture。
+
+影响与结论：
+
+- 130 个枚举用例不能等同于 130 个有效业务断言；当前 E2E 更接近可选 smoke 集合，不能作为发布关键工单链路的证据。
+- 应先拆成不依赖 Zammad 的 UI/auth smoke 与需要隔离 Zammad fixture 的真实 contract journey；禁止用条件分支静默通过，缺 fixture 应显式 `skip`/失败并在报告中可见。完成前继续保持 CI E2E 默认关闭。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -531,6 +560,8 @@ npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.
 npm run test -- __tests__/unit/zammad-client.test.ts
 npm run test -- __tests__/components/ticket-updates-provider.test.tsx __tests__/api/tickets-updates.test.ts __tests__/lib/sse-emitter.test.ts
 npm run test -- __tests__/unit/notification-service.test.ts __tests__/api/notifications.test.ts __tests__/api/webhooks-zammad.test.ts
+npm run test -- __tests__/unit/e2e-safety.test.ts
+npx playwright test --list
 ```
 
 ## 第一批验证结果
@@ -607,6 +638,17 @@ npm run test -- __tests__/unit/notification-service.test.ts __tests__/api/notifi
 - `npm run i18n:validate`：通过。
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
 - 全部数据库行为通过 mock 或不可连接占位地址验证；未执行真实 notification cleanup、迁移或外部服务请求。
+
+## 第八批验证结果
+
+- E2E safety guard：5 个单测通过；`playwright test --list` 在安全占位环境下成功枚举 12 个文件、130 个用例，未启动 server 或执行浏览器测试。
+- GitHub Actions workflow YAML 解析通过。
+- `npm run lint`：通过，0 error / 18 个既有 warning。
+- `npm run type-check`：通过。
+- `npm run test:coverage:ci`：123 个文件、1140 个测试全部通过；statements 66.77%、branches 52.21%、functions 66.49%、lines 68.10%。
+- `npm run i18n:validate`：通过。
+- 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
+- 未执行 E2E、`db push`、迁移、seed、真实 Zammad 或浏览器写流程。
 
 ## 下一步
 

@@ -83,6 +83,7 @@ jobs:
     env:
       CI: true
       NODE_ENV: test
+      RUN_ISOLATED_E2E: 'true'
       AUTH_SECRET: ci-test-secret-ci-test-secret-32
       NEXTAUTH_SECRET: ci-test-secret-ci-test-secret-32
       NEXTAUTH_URL: http://localhost:3010

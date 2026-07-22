@@ -1,7 +1,7 @@
 /**
  * Zammad API Client
  *
- * Wrapper for Zammad REST API with error handling and retry mechanism
+ * Wrapper for Zammad REST API with error handling and safe read retries
  */
 
 import { ATTACHMENT_LIMITS } from '@/lib/constants/attachments'
@@ -78,22 +78,32 @@ export class ZammadClient {
     }
 
     const url = `${this.baseUrl}/api/v1${endpoint}`
+    const method = (options.method || 'GET').toUpperCase()
+    const canRetry = method === 'GET' || method === 'HEAD'
+
+    const retry = async (): Promise<T> => {
+      const delay = Math.pow(2, retryCount) * 1000
+      await new Promise(resolve => setTimeout(resolve, delay))
+      return this.request<T>(endpoint, options, retryCount + 1, onBehalfOf)
+    }
+
+    const headers: Record<string, string> = {
+      'Authorization': `Token token=${this.apiToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+
+    // Add X-On-Behalf-Of header if provided
+    // This allows admin users to perform actions on behalf of other users
+    // Requires admin.user permission on the API token
+    if (onBehalfOf) {
+      headers['X-On-Behalf-Of'] = onBehalfOf
+    }
+
+    let response: Response
 
     try {
-      const headers: Record<string, string> = {
-        'Authorization': `Token token=${this.apiToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      }
-
-      // Add X-On-Behalf-Of header if provided
-      // This allows admin users to perform actions on behalf of other users
-      // Requires admin.user permission on the API token
-      if (onBehalfOf) {
-        headers['X-On-Behalf-Of'] = onBehalfOf
-      }
-
-      const response = await fetch(url, {
+      response = await fetch(url, {
         ...options,
         headers: {
           ...headers,
@@ -101,37 +111,40 @@ export class ZammadClient {
         },
         signal: AbortSignal.timeout(this.timeout),
       })
+    } catch (error) {
+      const isTimeout = error instanceof Error && (
+        error.name === 'AbortError' || error.name === 'TimeoutError'
+      )
 
-      if (!response.ok) {
-        const error: ZammadError = await response.json().catch(() => ({
-          error: `HTTP ${response.status}: ${response.statusText}`,
-        }))
-
-        // Retry on 5xx errors
-        if (response.status >= 500 && retryCount < this.maxRetries) {
-          const delay = Math.pow(2, retryCount) * 1000 // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, delay))
-          return this.request<T>(endpoint, options, retryCount + 1, onBehalfOf)
-        }
-
-        throw new Error(error.error_human || error.error)
+      // A write may already have succeeded upstream even if its response was
+      // lost. Only retry read-only requests automatically.
+      if (canRetry && retryCount < this.maxRetries) {
+        return retry()
       }
 
-      return await response.json()
-    } catch (error) {
-      // Retry on network errors
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isTimeout) {
         throw new Error('Request timeout')
       }
-
-      if (retryCount < this.maxRetries) {
-        const delay = Math.pow(2, retryCount) * 1000
-        await new Promise(resolve => setTimeout(resolve, delay))
-        return this.request<T>(endpoint, options, retryCount + 1, onBehalfOf)
-      }
-
       throw error
     }
+
+    if (!response.ok) {
+      const error: ZammadError = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      }))
+
+      if (canRetry && response.status >= 500 && retryCount < this.maxRetries) {
+        return retry()
+      }
+
+      throw new Error(error.error_human || error.error)
+    }
+
+    if (response.status === 204) {
+      return undefined as T
+    }
+
+    return await response.json()
   }
 
   // ============================================================================

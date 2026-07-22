@@ -305,6 +305,24 @@
 - 本地 `/api/files/[id]` metadata/download 已检查 owner 或 admin，delete 会把当前 user ID 传入存储层；当前没有发现直接的跨用户本地文件读取。
 - 本地文件的 upload/read/delete 已统一增加 `uploads` 基目录 containment；仍需在部署产物中验证持久卷、symlink 和 NFT trace 行为。
 
+## 第三阶段：数据与 Zammad 边界
+
+### AUD-021：Zammad client 会自动重放写请求，并错误重试 4xx（P1，已修复）
+
+证据：
+
+- 通用 `request()` 修复前把 fetch、HTTP status 处理和 JSON 解析都包在同一个 catch 中；4xx 分支抛出的错误也会进入“network error”重试逻辑。
+- 现有“4xx 不重试”测试使用 `maxRetries=0`，没有验证生产默认 `maxRetries=1`，因此无法发现该行为。
+- `createTicket`、`createArticle`、`createUser`、`updateTicket`、tag 等写方法共用同一重试逻辑；5xx、超时或连接中断时都会自动重放 POST/PUT/DELETE。
+- 对写请求而言，连接异常只说明客户端没有拿到响应，不能证明 Zammad 没有完成操作；自动重放可能重复创建工单、回复或用户，并重复触发通知/webhook。
+
+修复：
+
+- 仅 GET/HEAD 在网络错误或 5xx 时进行指数退避重试；写请求单次执行，把未知结果交给调用层的幂等键、查询确认或补偿流程处理。
+- HTTP status 处理移出 fetch catch，4xx 不再被误判为网络异常。
+- 同时兼容 `AbortError` / `TimeoutError`，并允许 DELETE 等接口正常返回空 204。
+- 新增默认非零重试配置下的 4xx、POST 5xx、POST network error、GET network recovery 和 204 回归测试。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -331,6 +349,7 @@ npm view next@16.2.11 optionalDependencies engines
 npm view eslint-config-next@16.2.11 peerDependencies
 rg / targeted PowerShell scans for API role checks, impersonation, file access and error responses
 npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.test.ts __tests__/api/ai.test.ts
+npm run test -- __tests__/unit/zammad-client.test.ts
 ```
 
 ## 第一批验证结果
@@ -366,6 +385,16 @@ npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.
 - `npm run i18n:validate`：通过。
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告，trace 指向 `next.config.js`、`file-storage.ts` 与 avatar route。
 - 构建使用不可连接的 PostgreSQL/Zammad 占位地址；未运行 E2E、迁移、`db push`、seed 或任何真实 Zammad/AI provider 请求。
+
+## 第四批验证结果
+
+- Zammad client 定向回归：1 个文件、42 个测试通过。
+- `npm run lint`：通过，0 error / 18 个既有 warning。
+- `npm run type-check`：通过。
+- `npm run test:coverage:ci`：121 个文件、1130 个测试全部通过；statements 66.71%、branches 52.26%、functions 66.64%、lines 68.04%。
+- `npm run i18n:validate`：通过。
+- 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
+- 所有 Zammad 行为只通过 MSW mock 验证；未连接真实 Zammad、数据库或 AI provider。
 
 ## 下一步
 

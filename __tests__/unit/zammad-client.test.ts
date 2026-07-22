@@ -435,9 +435,7 @@ describe('ZammadClient', () => {
       expect(result).toEqual({ id: 1, title: 'Test' })
     })
 
-    it('should NOT retry on 4xx errors (only retries 5xx)', async () => {
-      // Note: The current ZammadClient implementation only retries on 5xx errors
-      // 4xx errors are thrown immediately without retry
+    it('should not retry 4xx errors', async () => {
       let callCount = 0
       server.use(
         http.get(`${TEST_BASE_URL}/api/v1/tickets/999`, () => {
@@ -449,10 +447,66 @@ describe('ZammadClient', () => {
         })
       )
 
-      // Use maxRetries=0 to ensure no retries happen
-      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 0)
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 2)
       await expect(client.getTicket(999)).rejects.toThrow('Ticket not found')
-      expect(callCount).toBe(1) // No retry with maxRetries=0
+      expect(callCount).toBe(1)
+    })
+
+    it('should not retry POST requests on 5xx errors', async () => {
+      let callCount = 0
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/v1/tickets`, () => {
+          callCount++
+          return HttpResponse.json(
+            { error: 'Server error after an unknown write outcome' },
+            { status: 500 }
+          )
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 2)
+      await expect(client.createTicket({} as any)).rejects.toThrow('unknown write outcome')
+      expect(callCount).toBe(1)
+    })
+
+    it('should not retry POST requests after a network error', async () => {
+      let callCount = 0
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/v1/tickets`, () => {
+          callCount++
+          return HttpResponse.error()
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 2)
+      await expect(client.createTicket({} as any)).rejects.toThrow()
+      expect(callCount).toBe(1)
+    })
+
+    it('should retry GET requests after a network error', async () => {
+      let callCount = 0
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/tickets/1`, () => {
+          callCount++
+          if (callCount === 1) return HttpResponse.error()
+          return HttpResponse.json({ id: 1, title: 'Recovered' })
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 1)
+      await expect(client.getTicket(1)).resolves.toEqual({ id: 1, title: 'Recovered' })
+      expect(callCount).toBe(2)
+    })
+
+    it('should accept empty 204 responses without parsing JSON', async () => {
+      server.use(
+        http.delete(`${TEST_BASE_URL}/api/v1/tickets/123`, () => {
+          return new HttpResponse(null, { status: 204 })
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 1)
+      await expect(client.deleteTicket(123)).resolves.toBeUndefined()
     })
 
     it('should respect maxRetries limit', async () => {

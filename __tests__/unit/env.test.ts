@@ -1,401 +1,177 @@
-/**
- * 环境变量管理单元测试
- * 
- * 测试 src/lib/env.ts
- */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+const mutableEnv = process.env as Record<string, string | undefined>
+const originalEnv = { ...process.env }
 
-// 使用类型断言来允许修改 process.env
-const env = process.env as Record<string, string | undefined>
+function restoreEnvironment() {
+  for (const key of Object.keys(mutableEnv)) delete mutableEnv[key]
+  Object.assign(mutableEnv, originalEnv)
+}
 
-describe('环境变量管理测试', () => {
-  const originalEnv = { ...process.env }
+function setValidProductionEnvironment() {
+  mutableEnv.NODE_ENV = 'production'
+  mutableEnv.AUTH_SECRET = 'a'.repeat(32)
+  mutableEnv.DATABASE_URL = 'postgresql://test:test@127.0.0.1:1/env_test'
+  mutableEnv.ZAMMAD_URL = 'http://127.0.0.1:65535/'
+  mutableEnv.ZAMMAD_API_TOKEN = 'test-token'
+  mutableEnv.ZAMMAD_WEBHOOK_SECRET = 'test-webhook-secret'
+  mutableEnv.WEB_PLATFORM_URL = 'https://support.example.com'
+  mutableEnv.NEXT_PUBLIC_ENABLE_MOCK_AUTH = 'false'
+}
 
+async function loadEnvModule() {
+  vi.resetModules()
+  return import('@/lib/env')
+}
+
+describe('environment configuration', () => {
   beforeEach(() => {
-    vi.resetModules()
-    // 恢复原始环境变量
-    Object.keys(env).forEach(key => delete env[key])
-    Object.assign(env, originalEnv)
+    restoreEnvironment()
   })
 
   afterEach(() => {
-    Object.keys(env).forEach(key => delete env[key])
-    Object.assign(env, originalEnv)
+    vi.restoreAllMocks()
+    restoreEnvironment()
   })
 
-  describe('hasAuthSecret', () => {
-    it('AUTH_SECRET 存在时应返回 true', () => {
-      process.env.AUTH_SECRET = 'test-secret'
-      
-      const hasAuthSecret = () => !!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET)
-      
-      expect(hasAuthSecret()).toBe(true)
-    })
+  it('prefers AUTH_SECRET and falls back to NEXTAUTH_SECRET', async () => {
+    mutableEnv.AUTH_SECRET = 'primary-secret'
+    mutableEnv.NEXTAUTH_SECRET = 'fallback-secret'
+    let envModule = await loadEnvModule()
 
-    it('NEXTAUTH_SECRET 存在时应返回 true', () => {
-      delete process.env.AUTH_SECRET
-      process.env.NEXTAUTH_SECRET = 'test-secret'
-      
-      const hasAuthSecret = () => !!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET)
-      
-      expect(hasAuthSecret()).toBe(true)
-    })
+    expect(envModule.hasAuthSecret()).toBe(true)
+    expect(envModule.getAuthSecret()).toBe('primary-secret')
 
-    it('两者都不存在时应返回 false', () => {
-      delete process.env.AUTH_SECRET
-      delete process.env.NEXTAUTH_SECRET
-      
-      const hasAuthSecret = () => !!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET)
-      
-      expect(hasAuthSecret()).toBe(false)
-    })
+    delete mutableEnv.AUTH_SECRET
+    envModule = await loadEnvModule()
+
+    expect(envModule.hasAuthSecret()).toBe(true)
+    expect(envModule.getAuthSecret()).toBe('fallback-secret')
   })
 
-  describe('getAuthSecret', () => {
-    it('应该优先返回 AUTH_SECRET', () => {
-      process.env.AUTH_SECRET = 'auth-secret'
-      process.env.NEXTAUTH_SECRET = 'nextauth-secret'
-      
-      const getAuthSecret = () => process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || ''
-      
-      expect(getAuthSecret()).toBe('auth-secret')
-    })
+  it('warns when development requirements are missing', async () => {
+    mutableEnv.NODE_ENV = 'development'
+    delete mutableEnv.DATABASE_URL
+    delete mutableEnv.ZAMMAD_URL
+    delete mutableEnv.ZAMMAD_API_TOKEN
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { validateEnv } = await loadEnvModule()
 
-    it('AUTH_SECRET 不存在时应返回 NEXTAUTH_SECRET', () => {
-      delete process.env.AUTH_SECRET
-      process.env.NEXTAUTH_SECRET = 'nextauth-secret'
-      
-      const getAuthSecret = () => process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || ''
-      
-      expect(getAuthSecret()).toBe('nextauth-secret')
-    })
+    validateEnv()
 
-    it('两者都不存在时应返回空字符串', () => {
-      delete process.env.AUTH_SECRET
-      delete process.env.NEXTAUTH_SECRET
-      
-      const getAuthSecret = () => process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || ''
-      
-      expect(getAuthSecret()).toBe('')
-    })
+    expect(warning).toHaveBeenCalledWith(expect.stringContaining('DATABASE_URL'))
+    expect(warning).toHaveBeenCalledWith(expect.stringContaining('ZAMMAD_URL'))
   })
 
-  describe('validateEnv', () => {
-    const REQUIRED_PRODUCTION_VARS = ['AUTH_SECRET', 'DATABASE_URL', 'ZAMMAD_URL', 'ZAMMAD_API_TOKEN']
-    const REQUIRED_DEV_VARS = ['DATABASE_URL', 'ZAMMAD_URL', 'ZAMMAD_API_TOKEN']
+  it('rejects missing production requirements', async () => {
+    setValidProductionEnvironment()
+    delete mutableEnv.AUTH_SECRET
+    delete mutableEnv.NEXTAUTH_SECRET
+    const { validateEnv } = await loadEnvModule()
 
-    it('开发环境缺少必需变量时应发出警告', () => {
-      env.NODE_ENV = 'development'
-      delete process.env.DATABASE_URL
-      
-      const validateEnv = () => {
-        const requiredVars = REQUIRED_DEV_VARS
-        const missingVars: string[] = []
-        
-        for (const varName of requiredVars) {
-          if (!process.env[varName]) {
-            missingVars.push(varName)
-          }
-        }
-        
-        return missingVars
-      }
+    expect(() => validateEnv()).toThrow('AUTH_SECRET (or NEXTAUTH_SECRET)')
+  })
 
-      const missing = validateEnv()
-      expect(missing).toContain('DATABASE_URL')
-    })
+  it('accepts NEXTAUTH_SECRET as the production auth secret', async () => {
+    setValidProductionEnvironment()
+    delete mutableEnv.AUTH_SECRET
+    mutableEnv.NEXTAUTH_SECRET = 'b'.repeat(32)
+    const { validateEnv } = await loadEnvModule()
 
-    it('生产环境缺少必需变量时应抛出错误', () => {
-      env.NODE_ENV = 'production'
-      delete process.env.AUTH_SECRET
-      delete process.env.NEXTAUTH_SECRET
-      
-      const validateEnv = () => {
-        const isProduction = process.env.NODE_ENV === 'production'
-        const requiredVars = isProduction ? REQUIRED_PRODUCTION_VARS : REQUIRED_DEV_VARS
-        const missingVars: string[] = []
-        
-        for (const varName of requiredVars) {
-          if (varName === 'AUTH_SECRET') {
-            if (!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET)) {
-              missingVars.push('AUTH_SECRET (or NEXTAUTH_SECRET)')
-            }
-          } else if (!process.env[varName]) {
-            missingVars.push(varName)
-          }
-        }
-        
-        if (missingVars.length > 0 && isProduction) {
-          throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`)
-        }
-        
-        return missingVars
-      }
+    expect(() => validateEnv()).not.toThrow()
+  })
 
-      expect(() => validateEnv()).toThrow('Missing required environment variables')
-    })
+  it('rejects short production auth secrets', async () => {
+    setValidProductionEnvironment()
+    mutableEnv.AUTH_SECRET = 'replace-me'
+    const { validateEnv } = await loadEnvModule()
 
-    it('所有必需变量存在时应通过验证', () => {
-      env.NODE_ENV = 'development'
-      process.env.DATABASE_URL = 'postgres://localhost'
-      process.env.ZAMMAD_URL = 'https://zammad.example.com'
-      process.env.ZAMMAD_API_TOKEN = 'token123'
-      
-      const validateEnv = () => {
-        const requiredVars = REQUIRED_DEV_VARS
-        const missingVars: string[] = []
-        
-        for (const varName of requiredVars) {
-          if (!process.env[varName]) {
-            missingVars.push(varName)
-          }
-        }
-        
-        return missingVars
-      }
+    expect(() => validateEnv()).toThrow('at least 32 characters')
+  })
 
-      const missing = validateEnv()
-      expect(missing).toHaveLength(0)
-    })
+  it('rejects production mock authentication', async () => {
+    setValidProductionEnvironment()
+    mutableEnv.NEXT_PUBLIC_ENABLE_MOCK_AUTH = 'true'
+    const { validateEnv } = await loadEnvModule()
 
-    it('生产环境 AUTH_SECRET 太短时应抛出错误', () => {
-      env.NODE_ENV = 'production'
-      process.env.AUTH_SECRET = 'short'
-      
-      const validateAuthSecret = () => {
-        const isProduction = process.env.NODE_ENV === 'production'
-        const authSecret = process.env.AUTH_SECRET || ''
-        
-        if (isProduction && authSecret && authSecret.length < 32) {
-          throw new Error('AUTH_SECRET must be at least 32 characters in production')
-        }
-      }
+    expect(() => validateEnv()).toThrow('Mock authentication MUST NOT be enabled')
+  })
 
-      expect(() => validateAuthSecret()).toThrow('at least 32 characters')
-    })
+  it('requires a public platform URL when welcome email is enabled', async () => {
+    setValidProductionEnvironment()
+    delete mutableEnv.WEB_PLATFORM_URL
+    const { validateEnv } = await loadEnvModule()
 
-    it('生产环境开启 Mock Auth 应发出警告', () => {
-      env.NODE_ENV = 'production'
-      process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH = 'true'
-      
-      const checkMockAuth = () => {
-        const isProduction = process.env.NODE_ENV === 'production'
-        const mockAuthEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true'
-        
-        return isProduction && mockAuthEnabled
-      }
+    expect(() => validateEnv()).toThrow('WEB_PLATFORM_URL is required')
+  })
 
-      expect(checkMockAuth()).toBe(true)
+  it('allows a missing platform URL when welcome email is disabled', async () => {
+    setValidProductionEnvironment()
+    delete mutableEnv.WEB_PLATFORM_URL
+    mutableEnv.EMAIL_USER_WELCOME_EMAIL_ENABLED = 'false'
+    const { validateEnv } = await loadEnvModule()
+
+    expect(() => validateEnv()).not.toThrow()
+  })
+
+  it('requires a webhook secret in production', async () => {
+    setValidProductionEnvironment()
+    delete mutableEnv.ZAMMAD_WEBHOOK_SECRET
+    const { validateEnv } = await loadEnvModule()
+
+    expect(() => validateEnv()).toThrow('ZAMMAD_WEBHOOK_SECRET is required')
+  })
+
+  it('returns typed defaults and parses email feature flags', async () => {
+    mutableEnv.NODE_ENV = 'test'
+    mutableEnv.LOG_LEVEL = 'debug'
+    mutableEnv.EMAIL_USER_AUTO_PASSWORD_ENABLED = 'false'
+    mutableEnv.EMAIL_USER_WELCOME_EMAIL_ENABLED = 'false'
+    const { getEnv } = await loadEnvModule()
+
+    expect(getEnv()).toMatchObject({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'debug',
+      EMAIL_USER_AUTO_PASSWORD_ENABLED: false,
+      EMAIL_USER_WELCOME_EMAIL_ENABLED: false,
     })
   })
 
-  describe('getEnv', () => {
-    it('应该返回所有环境配置', () => {
-      process.env.AUTH_SECRET = 'test-secret'
-      process.env.ZAMMAD_URL = 'https://zammad.example.com'
-      process.env.ZAMMAD_API_TOKEN = 'token123'
-      process.env.DATABASE_URL = 'postgres://localhost'
-      process.env.LOG_LEVEL = 'debug'
-      
-      const getEnv = () => ({
-        AUTH_SECRET: process.env.AUTH_SECRET || '',
-        ZAMMAD_URL: process.env.ZAMMAD_URL || '',
-        ZAMMAD_API_TOKEN: process.env.ZAMMAD_API_TOKEN || '',
-        DATABASE_URL: process.env.DATABASE_URL,
-        LOG_LEVEL: process.env.LOG_LEVEL || 'info',
-        NODE_ENV: process.env.NODE_ENV || 'development',
-      })
+  it('enables mock auth outside production and never enables it in production', async () => {
+    mutableEnv.NODE_ENV = 'development'
+    let envModule = await loadEnvModule()
+    expect(envModule.isMockAuthEnabled()).toBe(true)
 
-      const env = getEnv()
-      
-      expect(env.AUTH_SECRET).toBe('test-secret')
-      expect(env.ZAMMAD_URL).toBe('https://zammad.example.com')
-      expect(env.LOG_LEVEL).toBe('debug')
-    })
-
-    it('缺少可选变量时应返回默认值', () => {
-      delete process.env.LOG_LEVEL
-      delete process.env.SOCKET_IO_PORT
-      
-      const getEnv = () => ({
-        LOG_LEVEL: process.env.LOG_LEVEL || 'info',
-        SOCKET_IO_PORT: process.env.SOCKET_IO_PORT,
-        NODE_ENV: process.env.NODE_ENV || 'development',
-      })
-
-      const env = getEnv()
-      
-      expect(env.LOG_LEVEL).toBe('info')
-      expect(env.SOCKET_IO_PORT).toBeUndefined()
-    })
+    mutableEnv.NODE_ENV = 'production'
+    mutableEnv.NEXT_PUBLIC_ENABLE_MOCK_AUTH = 'true'
+    envModule = await loadEnvModule()
+    expect(envModule.isMockAuthEnabled()).toBe(false)
   })
 
-  describe('isProduction / isDevelopment', () => {
-    it('NODE_ENV 为 production 时 isProduction 应返回 true', () => {
-      env.NODE_ENV = 'production'
-      
-      const isProduction = () => process.env.NODE_ENV === 'production'
-      
-      expect(isProduction()).toBe(true)
-    })
+  it('does not repeat non-strict validation warnings', async () => {
+    mutableEnv.NODE_ENV = 'development'
+    delete mutableEnv.DATABASE_URL
+    delete mutableEnv.ZAMMAD_URL
+    delete mutableEnv.ZAMMAD_API_TOKEN
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { ensureEnvValidation } = await loadEnvModule()
 
-    it('NODE_ENV 不为 production 时 isDevelopment 应返回 true', () => {
-      env.NODE_ENV = 'development'
-      
-      const isDevelopment = () => process.env.NODE_ENV !== 'production'
-      
-      expect(isDevelopment()).toBe(true)
-    })
+    ensureEnvValidation({ strict: false })
+    ensureEnvValidation({ strict: false })
 
-    it('NODE_ENV 为 test 时 isDevelopment 应返回 true', () => {
-      env.NODE_ENV = 'test'
-      
-      const isDevelopment = () => process.env.NODE_ENV !== 'production'
-      
-      expect(isDevelopment()).toBe(true)
-    })
+    expect(warning).toHaveBeenCalledTimes(1)
   })
 
-  describe('isMockAuthEnabled', () => {
-    it('开发环境应默认启用 Mock Auth', () => {
-      env.NODE_ENV = 'development'
-      
-      const isMockAuthEnabled = () => {
-        if (process.env.NODE_ENV !== 'production') {
-          return true
-        }
-        return process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true'
-      }
+  it('reruns validation when strict mode follows non-strict mode', async () => {
+    mutableEnv.NODE_ENV = 'development'
+    delete mutableEnv.DATABASE_URL
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { ensureEnvValidation } = await loadEnvModule()
 
-      expect(isMockAuthEnabled()).toBe(true)
-    })
+    ensureEnvValidation({ strict: false })
+    mutableEnv.NODE_ENV = 'production'
 
-    it('生产环境应根据环境变量决定', () => {
-      env.NODE_ENV = 'production'
-      process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH = 'false'
-      
-      const isMockAuthEnabled = () => {
-        if (process.env.NODE_ENV !== 'production') {
-          return true
-        }
-        return process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true'
-      }
-
-      expect(isMockAuthEnabled()).toBe(false)
-    })
-
-    it('生产环境明确启用时应返回 true', () => {
-      env.NODE_ENV = 'production'
-      process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH = 'true'
-      
-      const isMockAuthEnabled = () => {
-        if (process.env.NODE_ENV !== 'production') {
-          return true
-        }
-        return process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true'
-      }
-
-      expect(isMockAuthEnabled()).toBe(true)
-    })
-  })
-
-  describe('ensureEnvValidation', () => {
-    it('严格模式下验证失败应抛出错误', () => {
-      env.NODE_ENV = 'production'
-      delete process.env.AUTH_SECRET
-      delete process.env.NEXTAUTH_SECRET
-      
-      const ensureEnvValidation = (options?: { strict?: boolean }) => {
-        const strict = options?.strict ?? process.env.NODE_ENV === 'production'
-        
-        const hasAuthSecret = !!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET)
-        
-        if (!hasAuthSecret && strict) {
-          throw new Error('Missing AUTH_SECRET')
-        }
-      }
-
-      expect(() => ensureEnvValidation({ strict: true })).toThrow()
-    })
-
-    it('非严格模式下验证失败应只发警告', () => {
-      env.NODE_ENV = 'development'
-      delete process.env.DATABASE_URL
-      
-      const ensureEnvValidation = (options?: { strict?: boolean }) => {
-        const strict = options?.strict ?? false
-        const warnings: string[] = []
-        
-        if (!process.env.DATABASE_URL) {
-          if (strict) {
-            throw new Error('Missing DATABASE_URL')
-          }
-          warnings.push('Missing DATABASE_URL')
-        }
-        
-        return warnings
-      }
-
-      const result = ensureEnvValidation({ strict: false })
-      expect(result).toContain('Missing DATABASE_URL')
-    })
-
-    it('应该避免重复验证', () => {
-      let validationCount = 0
-      let validatedMode: 'none' | 'non-strict' | 'strict' = 'none'
-      
-      const ensureEnvValidation = (options?: { strict?: boolean }) => {
-        const strict = options?.strict ?? false
-        
-        if (validatedMode === 'strict') return
-        if (validatedMode === 'non-strict' && !strict) return
-        
-        validationCount++
-        validatedMode = strict ? 'strict' : 'non-strict'
-      }
-
-      ensureEnvValidation({ strict: false })
-      ensureEnvValidation({ strict: false })
-      ensureEnvValidation({ strict: false })
-      
-      expect(validationCount).toBe(1)
-    })
-  })
-
-  describe('AUTH_DEFAULT_USER 配置', () => {
-    it('应该正确读取默认用户配置', () => {
-      process.env.AUTH_DEFAULT_USER_EMAIL = 'admin@example.com'
-      process.env.AUTH_DEFAULT_USER_PASSWORD = 'password123'
-      process.env.AUTH_DEFAULT_USER_ROLE = 'admin'
-      process.env.AUTH_DEFAULT_USER_NAME = 'Admin User'
-      process.env.AUTH_DEFAULT_USER_REGION = 'asia-pacific'
-      
-      const getDefaultUser = () => ({
-        email: process.env.AUTH_DEFAULT_USER_EMAIL,
-        password: process.env.AUTH_DEFAULT_USER_PASSWORD,
-        role: process.env.AUTH_DEFAULT_USER_ROLE as 'customer' | 'staff' | 'admin' | undefined,
-        name: process.env.AUTH_DEFAULT_USER_NAME,
-        region: process.env.AUTH_DEFAULT_USER_REGION,
-      })
-
-      const user = getDefaultUser()
-      
-      expect(user.email).toBe('admin@example.com')
-      expect(user.role).toBe('admin')
-      expect(user.region).toBe('asia-pacific')
-    })
-
-    it('角色应该只允许有效值', () => {
-      const validRoles = ['customer', 'staff', 'admin']
-      
-      const isValidRole = (role: string) => validRoles.includes(role)
-
-      expect(isValidRole('customer')).toBe(true)
-      expect(isValidRole('staff')).toBe(true)
-      expect(isValidRole('admin')).toBe(true)
-      expect(isValidRole('superadmin')).toBe(false)
-      expect(isValidRole('')).toBe(false)
-    })
+    expect(() => ensureEnvValidation({ strict: true })).toThrow('Missing required environment variables')
+    expect(warning).toHaveBeenCalled()
   })
 })

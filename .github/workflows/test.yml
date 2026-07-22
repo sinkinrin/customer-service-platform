@@ -152,11 +152,38 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npx prisma generate
-
       - name: Run ESLint
         run: npm run lint
 
       - name: Run TypeScript check
         run: npm run type-check
+
+  build:
+    name: Production Build
+    runs-on: ubuntu-latest
+    env:
+      AUTH_SECRET: ci-build-secret-ci-build-secret-32
+      DATABASE_URL: postgresql://invalid:invalid@127.0.0.1:1/build_test
+      ZAMMAD_URL: http://127.0.0.1:65535/
+      ZAMMAD_API_TOKEN: ci-disabled
+      ZAMMAD_WEBHOOK_SECRET: ci-webhook-secret
+      EMAIL_USER_WELCOME_EMAIL_ENABLED: 'false'
+      NEXT_PUBLIC_ENABLE_MOCK_AUTH: 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production

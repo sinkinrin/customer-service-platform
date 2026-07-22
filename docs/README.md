@@ -36,7 +36,8 @@
 | [ZAMMAD-INTEGRATION.md](./ZAMMAD-INTEGRATION.md) | Zammad 集成与工单链路 | ✅ 当前 |
 | [TESTING.md](./TESTING.md) | 测试工具与执行方式 | ✅ 当前 |
 | [DEVELOPMENT-WORKFLOW.md](./DEVELOPMENT-WORKFLOW.md) | 开发、测试和文档协作流程 | ✅ 当前 |
-| [PROJECT-AUDIT-PLAN.zh-CN.md](./PROJECT-AUDIT-PLAN.zh-CN.md) | 下一轮全面项目审查的启动计划 | 临时交接 |
+| [PROJECT-AUDIT-2026-07-22.md](./PROJECT-AUDIT-2026-07-22.md) | 当前全面审计的证据、发现、修复与验证记录 | 🚧 进行中 |
+| [PROJECT-AUDIT-PLAN.zh-CN.md](./PROJECT-AUDIT-PLAN.zh-CN.md) | 当前全面项目审查的执行计划 | 🚧 进行中 |
 | [AI-CONFIGURATION-PERSISTENCE.md](./AI-CONFIGURATION-PERSISTENCE.md) | AI 配置持久化说明 | ✅ 当前 |
 | [SECURITY-DEPENDENCY-AUDIT-2026-07-03.md](./SECURITY-DEPENDENCY-AUDIT-2026-07-03.md) | 当前依赖漏洞审计与整改结果 | ✅ 当前审计 |
 | [SECURITY-AUDIT-2026-03-31.md](./SECURITY-AUDIT-2026-03-31.md) | 历史安全审计记录 | ✅ 历史参考 |

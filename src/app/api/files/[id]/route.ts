@@ -82,7 +82,10 @@ export async function DELETE(
   try {
     const user = await requireAuth()
 
-    const success = await deleteFile(params.id, user.id)
+    const success = await deleteFile(
+      params.id,
+      user.role === 'admin' ? undefined : user.id
+    )
 
     if (!success) {
       return notFoundResponse('File not found or unauthorized')

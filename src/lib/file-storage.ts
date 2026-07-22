@@ -84,20 +84,36 @@ export async function uploadFile(options: {
   const buffer = Buffer.from(await file.arrayBuffer())
   await fs.writeFile(absoluteFilePath, buffer)
 
-  // Save metadata to database
-  const fileRecord = await prisma.uploadedFile.create({
-    data: {
-      id: fileId,
-      userId,
-      bucketName,
-      filePath,
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
-      referenceType,
-      referenceId: referenceId || null,
-    },
-  })
+  // Save metadata to database. If this fails, remove the just-written file so
+  // the filesystem and UploadedFile table do not drift immediately.
+  let fileRecord
+  try {
+    fileRecord = await prisma.uploadedFile.create({
+      data: {
+        id: fileId,
+        userId,
+        bucketName,
+        filePath,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        referenceType,
+        referenceId: referenceId || null,
+      },
+    })
+  } catch (error) {
+    try {
+      await fs.unlink(absoluteFilePath)
+    } catch (cleanupError) {
+      logger.error('FileStorage', 'Failed to remove file after metadata insert failed', {
+        data: {
+          fileId,
+          error: cleanupError instanceof Error ? cleanupError.message : cleanupError,
+        },
+      })
+    }
+    throw error
+  }
 
   // Return file info with public URL
   return {

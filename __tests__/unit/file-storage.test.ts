@@ -100,4 +100,23 @@ describe('file storage path containment', () => {
     expect(result.id).toMatch(/^[0-9a-f-]{36}$/)
     expect(result.url).toBe(`/api/files/${result.id}/download`)
   })
+
+  it('removes the written file when metadata persistence fails', async () => {
+    const file = {
+      name: 'note.txt',
+      size: 5,
+      type: 'text/plain',
+      arrayBuffer: vi.fn().mockResolvedValue(new TextEncoder().encode('hello').buffer),
+    } as unknown as File
+    vi.mocked(prisma.uploadedFile.create).mockRejectedValue(new Error('database unavailable'))
+
+    await expect(uploadFile({
+      file,
+      userId: 'user-1',
+      bucketName: 'message-attachments',
+      referenceType: 'message',
+    })).rejects.toThrow('database unavailable')
+
+    expect(fsMocks.unlink).toHaveBeenCalledWith(fsMocks.writeFile.mock.calls[0][0])
+  })
 })

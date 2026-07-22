@@ -607,6 +607,19 @@
 - 改为等价的 `if/else` 后输出级别、参数和 file logging 路径均不变。
 - logger 定向 21 个测试、type-check 通过；全仓 lint 从 18 个 warning 降至 10 个，剩余全部是需要逐项判断 lifecycle 的 React effect dependency。
 
+### AUD-043：本地文件写入失败补偿缺失，admin delete 仍被 owner 参数阻止（P2，已修复）
+
+证据：
+
+- `uploadFile()` 先写磁盘再创建 `UploadedFile`；数据库 insert 失败时原实现直接抛错，已写文件没有 metadata、清理入口或返回 ID。
+- 文件 GET 明确允许 owner/admin，但 DELETE 无条件把当前用户 ID 传给 `deleteFile()`；其 owner check 会拒绝 admin 删除其他用户文件。
+
+修复：
+
+- metadata insert 失败时立即尝试删除刚写入的精确文件路径；补偿本身失败会记录 file ID 与清理错误，然后保留原数据库异常。
+- admin delete 不再传 owner 限制，普通用户仍只可删除自己的文件。
+- file storage/files API 定向 15 个测试、type-check 与 lint 通过。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -643,6 +656,7 @@ npm run test -- __tests__/unit/zammad-health-check.test.ts
 npm run test -- __tests__/components/card.test.tsx __tests__/unit/i18n-completeness.test.ts
 npm run test -- __tests__/api/admin-stats.test.ts
 npm run test -- __tests__/unit/logger.test.ts
+npm run test -- __tests__/unit/file-storage.test.ts __tests__/api/files.test.ts
 npx playwright test --list
 ```
 

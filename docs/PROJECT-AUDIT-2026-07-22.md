@@ -545,6 +545,20 @@
 - 定向 48 个测试从多次 2 秒连接等待降为毫秒级执行；正常成功 case 不再产生数据库连接或缺失 notification mock 错误。
 - 真实数据库行为仍只由显式 opt-in 的 database integration suite 承担，普通 API 测试不再把“连接失败且被吞掉”误当隔离方式。
 
+### AUD-038：资料语言更新会覆盖 Zammad 中同级 preferences（P1，已修复）
+
+证据：
+
+- customer settings 保存资料时始终提交 `language`；profile API 修复前把更新 payload 直接写成 `preferences: { locale }`。
+- notification preferences API 把用户开关保存在同一个 Zammad `preferences.csp_notifications` 对象，并明确先读取、合并再更新；profile 路径没有做相同保护。
+- 这意味着资料保存与通知设置存在互相覆盖风险，且 API 接受任意语言字符串，可能写入界面不支持的 locale。
+
+修复：
+
+- profile API 只接受当前六种受支持语言。
+- 写 locale 前读取当前 Zammad 用户，并保留全部现有 preferences 后再覆盖 `locale`。
+- 新增回归断言，证明 `csp_notifications` 在资料更新后仍保留，同时拒绝未知 locale。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -576,6 +590,7 @@ npm run test -- __tests__/components/ticket-updates-provider.test.tsx __tests__/
 npm run test -- __tests__/unit/notification-service.test.ts __tests__/api/notifications.test.ts __tests__/api/webhooks-zammad.test.ts
 npm run test -- __tests__/unit/e2e-safety.test.ts
 npm run test -- __tests__/api/tickets.test.ts __tests__/api/ai.test.ts __tests__/api/tickets-rating.test.ts
+npm run test -- __tests__/api/user-profile.test.ts
 npx playwright test --list
 ```
 

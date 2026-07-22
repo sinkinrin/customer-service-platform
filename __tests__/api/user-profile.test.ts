@@ -152,6 +152,15 @@ describe('User Profile API', () => {
         user: mockCustomer,
         expires: new Date(Date.now() + 3600000).toISOString(),
       })
+      vi.mocked(zammadClient.getUser).mockResolvedValueOnce({
+        ...mockZammadUser,
+        preferences: {
+          locale: 'en',
+          csp_notifications: {
+            emailNotifications: false,
+          },
+        },
+      } as any)
       vi.mocked(zammadClient.updateUser).mockResolvedValueOnce({
         ...mockZammadUser,
         firstname: 'Updated',
@@ -177,8 +186,31 @@ describe('User Profile API', () => {
         firstname: 'Updated',
         lastname: 'Name',
         phone: '+9876543210',
-        preferences: { locale: 'zh-CN' },
+        preferences: {
+          locale: 'zh-CN',
+          csp_notifications: {
+            emailNotifications: false,
+          },
+        },
       }))
+    })
+
+    it('rejects unsupported profile locales', async () => {
+      vi.mocked(auth).mockResolvedValueOnce({
+        user: mockCustomer,
+        expires: new Date(Date.now() + 3600000).toISOString(),
+      })
+
+      const request = new NextRequest('http://localhost/api/user/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ language: 'de' }),
+      })
+
+      const response = await PUT(request)
+
+      expect(response.status).toBe(400)
+      expect(zammadClient.getUser).not.toHaveBeenCalled()
+      expect(zammadClient.updateUser).not.toHaveBeenCalled()
     })
 
     it('returns local success when no zammad_id (mock users)', async () => {

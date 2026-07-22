@@ -17,10 +17,12 @@ import { zammadClient } from '@/lib/zammad/client'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
 
+const SUPPORTED_LOCALES = ['en', 'zh-CN', 'fr', 'es', 'ru', 'pt'] as const
+
 const UpdateProfileSchema = z.object({
   full_name: z.string().min(1, 'Name is required').optional(),
   phone: z.string().optional(),
-  language: z.string().optional(),
+  language: z.enum(SUPPORTED_LOCALES).optional(),
 })
 
 export async function GET() {
@@ -116,8 +118,10 @@ export async function PUT(request: NextRequest) {
     }
 
     if (language) {
-      // Store language in Zammad preferences
+      // Preserve notification and other Zammad preferences when updating locale.
+      const currentZammadUser = await zammadClient.getUser(zammadId)
       updateData.preferences = {
+        ...(currentZammadUser.preferences || {}),
         locale: language,
       }
     }

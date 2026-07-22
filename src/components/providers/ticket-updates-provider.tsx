@@ -155,10 +155,11 @@ export function TicketUpdatesProvider({ children }: TicketUpdatesProviderProps) 
     onError: handleSSEError,
   })
 
-  // Use polling as fallback when SSE is not connected or has failed
-  // Also use polling with longer interval when SSE is connected (as backup)
+  // Keep persistent polling active as a cross-instance backup. The SSE emitter
+  // is process-local, so a healthy connection can still miss a webhook handled
+  // by another application instance.
   useTicketUpdates({
-    enabled: updatesEnabled && (!sseConnected || sseFailed),
+    enabled: updatesEnabled,
     onUpdate: handlePollingUpdates,
     userId: user?.id,
   })

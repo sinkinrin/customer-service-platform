@@ -350,6 +350,117 @@
 - 迁移错误与不完整回滚会组合保留；回滚全部成功时仍抛原始迁移错误，兼容现有错误路径。
 - 新增回归测试，验证逆序第一个回滚失败后仍继续恢复剩余工单。
 
+### AUD-024：SSE 正常连接时关闭了跨实例 polling 备援（P1，已修复）
+
+证据：
+
+- `SSEEmitter` 明确是进程内 `Map`，源码也注明水平扩容需要 Redis 等共享 pub/sub；webhook 只能向命中同一应用实例的订阅者广播。
+- 修复前 `TicketUpdatesProvider` 只在 `!sseConnected || sseFailed` 时启用 polling。客户端即使与实例 B 保持健康 SSE，命中实例 A 的 webhook 也不会到达该连接，而“健康”状态又会关闭持久化 `TicketUpdate` 查询。
+- provider 注释声称 SSE 连接时仍有较慢 polling 备援，但实际条件与注释相反。
+
+修复：
+
+- ticket 页面现在始终保留现有 polling hook；SSE 继续提供低延迟推送，30 秒 polling 负责跨实例与漏推恢复。
+- SSE 与 polling 返回同一 `TicketUpdate.id` 时仍由既有 processed-ID 集合去重。
+- 新增组件回归测试，验证 SSE 连接成功后 polling 仍保持启用。
+
+### AUD-025：TicketUpdate 时间戳游标和 100 条全局上限会永久跳过更新（P1，待修复）
+
+证据：
+
+- updates API 查询 `createdAt > since`，按 `createdAt desc` 取全局前 100 条，之后才按当前用户的 metadata 权限过滤。
+- 查询完成后才用新的 `Date.now()` 作为 `serverTime`；客户端无条件把该值持久化为下一次 `since`。
+- 因此存在两个确定的丢失窗口：查询快照之后、`serverTime` 生成之前写入的记录不会出现在本次结果中，但时间又早于下一游标；一个窗口内超过 100 条时，较旧记录被截断后客户端仍直接跳到窗口末尾。
+- 因权限过滤发生在 `take: 100` 之后，其他用户不可见的高流量也能占满这 100 条并挤掉当前用户的可见更新。
+- 当前游标只有毫秒时间戳，没有 `(createdAt, id)` tie-breaker 或 `hasMore` 分页协议。
+
+影响与结论：
+
+- AUD-024 恢复了跨实例 polling，但不能补回被当前游标协议永久跳过的记录；前端可能不刷新、漏 toast 或漏未读计数，直到用户执行其他刷新动作。
+- 应改为稳定复合游标、升序分页和明确的 high-water mark / `hasMore` 协议，并覆盖同毫秒记录、超过 100 条、查询期间并发写入和权限过滤后的分页测试。该修改涉及前后端持久化游标兼容，不在本批局部修改中仓促实施。
+
+### AUD-026：出站 Zammad 写入没有稳定 intent / 幂等或 unknown-outcome 对账（P1，待架构决策）
+
+证据：
+
+- Zammad client 已停止自动重放 POST/PUT/DELETE，但请求头只有认证、content type、accept 和可选 `X-On-Behalf-Of`；没有稳定业务 intent ID。
+- Prisma schema 没有 Zammad write intent、outbox、recovery ledger 或请求结果对账模型；精确搜索只找到 AI 消息自身的幂等保护，没有覆盖 `createTicket`、`createArticle`、`createUser`。
+- 工单、回复和用户创建 route 都直接调用对应 Zammad create API。网络超时只证明本应用没有拿到响应，不能证明 Zammad 没有提交；调用者重新提交仍可能重复创建。
+- 迁移服务在 `await updateTicket()` 返回后才把 ticket 放入 snapshot。若更新已在 Zammad 成功但响应丢失，该 ticket 不会进入当前补偿列表。
+
+影响与结论：
+
+- AUD-021 消除了客户端自身的自动重复写，但没有解决人工/前端重试或补偿流程面对 unknown outcome 的重复与遗漏风险。
+- 需要先确认 Zammad 可用的外部标识、自定义字段或查询语义，再选择本地持久化 intent/outbox、稳定 idempotency key、写后对账和 operator-visible recovery 状态；不能仅靠再次 POST 或盲目回滚。
+
+### AUD-027：email user welcome 的 note marker 不是并发 claim（P1，待架构决策）
+
+证据：
+
+- welcome flow 先读取 Zammad user note、检查历史 article，再生成随机密码并调用 `updateUser({ password, note })`；整个 read-check-write 没有数据库唯一约束、条件更新或共享锁。
+- 两个并发 created-ticket webhook 可同时观察到空 note，分别生成密码 A/B，并先后覆盖同一用户密码。
+- 两个流程随后都可创建 welcome email article；其中一封可能包含已被另一个流程覆盖的旧密码。发送成功后追加 `WelcomeEmailSent` marker 也不是条件写，不能反向保证邮件中的密码仍有效。
+- article 扫描只能发现已经可见的历史邮件，不能阻止两个都已通过检查的并发流程继续发送。
+
+影响与结论：
+
+- 这不仅是重复邮件问题，还可能把无效凭据发给客户并造成账号登录故障。
+- 需要持久化、原子的 per-user welcome claim/workflow 状态，并把密码设置、发送结果与可恢复状态关联起来；进程内锁无法覆盖多实例或重启，不作为正式修复。
+
+### AUD-028：webhook 把高延迟副作用标成 non-blocking，但实际在响应前逐项 await（P1，待架构决策）
+
+证据：
+
+- webhook 在返回 200 前等待用户映射、`TicketUpdate` 写入、SSE recipient 解析和通知创建；通知 recipient 循环也是串行 await。
+- created 事件随后依次 await email routing 和 email user welcome，源码注释却写为 “Non-blocking”。
+- routing 可读取客户、分组、负责人、全量 admin 用户并执行多次 Zammad 写；welcome 为恢复 marker 会分页检索该客户全部工单，并逐工单读取 articles。
+- welcome 函数注释称其“异步调用且不应阻塞 webhook response”，与 route 实际调用方式冲突。
+
+影响与结论：
+
+- 大客户历史或慢 Zammad 会直接拉长 webhook 响应；上游超时重投会放大 AUD-027/AUD-029 的并发和重复副作用。
+- 不能简单改为未等待的 Promise：serverless/容器请求结束后任务可能被终止。应先持久化已验签事件或 job/outbox，快速确认接收，再由有 lease、重试和 dead-letter/recovery 状态的 worker 执行副作用。
+
+### AUD-029：webhook 与通知去重缺少数据库唯一边界（P1，待修复）
+
+证据：
+
+- `TicketUpdate` 只有随机 CUID、ticket/event/data/createdAt 和普通索引，没有上游 event/article ID 唯一约束；重复 webhook 会创建新的本地 ID 并再次广播，前端按本地 ID 去重无法识别同一上游事件。
+- created/article event 虽把 `articleId` 放在 JSON data 中，但没有可查询的结构化唯一列；status/assignment 事件也没有稳定 source event ID。
+- `NotificationService.create()` 采用“先 `findFirst`、再 `create`”的 5 分钟窗口去重，schema 没有对应 unique key；并发请求可同时查不到记录并各自插入。
+- created webhook 还会再次触发 routing 和 welcome，因此重复影响不止 UI 通知。
+
+影响与结论：
+
+- 需要定义可复现的 webhook source key；能使用 article ID 的事件应数据库唯一化，状态类事件需要结合 Zammad 提供的事件标识或经过验证的 canonical fingerprint/version。通知去重也应以数据库约束或事务 claim 为准。
+
+### AUD-030：跨 Prisma/Zammad 补偿失败没有持久化恢复账本（P1，待架构决策）
+
+证据：
+
+- service-group 管理 route 在本地 assignment/update 失败后调用 `rollbackTicketMigration()`，但多处 catch 直接吞掉 rollback 的 `AggregateError`；其他本地 assignment 恢复失败也只有 “Best-effort rollback” 空 catch。
+- migration service 现在会记录每个 Zammad ticket rollback 失败，这是改进，但日志不是可查询、可认领、可关闭的恢复任务，route 也不会把不完整补偿状态返回给 operator。
+- Prisma 与 Zammad 不可能共享数据库事务，当前 schema 又没有 operation/recovery record 保存原始 snapshot、已完成步骤、失败 ticket 和重试状态。
+
+影响与结论：
+
+- 管理员可能只看到原操作失败，却不知道部分工单或本地 assignment 已经改变；日志丢失、轮转或多实例分散后难以可靠修复。
+- 需要 durable operation/recovery ledger、明确的 `needs_reconciliation` 状态和管理员可见的重试/人工处置流程。继续增加 best-effort catch 不能建立跨系统原子性。
+
+### AUD-031：service-group cutover 开关默认关闭且未进入部署文档，旧 binding 与当前真相并存（P2，待兼容决策）
+
+证据：
+
+- `isServiceGroupAssignmentCutoverActive()` 只有环境变量严格等于 `true` 才生效；变量未出现在 `.env.example`、部署说明或现行架构文档中。
+- flag 未开启时，旧 `/api/admin/customer-bindings` POST/DELETE/transfer 仍可修改 `CustomerStaffBinding`。
+- 当前 customer ticket 创建、email routing、单票 auto-assign 和批量 auto-assign 已读取 `CustomerGroupAssignment/ServiceGroup`，不读取 legacy binding；旧 binding mutation 因而可能成功返回却不影响这些主路径。
+- `docs/ARCHITECTURE.md` 和 `docs/ZAMMAD-INTEGRATION.md` 仍把 customer-staff binding 描述为当前分配核心，与代码已经漂移。
+- 不能直接全局翻转开关：当前实现还会在 cutover active 时禁用 batch auto-assignment，需要先确认这是迁移期冻结还是长期行为。
+
+影响与结论：
+
+- 应先盘点生产 legacy binding 与 service-group assignment 数据，确定一次性迁移/冻结/回滚步骤，再把开关语义、默认值和部署验证写入运维文档，并更新架构事实。未在缺少生产数据与兼容决策时擅自改变默认行为。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -377,6 +488,7 @@ npm view eslint-config-next@16.2.11 peerDependencies
 rg / targeted PowerShell scans for API role checks, impersonation, file access and error responses
 npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.test.ts __tests__/api/ai.test.ts
 npm run test -- __tests__/unit/zammad-client.test.ts
+npm run test -- __tests__/components/ticket-updates-provider.test.tsx __tests__/api/tickets-updates.test.ts __tests__/lib/sse-emitter.test.ts
 ```
 
 ## 第一批验证结果
@@ -433,10 +545,23 @@ npm run test -- __tests__/unit/zammad-client.test.ts
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
 - 多步 Zammad 操作仅通过 mock 验证；未执行真实 reopen、迁移或回滚。
 
+## 第六批验证结果
+
+- SSE/polling 定向回归：3 个文件、4 个测试通过；覆盖 SSE 连接成功后仍保留 polling 备援。
+- `npm run lint`：通过，0 error / 18 个既有 warning。
+- `npm run type-check`：通过。
+- `npm run test:coverage:ci`：122 个文件、1133 个测试全部通过；statements 66.68%、branches 52.12%、functions 66.32%、lines 68.01%。
+- 第一次完整覆盖率命令人为设置了测试环境 webhook secret，两个未带签名的 orchestration fixture 按代码返回 401；移除该额外变量后完整重跑通过，不是产品回归。
+- `npm run i18n:validate`：通过。
+- 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
+- 全部验证使用不可连接 PostgreSQL/Zammad 占位地址；未运行 E2E、迁移、`db push`、seed 或真实外部服务写入。
+
 ## 下一步
 
-1. 为 env fallback credential、登录组合限流，以及固定 mock credentials / dev route 显式开关形成兼容迁移方案后再改生产行为。
-2. 确认唯一可信代理、`x-forwarded-for` overwrite 规则与共享限流存储，再处置 AUD-020。
-3. 继续按匿名、低权限、高权限顺序清理 AUD-016 的剩余原始异常响应，并用稳定错误契约保护前端兼容性。
-4. 在部署产物中验证 uploads 持久卷、symlink 与 NFT trace 行为，并继续核对附件权限缓存、数据/Zammad 事务、幂等与补偿边界。
-5. 对 Sharp/Next 漏洞链建立独立兼容性验证，不把 npm 的错误降级建议直接应用到主线。
+1. 优先设计 AUD-025 的稳定复合游标/分页协议，以及 AUD-026/AUD-029 的 source intent 与数据库唯一边界。
+2. 把 AUD-027/AUD-028 的 welcome flow 移入有持久 claim、lease 和恢复状态的异步处理链路，避免请求内 fire-and-forget。
+3. 为 AUD-030 建立 operator-visible recovery ledger，并在生产数据盘点后决定 AUD-031 的 legacy binding cutover 步骤。
+4. 为 env fallback credential、登录组合限流，以及固定 mock credentials / dev route 显式开关形成兼容迁移方案后再改生产行为。
+5. 确认唯一可信代理、`x-forwarded-for` overwrite 规则与共享限流存储，再处置 AUD-020。
+6. 继续按匿名、低权限、高权限顺序清理 AUD-016 的剩余原始异常响应，并用稳定错误契约保护前端兼容性。
+7. 在部署产物中验证 uploads 持久卷、symlink 与 NFT trace 行为，并对 Sharp/Next 漏洞链建立独立兼容性验证。

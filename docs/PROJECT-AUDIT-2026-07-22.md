@@ -211,18 +211,22 @@
 - 当前实现同时存在定向账户拒绝服务和水平扩容下暴力尝试绕过。
 - 需要先确认可信代理链和 NextAuth `authorize` 可取得的安全客户端 IP，再改为 IP 与账号维度的组合限流；多实例部署应使用共享存储。未在缺少代理信任模型时直接相信任意 `x-forwarded-for`。
 
-### AUD-015：非 production 环境无条件开放管理员 auto-login（P2，待加固）
+### AUD-015：非 production 环境无条件启用固定 mock 管理员凭据（P2，待加固）
 
 证据：
 
+- `isMockAuthEnabled()` 对所有 `NODE_ENV !== 'production'` 直接返回 `true`，不读取 `NEXT_PUBLIC_ENABLE_MOCK_AUTH`；因此该变量当前不能在 staging / demo 中关闭 mock credentials。
+- Zammad 认证失败后，标准 NextAuth Credentials 流程会继续匹配 `mockUsers` / `mockPasswords`，其中包括固定的 `admin@test.com` / `password123`，成功后会签发正常 JWT session。
 - middleware 对所有 `/api/dev/*` 在非 production 环境直接放行。
 - `/api/dev/auto-login` 只检查 `NODE_ENV !== 'production'`，随后允许调用者选择 customer、staff 或 admin，并返回 mock session。
-- route 不要求独立的 server-side enable flag。
+- 精确搜索没有发现 auto-login API 的应用内调用方；其服务端 `mockSignIn()` 不会写浏览器 cookie，因此它不是主要提权路径，标准 Credentials mock login 才是实际认证边界。
+- mock credentials 和 dev route 都不要求独立的 server-side enable flag。
 
 影响与结论：
 
 - 正式 production build 被 middleware 和 route 双重阻止；当前没有生产直达证据。
-- 若 staging、演示或临时环境以非 production 模式对外暴露，匿名用户可直接取得管理员 mock session。应增加默认关闭的 server-side 开关，并让 staging 保持关闭。
+- 若 staging、演示或临时环境以非 production 模式对外暴露，知道仓库固定凭据的匿名用户可通过正常登录流程取得管理员 session。
+- 应增加默认关闭的 server-side 开关，并同时约束 mock Credentials、`/api/dev/*` middleware/authorized 放行和 auto-login route；测试环境可显式开启，staging 必须保持关闭。`NODE_ENV` 和 `NEXT_PUBLIC_*` 变量都不应单独承担该安全边界。
 
 ### AUD-016：API 广泛把内部异常返回给调用方（P1，部分修复）
 
@@ -365,7 +369,7 @@ npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.
 
 ## 下一步
 
-1. 为 env fallback credential、登录组合限流和 dev auto-login 显式开关形成兼容迁移方案后再改生产行为。
+1. 为 env fallback credential、登录组合限流，以及固定 mock credentials / dev route 显式开关形成兼容迁移方案后再改生产行为。
 2. 确认唯一可信代理、`x-forwarded-for` overwrite 规则与共享限流存储，再处置 AUD-020。
 3. 继续按匿名、低权限、高权限顺序清理 AUD-016 的剩余原始异常响应，并用稳定错误契约保护前端兼容性。
 4. 在部署产物中验证 uploads 持久卷、symlink 与 NFT trace 行为，并继续核对附件权限缓存、数据/Zammad 事务、幂等与补偿边界。

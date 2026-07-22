@@ -137,14 +137,120 @@
 - `type-check`、Vitest、watch、UI 和覆盖率脚本均在启动前显式生成 Prisma Client。
 - 移除 lint job 的重复生成步骤，使相同入口在本地和 CI 中行为一致。
 
-## 本阶段依赖处置
+## 第二阶段：安全与权限
+
+### AUD-010：公开健康检查泄露内部配置和连接错误（P1，已修复）
+
+证据：
+
+- `PUBLIC_ROUTES` 以路径前缀匹配 `/api/health`，因此 `/api/health` 和 `/api/health/zammad` 均允许匿名访问。
+- 修复前 `/api/health` 会返回 `NODE_ENV`、版本、mock auth 状态、认证密钥/Zammad/数据库是否配置，以及 Prisma/Zammad 的原始错误消息。
+- Prisma 连接错误通常包含数据库主机和端口；Zammad 网络错误也可能包含内部地址。
+- 修复前 `/api/health/zammad` 会把 `checkZammadHealth().error` 直接作为公开错误消息。
+
+修复：
+
+- 匿名和非管理员调用只得到总体状态、组件粗粒度状态、时间戳和响应耗时。
+- 已登录管理员仍可取得原有版本、环境、配置状态和诊断消息，保持管理员 dashboard 兼容。
+- Zammad 专用健康检查对外只返回通用不可用消息；原始错误仍留在服务端诊断路径。
+- 新增回归断言，确认匿名响应不包含内部 IP、`config`、`environment`、`version` 或组件错误文本。
+
+### AUD-011：AI health 可被任意登录用户调用并泄露上游信息（P1，已修复）
+
+证据：
+
+- `/api/ai/health` 不属于公开路由，middleware 只要求“已登录”；共享角色矩阵不匹配 `/api/ai/*`。
+- 修复前 route 内没有 `requireRole()`，任何 customer/staff/admin session 都可触发一次携带真实 FastGPT API key 的 POST 请求。
+- 成功响应返回 FastGPT URL 和模型；失败响应返回上游 body、网络错误文本和上游 URL。
+
+修复：
+
+- route 入口显式要求 `admin`。
+- 对未登录和非管理员调用分别返回 401/403，且权限失败时不读取 AI 配置、不请求上游。
+- 响应不再返回 FastGPT URL、模型、上游 body 或网络异常文本；详细错误只写服务端日志。
+- 新增 admin 角色、上游 HTTP 错误和网络错误回归测试。
+
+### AUD-012：共享角色矩阵没有覆盖 API namespace（P2，待架构加固）
+
+证据：
+
+- `ROLE_ROUTES` 的前缀只有 `/admin`、`/staff`、`/customer`。
+- `/api/admin/...` 不以 `/admin` 开头，`/api/staff/...` 也不以 `/staff` 开头，因此 middleware 中面向 `/api/admin`、`/api/staff` 的 403 分支无法由当前矩阵触发。
+- 对 `src/app/api/admin` 和 `src/app/api/staff` 的 58 个导出 HTTP 方法做逐方法精确扫描，当前每个方法体都至少包含 route-level 认证和角色检查标记；本轮没有据此发现可直接利用的未保护方法。
+
+影响与结论：
+
+- 当前安全性依赖每个 route 自己正确调用 `requireRole()` 或进行等价手写检查，新增 route 很容易漏掉。
+- 不能把 middleware 当成管理员/坐席 API 的第二道角色防线。后续应让 API namespace 进入共享矩阵，并保留 route-level 检查作为纵深防御。
+- `/api/admin/faq` 的只读 GET 明确允许 staff 且返回包括草稿在内的全部 FAQ；当前只发现 admin 页面调用它，是否为有意授权仍需业务确认，暂不擅自收紧。
+
+### AUD-013：Zammad 失败后会尝试长期 env fallback 账号（P1，待决策）
+
+证据：
+
+- `validateCredentials()` 的顺序是 Zammad、mock auth、`AUTH_DEFAULT_USER_*`。
+- `authenticateWithZammad()` 捕获连接和认证异常后返回 `null`，随后流程会继续尝试 env credential。
+- `AUTH_DEFAULT_USER_ROLE` 缺失或无效时默认得到 `staff`；该路径不要求单独的显式启用开关。
+- 当前认证文档也将其描述为“应急 / 开发兜底，而不是正式生产身份模型”。
+
+影响与结论：
+
+- 只要生产配置了这组固定凭据，它就是独立于 Zammad 生命周期、在 Zammad 故障时仍可登录的长期旁路账号。
+- 直接删除可能切断现有应急登录，不在本批贸然修改。建议迁移为显式 server-side 开关、强制显式角色、启动期告警/审计，并为紧急启用建立短期凭据和轮换流程。
+
+### AUD-014：登录限流按邮箱而不是 IP，既可定向锁号也可跨实例绕过（P1，待修复）
+
+证据：
+
+- 注释声称登录限制是“每 IP 15 分钟 10 次”，实际 key 是 `login:${normalizedEmail}`。
+- 第 11 次尝试会在校验密码之前抛出 `RATE_LIMIT_EXCEEDED`，因此攻击者只需知道邮箱即可让该邮箱在当前实例被拒绝登录。
+- limiter 使用进程内 `Map`；切换实例或重启进程会得到独立计数。
+
+影响与结论：
+
+- 当前实现同时存在定向账户拒绝服务和水平扩容下暴力尝试绕过。
+- 需要先确认可信代理链和 NextAuth `authorize` 可取得的安全客户端 IP，再改为 IP 与账号维度的组合限流；多实例部署应使用共享存储。未在缺少代理信任模型时直接相信任意 `x-forwarded-for`。
+
+### AUD-015：非 production 环境无条件开放管理员 auto-login（P2，待加固）
+
+证据：
+
+- middleware 对所有 `/api/dev/*` 在非 production 环境直接放行。
+- `/api/dev/auto-login` 只检查 `NODE_ENV !== 'production'`，随后允许调用者选择 customer、staff 或 admin，并返回 mock session。
+- route 不要求独立的 server-side enable flag。
+
+影响与结论：
+
+- 正式 production build 被 middleware 和 route 双重阻止；当前没有生产直达证据。
+- 若 staging、演示或临时环境以非 production 模式对外暴露，匿名用户可直接取得管理员 mock session。应增加默认关闭的 server-side 开关，并让 staging 保持关闭。
+
+### AUD-016：API 广泛把内部异常返回给调用方（P1，待分批治理）
+
+证据：
+
+- `serverErrorResponse()` 会把第二个参数放入响应 `error.details`，把第一个参数作为公开 message。
+- 精确搜索在 `src/app/api` 找到 195 处 `serverErrorResponse` 引用，其中至少 68 处在同一行直接传入 `error.message`。
+- 匿名可达的 webhook 和 FAQ route 也存在把原始异常作为公开 message 的路径；数据库、网络和第三方 API 异常可能包含主机、端口、上游响应或实现细节。
+
+结论：
+
+- 本批先修复健康检查和 AI health 的确定泄露面。
+- 后续应优先清理匿名 route，再治理已认证 route；服务端保留带 request ID 的详细日志，客户端统一返回稳定错误码和通用消息。全局修改 helper 可能影响现有前端错误契约，应分批加测试而不是一次性静默丢弃所有 details。
+
+### 本轮权限边界核对结果
+
+- `X-On-Behalf-Of` 只在 Zammad client 内构造；当前 route 传入值来自已认证 session 的 `user.email`，没有发现从客户端请求头透传代理身份的代码路径。
+- 本地 `/api/files/[id]` metadata/download 已检查 owner 或 admin，delete 会把当前 user ID 传入存储层；当前没有发现直接的跨用户本地文件读取。
+- `file-storage.ts` 对数据库中的 `filePath` 直接执行 `path.join()`，尚无基目录 containment 校验。当前上传路径由 UUID、受控 bucket 映射和文件扩展构造，本轮未证明外部用户可写入任意 `filePath`，因此暂记为下一步加固点，不写成已可利用的路径穿越。
+
+## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
 - brace-expansion：`1.1.14 -> 1.1.16`、`2.1.0 -> 2.1.2`，修复 high advisory。
 - caniuse-lite：`1.0.30001759 -> 1.0.30001806`，消除陈旧浏览器数据警告；目标浏览器集合不变。
 - 未执行 `npm audit fix --force`，因为其建议包含 Next 主版本倒退。
 
-## 已执行命令
+## 已执行命令（累计）
 
 ```text
 npm run lint
@@ -161,9 +267,11 @@ npm outdated --json
 npm ls ... --depth=0
 npm view next@16.2.11 optionalDependencies engines
 npm view eslint-config-next@16.2.11 peerDependencies
+rg / targeted PowerShell scans for API role checks, impersonation, file access and error responses
+npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.test.ts __tests__/api/ai.test.ts
 ```
 
-## 本批验证结果
+## 第一批验证结果
 
 - `npm ci`：通过；仍显示 3 个 high，均属于 AUD-001 链路。
 - `npm run lint`：通过，0 error / 18 个既有 warning。
@@ -176,8 +284,21 @@ npm view eslint-config-next@16.2.11 peerDependencies
 - 将 `.env.example` 解析为生产环境后调用真实 `validateEnv()`：按预期因短 `AUTH_SECRET` 拒绝启动。
 - 隔离生产构建：通过；Prisma 弃用与 Browserslist 陈旧警告消失，剩余 1 个 NFT 文件追踪警告。
 
+## 第二批验证结果
+
+- 健康检查与 AI health 定向测试：3 个文件、32 个测试通过。
+- `npm run lint`：通过，0 error / 18 个既有 warning。
+- `npm run type-check`：通过。
+- `npm run test`：在不可连接数据库/Zammad 占位地址下通过；第一次人为设置测试环境 webhook secret 后，两个无签名 orchestration case 按代码返回 401，移除该额外变量后完整重跑通过，不是产品回归。
+- `npm run test:coverage:ci`：通过；statements 66.56%、branches 51.82%、functions 66.67%、lines 67.88%。
+- `npm run i18n:validate`：通过。
+- 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
+- 未运行 E2E、迁移、`db push`、seed 或任何真实 Zammad/AI provider 请求。
+
 ## 下一步
 
-1. 完成本批修改的锁文件、YAML、单测、lint、类型检查、覆盖率和隔离构建验证。
-2. 进入“安全与权限”阶段，优先审查认证回退、管理员 API、文件访问、webhook 签名和代理身份头。
-3. 对 Sharp/Next 漏洞链建立独立兼容性验证，不把 npm 的错误降级建议直接应用到主线。
+1. 提交本批健康检查与 AI health 安全修复，保持 worktree 清爽。
+2. 优先治理匿名 webhook/FAQ 的原始异常外泄，并验证 webhook body size、代理 IP 信任和跨实例限流方案。
+3. 为 env fallback credential、登录组合限流和 dev auto-login 显式开关形成兼容迁移方案后再改生产行为。
+4. 继续验证文件路径 containment、附件权限缓存，以及数据/Zammad 事务、幂等与补偿边界。
+5. 对 Sharp/Next 漏洞链建立独立兼容性验证，不把 npm 的错误降级建议直接应用到主线。

@@ -11,6 +11,10 @@ vi.mock('@/lib/zammad/health-check', () => ({
   checkZammadHealth: vi.fn(),
 }))
 
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     $queryRaw: vi.fn(),
@@ -26,10 +30,21 @@ vi.mock('@/lib/env', () => ({
 import { checkZammadHealth } from '@/lib/zammad/health-check'
 import { prisma } from '@/lib/prisma'
 import { ensureEnvValidation, isProduction } from '@/lib/env'
+import { auth } from '@/auth'
+
+const adminSession = {
+  user: {
+    id: 'admin-1',
+    email: 'admin@test.com',
+    role: 'admin',
+    full_name: 'Test Admin',
+  },
+}
 
 describe('Health Check Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(auth).mockResolvedValue(adminSession as any)
     // Reset environment
     process.env.DATABASE_URL = 'postgresql://test'
     process.env.ZAMMAD_URL = 'https://zammad.test'
@@ -154,6 +169,29 @@ describe('Health Check Logic', () => {
 
       const timestamp = new Date(json.data.timestamp)
       expect(timestamp.getTime()).not.toBeNaN()
+    })
+
+    it('should hide operational details from anonymous callers', async () => {
+      vi.mocked(auth).mockResolvedValue(null)
+      vi.mocked(checkZammadHealth).mockResolvedValue({
+        isHealthy: false,
+        error: 'connect ECONNREFUSED 10.0.0.12:3000',
+      })
+      vi.mocked(prisma.$queryRaw).mockRejectedValue(
+        new Error('database at 10.0.0.20:5432 is unavailable')
+      )
+      vi.mocked(ensureEnvValidation).mockReturnValue(undefined)
+
+      const { GET } = await import('@/app/api/health/route')
+      const response = await GET()
+      const json = await response.json()
+
+      expect(json.data).not.toHaveProperty('version')
+      expect(json.data).not.toHaveProperty('environment')
+      expect(json.data).not.toHaveProperty('config')
+      expect(json.data.services.zammad).toEqual({ status: 'error' })
+      expect(json.data.services.database).toEqual({ status: 'error' })
+      expect(JSON.stringify(json)).not.toContain('10.0.0.')
     })
   })
 

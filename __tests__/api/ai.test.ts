@@ -338,6 +338,25 @@ describe('AI APIs', () => {
   })
 
   describe('GET /api/ai/health', () => {
+    it('returns 401 when there is no authenticated session', async () => {
+      vi.mocked(requireRole).mockRejectedValue(new Error('Unauthorized'))
+
+      const response = await GET_AI_HEALTH()
+
+      expect(response.status).toBe(401)
+      expect(readAISettings).not.toHaveBeenCalled()
+    })
+
+    it('requires an admin role', async () => {
+      vi.mocked(requireRole).mockRejectedValue(new Error('Forbidden'))
+
+      const response = await GET_AI_HEALTH()
+
+      expect(response.status).toBe(403)
+      expect(requireRole).toHaveBeenCalledWith(['admin'])
+      expect(readAISettings).not.toHaveBeenCalled()
+    })
+
     it('reports disabled state', async () => {
       vi.mocked(readAISettings).mockReturnValue({ enabled: false } as any)
 
@@ -385,6 +404,7 @@ describe('AI APIs', () => {
 
       expect(response.status).toBe(200)
       expect(payload.status).toBe('healthy')
+      expect(payload).not.toHaveProperty('config')
     })
 
     it('reports unreachable when fetch fails', async () => {
@@ -404,6 +424,33 @@ describe('AI APIs', () => {
 
       expect(response.status).toBe(503)
       expect(payload.status).toBe('unreachable')
+      expect(payload).not.toHaveProperty('details')
+      expect(payload).not.toHaveProperty('config')
+      expect(JSON.stringify(payload)).not.toContain('Network failed')
+      expect(JSON.stringify(payload)).not.toContain('http://fastgpt')
+    })
+
+    it('does not return the upstream error body', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'app',
+        fastgptApiKey: 'key',
+      } as any)
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        text: vi.fn().mockResolvedValue('internal upstream details'),
+      }) as any
+
+      const response = await GET_AI_HEALTH()
+      const payload = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(payload.message).toBe('FastGPT returned HTTP 502')
+      expect(JSON.stringify(payload)).not.toContain('internal upstream details')
     })
   })
 })

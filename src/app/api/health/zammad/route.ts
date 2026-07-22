@@ -21,9 +21,8 @@ export async function GET(_request: NextRequest) {
         message: 'Zammad service is available',
       })
     } else {
-      // Return error response with success: false when service is unavailable
       return serviceUnavailableResponse(
-        healthCheck.error || 'Zammad service is not available',
+        'Zammad service is not available',
         {
           service: 'zammad',
           status: 'unhealthy',

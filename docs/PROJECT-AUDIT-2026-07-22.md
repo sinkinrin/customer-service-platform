@@ -323,6 +323,33 @@
 - 同时兼容 `AbortError` / `TimeoutError`，并允许 DELETE 等接口正常返回空 204。
 - 新增默认非零重试配置下的 4xx、POST 5xx、POST network error、GET network recovery 和 204 回归测试。
 
+### AUD-022：reopen 的 note 失败会留下已打开工单却返回 500（P1，已修复）
+
+证据：
+
+- reopen route 先调用 `updateTicket(..., { state: 'open' })`，再创建内部 note。
+- 修复前 note 创建失败会直接进入最外层 catch 并返回 500，不恢复原始 closed 状态；客户端看到失败，但 Zammad 中工单已经打开。
+- 该不一致会误导重试、隐藏真实状态，也让预期的 reopen 审计 note 缺失。
+
+修复：
+
+- note 创建失败时 best-effort 把状态恢复为 `closed`；回滚自身失败会记录 ticket ID 和服务端错误。
+- 新增回归测试，验证第一次 update 打开、article 失败、第二次 update 恢复 closed，最终维持原有 500 契约。
+
+### AUD-023：批量工单迁移的回滚在首个失败处停止（P1，已修复）
+
+证据：
+
+- `rollbackTicketMigration()` 修复前按逆序串行恢复 snapshot，但没有逐项 catch；任一恢复失败后，剩余更早的已迁移工单不会再尝试回滚。
+- 多个 service-group route 把该异常作为 best-effort 直接吞掉，修复前服务层也不记录具体失败 ticket，残留状态难以发现和人工修复。
+- 内部迁移 catch 直接 `await rollback; throw original`，一旦 rollback 抛错，原始迁移错误也会被替换。
+
+修复：
+
+- 回滚现在始终尝试全部 snapshot，逐项记录失败 ticket，最后用 `AggregateError` 汇总。
+- 迁移错误与不完整回滚会组合保留；回滚全部成功时仍抛原始迁移错误，兼容现有错误路径。
+- 新增回归测试，验证逆序第一个回滚失败后仍继续恢复剩余工单。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -395,6 +422,16 @@ npm run test -- __tests__/unit/zammad-client.test.ts
 - `npm run i18n:validate`：通过。
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
 - 所有 Zammad 行为只通过 MSW mock 验证；未连接真实 Zammad、数据库或 AI provider。
+
+## 第五批验证结果
+
+- reopen 与 ticket migration 定向回归：2 个文件、14 个测试通过。
+- `npm run lint`：通过，0 error / 18 个既有 warning。
+- `npm run type-check`：通过。
+- `npm run test:coverage:ci`：121 个文件、1132 个测试全部通过；statements 66.79%、branches 52.28%、functions 66.72%、lines 68.12%。
+- `npm run i18n:validate`：通过。
+- 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
+- 多步 Zammad 操作仅通过 mock 验证；未执行真实 reopen、迁移或回滚。
 
 ## 下一步
 

@@ -99,14 +99,30 @@ export async function PUT(
       state: 'open',
     })
 
-    // Add a note about reopening
-    await zammadClient.createArticle({
-      ticket_id: ticketId,
-      body: `Ticket reopened by ${session.user.full_name || session.user.email}`,
-      content_type: 'text/plain',
-      type: 'note',
-      internal: true,
-    })
+    // Add a note about reopening. If the audit note cannot be persisted,
+    // restore the original closed state so a failed response does not hide a
+    // partially completed reopen operation.
+    try {
+      await zammadClient.createArticle({
+        ticket_id: ticketId,
+        body: `Ticket reopened by ${session.user.full_name || session.user.email}`,
+        content_type: 'text/plain',
+        type: 'note',
+        internal: true,
+      })
+    } catch (articleError) {
+      try {
+        await zammadClient.updateTicket(ticketId, { state: 'closed' })
+      } catch (rollbackError) {
+        logger.error('TicketReopen', 'Failed to restore closed state after note creation failed', {
+          data: {
+            ticketId,
+            error: rollbackError instanceof Error ? rollbackError.message : rollbackError,
+          },
+        })
+      }
+      throw articleError
+    }
 
     // Best-effort: notify the other side
     try {

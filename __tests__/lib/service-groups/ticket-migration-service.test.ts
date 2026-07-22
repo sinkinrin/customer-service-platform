@@ -151,6 +151,38 @@ describe('ticket migration service', () => {
     expect(zammadClient.updateTicket).toHaveBeenNthCalledWith(3, 1, { group_id: null, owner_id: 111 })
   })
 
+  it('attempts every rollback even when one rollback update fails', async () => {
+    vi.mocked(zammadClient.getUser).mockResolvedValue({
+      id: 200,
+      active: true,
+      role_ids: [2],
+      group_ids: { '4': ['full'] },
+      out_of_office: false,
+      email: 'owner@test.com',
+    } as any)
+    vi.mocked(zammadClient.searchTicketsRawQuery).mockResolvedValue({
+      tickets: [
+        { id: 1, number: '10001', group_id: 2, owner_id: 111 },
+        { id: 2, number: '10002', group_id: 3, owner_id: 112 },
+        { id: 3, number: '10003', group_id: 5, owner_id: 113 },
+      ],
+      tickets_count: 3,
+    } as any)
+    vi.mocked(zammadClient.updateTicket)
+      .mockResolvedValueOnce({} as any)
+      .mockResolvedValueOnce({} as any)
+      .mockRejectedValueOnce(new Error('migration update failed'))
+      .mockRejectedValueOnce(new Error('ticket 2 rollback failed'))
+      .mockResolvedValueOnce({} as any)
+
+    await expect(migrateCustomerOpenTicketsToGroup(50, 4, 200)).rejects.toThrow(
+      'Ticket migration failed and rollback was incomplete'
+    )
+
+    expect(zammadClient.updateTicket).toHaveBeenNthCalledWith(4, 2, { group_id: 3, owner_id: 112 })
+    expect(zammadClient.updateTicket).toHaveBeenNthCalledWith(5, 1, { group_id: 2, owner_id: 111 })
+  })
+
   it('migrates all customers in a service group', async () => {
     vi.mocked(zammadClient.getUser).mockResolvedValue({
       id: 200,

@@ -124,6 +124,30 @@ describe('Ticket Reopen API', () => {
     )
   })
 
+  it('restores the closed state when the reopen note cannot be created', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'cust_001', role: 'customer', email: 'cust@test.com', zammad_id: 100, full_name: 'Cust' },
+    } as any)
+
+    mockGetTicket.mockResolvedValue({
+      id: 1,
+      number: '10001',
+      state_id: 4,
+      customer_id: 100,
+    })
+    mockUpdateTicket
+      .mockResolvedValueOnce({ id: 1, state_id: 2 })
+      .mockResolvedValueOnce({ id: 1, state_id: 4 })
+    mockCreateArticle.mockRejectedValue(new Error('note creation failed'))
+
+    const request = createRequest('http://localhost:3000/api/tickets/1/reopen')
+    const response = await PUT(request, { params: Promise.resolve({ id: '1' }) })
+
+    expect(response.status).toBe(500)
+    expect(mockUpdateTicket).toHaveBeenNthCalledWith(1, 1, { state: 'open' })
+    expect(mockUpdateTicket).toHaveBeenNthCalledWith(2, 1, { state: 'closed' })
+  })
+
   it('denies staff reopening unassigned tickets even when group matches', async () => {
     vi.mocked(auth).mockResolvedValue({
       user: {

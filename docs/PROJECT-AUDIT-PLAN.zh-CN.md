@@ -2,13 +2,16 @@
 
 > 用于新对话正式启动审查。目标是以代码证据为准，逐步发现并修复高价值问题，同时确保生产 Zammad 和生产数据不受影响。
 
+> 状态：已完成（2026-07-22）。详细证据、52 项发现、整改记录、最终门禁与发布结论见 [PROJECT-AUDIT-2026-07-22.md](./PROJECT-AUDIT-2026-07-22.md)。最终结论为“不具备生产发布条件”。
+
 ## 当前基线（2026-07-22）
 
-- 已修复 CI 分支遗漏、测试误连风险、真实数据库测试默认执行、SSE 订阅生命周期、部分 ESLint 错误和四种语言的服务组翻译缺失。
-- 已通过：`npm run lint`（0 error，18 个历史 warning）、`npm run type-check`、完整 Vitest、`npm run i18n:validate`、隔离生产构建、GitHub Actions YAML 解析。
-- 已知债务：覆盖率仅达到 statements 66.27%、branches 51.37%、functions 66.56%、lines 67.58%，CI 暂按向下取整基线防回退，仍低于目标阈值；硬编码扫描有 198 条混合误报与真实问题；构建提示文件存储路径追踪过宽、Prisma package 配置弃用、Browserslist 数据过旧。
+- 审计共记录 52 项发现：24 项已修复或加固，2 项部分修复，26 项仍待处理；没有确认 P0，但仍有 17 项 P1 未闭环。
+- 最终独立门禁已通过：`npm run lint`（0 error / 10 个已记录 warning）、`npm run type-check`、`npm run test:coverage:ci`、`npm run i18n:validate` 和隔离生产构建。
+- 最终覆盖率：statements 66.65%、branches 52.24%、functions 66.33%、lines 68.01%；JUnit 记录 125 个 suite、1147 个测试、0 failure、0 error、13 skipped。
+- 已知债务：硬编码扫描仍有 193 条混合误报与真实问题；构建仍有 1 个本地文件存储 NFT trace warning；事件一致性、dashboard 指标、偏好/头像行为、生产 fallback、多实例文件持久化及部署恢复契约仍有 P1 风险。
 - 隔离保护加入前，旧真实数据库测试曾被执行，可能在当时配置的数据库留下 `cust_001` 测试 AI 对话；未发现 Zammad 写入证据，也未在数据库归属不明时擅自清理。
-- 未运行：任何连接真实 Zammad 的 E2E、生产数据库迁移 / `db push` / seed、真实外部服务写测试。
+- 未运行：任何连接真实 Zammad 的 E2E、生产数据库迁移 / `db push` / seed、备份恢复或真实外部服务写测试。
 
 ## 不可突破的边界
 

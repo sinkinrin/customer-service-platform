@@ -1,6 +1,6 @@
 # 项目全面审计记录（2026-07-22）
 
-> 状态：进行中。本文只记录已经由代码、锁文件或可复现命令支持的结论；未证明可达性的漏洞不写成已被利用。
+> 状态：已完成（2026-07-22）。本文只记录已经由代码、锁文件或可复现命令支持的结论；未证明可达性的漏洞不写成已被利用。审计完成表示证据收集和本轮低风险整改已收口，不表示系统已经具备生产发布条件。
 
 ## 审计边界
 
@@ -869,12 +869,38 @@ npx playwright test --list
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告，trace 指向 `next.config.js`、`file-storage.ts` 与 avatar route。
 - 全部验证使用不可连接 PostgreSQL/Zammad 占位地址；未执行 E2E、`db push`、迁移、seed、真实 Zammad、AI provider 或浏览器写流程。
 
-## 下一步
+## 第十批验证结果（最终门禁）
 
-1. 优先设计 AUD-025 的稳定复合游标/分页协议，以及 AUD-026/AUD-029 的 source intent 与数据库唯一边界。
-2. 把 AUD-027/AUD-028 的 welcome flow 移入有持久 claim、lease 和恢复状态的异步处理链路，避免请求内 fire-and-forget。
-3. 为 AUD-030 建立 operator-visible recovery ledger，并在生产数据盘点后决定 AUD-031 的 legacy binding cutover 步骤。
-4. 为 env fallback credential、登录组合限流，以及固定 mock credentials / dev route 显式开关形成兼容迁移方案后再改生产行为。
-5. 确认唯一可信代理、`x-forwarded-for` overwrite 规则与共享限流存储，再处置 AUD-020。
-6. 继续按匿名、低权限、高权限顺序清理 AUD-016 的剩余原始异常响应，并用稳定错误契约保护前端兼容性。
-7. 在部署产物中验证 uploads 持久卷、symlink 与 NFT trace 行为，并对 Sharp/Next 漏洞链建立独立兼容性验证。
+- 最初一次把 lint、类型检查、i18n、覆盖率和构建串在同一 PowerShell 进程中的命令不计为有效最终门禁：构建用的 `ZAMMAD_WEBHOOK_SECRET` 与 `EMAIL_USER_WELCOME_EMAIL_ENABLED=false` 污染了覆盖率进程，导致 3 个环境敏感测试按配置失败；命令又使用 `;`，后续构建成功掩盖了前序失败的退出码。
+- 清除 `ZAMMAD_WEBHOOK_SECRET`、`EMAIL_USER_WELCOME_EMAIL_ENABLED` 与 `WEB_PLATFORM_URL` 后，`npm run test:coverage:ci` 在不可连接 PostgreSQL/Zammad 占位地址下独立通过。JUnit 记录 125 个 suite、1147 个测试、0 failure、0 error、13 skipped；statements 66.65%（5818/8728）、branches 52.24%（3362/6435）、functions 66.33%（922/1390）、lines 68.01%（5569/8188）。
+- `npm run lint` 独立通过：0 error / 10 warning；10 个 warning 均对应 AUD-052 已记录的 React effect dependency 问题。
+- `npm run type-check` 独立通过，并由脚本先生成 Prisma Client。
+- `npm run i18n:validate` 独立通过：6 个 locale 的结构、placeholder 和空值检查全部通过。
+- `npm run build` 使用生产必需但不可路由的占位配置独立通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪 warning，trace 指向 `next.config.js`、`file-storage.ts` 与 avatar route。
+- 构建生成的 `next-env.d.ts` 已恢复为仓库约定的 `.next/dev/types/routes.d.ts` 引用，最终工作树不包含生成性差异。
+- `npm run i18n:detect-hardcoded` 没有作为发布通过项：AUD-049 已证明当前 193 条结果混合真实问题与大量 parser 误报，命令目前仍退出 1。
+- 未执行真实 E2E、迁移、`db push`、seed、备份恢复、真实 Zammad/PostgreSQL/AI provider 请求或浏览器写流程。
+
+## 最终发布评估
+
+### 结论：不具备生产发布条件
+
+本轮共记录 52 项发现：24 项已修复或加固，2 项部分修复，26 项仍待处理。没有确认 P0，但仍有 17 项 P1 未闭环（其中 AUD-016 为部分修复）。自动化门禁通过只能证明当前隔离代码路径没有已知回归，不能替代生产数据一致性、部署持久性和灾难恢复证据。
+
+阻止生产发布的主要风险是：
+
+1. **事件与跨系统一致性**：AUD-025–AUD-030 仍缺少稳定游标、写入 intent、并发 claim、异步副作用、数据库唯一去重和可操作恢复账本；在超时、重放、并发或部分失败时仍可能永久漏事件、重复副作用或留下未知结果。
+2. **业务与运营数据真实性**：AUD-044 的 dashboard 会放大 Zammad 扫描并静默截断“全时段”指标；AUD-046/AUD-047 的通知偏好与头像操作没有形成真实行为闭环；AUD-048 会在上游故障时返回 mock 用户或随机绩效数据。
+3. **部署、文件与恢复能力**：AUD-050/AUD-051 尚无可执行证据证明多实例 uploads 持久性、迁移顺序、回滚、PostgreSQL/文件一致备份恢复、readiness/liveness、告警和负责人 runbook。
+4. **其余高优先级安全与兼容风险**：AUD-001、AUD-013、AUD-014、AUD-016 与 AUD-033 仍分别涉及生产依赖漏洞链、应急凭据旁路、登录限流、异常泄露和真实 webhook payload 语义验证。
+
+当前分支适合继续开发、代码评审和隔离 QA，不应直接用于生产切换或作为发布批准依据。
+
+## 发布前建议顺序
+
+1. 先关闭 AUD-025–AUD-030：确定复合游标/分页协议、稳定 source intent、数据库唯一约束、持久 claim/lease、异步 worker 和 operator-visible recovery ledger，并覆盖重复、乱序、超时与补偿失败测试。
+2. 移除 AUD-048 的生产 mock/random fallback，完成 AUD-046/AUD-047 的偏好执行与头像持久化契约，并让 AUD-044 的 dashboard 明确统计窗口、分页/聚合边界与 partial/unavailable 状态。
+3. 在目标部署平台完成 AUD-050/AUD-051：验证共享/对象存储、跨实例读取、滚动发布、容量和权限；演练 migration/rollback、数据库与文件一致备份恢复、probe、告警、RPO/RTO 和值班归属。
+4. 完成 env fallback credential、登录组合限流、剩余异常响应清理、固定 mock credentials/dev route 开关和 Sharp/Next 漏洞链的兼容处置；确认可信代理边界后再修改 forwarded header 行为。
+5. 在专用、可销毁且明确非生产的 PostgreSQL 与 Zammad 环境中验证真实 webhook payload、重复投递、并发 welcome flow、工单写入 unknown outcome、迁移/回滚和 130 个已枚举 E2E；任何共享或生产环境都不作为测试目标。
+6. 完成上述阻断项后重新执行 lint、type-check、完整 coverage、i18n、隔离生产构建、E2E、迁移演练和备份恢复演练，再进行一次发布评审。

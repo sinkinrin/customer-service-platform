@@ -620,6 +620,118 @@
 - admin delete 不再传 owner 限制，普通用户仍只可删除自己的文件。
 - file storage/files API 定向 15 个测试、type-check 与 lint 通过。
 
+### AUD-044：dashboard 用多次全量扫描计算“全时段”指标，既放大 Zammad 请求又静默截断（P1，待架构优化）
+
+证据：
+
+- admin dashboard 首屏同时请求 dashboard、ratings、AI stats、health；其中 `TicketTrendChart` 还独立请求 ticket trend。
+- unified dashboard 用 `getAllTickets(undefined, 10)`，最多顺序拉取 1000 张工单；trend route 另用 `getAllTickets(undefined, 20)`，最多再拉 2000 张。`getAllTickets()` 每页 100 条，到达 `maxPages` 时不返回 truncated 标记。
+- 页面把第一组结果直接标成 `allTime` total/open/closed，trend 又来自另一组上限不同的数据；租户超过上限后，两块看板会无提示地基于不同样本显示“精确”数字。
+- `totalUsers` 使用没有显式分页/total-count 的 `searchUsers('*')`，完整性依赖 Zammad 默认响应；staff dashboard 则为 recent/open/pending/resolved/closed 并发请求五次 app API，对应一次 search 加四组 search+count，health probe 合并后仍是九次 Zammad search/count。
+- 这些统计 route 没有共享 cache、materialized rollup 或快照版本；每次打开/刷新页面都会重新计算。
+
+影响与结论：
+
+- 数据规模增大时会同时出现高延迟、Zammad 压力和静默错误指标，不能把现有 dashboard 当作审计级或运营级报表。
+- 应优先定义指标准确度/新鲜度契约，再使用 Zammad count/search 能力或本地异步 rollup；任何保留安全上限的路径都必须显式返回 truncated/partial，并由 UI 展示。
+
+### AUD-045：staff settings 的保存按钮只等待 500ms 后报告成功（P2，待产品实现）
+
+证据：
+
+- staff settings 展示姓名、电话、语言、四个通知开关、auto assign、closed-ticket visibility 与 default view。
+- `handleSave()` 不调用任何 API，只执行固定 500ms Promise 后显示 success toast；文案说明 logout 后重置。
+- 仓库已有 `/api/user/profile` 与 `/api/user/preferences`，customer settings 正在使用，但 staff settings 没有复用；vacation 是同页唯一独立持久化的设置。
+
+影响与结论：
+
+- 生产角色可进入一个外观完整但不保存的设置页，容易形成错误操作确认。应逐项定义真相来源；已实现的 profile/notification 字段复用真实 API，尚无模型的 auto-assign/view 字段应隐藏、禁用或明确标为未实现，不能继续返回通用保存成功。
+
+### AUD-046：customer notification preferences 只被保存，从未参与通知投递判断（P1，待行为设计）
+
+证据：
+
+- customer settings 把 email/desktop/ticketUpdates/conversationReplies/promotions 写入 Zammad `preferences.csp_notifications`。
+- 全仓对 `csp_notifications` 的读取只存在于 preferences GET/PUT；`notificationService` 与所有 `notifyTicket*` trigger 不读取这些值。
+- 因此关闭 ticket update 或 conversation reply 后，本地 Notification 创建、notification polling 与 toast 路径不受影响；email/desktop/promotions 也没有对应 enforcement 链路。
+
+影响与结论：
+
+- 用户可见 opt-out 不能只是存储字段。需要明确每个开关控制站内持久通知、toast、浏览器通知还是外部邮件，并在投递前应用同一策略；在策略落地前应移除或明确标注无效开关。
+
+### AUD-047：avatar 上传没有写回用户真相，DELETE 明确是成功 no-op（P1，待持久化设计）
+
+证据：
+
+- avatar POST 只创建本地 UploadedFile 并返回 `/api/avatars/{id}`，没有更新 Zammad user、JWT session 或其它用户 profile 记录。
+- AvatarUpload 只把返回 URL 放入组件 preview；staff settings 的 success callback 不更新 session。组件注释声称 server URL 在刷新后仍保留，但页面重新进入时仍只读取 `user.avatar_url`。
+- avatar GET 返回 session 中的旧 URL；DELETE 的实现注释写明 actual file deletion 尚未实现，却仍返回 success，并且不删除 UploadedFile/磁盘字节。
+
+影响与结论：
+
+- 上传成功后刷新或重新登录会丢失展示关联，删除操作也不能满足用户数据移除预期。应先决定 avatar 的唯一真相来源（Zammad、自有 profile 表或受控文件引用），再原子替换旧引用、刷新 session，并让 DELETE 真正删除/解除关联；完成前不应显示成功。
+
+### AUD-048：管理 API 在故障时混入 mock 用户，并提供随机“绩效”数据（P1，待移除生产 fallback）
+
+证据：
+
+- admin users GET 在 Zammad 异常时直接回退 `mockUsers`，响应仍沿用请求的 `source: 'zammad'`；也允许调用方显式选择 `source=mock`。
+- admin staff stats 对固定 mock staff 使用 `Math.random()` 生成 tickets handled、response/resolution time 与 satisfaction rate，并作为成功统计响应返回。
+- 生产禁止 mock authentication 的校验只保护登录，不会禁用这两个读取 API 的 demo fallback。
+
+影响与结论：
+
+- 上游故障可能被伪装成真实但错误的用户/指标数据，随机数还会让同一请求反复变化。生产模式应 fail closed 或返回显式 unavailable/partial 状态；demo 数据必须由独立开发开关和清晰响应标记保护，不能与真实 operational API 共用成功契约。
+
+### AUD-049：hardcoded-string 检测器有 193 条高噪声结果，无法形成可靠门禁（P2，待重写 parser）
+
+证据：
+
+- 当前 `npm run i18n:detect-hardcoded` 退出 1，报告 193 条：admin 11、customer 6、staff 13、API 5、lib 79、component 79。
+- 报告既能发现真实问题（本批已修复的 staff TicketStats、staff settings demo 文案），也把 TypeScript 泛型、函数签名、条件 JSX 和注释识别成文案，例如 `Promise`/`React.ComponentProps` 片段。
+- 推荐内容仍指向已经不存在的 `openspec/changes/complete-i18n-coverage/`，与当前精简 OpenSpec 规则冲突。
+
+影响与结论：
+
+- CI 目前只能执行结构/placeholder 校验，真实硬编码没有可用防回退门槛。应改用 AST/JSX-aware 扫描，区分用户可见 JSX、placeholder/aria/title 与代码/注释/fixture，并建立受审 baseline；在此之前不能用“197/193 条”直接代表真实缺陷数量。
+
+### AUD-050：UploadedFile 与 file log 依赖本机工作目录，仓库无法证明多实例/发布后持久性（P1，待部署验证）
+
+证据：
+
+- 上传字节固定写入 `path.resolve(process.cwd(), 'uploads')`，下载由处理请求的同一应用实例读取；没有对象存储、共享 volume adapter 或 instance affinity 逻辑。
+- 可选 file logger 默认写 `./logs`。仓库没有 Docker/Kubernetes/Helm/平台 deployment manifest，也没有文档声明 uploads/logs mount、ownership、容量、备份或滚动发布行为。
+- 构建仍因 file-storage 动态路径产生 AUD-008 的 NFT trace warning；仓库内迁移基线调查还记录过 UploadedFile metadata 存在但工作区缺少对应字节，说明“数据库记录存在”不能证明文件可恢复。
+
+影响与结论：
+
+- 无共享持久卷时，滚动发布可丢文件；多实例时上传与下载命中不同实例可直接 404。file logs 也可能随实例销毁，且当前启动器没有显式 flush fileLogger 的 shutdown hook。
+- 发布前必须在真实部署产物验证单一共享持久存储、symlink/NFT 路径、权限、配额、备份恢复与跨实例读取；更稳妥的长期方向是对象存储 adapter，而不是继续把 process cwd 当持久边界。
+
+### AUD-051：仓库没有可执行的部署、迁移、备份恢复与 probe/告警契约（P1，待运维补齐）
+
+证据：
+
+- 仓库只有 GitHub Actions test/build workflow，没有 deployment manifest 或 release script；`npm start` 只启动 Next，既不执行也不验证 `prisma migrate deploy`。
+- DATABASE 文档只列出通用 Prisma 命令，没有生产迁移顺序、失败回滚、备份/PITR、恢复演练、RPO/RTO 或 schema/application compatibility 窗口。
+- `/api/health` 同时检查 auth/env、Zammad 与 PostgreSQL，但仓库没有说明它应作为 liveness、readiness 还是外部 status；也没有 metrics/alert integration、cleanup last-success、queue/recovery ledger 或 dashboard partial-data 告警。
+
+影响与结论：
+
+- 外部平台可能另有配置，但当前仓库证据不足以证明可重复部署和可恢复运行。发布前需取得并演练具体环境的 migration/rollback、PostgreSQL 与 uploads 一致备份、readiness/liveness、告警与负责人 runbook；不能以 build/health 通过替代灾难恢复证据。
+
+### AUD-052：前端仍有 10 个 effect dependency warning，变化请求缺少取消/顺序保护（P2，待逐页修复）
+
+证据：
+
+- logger 清理后 lint 剩余 10 个 warning，全部来自页面/组件 effect 缺失 function 或 translation dependency。
+- `TicketTrendChart` 在 range 变化时启动新 fetch，但没有 AbortController 或 request sequence；快速切换 7d/30d/90d 时，较旧请求可后完成并覆盖当前 range 的图表。
+- ticket history、customer ticket list、staff customer list 与多组 admin 首屏加载使用相同的无取消 async effect；unmount、用户/筛选变化和快速重开都没有 stale response 保护。
+
+影响与结论：
+
+- 不能用机械添加 eslint disable 处理。应把每个请求函数稳定化，在 cleanup 中 abort，或用 SWR/统一 data layer 的 key 保证旧响应不会覆盖新状态；优先处理有可变 range/user/filter 的页面，再处理仅 mount-once 的翻译依赖。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -635,6 +747,7 @@ npm run type-check
 npm run test
 npm run test:coverage:ci
 npm run i18n:validate
+npm run i18n:detect-hardcoded
 npm run build
 npm ci
 npx prisma validate

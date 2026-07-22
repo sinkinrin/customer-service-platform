@@ -9,6 +9,7 @@
 - 审计共记录 52 项发现：24 项已修复或加固，2 项部分修复，26 项仍待处理；没有确认 P0，但仍有 17 项 P1 未闭环。
 - 最终独立门禁已通过：`npm run lint`（0 error / 10 个已记录 warning）、`npm run type-check`、`npm run test:coverage:ci`、`npm run i18n:validate` 和隔离生产构建。
 - 最终覆盖率：statements 66.65%、branches 52.24%、functions 66.33%、lines 68.01%；JUnit 记录 125 个 suite、1147 个测试、0 failure、0 error、13 skipped。
+- TypeScript Go 原生预览只做了编译兼容性与本机耗时比较：正式 `tsc` 和临时 `tsgo` 均通过；未把 preview 加入依赖，也未宣称应用运行性能提升。
 - 已知债务：硬编码扫描仍有 193 条混合误报与真实问题；构建仍有 1 个本地文件存储 NFT trace warning；事件一致性、dashboard 指标、偏好/头像行为、生产 fallback、多实例文件持久化及部署恢复契约仍有 P1 风险。
 - 隔离保护加入前，旧真实数据库测试曾被执行，可能在当时配置的数据库留下 `cust_001` 测试 AI 对话；未发现 Zammad 写入证据，也未在数据库归属不明时擅自清理。
 - 未运行：任何连接真实 Zammad 的 E2E、生产数据库迁移 / `db push` / seed、备份恢复或真实外部服务写测试。

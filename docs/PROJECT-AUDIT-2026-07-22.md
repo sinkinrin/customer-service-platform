@@ -19,6 +19,18 @@
 - 基线已通过：ESLint（0 error / 18 warning）、TypeScript、完整 Vitest、当前 CI 覆盖率门槛、i18n 校验、生产构建、GitHub Actions YAML 解析。
 - 一次把覆盖率与生产构建并行执行时，`conversation-detail-history` 有一个 10 秒超时；该文件单独运行 46/46 通过，覆盖率串行重跑通过。当前证据支持“资源竞争下的脆弱测试”，不支持“稳定功能回归”。
 
+### TypeScript Go 原生预览评估
+
+证据：
+
+- 临时调用 `@typescript/native-preview@7.0.0-dev.20260707.2` 的 `tsgo --noEmit`，没有修改 `package.json`、lockfile 或项目依赖；当前项目在原生预览编译器与已安装的 `tsc` 下都以 exit 0 通过。
+- 同一工作树的两次 `tsc --noEmit` 分别为 4.27 秒和 4.86 秒；通过 `npx` 调用的 `tsgo --noEmit` 首次为 12.08 秒、缓存后为 3.49 秒。
+
+结论：
+
+- 缓存后的单次观察值比本地 `tsc` 快，但样本很小，且 `npx` 启动、下载/缓存和系统负载没有被完全剥离，不能据此承诺稳定的 CI 收益。
+- 该包仍是每日 dev preview，本轮不把它加入生产依赖或替换正式类型检查器。上述结果只说明当前代码的编译兼容性和本机编译耗时，不代表应用构建、启动或运行性能提升。
+
 ### AUD-001：生产依赖仍有未解决的高危漏洞链（P1，未修复）
 
 证据：
@@ -757,6 +769,8 @@ npm outdated --json
 npm ls ... --depth=0
 npm view next@16.2.11 optionalDependencies engines
 npm view eslint-config-next@16.2.11 peerDependencies
+npm view @typescript/native-preview version bin engines --json
+npx --yes --package=@typescript/native-preview tsgo --noEmit
 rg / targeted PowerShell scans for API role checks, impersonation, file access and error responses
 npm run test -- __tests__/unit/health-check.test.ts __tests__/api/health-zammad.test.ts __tests__/api/ai.test.ts
 npm run test -- __tests__/unit/zammad-client.test.ts
@@ -880,6 +894,25 @@ npx playwright test --list
 - 构建生成的 `next-env.d.ts` 已恢复为仓库约定的 `.next/dev/types/routes.d.ts` 引用，最终工作树不包含生成性差异。
 - `npm run i18n:detect-hardcoded` 没有作为发布通过项：AUD-049 已证明当前 193 条结果混合真实问题与大量 parser 误报，命令目前仍退出 1。
 - 未执行真实 E2E、迁移、`db push`、seed、备份恢复、真实 Zammad/PostgreSQL/AI provider 请求或浏览器写流程。
+
+## 计划覆盖与收口矩阵
+
+| 计划领域 | 主要证据 |
+|---|---|
+| 1. 基线与工具链 | 基线版本与脚本、AUD-001–AUD-009、TypeScript Go 原生预览评估、最终独立门禁 |
+| 2. 安全与权限 | AUD-010–AUD-020：health/AI 泄露、RBAC、认证 fallback、限流、mock/dev 入口、异常、webhook 与文件边界 |
+| 3. 数据与 Zammad 边界 | AUD-021–AUD-023、AUD-025–AUD-031、AUD-033：重试、补偿、游标、幂等、claim、去重、恢复与 cutover |
+| 4. 可靠性与实时链路 | AUD-024–AUD-034：SSE/polling、并发、重复事件、跨实例备援、retention 与恢复缺口 |
+| 5. 测试与 CI | AUD-004、AUD-009、AUD-035–AUD-037，以及十批定向/全量验证和 E2E safety 枚举 |
+| 6. 前端质量 | AUD-038、AUD-040、AUD-045–AUD-049、AUD-052：偏好、键盘可达性、设置/头像闭环、真实数据、i18n 与 effect 顺序 |
+| 7. 性能与依赖 | AUD-001、AUD-007–AUD-008、AUD-039、AUD-041、AUD-044：依赖漏洞、工具链、NFT trace、probe/查询/扫描放大 |
+| 8. 运维与文档 | AUD-003、AUD-006、AUD-019、AUD-032、AUD-034、AUD-043、AUD-050–AUD-051，以及文档索引与最终发布评估 |
+
+发现收口状态：
+
+- 已修复或加固（24）：AUD-002–AUD-006、AUD-009–AUD-011、AUD-017–AUD-019、AUD-021–AUD-024、AUD-032、AUD-035、AUD-037–AUD-043。
+- 部分修复（2）：AUD-008、AUD-016。
+- 待处理（26）：AUD-001、AUD-007、AUD-012–AUD-015、AUD-020、AUD-025–AUD-031、AUD-033–AUD-034、AUD-036、AUD-044–AUD-052。
 
 ## 最终发布评估
 

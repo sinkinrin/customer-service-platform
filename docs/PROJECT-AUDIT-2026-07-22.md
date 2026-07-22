@@ -559,6 +559,20 @@
 - 写 locale 前读取当前 Zammad 用户，并保留全部现有 preferences 后再覆盖 `locale`。
 - 新增回归断言，证明 `csp_notifications` 在资料更新后仍保留，同时拒绝未知 locale。
 
+### AUD-039：并发 API 会在健康缓存冷启动时放大 Zammad probe（P2，已修复）
+
+证据：
+
+- staff dashboard 首屏并行发起 recent/open/pending/resolved/closed 五个 ticket search 请求。
+- 每个 search route 都先调用 `checkZammadHealth()`；原 30 秒缓存只保存已完成结果，没有共享 in-flight Promise。
+- 缓存过期时，这五个并发请求都能在首个 probe 完成前各自请求一次 `/api/v1/users/me`，随后才继续真正的 search/count 请求。
+
+修复：
+
+- Zammad health check 现在共享单个 in-flight probe，完成后再由短时缓存接管。
+- probe 的 abort timer 在成功、HTTP 失败和异常路径都会清理。
+- 新增并发回归测试，五个同时调用只产生一个 upstream fetch；顺序调用继续命中缓存。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -591,6 +605,7 @@ npm run test -- __tests__/unit/notification-service.test.ts __tests__/api/notifi
 npm run test -- __tests__/unit/e2e-safety.test.ts
 npm run test -- __tests__/api/tickets.test.ts __tests__/api/ai.test.ts __tests__/api/tickets-rating.test.ts
 npm run test -- __tests__/api/user-profile.test.ts
+npm run test -- __tests__/unit/zammad-health-check.test.ts
 npx playwright test --list
 ```
 

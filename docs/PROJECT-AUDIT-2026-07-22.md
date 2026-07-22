@@ -531,6 +531,20 @@
 - 130 个枚举用例不能等同于 130 个有效业务断言；当前 E2E 更接近可选 smoke 集合，不能作为发布关键工单链路的证据。
 - 应先拆成不依赖 Zammad 的 UI/auth smoke 与需要隔离 Zammad fixture 的真实 contract journey；禁止用条件分支静默通过，缺 fixture 应显式 `skip`/失败并在报告中可见。完成前继续保持 CI E2E 默认关闭。
 
+### AUD-037：mock API 测试仍偷偷访问 Prisma，并把缺失 mock 当预期日志吞掉（P2，已修复）
+
+证据：
+
+- 完整 Vitest 中 `tickets.test.ts` 每个 list case 都真实调用 `prisma.ticketRating.findMany()`，只因 route 的 best-effort catch 才继续通过；使用不可连接占位地址时每次等待约 2 秒并打印连接失败。
+- `ai.test.ts` 的正常 chat case 真实调用 `getConversation()`，同样依赖捕获 Prisma 连接错误后退化为 proxy。
+- `tickets-rating.test.ts` 没有 notification/user-mapping mock，成功 rating case会记录 “Failed to send notification”，测试仍然通过。
+
+修复：
+
+- 为三组 route 测试补齐 Prisma、AI conversation 和 notification 边界 mock。
+- 定向 48 个测试从多次 2 秒连接等待降为毫秒级执行；正常成功 case 不再产生数据库连接或缺失 notification mock 错误。
+- 真实数据库行为仍只由显式 opt-in 的 database integration suite 承担，普通 API 测试不再把“连接失败且被吞掉”误当隔离方式。
+
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
@@ -561,6 +575,7 @@ npm run test -- __tests__/unit/zammad-client.test.ts
 npm run test -- __tests__/components/ticket-updates-provider.test.tsx __tests__/api/tickets-updates.test.ts __tests__/lib/sse-emitter.test.ts
 npm run test -- __tests__/unit/notification-service.test.ts __tests__/api/notifications.test.ts __tests__/api/webhooks-zammad.test.ts
 npm run test -- __tests__/unit/e2e-safety.test.ts
+npm run test -- __tests__/api/tickets.test.ts __tests__/api/ai.test.ts __tests__/api/tickets-rating.test.ts
 npx playwright test --list
 ```
 
@@ -649,6 +664,16 @@ npx playwright test --list
 - `npm run i18n:validate`：通过。
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告。
 - 未执行 E2E、`db push`、迁移、seed、真实 Zammad 或浏览器写流程。
+
+## 第九批验证结果
+
+- API mock 隔离定向回归：3 个文件、48 个测试通过；补齐 Prisma、AI conversation 与 notification 边界 mock 后，不再出现真实 Prisma 连接等待或成功路径 notification warning。
+- `npm run type-check`：通过。
+- `npm run lint`：通过，0 error / 18 个既有 warning。
+- `npm run test:coverage:ci`：123 个文件、1140 个测试全部通过；statements 66.77%、branches 52.21%、functions 66.42%、lines 68.10%。
+- `npm run i18n:validate`：通过。
+- 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告，trace 指向 `next.config.js`、`file-storage.ts` 与 avatar route。
+- 全部验证使用不可连接 PostgreSQL/Zammad 占位地址；未执行 E2E、`db push`、迁移、seed、真实 Zammad、AI provider 或浏览器写流程。
 
 ## 下一步
 

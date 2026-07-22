@@ -32,6 +32,11 @@ vi.mock('@/lib/utils/auth', () => ({
   requireRole: vi.fn(),
 }))
 
+vi.mock('@/lib/ai-conversation-service', () => ({
+  getConversation: vi.fn().mockResolvedValue(null),
+  addMessage: vi.fn(),
+}))
+
 import { requireAuth, requireRole } from '@/lib/utils/auth'
 import { readAISettings } from '@/lib/utils/ai-config'
 

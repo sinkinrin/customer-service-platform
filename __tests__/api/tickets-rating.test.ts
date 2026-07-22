@@ -26,9 +26,15 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/notification', () => ({
+  resolveLocalUserIdsForZammadUserId: vi.fn().mockResolvedValue([]),
+  notifyTicketRated: vi.fn(),
+}))
+
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { prisma } from '@/lib/prisma'
+import { resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 
 function createRequest(url: string, method: string, body?: any): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
@@ -40,6 +46,7 @@ function createRequest(url: string, method: string, body?: any): NextRequest {
 describe('Ticket Rating API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(resolveLocalUserIdsForZammadUserId).mockResolvedValue([])
   })
 
   afterEach(() => {

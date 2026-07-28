@@ -416,6 +416,8 @@
       "confirm": "是的，重新开启",
       "cancel": "取消",
       "success": "工单已重新开启",
+      "partialSuccess": "工单已重新开启，但审计备注未能保存或确认。",
+      "outcomeUnconfirmed": "重新开启请求可能已经成功，但当前无法确认结果。请刷新工单后再重试。",
       "error": "重新开启工单失败"
     }
   },
@@ -1247,6 +1249,10 @@
       },
       "toast": {
         "personalInfoUpdated": "个人信息已更新",
+        "personalInfoPartiallyUpdated": "个人资料已保存，但语言设置未能更新。",
+        "outcomeUnconfirmed": "更新可能已成功，表单已按当前保存的设置刷新。",
+        "passwordOutcomeUnconfirmed": "密码可能已经修改成功。再次操作前，请先尝试使用新密码登录进行确认。",
+        "identityChanged": "当前登录身份已变化，正在刷新会话，请稍后再保存。",
         "updateFailed": "更新失败，请重试",
         "notificationsUpdated": "通知设置已更新",
         "passwordMismatch": "新密码与确认密码不匹配",

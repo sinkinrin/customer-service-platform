@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { assertSafeE2EEnvironment } from '../../scripts/e2e-safety'
+import {
+  assertSafeE2EEnvironment,
+  isExplicitTestDatabaseUrl,
+} from '../../scripts/e2e-safety'
 
 const safeEnv = {
   RUN_ISOLATED_E2E: 'true',
@@ -18,8 +21,34 @@ describe('E2E safety guard', () => {
     expect(() => assertSafeE2EEnvironment({
       ...safeEnv,
       DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/customer_service',
-    })).toThrow('name contains "test"')
+    })).toThrow('explicit "test" or "e2e" name segment')
   })
+
+  it.each(['customer_service_latest', 'customer_service_contest'])(
+    'rejects a non-test database whose name only contains test letters: %s',
+    databaseName => {
+      expect(isExplicitTestDatabaseUrl(
+        `postgresql://postgres:postgres@127.0.0.1:5432/${databaseName}`
+      )).toBe(false)
+      expect(() => assertSafeE2EEnvironment({
+        ...safeEnv,
+        DATABASE_URL: `postgresql://postgres:postgres@127.0.0.1:5432/${databaseName}`,
+      })).toThrow('explicit "test" or "e2e" name segment')
+    }
+  )
+
+  it.each(['test', 'test_customer_service', 'customer-service-test', 'customer.service.e2e'])(
+    'accepts an explicit test database name segment: %s',
+    databaseName => {
+      expect(isExplicitTestDatabaseUrl(
+        `postgresql://postgres:postgres@127.0.0.1:5432/${databaseName}`
+      )).toBe(true)
+      expect(() => assertSafeE2EEnvironment({
+        ...safeEnv,
+        DATABASE_URL: `postgresql://postgres:postgres@127.0.0.1:5432/${databaseName}`,
+      })).not.toThrow()
+    }
+  )
 
   it('rejects remote services unless they are explicitly allowed', () => {
     expect(() => assertSafeE2EEnvironment({

@@ -2,7 +2,7 @@
 
 > 当前测试栈、覆盖范围与执行方式。
 
-**最后更新**：2026-07-22
+**最后更新**：2026-07-28
 
 ---
 
@@ -43,9 +43,9 @@ npm run type-check
 ## 安全边界
 
 - 默认 Vitest 必须使用 mock 或不可连接的本地占位地址，不能读取或写入生产 PostgreSQL / Zammad。
-- `__tests__/api/conversations-real.test.ts` 默认跳过。只有同时满足 `RUN_DATABASE_INTEGRATION_TESTS=true` 且 `DATABASE_URL` 的数据库名包含 `test` 时才会执行，否则拒绝运行。
+- `__tests__/api/conversations-real.test.ts` 默认跳过。只有同时满足 `RUN_DATABASE_INTEGRATION_TESTS=true` 且 `DATABASE_URL` 的数据库名包含由 `.`, `_`, `-` 分隔的独立 `test` / `e2e` 命名段时才会执行，否则拒绝运行；`latest`、`contest` 等子串不视为测试库。
 - Playwright 流程可能创建用户、工单、回复和附件。只允许连接专用测试数据库与隔离 Zammad；不得把生产地址、token 或生产 `.env.local` 用于 E2E。
-- Playwright 默认拒绝启动；必须设置 `RUN_ISOLATED_E2E=true`，数据库名必须包含 `test`。默认只允许 loopback PostgreSQL/Zammad；专用远程测试系统还需显式设置 `ALLOW_REMOTE_E2E_SERVICES=true`。
+- Playwright 默认拒绝启动；必须设置 `RUN_ISOLATED_E2E=true`，数据库名必须包含由 `.`, `_`, `-` 分隔的独立 `test` / `e2e` 命名段。默认只允许 loopback PostgreSQL/Zammad；专用远程测试系统还需显式设置 `ALLOW_REMOTE_E2E_SERVICES=true`。
 - Playwright 不复用已经运行的本地 server，避免测试误接到以共享或生产凭据启动的进程。运行前应先释放 3010 端口。
 - 禁止在共享或生产数据库上执行 `prisma db push`、迁移、seed 或测试清理脚本。
 
@@ -60,6 +60,8 @@ npm run test
 ```
 
 不可连接地址是防误连措施，测试日志中可能出现预期的连接失败信息；应以最终测试退出码为准。
+
+依赖或 lockfile 发生变化后，先执行一次干净的 `npm ci`，再运行 lint、类型检查、测试和构建；不能用旧 `node_modules` 的结果证明新依赖组合兼容。
 
 ---
 

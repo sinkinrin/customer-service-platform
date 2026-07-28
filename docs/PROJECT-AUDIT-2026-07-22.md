@@ -1,12 +1,12 @@
 # 项目全面审计记录（2026-07-22）
 
-> 状态：已完成（2026-07-22）。本文只记录已经由代码、锁文件或可复现命令支持的结论；未证明可达性的漏洞不写成已被利用。审计完成表示证据收集和本轮低风险整改已收口，不表示系统已经具备生产发布条件。
+> 状态：初始审计完成于 2026-07-22，修复与最终验证收口于 2026-07-28。本文只记录已经由代码、锁文件或可复现命令支持的结论；未证明可达性的漏洞不写成已被利用。审计完成表示证据收集和本轮低风险整改已收口，不表示系统已经具备生产发布条件。
 
 ## 审计边界
 
 - 未连接生产或共享 PostgreSQL。
 - 未连接真实 Zammad、AI provider 或 webhook。
-- 测试和构建使用 `127.0.0.1` 不可连接端口及名称包含 `test` 的占位数据库。
+- 测试和构建使用 `127.0.0.1` 不可连接端口及带独立 `test` 命名段的占位数据库。
 - 后续修改位于独立 worktree `customer-service-platform-audit` 的 `audit/project-review` 分支。
 
 ## 第一阶段：基线与工具链
@@ -31,20 +31,19 @@
 - 缓存后的单次观察值比本地 `tsc` 快，但样本很小，且 `npx` 启动、下载/缓存和系统负载没有被完全剥离，不能据此承诺稳定的 CI 收益。
 - 该包仍是每日 dev preview，本轮不把它加入生产依赖或替换正式类型检查器。上述结果只说明当前代码的编译兼容性和本机编译耗时，不代表应用构建、启动或运行性能提升。
 
-### AUD-001：生产依赖仍有未解决的高危漏洞链（P1，未修复）
+### AUD-001：生产依赖 audit 已清零，但越界 overrides 仍有兼容风险（P1，部分修复）
 
 证据：
 
-- `npm audit --omit=dev --json` 在补丁升级前报告 4 high / 1 low；升级 DOMPurify 与 brace-expansion 后剩余 3 high。
-- 剩余条目是同一条生产链的不同节点：`@scalar/nextjs-api-reference -> next -> sharp@0.34.5`。
-- `npm view next@16.2.11 optionalDependencies` 仍声明 `sharp: ^0.34.5`；当前 Sharp 最新版为 `0.35.3`，已超出 Next 声明的兼容范围。
-- npm 给出的自动修复建议会把 Next 降到 `14.2.35`，这不是本项目可接受的安全修复方案。
+- `npm audit --omit=dev --json` 在补丁升级前报告 4 high / 1 low；升级 DOMPurify、brace-expansion、Next，并显式覆盖 PostCSS / Sharp / swagger-jsdoc / js-yaml 后，最终生产依赖 audit 为 0 vulnerability。
+- 当前安装图使用 Next `16.2.12`、PostCSS `8.5.19`、Sharp `0.35.3`、swagger-jsdoc `6.3.0` 与 js-yaml `5.2.2`。`npm ls` 无 extraneous 或 invalid 项。
+- 这些版本并不都落在直接消费者声明范围内：Next 精确请求 `postcss@8.4.31` 并声明 `sharp: ^0.34.5`，`next-swagger-doc@0.4.1` 固定请求 `swagger-jsdoc@6.2.8`，ESLint 8 与 json-schema-ref-parser 声明 `js-yaml: ^4.1.0`；`npm explain` 将四者标记为 overridden。
+- 完整 `npm audit` 仍报告 18 high，均位于既有 ESLint 8 开发工具链；不进入生产依赖图，但仍需通过 AUD-007 的工具链迁移消除。
 
 影响与结论：
 
-- 漏洞位于生产依赖，不应因“自动修复建议不合理”而忽略。
-- 当前尚未证明应用存在可被外部用户控制的 Sharp/libvips 触发路径，因此不声称漏洞已可利用。
-- 暂不强制 override 到 Sharp 0.35，也不降级 Next。应跟踪 Next 对 Sharp 0.35 的兼容版本，或在隔离分支验证显式 override、图片优化调用面和回滚方案。
+- 干净安装、生产构建、CSS 处理、Sharp 内存 transform、Next 生产图片优化和实际 OpenAPI 生成均已通过，说明本轮覆盖到的调用面可运行。
+- 这些门禁不能证明越界版本组合覆盖了所有运行路径，也不能替代上游兼容声明。生产 advisory 已从当前安装图中清除，但应继续跟踪 Next / next-swagger-doc / ESLint 的正式兼容版本，并保留 override 回滚与部署 canary，因此本项只记为部分修复。
 
 ### AUD-002：CI 没有生产构建门禁（P1，已修复）
 
@@ -114,8 +113,8 @@
 
 证据：
 
-- 应用是 Next `16.2.6`，但安装的是 `eslint-config-next@15.5.7` 与 ESLint `8.57.1`。
-- `eslint-config-next@16.2.11` 要求 ESLint `>=9.0.0`，说明正确对齐不是单包 patch，而是 flat config / ESLint 9 迁移。
+- 应用是 Next `16.2.12`，但安装的是 `eslint-config-next@15.5.7` 与 ESLint `8.57.1`。
+- `eslint-config-next@16.2.12` 要求 ESLint `>=9.0.0`，说明正确对齐不是单包 patch，而是 flat config / ESLint 9 迁移。
 
 结论：
 
@@ -373,8 +372,10 @@
 修复：
 
 - ticket 页面现在始终保留现有 polling hook；SSE 继续提供低延迟推送，30 秒 polling 负责跨实例与漏推恢复。
-- SSE 与 polling 返回同一 `TicketUpdate.id` 时仍由既有 processed-ID 集合去重。
-- 新增组件回归测试，验证 SSE 连接成功后 polling 仍保持启用。
+- 每个浏览器标签页都会先刷新本标签的 ticket/notification cache、派发 detail-page `ticket-update` event，并同步旧 unread store；跨标签持久 claim 只门控 toast 等真正一次性副作用，因此另一标签抢到 claim 不再阻止当前标签刷新。
+- SSE 与 polling 返回同一 `TicketUpdate.id` 时，由按完整授权身份隔离、容量受限的 tab-local registry 去重；全局 claim 仍保证同一更新只展示一次 toast。
+- customer my-tickets 列表虽然使用手工 fetch，也会按当前完整授权身份监听该 event 并后台刷新第一页；旧身份 listener 在 effect cleanup 前同样会被 ref guard 拒绝。
+- 新增组件/页面回归测试，验证 SSE 连接成功后 polling 仍保持启用、global claim 为 false 时本标签仍刷新、SSE/polling 重复投递不会在同标签重复刷新或累计 unread，以及手工列表实际消费 event。
 
 ### AUD-025：TicketUpdate 时间戳游标和 100 条全局上限会永久跳过更新（P1，待修复）
 
@@ -391,19 +392,22 @@
 - AUD-024 恢复了跨实例 polling，但不能补回被当前游标协议永久跳过的记录；前端可能不刷新、漏 toast 或漏未读计数，直到用户执行其他刷新动作。
 - 应改为稳定复合游标、升序分页和明确的 high-water mark / `hasMore` 协议，并覆盖同毫秒记录、超过 100 条、查询期间并发写入和权限过滤后的分页测试。该修改涉及前后端持久化游标兼容，不在本批局部修改中仓促实施。
 
-### AUD-026：出站 Zammad 写入没有稳定 intent / 幂等或 unknown-outcome 对账（P1，待架构决策）
+### AUD-026：部分出站写入已有即时对账，但仍缺少持久 intent / outbox（P1，部分修复）
 
 证据：
 
-- Zammad client 已停止自动重放 POST/PUT/DELETE，但请求头只有认证、content type、accept 和可选 `X-On-Behalf-Of`；没有稳定业务 intent ID。
-- Prisma schema 没有 Zammad write intent、outbox、recovery ledger 或请求结果对账模型；精确搜索只找到 AI 消息自身的幂等保护，没有覆盖 `createTicket`、`createArticle`、`createUser`。
-- 工单、回复和用户创建 route 都直接调用对应 Zammad create API。网络超时只证明本应用没有拿到响应，不能证明 Zammad 没有提交；调用者重新提交仍可能重复创建。
-- 迁移服务在 `await updateTicket()` 返回后才把 ticket 放入 snapshot。若更新已在 Zammad 成功但响应丢失，该 ticket 不会进入当前补偿列表。
+- Zammad client 已停止自动重放 POST/PUT/DELETE；GET/HEAD 才允许自动重试。
+- profile 普通字段与 locale、notification preferences、password、ticket reopen 和 UploadedFile metadata 已分别增加写后读取或正向认证：可把“响应丢失但写入已提交”识别为成功，否则返回明确的 `OUTCOME_UNCONFIRMED` 或保留物理文件。
+- 密码修改在写入前使用 strict authentication：只有 401/403 被视为凭据拒绝，网络、timeout、5xx 与非法 JSON 会返回 `CURRENT_PASSWORD_VERIFICATION_UNAVAILABLE` 且不写入；写入阶段的 400/422、401/403 与其他确定 4xx 分别返回明确拒绝，408、网络、5xx 与响应解析失败才进入新密码正向认证对账。
+- profile、locale、notification preferences、password 与 reopen 的 mutation 分类均把 HTTP 408 排除在确定 4xx 拒绝之外；408 会进入字段/状态读回或正向认证，reopen audit article 无法可靠读回时标为 `unconfirmed`。
+- 密码确认只用新密码做正向认证，绝不重放写入；reopen 在共享 PostgreSQL advisory lock 内读取状态并对模糊 update 结果重新读取 ticket；文件 metadata 使用预先生成的 UUID 即时查询。
+- Prisma schema 仍没有 Zammad write intent、outbox、recovery ledger 或 operator-visible 对账模型；`createTicket`、`createArticle`、`createUser` 等创建路径仍没有稳定业务 intent ID。
+- 单次即时读回无法覆盖进程在写入后崩溃、上游最终一致性延迟或长期恢复；reopen 的 audit article 响应丢失时仍只能标为 `unconfirmed`。
 
 影响与结论：
 
-- AUD-021 消除了客户端自身的自动重复写，但没有解决人工/前端重试或补偿流程面对 unknown outcome 的重复与遗漏风险。
-- 需要先确认 Zammad 可用的外部标识、自定义字段或查询语义，再选择本地持久化 intent/outbox、稳定 idempotency key、写后对账和 operator-visible recovery 状态；不能仅靠再次 POST 或盲目回滚。
+- 本轮显著收窄了几个高频更新路径的 unknown-outcome 风险，也避免了密码和 reopen 的盲目重放或覆盖式补偿。
+- 人工/前端重试、创建型 mutation、进程崩溃和跨时段恢复仍可能造成重复或遗漏。后续仍需确认 Zammad 可用的外部标识、自定义字段或查询语义，并实现本地持久化 intent/outbox、稳定 idempotency key 与 recovery ledger。
 
 ### AUD-027：email user welcome 的 note marker 不是并发 claim（P1，待架构决策）
 
@@ -524,7 +528,7 @@
 
 修复：
 
-- Playwright 配置加载时强制要求 `RUN_ISOLATED_E2E=true`、数据库名包含 `test`、以及有效 `DATABASE_URL`/`ZAMMAD_URL`。
+- Playwright 配置加载时强制要求 `RUN_ISOLATED_E2E=true`、数据库名包含由 `.`、`_`、`-` 分隔的独立 `test` / `e2e` 命名段，以及有效 `DATABASE_URL`/`ZAMMAD_URL`；`latest`、`contest` 等子串不会通过。
 - 默认只允许 loopback PostgreSQL 与 Zammad；专用远程测试系统必须再显式设置 `ALLOW_REMOTE_E2E_SERVICES=true`。
 - 禁止复用已经运行的本地 server；端口被占用时失败，而不是冒险附着。
 - gated CI E2E job 显式设置 opt-in。新增 5 个单测，并通过 `playwright test --list` 验证 12 个文件、130 个用例可被安全枚举；未实际执行 E2E。
@@ -557,19 +561,22 @@
 - 定向 48 个测试从多次 2 秒连接等待降为毫秒级执行；正常成功 case 不再产生数据库连接或缺失 notification mock 错误。
 - 真实数据库行为仍只由显式 opt-in 的 database integration suite 承担，普通 API 测试不再把“连接失败且被吞掉”误当隔离方式。
 
-### AUD-038：资料语言更新会覆盖 Zammad 中同级 preferences（P1，已修复）
+### AUD-038：资料语言与通知偏好已改为独立 Zammad preference key 写入（P1，已修复）
 
 证据：
 
 - customer settings 保存资料时始终提交 `language`；profile API 修复前把更新 payload 直接写成 `preferences: { locale }`。
-- notification preferences API 把用户开关保存在同一个 Zammad `preferences.csp_notifications` 对象，并明确先读取、合并再更新；profile 路径没有做相同保护。
-- 这意味着资料保存与通知设置存在互相覆盖风险，且 API 接受任意语言字符串，可能写入界面不支持的 locale。
+- notification preferences API 修复前把全部开关序列化到同一个 `preferences.csp_notifications` 对象；并发请求会基于各自的旧快照重写整个对象。
+- 资料、locale 与通知开关因此既可能互相覆盖，也可能在并发开关更新时发生 lost update；profile API 还接受任意语言字符串。
 
 修复：
 
 - profile API 只接受当前六种受支持语言。
-- 写 locale 前读取当前 Zammad 用户，并保留全部现有 preferences 后再覆盖 `locale`。
-- 新增回归断言，证明 `csp_notifications` 在资料更新后仍保留，同时拒绝未知 locale。
+- 普通资料字段继续走 user update，但不再携带整个 preferences；locale 通过 Zammad 专用 `PUT /users/preferences` 只写 `locale`。
+- 五个通知开关分别映射为独立顶层 key（`csp_notification_*`），同样通过专用 endpoint 写入；profile 与 preferences 两条路径的 `X-On-Behalf-Of` 均使用 session 中稳定的 Zammad ID，而不是可能陈旧的 email。读取时兼容旧 `csp_notifications` 对象，但新写入不再重写它。
+- customer settings 客户端只提交相对当前已确认基线发生变化的资料/通知字段；陈旧标签页不会再把未编辑字段的旧值整表回写，通知成功后采用 API 返回的完整 preference snapshot 更新本地基线。
+- profile 与 preferences 都覆盖了明确 4xx、模糊写入后的读回确认、身份切换拒绝和并发独立 key 更新测试。
+- 专用 endpoint 的 merge / row-lock 语义目前只有 mock 契约和上游接口约定支持，尚未连接真实 Zammad 验证；上线时不能无协调混部仍写旧 `csp_notifications` 对象的版本。
 
 ### AUD-039：并发 API 会在健康缓存冷启动时放大 Zammad probe（P2，已修复）
 
@@ -599,7 +606,7 @@
 - customer ticket row 与 staff recent ticket entry 补齐同样的键盘导航，并阻止行内按钮键盘事件冒泡。
 - staff ticket stats 改用六种语言结构一致的翻译键；组件与 i18n 定向 22 个测试、type-check、i18n validation 和 lint 均通过。
 
-### AUD-041：评分统计为三个计数加载整张 TicketRating 表（P2，已修复）
+### AUD-041：评分统计改为同一 RepeatableRead 快照内的数据库聚合（P2，已修复）
 
 证据：
 
@@ -608,8 +615,8 @@
 
 修复：
 
-- total 改为数据库 `count()`，正负数量改为 `groupBy()`，最近负评改为带 `where`、排序和 `take: 5` 的有界查询。
-- 三个只读查询并行执行，响应契约不变；admin stats 定向 10 个测试、type-check 与 lint 通过。
+- 正负数量改为 `groupBy({ by: ['rating'] })`，total 由同一分组结果求和；最近负评使用带 `where`、排序和 `take: 5` 的有界 `findMany`。
+- 两个查询在同一个 `RepeatableRead` transaction snapshot 内执行，避免聚合与最近列表跨快照漂移；响应契约不变，测试明确断言 isolation level。
 
 ### AUD-042：logger 的表达式式 ternary 制造 8 个无业务价值 lint warning（P3，已修复）
 
@@ -732,23 +739,27 @@
 
 - 外部平台可能另有配置，但当前仓库证据不足以证明可重复部署和可恢复运行。发布前需取得并演练具体环境的 migration/rollback、PostgreSQL 与 uploads 一致备份、readiness/liveness、告警与负责人 runbook；不能以 build/health 通过替代灾难恢复证据。
 
-### AUD-052：前端仍有 10 个 effect dependency warning，变化请求缺少取消/顺序保护（P2，待逐页修复）
+### AUD-052：关键身份与实时 effect 已加固，仍有 9 个 warning（P2，部分修复）
 
 证据：
 
-- logger 清理后 lint 剩余 10 个 warning，全部来自页面/组件 effect 缺失 function 或 translation dependency。
+- logger 清理后 lint 曾剩余 10 个 warning，全部来自页面/组件 effect 缺失 function 或 translation dependency。
 - `TicketTrendChart` 在 range 变化时启动新 fetch，但没有 AbortController 或 request sequence；快速切换 7d/30d/90d 时，较旧请求可后完成并覆盖当前 range 的图表。
 - ticket history、customer ticket list、staff customer list 与多组 admin 首屏加载使用相同的无取消 async effect；unmount、用户/筛选变化和快速重开都没有 stale response 保护。
 
-影响与结论：
+修复与剩余风险：
 
-- 不能用机械添加 eslint disable 处理。应把每个请求函数稳定化，在 cleanup 中 abort，或用 SWR/统一 data layer 的 key 保证旧响应不会覆盖新状态；优先处理有可变 range/user/filter 的页面，再处理仅 mount-once 的翻译依赖。
+- customer settings 将加载、保存、profile/preferences/password 请求绑定完整授权身份，并在身份变化时中止旧 lifecycle、清空旧数据和拒绝 stale client；失败或身份未就绪时保持表单禁用。
+- customer my-tickets 列表、详情页与 reopen button 使用统一的完整授权身份 key（id/email/role/zammad/region/groups）并增加 keyed lifecycle、abort / generation 保护；详情在身份/工单变化时立即隐藏 ticket、articles、回复草稿与上传状态，旧 GET、realtime refresh、close/reply/reopen 响应不能覆盖新页面或触发旧 toast/callback。SSE、polling 与 provider 使用相同原则，Web Lock 真正持锁后也会再次验证身份，旧连接、timeout、interval、claim 和响应不能跨用户继续更新状态。
+- lint 最终为 0 error / 9 warning；settings、my-tickets 与 realtime 链路不再出现在 warning 列表。
+- `TicketTrendChart`、ticket history、staff customers 与六个 admin 页面仍需逐项稳定请求函数、在 cleanup 中 abort 或使用带身份/筛选 key 的统一 data layer；不能用机械 eslint disable 收口。
 
 ## 已完成的依赖处置
 
 - DOMPurify：`3.4.11 -> 3.4.12`，修复 low advisory。
-- brace-expansion：`1.1.14 -> 1.1.16`、`2.1.0 -> 2.1.2`，修复 high advisory。
+- brace-expansion：`1.1.14 -> 1.1.16`、`2.1.0 -> 2.1.2`，修复当时生产审计命中的 advisory；当前完整 audit 的新 high 仍位于 ESLint 8 开发链，归 AUD-007 继续处理。
 - caniuse-lite：`1.0.30001759 -> 1.0.30001806`，消除陈旧浏览器数据警告；目标浏览器集合不变。
+- Next 更新到 `16.2.12`，并覆盖 PostCSS `8.5.19`、Sharp `0.35.3`、swagger-jsdoc `6.3.0`、js-yaml `5.2.2`；生产 audit 清零，运行门禁通过，但保留 AUD-001 的越界兼容风险。
 - 未执行 `npm audit fix --force`，因为其建议包含 Next 主版本倒退。
 
 ## 已执行命令（累计）
@@ -883,7 +894,7 @@ npx playwright test --list
 - 隔离生产构建：通过；仍只有 AUD-008 所述的 1 个 NFT 文件追踪警告，trace 指向 `next.config.js`、`file-storage.ts` 与 avatar route。
 - 全部验证使用不可连接 PostgreSQL/Zammad 占位地址；未执行 E2E、`db push`、迁移、seed、真实 Zammad、AI provider 或浏览器写流程。
 
-## 第十批验证结果（最终门禁）
+## 第十批验证结果
 
 - 最初一次把 lint、类型检查、i18n、覆盖率和构建串在同一 PowerShell 进程中的命令不计为有效最终门禁：构建用的 `ZAMMAD_WEBHOOK_SECRET` 与 `EMAIL_USER_WELCOME_EMAIL_ENABLED=false` 污染了覆盖率进程，导致 3 个环境敏感测试按配置失败；命令又使用 `;`，后续构建成功掩盖了前序失败的退出码。
 - 清除 `ZAMMAD_WEBHOOK_SECRET`、`EMAIL_USER_WELCOME_EMAIL_ENABLED` 与 `WEB_PLATFORM_URL` 后，`npm run test:coverage:ci` 在不可连接 PostgreSQL/Zammad 占位地址下独立通过。JUnit 记录 125 个 suite、1147 个测试、0 failure、0 error、13 skipped；statements 66.65%（5818/8728）、branches 52.24%（3362/6435）、functions 66.33%（922/1390）、lines 68.01%（5569/8188）。
@@ -895,6 +906,32 @@ npx playwright test --list
 - `npm run i18n:detect-hardcoded` 没有作为发布通过项：AUD-049 已证明当前 193 条结果混合真实问题与大量 parser 误报，命令目前仍退出 1。
 - 未执行真实 E2E、迁移、`db push`、seed、备份恢复、真实 Zammad/PostgreSQL/AI provider 请求或浏览器写流程。
 
+## 第十一批验证结果
+
+- 最终环境为 Node `22.17.1`、npm `10.9.2`；`npm ci` exit 0。Windows 清理锁曾留下 5 个 extraneous WASM optional 包，移出工作树后 `npm ls` 再次通过且无 extraneous / invalid。
+- 干净安装后的 11 个定向回归文件共 157/157 通过。
+- `npm run lint` 通过：0 error / 9 warning；剩余 warning 均已记录在 AUD-052。
+- `npm run type-check` 与 `npm run i18n:validate` 通过。
+- `npm run test:coverage:ci` 通过：132 suites、1252 tests、0 failure、0 error、13 skipped；statements 68.80%、branches 54.33%、functions 69.30%、lines 70.28%。
+- `npm run i18n:detect-hardcoded` 仍 exit 1、193 条，属于 AUD-049 已记录的高噪声 parser 问题，不作为本轮新增回归。
+- `npm run build` 通过；仍保留 AUD-008 的 1 个 NFT warning。Playwright 成功枚举 12 个文件、130 个 tests，但未实际执行写入型 E2E。
+- OpenAPI 单测通过；实际生成结果为 `openapi: 3.0.0`、`pathCount: 11`。
+- `npm audit --omit=dev` 为 0 vulnerability；完整 `npm audit` 为 18 high，均来自既有 ESLint 8 开发链。
+- Sharp `0.35.3` / libvips `8.18.3` 的内存 transform 成功；生产 Next 图片优化请求返回 HTTP 200、`image/png`、1989 bytes，验证进程已准确停止。
+- 所有门禁均使用不可连接的 loopback PostgreSQL/Zammad 占位地址；未连接真实 PostgreSQL、Zammad、AI provider，未运行迁移、seed、备份恢复或实际 E2E。
+- 构建生成的 `next-env.d.ts` 已恢复为仓库约定的 `.next/dev/types/routes.d.ts` 引用；最终提交不包含生成性差异。
+
+## 第十二批验证结果
+
+- 针对最终复审新增的 identity、跨标签刷新、陈旧标签 dirty-field、strict password、HTTP 408 unknown-outcome 与 reopen/detail lifecycle 修复，最终 10 个专项文件、187/187 个测试通过。
+- `npm run type-check` 与 `npm run i18n:validate` 独立通过。
+- `npm run lint` 独立通过：0 error / 9 warning；warning 集合仍与 AUD-052 记录一致，本轮修改文件没有新增 warning。
+- `npm run test:coverage:ci` 独立通过：133 suites、1292 tests、0 failure、0 error、13 skipped；statements 69.36%（6999/10090）、branches 54.85%（4121/7513）、functions 69.86%（1101/1576）、lines 71.02%（6716/9456）。
+- 隔离 production build 通过：编译、TypeScript、page data 与 89 个静态页面生成完成；仍只有 AUD-008 所述的 Turbopack/NFT 动态文件路径 trace warning。
+- `npm ls` 通过，无 extraneous / invalid；`npm audit --omit=dev` 为 0 vulnerability。
+- 所有门禁继续使用不可连接的 loopback PostgreSQL/Zammad 地址与虚假 provider 密钥；未连接真实 PostgreSQL、Zammad、AI provider，未执行迁移、seed、备份恢复或写入型 E2E。
+- build 生成的 `next-env.d.ts` 已再次恢复为仓库约定的 `.next/dev/types/routes.d.ts` 引用。
+
 ## 计划覆盖与收口矩阵
 
 | 计划领域 | 主要证据 |
@@ -903,7 +940,7 @@ npx playwright test --list
 | 2. 安全与权限 | AUD-010–AUD-020：health/AI 泄露、RBAC、认证 fallback、限流、mock/dev 入口、异常、webhook 与文件边界 |
 | 3. 数据与 Zammad 边界 | AUD-021–AUD-023、AUD-025–AUD-031、AUD-033：重试、补偿、游标、幂等、claim、去重、恢复与 cutover |
 | 4. 可靠性与实时链路 | AUD-024–AUD-034：SSE/polling、并发、重复事件、跨实例备援、retention 与恢复缺口 |
-| 5. 测试与 CI | AUD-004、AUD-009、AUD-035–AUD-037，以及十批定向/全量验证和 E2E safety 枚举 |
+| 5. 测试与 CI | AUD-004、AUD-009、AUD-035–AUD-037，以及十二批定向/全量验证和 E2E safety 枚举 |
 | 6. 前端质量 | AUD-038、AUD-040、AUD-045–AUD-049、AUD-052：偏好、键盘可达性、设置/头像闭环、真实数据、i18n 与 effect 顺序 |
 | 7. 性能与依赖 | AUD-001、AUD-007–AUD-008、AUD-039、AUD-041、AUD-044：依赖漏洞、工具链、NFT trace、probe/查询/扫描放大 |
 | 8. 运维与文档 | AUD-003、AUD-006、AUD-019、AUD-032、AUD-034、AUD-043、AUD-050–AUD-051，以及文档索引与最终发布评估 |
@@ -911,21 +948,21 @@ npx playwright test --list
 发现收口状态：
 
 - 已修复或加固（24）：AUD-002–AUD-006、AUD-009–AUD-011、AUD-017–AUD-019、AUD-021–AUD-024、AUD-032、AUD-035、AUD-037–AUD-043。
-- 部分修复（2）：AUD-008、AUD-016。
-- 待处理（26）：AUD-001、AUD-007、AUD-012–AUD-015、AUD-020、AUD-025–AUD-031、AUD-033–AUD-034、AUD-036、AUD-044–AUD-052。
+- 部分修复（5）：AUD-001、AUD-008、AUD-016、AUD-026、AUD-052。
+- 待处理（23）：AUD-007、AUD-012–AUD-015、AUD-020、AUD-025、AUD-027–AUD-031、AUD-033–AUD-034、AUD-036、AUD-044–AUD-051。
 
 ## 最终发布评估
 
 ### 结论：不具备生产发布条件
 
-本轮共记录 52 项发现：24 项已修复或加固，2 项部分修复，26 项仍待处理。没有确认 P0，但仍有 17 项 P1 未闭环（其中 AUD-016 为部分修复）。自动化门禁通过只能证明当前隔离代码路径没有已知回归，不能替代生产数据一致性、部署持久性和灾难恢复证据。
+本轮共记录 52 项发现：24 项已修复或加固，5 项部分修复，23 项仍待处理。没有确认 P0，但仍有 17 项 P1 未闭环（其中 AUD-001、AUD-016、AUD-026 为部分修复）。自动化门禁通过只能证明当前隔离代码路径没有已知回归，不能替代生产数据一致性、部署持久性和灾难恢复证据。
 
 阻止生产发布的主要风险是：
 
-1. **事件与跨系统一致性**：AUD-025–AUD-030 仍缺少稳定游标、写入 intent、并发 claim、异步副作用、数据库唯一去重和可操作恢复账本；在超时、重放、并发或部分失败时仍可能永久漏事件、重复副作用或留下未知结果。
+1. **事件与跨系统一致性**：AUD-025–AUD-030 仍缺少稳定游标、持久写入 intent、并发 claim、异步副作用、数据库唯一去重和可操作恢复账本；即时读回只覆盖部分 update 路径，在超时、重放、并发、进程崩溃或部分失败时仍可能永久漏事件、重复副作用或留下未知结果。
 2. **业务与运营数据真实性**：AUD-044 的 dashboard 会放大 Zammad 扫描并静默截断“全时段”指标；AUD-046/AUD-047 的通知偏好与头像操作没有形成真实行为闭环；AUD-048 会在上游故障时返回 mock 用户或随机绩效数据。
 3. **部署、文件与恢复能力**：AUD-050/AUD-051 尚无可执行证据证明多实例 uploads 持久性、迁移顺序、回滚、PostgreSQL/文件一致备份恢复、readiness/liveness、告警和负责人 runbook。
-4. **其余高优先级安全与兼容风险**：AUD-001、AUD-013、AUD-014、AUD-016 与 AUD-033 仍分别涉及生产依赖漏洞链、应急凭据旁路、登录限流、异常泄露和真实 webhook payload 语义验证。
+4. **其余高优先级安全与兼容风险**：AUD-001、AUD-013、AUD-014、AUD-016 与 AUD-033 仍分别涉及越界依赖 override 兼容性、应急凭据旁路、登录限流、异常泄露和真实 webhook payload 语义验证。
 
 当前分支适合继续开发、代码评审和隔离 QA，不应直接用于生产切换或作为发布批准依据。
 
@@ -934,6 +971,6 @@ npx playwright test --list
 1. 先关闭 AUD-025–AUD-030：确定复合游标/分页协议、稳定 source intent、数据库唯一约束、持久 claim/lease、异步 worker 和 operator-visible recovery ledger，并覆盖重复、乱序、超时与补偿失败测试。
 2. 移除 AUD-048 的生产 mock/random fallback，完成 AUD-046/AUD-047 的偏好执行与头像持久化契约，并让 AUD-044 的 dashboard 明确统计窗口、分页/聚合边界与 partial/unavailable 状态。
 3. 在目标部署平台完成 AUD-050/AUD-051：验证共享/对象存储、跨实例读取、滚动发布、容量和权限；演练 migration/rollback、数据库与文件一致备份恢复、probe、告警、RPO/RTO 和值班归属。
-4. 完成 env fallback credential、登录组合限流、剩余异常响应清理、固定 mock credentials/dev route 开关和 Sharp/Next 漏洞链的兼容处置；确认可信代理边界后再修改 forwarded header 行为。
+4. 完成 env fallback credential、登录组合限流、剩余异常响应清理和固定 mock credentials/dev route 开关；用上游正式支持版本替换越界 PostCSS/Sharp/swagger-jsdoc/js-yaml overrides，并在部署 canary 中验证 CSS、图片优化与 OpenAPI；确认可信代理边界后再修改 forwarded header 行为。
 5. 在专用、可销毁且明确非生产的 PostgreSQL 与 Zammad 环境中验证真实 webhook payload、重复投递、并发 welcome flow、工单写入 unknown outcome、迁移/回滚和 130 个已枚举 E2E；任何共享或生产环境都不作为测试目标。
 6. 完成上述阻断项后重新执行 lint、type-check、完整 coverage、i18n、隔离生产构建、E2E、迁移演练和备份恢复演练，再进行一次发布评审。

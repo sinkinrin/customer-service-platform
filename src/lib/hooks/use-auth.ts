@@ -27,6 +27,7 @@ export interface AuthUser {
   language?: string
   region?: string
   zammad_id?: number
+  group_ids?: number[]
 }
 
 export function useAuth() {
@@ -49,6 +50,7 @@ export function useAuth() {
       language: session.user.language,
       region: session.user.region,
       zammad_id: session.user.zammad_id,
+      group_ids: session.user.group_ids,
     }
   }, [session])
 
@@ -107,6 +109,7 @@ export function useAuth() {
                 language: updatedSession.user.language,
                 region: updatedSession.user.region,
                 zammad_id: updatedSession.user.zammad_id,
+                group_ids: updatedSession.user.group_ids,
               } satisfies AuthUser)
             : null
 
@@ -164,6 +167,7 @@ export function useAuth() {
                 language: updatedSession.user.language,
                 region: updatedSession.user.region,
                 zammad_id: updatedSession.user.zammad_id,
+                group_ids: updatedSession.user.group_ids,
               } satisfies AuthUser)
             : null
 

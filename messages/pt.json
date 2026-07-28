@@ -416,6 +416,8 @@
       "confirm": "Sim, reabrir",
       "cancel": "Cancelar",
       "success": "Ticket reaberto com sucesso",
+      "partialSuccess": "O ticket foi reaberto, mas a nota de auditoria não pôde ser salva ou confirmada.",
+      "outcomeUnconfirmed": "A solicitação de reabertura pode ter sido concluída, mas não foi possível confirmar o resultado. Atualize o ticket antes de tentar novamente.",
       "error": "Falha ao reabrir ticket"
     }
   },
@@ -1247,6 +1249,10 @@
       },
       "toast": {
         "personalInfoUpdated": "Informações pessoais atualizadas",
+        "personalInfoPartiallyUpdated": "Os dados do perfil foram salvos, mas não foi possível atualizar o idioma.",
+        "outcomeUnconfirmed": "A atualização pode ter sido concluída. O formulário foi atualizado com as configurações salvas atualmente.",
+        "passwordOutcomeUnconfirmed": "A alteração da senha pode ter sido aplicada. Antes de tentar novamente, confirme entrando com a nova senha.",
+        "identityChanged": "Sua identidade de login mudou. A sessão será atualizada antes de salvar novamente.",
         "updateFailed": "Falha na atualização, tente novamente",
         "notificationsUpdated": "Configurações de notificação atualizadas",
         "passwordMismatch": "Nova senha e confirmação não coincidem",

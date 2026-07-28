@@ -31,8 +31,11 @@ import { getFilePath, uploadFile } from '@/lib/file-storage'
 describe('file storage path containment', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    fsMocks.mkdir.mockResolvedValue(undefined)
-    fsMocks.writeFile.mockResolvedValue(undefined)
+    fsMocks.mkdir.mockReset().mockResolvedValue(undefined)
+    fsMocks.writeFile.mockReset().mockResolvedValue(undefined)
+    fsMocks.unlink.mockReset().mockResolvedValue(undefined)
+    vi.mocked(prisma.uploadedFile.findUnique).mockReset().mockResolvedValue(null)
+    vi.mocked(prisma.uploadedFile.create).mockReset()
   })
 
   it('resolves stored files inside the uploads directory', async () => {
@@ -101,7 +104,40 @@ describe('file storage path containment', () => {
     expect(result.url).toBe(`/api/files/${result.id}/download`)
   })
 
-  it('removes the written file when metadata persistence fails', async () => {
+  it('keeps the written file and returns the confirmed record when create outcome is unknown', async () => {
+    const file = {
+      name: 'note.txt',
+      size: 5,
+      type: 'text/plain',
+      arrayBuffer: vi.fn().mockResolvedValue(new TextEncoder().encode('hello').buffer),
+    } as unknown as File
+    const createError = new Error('database response lost')
+    let attemptedData: any
+    vi.mocked(prisma.uploadedFile.create).mockImplementation(async ({ data }) => {
+      attemptedData = data
+      throw createError
+    })
+    vi.mocked(prisma.uploadedFile.findUnique).mockImplementation(async ({ where }) => ({
+      ...attemptedData,
+      id: where.id,
+      createdAt: new Date('2026-07-22T00:00:00Z'),
+    }) as any)
+
+    const result = await uploadFile({
+      file,
+      userId: 'user-1',
+      bucketName: 'message-attachments',
+      referenceType: 'message',
+    })
+
+    expect(prisma.uploadedFile.findUnique).toHaveBeenCalledWith({
+      where: { id: attemptedData.id },
+    })
+    expect(fsMocks.unlink).not.toHaveBeenCalled()
+    expect(result.id).toBe(attemptedData.id)
+  })
+
+  it('removes the written file when metadata is confirmed absent', async () => {
     const file = {
       name: 'note.txt',
       size: 5,
@@ -109,6 +145,7 @@ describe('file storage path containment', () => {
       arrayBuffer: vi.fn().mockResolvedValue(new TextEncoder().encode('hello').buffer),
     } as unknown as File
     vi.mocked(prisma.uploadedFile.create).mockRejectedValue(new Error('database unavailable'))
+    vi.mocked(prisma.uploadedFile.findUnique).mockResolvedValue(null)
 
     await expect(uploadFile({
       file,
@@ -118,5 +155,25 @@ describe('file storage path containment', () => {
     })).rejects.toThrow('database unavailable')
 
     expect(fsMocks.unlink).toHaveBeenCalledWith(fsMocks.writeFile.mock.calls[0][0])
+  })
+
+  it('preserves the written file when metadata persistence cannot be confirmed', async () => {
+    const file = {
+      name: 'note.txt',
+      size: 5,
+      type: 'text/plain',
+      arrayBuffer: vi.fn().mockResolvedValue(new TextEncoder().encode('hello').buffer),
+    } as unknown as File
+    vi.mocked(prisma.uploadedFile.create).mockRejectedValue(new Error('database response lost'))
+    vi.mocked(prisma.uploadedFile.findUnique).mockRejectedValue(new Error('database still unavailable'))
+
+    await expect(uploadFile({
+      file,
+      userId: 'user-1',
+      bucketName: 'message-attachments',
+      referenceType: 'message',
+    })).rejects.toThrow('database response lost')
+
+    expect(fsMocks.unlink).not.toHaveBeenCalled()
   })
 })

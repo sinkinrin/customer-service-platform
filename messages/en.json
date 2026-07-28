@@ -416,6 +416,8 @@
       "confirm": "Yes, Reopen",
       "cancel": "Cancel",
       "success": "Ticket reopened successfully",
+      "partialSuccess": "The ticket was reopened, but its audit note could not be saved or confirmed.",
+      "outcomeUnconfirmed": "The reopen request may have succeeded, but its outcome could not be confirmed. Refresh the ticket before trying again.",
       "error": "Failed to reopen ticket"
     }
   },
@@ -1247,6 +1249,10 @@
       },
       "toast": {
         "personalInfoUpdated": "Personal information updated",
+        "personalInfoPartiallyUpdated": "Profile details were saved, but the language setting could not be updated.",
+        "outcomeUnconfirmed": "The update may have succeeded. The form was refreshed with the current saved settings.",
+        "passwordOutcomeUnconfirmed": "The password change may have been applied. Before trying again, verify it by signing in with the new password.",
+        "identityChanged": "Your signed-in identity changed. Refreshing the session before saving again.",
         "updateFailed": "Update failed, please try again",
         "notificationsUpdated": "Notification settings updated",
         "passwordMismatch": "New password and confirm password do not match",

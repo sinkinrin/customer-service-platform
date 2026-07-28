@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ZammadClient } from '@/lib/zammad/client'
+import { ZammadClient, ZammadHttpError } from '@/lib/zammad/client'
 import { server } from '@tests/mocks/server'
 import { http, HttpResponse } from 'msw'
 
@@ -147,6 +147,73 @@ describe('ZammadClient', () => {
       await client.getTicket(1)
 
       expect(capturedHeaders!.get('X-On-Behalf-Of')).toBeNull()
+    })
+  })
+
+  describe('用户认证', () => {
+    it.each([401, 403])(
+      'authenticateUserStrict should return null for credential rejection %i',
+      async (status) => {
+        server.use(
+          http.get(`${TEST_BASE_URL}/api/v1/users/me`, () => (
+            HttpResponse.json({ error: 'Authentication failed' }, { status })
+          ))
+        )
+
+        const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+
+        await expect(
+          client.authenticateUserStrict('customer@test.com', 'wrong-password')
+        ).resolves.toBeNull()
+      }
+    )
+
+    it('authenticateUserStrict should surface an upstream 503 with its status', async () => {
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/users/me`, () => (
+          HttpResponse.json({ error: 'Authentication service unavailable' }, { status: 503 })
+        ))
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      const error = await client.authenticateUserStrict(
+        'customer@test.com',
+        'current-password'
+      ).catch(caught => caught)
+
+      expect(error).toBeInstanceOf(ZammadHttpError)
+      expect(error).toMatchObject({
+        message: 'Authentication service unavailable',
+        status: 503,
+      })
+    })
+
+    it('authenticateUserStrict should reject malformed successful JSON', async () => {
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/users/me`, () => (
+          new HttpResponse('{"id":', {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        ))
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+
+      await expect(
+        client.authenticateUserStrict('customer@test.com', 'current-password')
+      ).rejects.toBeInstanceOf(SyntaxError)
+    })
+
+    it('authenticateUser should preserve the compatibility null-on-error contract', async () => {
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      vi.spyOn(client, 'authenticateUserStrict').mockRejectedValueOnce(
+        new ZammadHttpError('Authentication service unavailable', 503)
+      )
+
+      await expect(
+        client.authenticateUser('customer@test.com', 'current-password')
+      ).resolves.toBeNull()
     })
   })
 
@@ -397,6 +464,28 @@ describe('ZammadClient', () => {
       )
     })
 
+    it('should expose the HTTP status while remaining compatible with Error callers', async () => {
+      server.use(
+        http.post(`${TEST_BASE_URL}/api/v1/tickets`, () => {
+          return HttpResponse.json(
+            { error: 'article_rejected', error_human: 'Article was rejected' },
+            { status: 422 }
+          )
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      const error = await client.createTicket({} as any).catch(caught => caught)
+
+      expect(error).toBeInstanceOf(Error)
+      expect(error).toBeInstanceOf(ZammadHttpError)
+      expect(error).toMatchObject({
+        name: 'ZammadHttpError',
+        message: 'Article was rejected',
+        status: 422,
+      })
+    })
+
     it('should throw error on 404', async () => {
       server.use(
         http.get(`${TEST_BASE_URL}/api/v1/tickets/999`, () => {
@@ -498,6 +587,81 @@ describe('ZammadClient', () => {
       expect(callCount).toBe(2)
     })
 
+    it('should retry GET requests when a successful response contains invalid JSON', async () => {
+      let callCount = 0
+      server.use(
+        http.get(`${TEST_BASE_URL}/api/v1/tickets/1`, () => {
+          callCount++
+          if (callCount === 1) {
+            return HttpResponse.text('{"id":', {
+              headers: { 'Content-Type': 'application/json' },
+            })
+          }
+          return HttpResponse.json({ id: 1, title: 'Recovered body' })
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 1)
+      await expect(client.getTicket(1)).resolves.toEqual({ id: 1, title: 'Recovered body' })
+      expect(callCount).toBe(2)
+    })
+
+    it('should retry GET requests when reading a successful response body fails', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: vi.fn().mockRejectedValue(new TypeError('terminated')),
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: vi.fn().mockResolvedValue({ id: 1, title: 'Recovered stream' }),
+        } as unknown as Response)
+
+      try {
+        const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 1)
+        await expect(client.getTicket(1)).resolves.toEqual({ id: 1, title: 'Recovered stream' })
+        expect(fetchSpy).toHaveBeenCalledTimes(2)
+      } finally {
+        fetchSpy.mockRestore()
+      }
+    })
+
+    it('should normalize response body timeouts after GET retries are exhausted', async () => {
+      const timeoutError = new Error('The operation timed out')
+      timeoutError.name = 'TimeoutError'
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockRejectedValue(timeoutError),
+      } as unknown as Response)
+
+      try {
+        const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 1)
+        await expect(client.getTicket(1)).rejects.toThrow('Request timeout')
+        expect(fetchSpy).toHaveBeenCalledTimes(2)
+      } finally {
+        fetchSpy.mockRestore()
+      }
+    })
+
+    it('should not retry POST requests when parsing a successful response fails', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected end of JSON input')),
+      } as unknown as Response)
+
+      try {
+        const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN, 100, 2)
+        await expect(client.createTicket({} as any)).rejects.toThrow('Unexpected end of JSON input')
+        expect(fetchSpy).toHaveBeenCalledTimes(1)
+      } finally {
+        fetchSpy.mockRestore()
+      }
+    })
+
     it('should accept empty 204 responses without parsing JSON', async () => {
       server.use(
         http.delete(`${TEST_BASE_URL}/api/v1/tickets/123`, () => {
@@ -577,6 +741,30 @@ describe('ZammadClient', () => {
       await client.getCurrentUser()
 
       expect(capturedUrl).toContain('/users/me')
+    })
+
+    it('updateCurrentUserPreferences should update only supplied keys on behalf of the user', async () => {
+      let capturedBody: unknown = null
+      let capturedHeaders: Headers | null = null
+      let capturedMethod = ''
+      server.use(
+        http.put(`${TEST_BASE_URL}/api/v1/users/preferences`, async ({ request }) => {
+          capturedMethod = request.method
+          capturedHeaders = request.headers
+          capturedBody = await request.json()
+          return HttpResponse.json({ message: 'ok' })
+        })
+      )
+
+      const client = new ZammadClient(TEST_BASE_URL, TEST_TOKEN)
+      await client.updateCurrentUserPreferences(
+        { locale: 'zh-CN' },
+        'user@example.com'
+      )
+
+      expect(capturedMethod).toBe('PUT')
+      expect(capturedHeaders!.get('X-On-Behalf-Of')).toBe('user@example.com')
+      expect(capturedBody).toEqual({ locale: 'zh-CN' })
     })
 
     it('createUser should POST to /users', async () => {

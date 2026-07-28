@@ -35,6 +35,22 @@ import type {
   UpdateTriggerRequest,
 } from './types'
 
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && (
+    error.name === 'AbortError' || error.name === 'TimeoutError'
+  )
+}
+
+export class ZammadHttpError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number
+  ) {
+    super(message)
+    this.name = 'ZammadHttpError'
+  }
+}
+
 export class ZammadClient {
   private baseUrl: string
   private apiToken: string
@@ -112,39 +128,52 @@ export class ZammadClient {
         signal: AbortSignal.timeout(this.timeout),
       })
     } catch (error) {
-      const isTimeout = error instanceof Error && (
-        error.name === 'AbortError' || error.name === 'TimeoutError'
-      )
-
       // A write may already have succeeded upstream even if its response was
       // lost. Only retry read-only requests automatically.
       if (canRetry && retryCount < this.maxRetries) {
         return retry()
       }
 
-      if (isTimeout) {
+      if (isTimeoutError(error)) {
         throw new Error('Request timeout')
       }
       throw error
     }
 
     if (!response.ok) {
-      const error: ZammadError = await response.json().catch(() => ({
+      const error = await response.json().catch(() => ({
         error: `HTTP ${response.status}: ${response.statusText}`,
-      }))
+      })) as Partial<ZammadError> | null
 
       if (canRetry && response.status >= 500 && retryCount < this.maxRetries) {
         return retry()
       }
 
-      throw new Error(error.error_human || error.error)
+      throw new ZammadHttpError(
+        error?.error_human || error?.error || `HTTP ${response.status}: ${response.statusText}`,
+        response.status
+      )
     }
 
-    if (response.status === 204) {
+    if (response.status === 204 || method === 'HEAD') {
       return undefined as T
     }
 
-    return await response.json()
+    try {
+      return await response.json()
+    } catch (error) {
+      // A successful status does not guarantee that the response body arrived
+      // intact. Retrying is safe only for read-only requests; write responses
+      // may be lost after the upstream mutation has already committed.
+      if (canRetry && retryCount < this.maxRetries) {
+        return retry()
+      }
+
+      if (isTimeoutError(error)) {
+        throw new Error('Request timeout')
+      }
+      throw error
+    }
   }
 
   // ============================================================================
@@ -658,6 +687,33 @@ export class ZammadClient {
   }
 
   /**
+   * Update preference keys for the effective current user.
+   *
+   * Zammad's dedicated preferences endpoint updates only the supplied
+   * top-level keys while holding the user row lock. X-On-Behalf-Of scopes the
+   * operation to the requested user, avoiding a read/modify/write of the
+   * complete preferences object through the generic user update endpoint.
+   */
+  async updateCurrentUserPreferences(
+    data: { [key: string]: unknown },
+    onBehalfOf: string
+  ): Promise<{ message: string }> {
+    if (!onBehalfOf) {
+      throw new Error('X-On-Behalf-Of is required when updating user preferences')
+    }
+
+    return this.request<{ message: string }>(
+      '/users/preferences',
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      },
+      0,
+      onBehalfOf
+    )
+  }
+
+  /**
    * Delete user
    * @param id - User ID
    */
@@ -720,61 +776,78 @@ export class ZammadClient {
   }
 
   /**
-   * Authenticate user with email and password using HTTP Basic Auth
+   * Authenticate user with email and password using HTTP Basic Auth.
+   * Invalid credentials return null; transport, upstream, and response-shape
+   * failures are surfaced to the caller.
    * @param email - User email or login
    * @param password - User password
    * @returns Authenticated user object or null if authentication fails
    */
-  async authenticateUser(email: string, password: string): Promise<ZammadUser | null> {
-    // Validate configuration
+  async authenticateUserStrict(email: string, password: string): Promise<ZammadUser | null> {
     if (!this.baseUrl) {
-      logger.error('ZammadClient', 'Base URL not configured')
-      return null
+      throw new Error('Zammad is not configured. Please set ZAMMAD_URL.')
     }
 
     const url = `${this.baseUrl}/api/v1/users/me`
+    const credentials = Buffer.from(`${email}:${password}`).toString('base64')
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(this.timeout),
+    })
 
+    if (response.status === 401 || response.status === 403) {
+      logger.info('ZammadClient', 'Authentication rejected', { data: { status: response.status } })
+      return null
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      })) as Partial<ZammadError> | null
+
+      throw new ZammadHttpError(
+        error?.error_human || error?.error || `HTTP ${response.status}: ${response.statusText}`,
+        response.status
+      )
+    }
+
+    const userData = await response.json()
+
+    if (!userData || !userData.id) {
+      throw new Error('Zammad authentication returned an invalid user response')
+    }
+
+    // /users/me doesn't return all fields (e.g., note) due to Zammad permissions
+    // Fetch complete user data using API token to get all fields.
     try {
-      // Use HTTP Basic Authentication
-      const credentials = Buffer.from(`${email}:${password}`).toString('base64')
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(this.timeout),
+      const fullUserData = await this.getUser(userData.id)
+      if (fullUserData) {
+        logger.info('ZammadClient', 'Fetched complete user data with note field')
+        return fullUserData
+      }
+    } catch (fetchError) {
+      logger.warning('ZammadClient', 'Failed to fetch complete user data, using partial data', {
+        data: { error: fetchError instanceof Error ? fetchError.message : fetchError }
       })
+    }
 
-      if (!response.ok) {
-        logger.info('ZammadClient', 'Authentication failed', { data: { status: response.status } })
-        return null
-      }
+    return userData as ZammadUser
+  }
 
-      const userData = await response.json()
-
-      if (!userData || !userData.id) {
-        logger.info('ZammadClient', 'No user data in response')
-        return null
-      }
-
-      // /users/me doesn't return all fields (e.g., note) due to Zammad permissions
-      // Fetch complete user data using API token to get all fields
-      try {
-        const fullUserData = await this.getUser(userData.id)
-        if (fullUserData) {
-          logger.info('ZammadClient', 'Fetched complete user data with note field')
-          return fullUserData
-        }
-      } catch (fetchError) {
-        logger.warning('ZammadClient', 'Failed to fetch complete user data, using partial data', {
-          data: { error: fetchError instanceof Error ? fetchError.message : fetchError }
-        })
-      }
-
-      return userData as ZammadUser
+  /**
+   * Compatibility authentication used by the sign-in fallback chain.
+   * It preserves the historical null-on-error behavior; security-sensitive
+   * mutations should use authenticateUserStrict so outages are not mistaken
+   * for invalid credentials.
+   */
+  async authenticateUser(email: string, password: string): Promise<ZammadUser | null> {
+    try {
+      return await this.authenticateUserStrict(email, password)
     } catch (error) {
       logger.error('ZammadClient', 'Error during authentication', {
         data: { error: error instanceof Error ? error.message : error }

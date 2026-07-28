@@ -416,6 +416,8 @@
       "confirm": "S?, reabrir",
       "cancel": "Cancelar",
       "success": "Ticket reabierto con ?xito",
+      "partialSuccess": "El ticket se reabrió, pero su nota de auditoría no se pudo guardar ni confirmar.",
+      "outcomeUnconfirmed": "Es posible que la solicitud de reapertura se haya completado, pero no se pudo confirmar el resultado. Actualiza el ticket antes de volver a intentarlo.",
       "error": "Error al reabrir el ticket"
     }
   },
@@ -1247,6 +1249,10 @@
       },
       "toast": {
         "personalInfoUpdated": "Información personal actualizada",
+        "personalInfoPartiallyUpdated": "Los datos del perfil se guardaron, pero no se pudo actualizar el idioma.",
+        "outcomeUnconfirmed": "Es posible que la actualización se haya realizado. El formulario se actualizó con la configuración guardada actualmente.",
+        "passwordOutcomeUnconfirmed": "Es posible que la contraseña se haya cambiado. Antes de volver a intentarlo, compruébalo iniciando sesión con la nueva contraseña.",
+        "identityChanged": "Tu identidad de inicio de sesión cambió. Se actualizará la sesión antes de volver a guardar.",
         "updateFailed": "Error en la actualización, por favor intenta de nuevo",
         "notificationsUpdated": "Configuración de notificaciones actualizada",
         "passwordMismatch": "La nueva contraseña y la confirmación no coinciden",

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import type { ReactElement, ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Card } from '@/components/ui/card'
 
@@ -20,5 +21,28 @@ describe('Card accessibility', () => {
     render(<Card>Static content</Card>)
 
     expect(screen.queryByRole('button', { name: 'Static content' })).not.toBeInTheDocument()
+  })
+
+  it('keeps interactive-only styling without inventing clickable semantics', () => {
+    render(<Card interactive>Highlighted content</Card>)
+
+    const card = screen.getByText('Highlighted content')
+    expect(card).toHaveClass('cursor-pointer')
+    expect(card).not.toHaveAttribute('role')
+    expect(card).not.toHaveAttribute('tabindex')
+    expect(screen.queryByRole('button', { name: 'Highlighted content' })).not.toBeInTheDocument()
+  })
+
+  it('does not synthesize an event handler for passive server-rendered cards', () => {
+    const renderCard = (Card as unknown as {
+      render: (
+        props: { children: ReactNode },
+        ref: null
+      ) => ReactElement<{ onKeyDown?: unknown }>
+    }).render
+
+    const cardElement = renderCard({ children: 'Static content' }, null)
+
+    expect(cardElement.props.onKeyDown).toBeUndefined()
   })
 })

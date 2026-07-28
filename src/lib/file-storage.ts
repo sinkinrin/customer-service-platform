@@ -84,8 +84,8 @@ export async function uploadFile(options: {
   const buffer = Buffer.from(await file.arrayBuffer())
   await fs.writeFile(absoluteFilePath, buffer)
 
-  // Save metadata to database. If this fails, remove the just-written file so
-  // the filesystem and UploadedFile table do not drift immediately.
+  // Save metadata to database. A rejected create call can still have committed
+  // before its response was lost, so confirm by the known ID before cleanup.
   let fileRecord
   try {
     fileRecord = await prisma.uploadedFile.create({
@@ -101,18 +101,42 @@ export async function uploadFile(options: {
         referenceId: referenceId || null,
       },
     })
-  } catch (error) {
+  } catch (createError) {
+    let confirmedRecord
     try {
-      await fs.unlink(absoluteFilePath)
-    } catch (cleanupError) {
-      logger.error('FileStorage', 'Failed to remove file after metadata insert failed', {
+      confirmedRecord = await prisma.uploadedFile.findUnique({
+        where: { id: fileId },
+      })
+    } catch (confirmationError) {
+      // The database outcome is unknown. Preserve the physical file because a
+      // committed record may already reference it, and surface the create error.
+      logger.error('FileStorage', 'Could not confirm metadata insert outcome; preserving file', {
         data: {
           fileId,
-          error: cleanupError instanceof Error ? cleanupError.message : cleanupError,
+          error: confirmationError instanceof Error ? confirmationError.message : confirmationError,
         },
       })
+      throw createError
     }
-    throw error
+
+    if (confirmedRecord) {
+      logger.warning('FileStorage', 'Metadata insert response was lost but the record exists', {
+        data: { fileId },
+      })
+      fileRecord = confirmedRecord
+    } else {
+      try {
+        await fs.unlink(absoluteFilePath)
+      } catch (cleanupError) {
+        logger.error('FileStorage', 'Failed to remove file after metadata insert failed', {
+          data: {
+            fileId,
+            error: cleanupError instanceof Error ? cleanupError.message : cleanupError,
+          },
+        })
+      }
+      throw createError
+    }
   }
 
   // Return file info with public URL

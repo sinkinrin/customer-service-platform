@@ -50,7 +50,7 @@ npm run build           # 依赖、路由、构建配置或发布前检查
 1. 默认验证不得连接生产 PostgreSQL、Zammad 或 AI provider；在 shell 中显式覆盖为测试地址，不依赖来源不明的 `.env.local`。
 2. 不在生产或共享数据库执行 `prisma migrate`、`prisma db push`、seed、测试清理脚本。
 3. `npm run test:e2e` 可能创建真实业务对象，仅允许在独立数据库和隔离 Zammad / mock 环境运行。
-4. 真实数据库集成测试必须显式设置 `RUN_DATABASE_INTEGRATION_TESTS=true`，且数据库名必须包含 `test`。
+4. 真实数据库集成测试必须显式设置 `RUN_DATABASE_INTEGRATION_TESTS=true`，且数据库名必须包含由 `.`, `_`, `-` 分隔的独立 `test` / `e2e` 命名段；`latest`、`contest` 等子串不算测试库。
 5. 需要验证生产配置时，优先做静态检查或只读健康检查；任何写操作都必须由用户明确批准并说明回滚方式。
 
 普通 Vitest、覆盖率和构建可使用不可连接的本地占位地址，防止测试代码意外落到生产服务。连接失败日志可能是隔离措施的预期结果，最终判断以退出码和测试断言为准。
@@ -60,7 +60,7 @@ npm run build           # 依赖、路由、构建配置或发布前检查
 - 共享逻辑或 API：`npm run test` + `npm run type-check`
 - 页面或交互：再执行相关 Playwright 测试或 `npm run test:e2e`
 - 认证、工单、权限、AI、通知：执行对应测试，并在需要时进行真实界面验证
-- 依赖、环境变量或 Next.js 配置：增加 `npm run lint` 和 `npm run build`
+- 依赖、环境变量或 Next.js 配置：先执行干净的 `npm ci`，再增加 `npm run lint` 和 `npm run build`
 
 ## 文档核对原则
 

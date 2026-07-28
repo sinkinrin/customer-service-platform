@@ -416,6 +416,8 @@
       "confirm": "Oui, rouvrir",
       "cancel": "Annuler",
       "success": "Ticket rouvert avec succès",
+      "partialSuccess": "Le ticket a été rouvert, mais sa note d’audit n’a pas pu être enregistrée ou confirmée.",
+      "outcomeUnconfirmed": "La demande de réouverture a peut-être abouti, mais son résultat n’a pas pu être confirmé. Actualisez le ticket avant de réessayer.",
       "error": "Échec de la réouverture du ticket"
     }
   },
@@ -1247,6 +1249,10 @@
       },
       "toast": {
         "personalInfoUpdated": "Informations personnelles mises à jour",
+        "personalInfoPartiallyUpdated": "Les informations du profil ont été enregistrées, mais la langue n’a pas pu être mise à jour.",
+        "outcomeUnconfirmed": "La mise à jour a peut-être réussi. Le formulaire a été actualisé avec les paramètres actuellement enregistrés.",
+        "passwordOutcomeUnconfirmed": "Le mot de passe a peut-être été modifié. Avant de réessayer, vérifiez-le en vous connectant avec le nouveau mot de passe.",
+        "identityChanged": "Votre identité de connexion a changé. La session est actualisée avant un nouvel enregistrement.",
         "updateFailed": "Échec de la mise à jour, veuillez réessayer",
         "notificationsUpdated": "Paramètres de notification mis à jour",
         "passwordMismatch": "Le nouveau mot de passe et la confirmation ne correspondent pas",

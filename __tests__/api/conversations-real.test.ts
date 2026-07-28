@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/conversations/route'
+import { isExplicitTestDatabaseUrl } from '../../scripts/e2e-safety'
 
 // Mock auth module
 vi.mock('@/auth', () => ({
@@ -21,23 +22,12 @@ vi.mock('@/lib/sse/conversation-broadcaster', () => ({
 // Import mocked auth
 import { auth } from '@/auth'
 
-function isExplicitTestDatabase(databaseUrl: string | undefined): boolean {
-  if (!databaseUrl) return false
-
-  try {
-    const databaseName = new URL(databaseUrl).pathname.replace(/^\//, '').toLowerCase()
-    return databaseName.includes('test')
-  } catch {
-    return false
-  }
-}
-
 const databaseIntegrationRequested = process.env.RUN_DATABASE_INTEGRATION_TESTS === 'true'
-const hasSafeTestDatabase = isExplicitTestDatabase(process.env.DATABASE_URL)
+const hasSafeTestDatabase = isExplicitTestDatabaseUrl(process.env.DATABASE_URL)
 
 if (databaseIntegrationRequested && !hasSafeTestDatabase) {
   throw new Error(
-    'Database integration tests require DATABASE_URL to reference a database whose name contains "test".'
+    'Database integration tests require DATABASE_URL to use an explicit "test" or "e2e" database name segment.'
   )
 }
 

@@ -7,6 +7,7 @@
  */
 
 import { parseSSEEvent, getDeltaText } from './sse-parse'
+import { createFastGPTEvidenceAccumulator, type AiAnswerEvidence } from './fastgpt-evidence'
 
 const STREAM_TIMEOUT_MS = 60_000 // 60 seconds
 
@@ -228,6 +229,219 @@ export function withPersistence(
         },
 
         async cancel() {
+            await Promise.allSettled([
+                finalize(false),
+                reader.cancel(),
+            ])
+        },
+    })
+}
+
+export function withEvidencePersistence(
+    upstream: ReadableStream<Uint8Array>,
+    onComplete: (
+        fullText: string,
+        info: { completed: boolean; evidence: AiAnswerEvidence }
+    ) => Promise<{ messageId: string } | null>,
+    options: { emitEvidence: boolean; postDoneGraceMs?: number }
+): ReadableStream<Uint8Array> {
+    const reader = upstream.getReader()
+    const decoder = new TextDecoder()
+    const encoder = new TextEncoder()
+    const evidenceAccumulator = createFastGPTEvidenceAccumulator()
+
+    let buffer = ''
+    let fullText = ''
+    let finalized = false
+    let providerDoneSeen = false
+    const postDoneGraceMs = options.postDoneGraceMs ?? 3_000
+
+    type ProcessedEvent = {
+        rawEvent: string
+        forward: boolean
+        error: boolean
+    }
+
+    const enqueueEvent = (
+        controller: ReadableStreamDefaultController<Uint8Array>,
+        rawEvent: string
+    ) => {
+        controller.enqueue(encoder.encode(`${rawEvent}\n\n`))
+    }
+
+    const processRawEvent = (rawEvent: string): ProcessedEvent => {
+        const { event, data } = parseSSEEvent(rawEvent)
+        evidenceAccumulator.consume(event, data)
+
+        if (data === '[DONE]' || event === 'done') {
+            providerDoneSeen = true
+            return { rawEvent, forward: false, error: false }
+        }
+        if (event === 'error') {
+            return { rawEvent, forward: true, error: true }
+        }
+
+        const delta = getDeltaText(data)
+        if (delta) {
+            fullText += delta
+            return {
+                rawEvent: `event: answer\ndata: ${JSON.stringify({
+                    choices: [{ delta: { content: delta }, index: 0, finish_reason: null }],
+                })}`,
+                forward: true,
+                error: false,
+            }
+        }
+
+        if (event === 'flowNodeStatus') {
+            try {
+                const parsed = JSON.parse(data) as {
+                    name?: unknown
+                    moduleName?: unknown
+                    status?: unknown
+                }
+                const safeStatus = {
+                    ...(typeof parsed.name === 'string' ? { name: parsed.name } : {}),
+                    ...(typeof parsed.moduleName === 'string' ? { moduleName: parsed.moduleName } : {}),
+                    ...(typeof parsed.status === 'string' ? { status: parsed.status } : {}),
+                }
+                return {
+                    rawEvent: `event: flowNodeStatus\ndata: ${JSON.stringify(safeStatus)}`,
+                    forward: true,
+                    error: false,
+                }
+            } catch {
+                return { rawEvent, forward: false, error: false }
+            }
+        }
+
+        return {
+            rawEvent,
+            forward: event === 'serverTiming',
+            error: false,
+        }
+    }
+
+    const consumeBuffer = (flush = false): ProcessedEvent[] => {
+        const events: ProcessedEvent[] = []
+        let separatorIndex = buffer.indexOf('\n\n')
+        while (separatorIndex !== -1) {
+            const rawEvent = buffer.slice(0, separatorIndex)
+            buffer = buffer.slice(separatorIndex + 2).replace(/^\n+/, '')
+            events.push(processRawEvent(rawEvent))
+            separatorIndex = buffer.indexOf('\n\n')
+        }
+        if (flush && buffer.trim()) {
+            events.push(processRawEvent(buffer))
+            buffer = ''
+        }
+        return events
+    }
+
+    const finalize = async (completed: boolean) => {
+        if (finalized) return { persisted: null, evidence: evidenceAccumulator.snapshot() }
+        finalized = true
+        const evidence = evidenceAccumulator.snapshot()
+        const persisted = await onComplete(fullText, { completed, evidence }).catch(() => null)
+        return { persisted, evidence }
+    }
+
+    const enqueueFinalMetadata = (
+        controller: ReadableStreamDefaultController<Uint8Array>,
+        result: Awaited<ReturnType<typeof finalize>>
+    ) => {
+        if (options.emitEvidence) {
+            enqueueEvent(controller, `event: evidence\ndata: ${JSON.stringify(result.evidence)}`)
+        }
+        if (result.persisted?.messageId) {
+            enqueueEvent(controller, `event: persisted\ndata: ${JSON.stringify(result.persisted)}`)
+        }
+    }
+
+    const readNext = async (): Promise<
+        | { timedOut: true }
+        | { timedOut: false; result: ReadableStreamReadResult<Uint8Array> }
+    > => {
+        if (!providerDoneSeen) {
+            return { timedOut: false, result: await reader.read() }
+        }
+
+        let timeoutId: ReturnType<typeof setTimeout> | undefined
+        const timeout = new Promise<{ timedOut: true }>(resolve => {
+            timeoutId = setTimeout(() => resolve({ timedOut: true }), postDoneGraceMs)
+        })
+        const read = reader.read().then(result => ({ timedOut: false as const, result }))
+        const outcome = await Promise.race([read, timeout])
+        if (timeoutId) clearTimeout(timeoutId)
+        return outcome
+    }
+
+    return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+            try {
+                while (true) {
+                    const readOutcome = await readNext()
+                    if (readOutcome.timedOut) {
+                        const result = await finalize(true)
+                        enqueueFinalMetadata(controller, result)
+                        enqueueEvent(controller, 'event: done\ndata: [DONE]')
+                        await reader.cancel().catch(() => {})
+                        controller.close()
+                        return
+                    }
+
+                    const { done, value } = readOutcome.result
+                    if (done) {
+                        buffer += decoder.decode()
+                        const events = consumeBuffer(true)
+                        const errorEvent = events.find(event => event.error)
+                        for (const event of events) {
+                            if (event === errorEvent) break
+                            if (event.forward) enqueueEvent(controller, event.rawEvent)
+                        }
+
+                        const result = await finalize(!errorEvent)
+                        enqueueFinalMetadata(controller, result)
+
+                        if (errorEvent) {
+                            enqueueEvent(controller, errorEvent.rawEvent)
+                        } else {
+                            enqueueEvent(controller, 'event: done\ndata: [DONE]')
+                        }
+                        controller.close()
+                        return
+                    }
+
+                    buffer += decoder.decode(value, { stream: true }).replace(/\r/g, '')
+                    const events = consumeBuffer()
+                    if (events.length === 0) continue
+
+                    let forwarded = false
+                    for (const event of events) {
+                        if (event.error) {
+                            const result = await finalize(false)
+                            enqueueFinalMetadata(controller, result)
+                            enqueueEvent(controller, event.rawEvent)
+                            await reader.cancel().catch(() => {})
+                            controller.close()
+                            return
+                        }
+                        if (event.forward) {
+                            enqueueEvent(controller, event.rawEvent)
+                            forwarded = true
+                        }
+                    }
+                    if (forwarded) return
+                }
+            } catch (error) {
+                await finalize(false)
+                controller.error(error)
+            }
+        },
+
+        async cancel() {
+            buffer += decoder.decode()
+            consumeBuffer(true)
             await Promise.allSettled([
                 finalize(false),
                 reader.cancel(),

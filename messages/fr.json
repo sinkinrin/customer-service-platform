@@ -2145,6 +2145,22 @@
         "aiAssistant": "Assistant IA",
         "aiThinking": "Réflexion..."
       },
+      "aiEvidence": {
+        "button": "Sources {count}",
+        "buttonLabel": "Voir les {count} sources de cette réponse",
+        "title": "Sources de cette réponse",
+        "description": "FastGPT a renvoyé {count} sources de connaissances pour cette réponse.",
+        "searches": "Requêtes de recherche",
+        "noSearches": "FastGPT n’a renvoyé aucune requête affichable.",
+        "citations": "Documents cités ({count})",
+        "sourceId": "ID source",
+        "updatedAt": "Mis à jour",
+        "emptyContent": "Cette source ne contient aucun contenu affichable.",
+        "noCitations": "FastGPT n’a renvoyé aucun contenu source affichable.",
+        "copy": "Copier les preuves",
+        "copied": "Copié",
+        "feedbackHint": "Si une source est non pertinente, obsolète ou mal utilisée, copiez les preuves et envoyez un retour avec l’action pouce vers le bas."
+      },
       "transferDialog": {
         "title": "Transférer à un agent humain",
         "description": "Vous êtes sur le point de passer de l'assistant IA à un agent humain. L'agent pourra voir l'historique complet de votre conversation pour une meilleure assistance.",

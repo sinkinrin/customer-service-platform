@@ -210,8 +210,10 @@ AI 不是单一 FastGPT 绑定实现，当前代码存在多 provider：
 客户 AI 对话当前重点行为：
 
 - `/api/ai/chat` 支持同步和 SSE 流式返回
-- 流式路径通过 `withPersistence()` 在服务端累积文本并持久化 AI 回复
-- 客户端 `useStreamingChat()` 通过 `persisted` SSE 事件接收真实消息 ID
+- FastGPT 流式路径通过 `withEvidencePersistence()` 在服务端累积文本、提取有界引用证据并持久化 AI 回复；上游完成标记后保留短证据等待窗口，再发送本地最终 `done`
+- 服务端不再向浏览器直接透传 FastGPT 原始工具和知识库事件；staff/admin 可收到规范化 `evidence` 事件，customer 不会收到
+- 客户端 `useStreamingChat()` 通过 `evidence` 和 `persisted` SSE 事件分别接收回答证据与真实消息 ID
+- `/staff/conversations/{id}` 在每条带证据的 AI 消息操作区右侧提供默认折叠的引用按钮，历史消息从 `AiMessage.metadata.aiEvidence` 恢复
 - `addMessage()` 对 AI 消息带有短时间幂等保护，避免流式迁移期双写重复
 
 staff AI 助手当前边界：
@@ -229,6 +231,7 @@ staff AI 助手当前边界：
 - `src/hooks/use-streaming-chat.ts`
 - `src/lib/ai/stream-client.ts`
 - `src/lib/ai/stream-helpers.ts`
+- `src/lib/ai/fastgpt-evidence.ts`
 - `src/lib/ai-conversation-service.ts`
 
 ## 国际化

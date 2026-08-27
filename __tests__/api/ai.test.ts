@@ -295,6 +295,66 @@ describe('AI APIs', () => {
       expect(text).toContain('"hello"')
     })
 
+    it('emits sanitized source evidence for staff but not for customers', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        model: 'FastGPT',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'app',
+        fastgptApiKey: 'key',
+      } as any)
+
+      const createUpstream = () => {
+        const encoder = new TextEncoder()
+        return new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode('event: answer\ndata: {"choices":[{"delta":{"content":"hello"}}]}\n\n'))
+            controller.enqueue(encoder.encode('event: toolCall\ndata: {"tool":{"id":"call-1","toolName":"DatasetSearch"},"responseValueId":"call-1"}\n\n'))
+            controller.enqueue(encoder.encode(`event: toolResponse\ndata: ${JSON.stringify({
+              tool: {
+                id: 'call-1',
+                response: JSON.stringify([{ result: { cites: [{ id: 'doc-1', sourceName: 'Guide.md', content: 'source text' }] } }]),
+              },
+              responseValueId: 'call-1',
+            })}\n\n`))
+            controller.enqueue(encoder.encode('event: answer\ndata: [DONE]\n\n'))
+            controller.close()
+          },
+        })
+      }
+
+      global.fetch = vi.fn().mockImplementation(async () => ({
+        ok: true,
+        body: createUpstream(),
+      })) as any
+
+      const staffResponse = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', stream: true }),
+        })
+      )
+      const staffText = await staffResponse.text()
+
+      expect(staffText).toContain('event: evidence')
+      expect(staffText).toContain('Guide.md')
+      expect(staffText).not.toContain('event: toolResponse')
+
+      vi.mocked(requireAuth).mockResolvedValue(mockCustomerUser as any)
+      const customerResponse = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', stream: true }),
+        })
+      )
+      const customerText = await customerResponse.text()
+
+      expect(customerText).not.toContain('event: evidence')
+      expect(customerText).not.toContain('Guide.md')
+      expect(customerText).not.toContain('event: toolResponse')
+    })
+
     it('uses the pro FastGPT app credentials for pro stream mode', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,

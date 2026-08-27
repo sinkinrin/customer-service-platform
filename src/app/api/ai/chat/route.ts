@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { readAISettings, resolveAIChatSettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import { aiProviders } from '@/lib/ai/providers'
-import { createStreamResponse, prependSSEEvent, withPersistence, withStreamTimeout } from '@/lib/ai/stream-helpers'
+import { createStreamResponse, prependSSEEvent, withEvidencePersistence, withStreamTimeout } from '@/lib/ai/stream-helpers'
+import type { AiAnswerEvidence } from '@/lib/ai/fastgpt-evidence'
 import { requireAuth } from '@/lib/utils/auth'
 import { aiChatLimiter } from '@/lib/utils/rate-limit'
 import { getConversation, addMessage } from '@/lib/ai-conversation-service'
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
   try {
     // Explicit auth: direct AI chat supports authenticated customers and staff.
     const user = await requireAuth()
+    const canInspectEvidence = user.role === 'staff' || user.role === 'admin'
 
     // Rate limiting (H7+M11)
     const rateLimitKey = `ai-chat:${user.id}`
@@ -109,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     const persistAiReply = async (
       fullText: string,
-      info: { completed: boolean }
+      info: { completed: boolean; evidence?: AiAnswerEvidence }
     ): Promise<{ messageId: string } | null> => {
       if (!persistTarget || !fullText.trim()) return null
       try {
@@ -125,6 +127,7 @@ export async function POST(request: NextRequest) {
             sender_name: 'AI Assistant',
             ...(requestId ? { aiRequestId: requestId } : {}),
             ...(info.completed ? {} : { truncated: true }),
+            ...(canInspectEvidence && info.evidence ? { aiEvidence: info.evidence } : {}),
           },
           'text'
         )
@@ -163,9 +166,12 @@ export async function POST(request: NextRequest) {
       // Timeout is applied to the provider stream first. Persistence then sees
       // timeout as a terminal SSE error and finishes the database write before
       // forwarding that error to the client.
-      const persistedStream = withPersistence(
+      const persistedStream = withEvidencePersistence(
         withStreamTimeout(responseStream),
-        persistAiReply
+        persistAiReply,
+        {
+          emitEvidence: settings.provider === 'fastgpt' && canInspectEvidence,
+        }
       )
       return createStreamResponse(persistedStream, null)
     }

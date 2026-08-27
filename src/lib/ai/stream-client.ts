@@ -1,4 +1,5 @@
 import { parseSSEEvent, getDeltaText, getErrorText, getFlowNodeStatus } from './sse-parse'
+import { parseAiAnswerEvidence, type AiAnswerEvidence } from './fastgpt-evidence'
 
 interface AIChatApiResponse {
   success?: boolean
@@ -54,7 +55,8 @@ async function readSSEText(
   response: Response,
   onTextUpdate: (text: string) => void,
   onStatusUpdate?: (status: string) => void,
-  onPersisted?: (messageId: string) => void
+  onPersisted?: (messageId: string) => void,
+  onEvidence?: (evidence: AiAnswerEvidence) => void
 ): Promise<string> {
   if (!response.body) {
     throw new Error('No response body')
@@ -89,6 +91,16 @@ async function readSSEText(
         if (parsed.messageId && onPersisted) onPersisted(parsed.messageId)
       } catch {
         // ignore malformed persisted event
+      }
+      return
+    }
+
+    if (event === 'evidence') {
+      try {
+        const evidence = parseAiAnswerEvidence(JSON.parse(data))
+        if (evidence && onEvidence) onEvidence(evidence)
+      } catch {
+        // Ignore malformed evidence metadata without interrupting the answer.
       }
       return
     }
@@ -158,7 +170,8 @@ export async function readAIChatResponse(
   response: Response,
   onTextUpdate: (text: string) => void,
   onStatusUpdate?: (status: string) => void,
-  onPersisted?: (messageId: string) => void
+  onPersisted?: (messageId: string) => void,
+  onEvidence?: (evidence: AiAnswerEvidence) => void
 ): Promise<string> {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response))
@@ -166,7 +179,7 @@ export async function readAIChatResponse(
 
   const contentType = response.headers.get('content-type') || ''
   if (contentType.includes('text/event-stream')) {
-    return readSSEText(response, onTextUpdate, onStatusUpdate, onPersisted)
+    return readSSEText(response, onTextUpdate, onStatusUpdate, onPersisted, onEvidence)
   }
 
   const payload = (await response.json()) as AIChatApiResponse & {

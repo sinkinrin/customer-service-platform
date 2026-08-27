@@ -2145,6 +2145,22 @@
         "aiAssistant": "AI Assistant",
         "aiThinking": "Thinking..."
       },
+      "aiEvidence": {
+        "button": "Sources {count}",
+        "buttonLabel": "View {count} sources for this answer",
+        "title": "Sources for this answer",
+        "description": "FastGPT returned {count} knowledge sources for this answer.",
+        "searches": "Search queries",
+        "noSearches": "FastGPT did not return displayable search queries.",
+        "citations": "Source documents ({count})",
+        "sourceId": "Source ID",
+        "updatedAt": "Updated",
+        "emptyContent": "This source did not include displayable content.",
+        "noCitations": "FastGPT did not return displayable source content.",
+        "copy": "Copy evidence",
+        "copied": "Copied",
+        "feedbackHint": "If a source is irrelevant, outdated, or used incorrectly, copy the evidence and submit feedback with the thumbs-down action."
+      },
       "transferDialog": {
         "title": "Transfer to Human Agent",
         "description": "You are about to transfer from AI assistant to a human agent. The agent will be able to view your complete conversation history for better assistance.",

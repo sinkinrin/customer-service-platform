@@ -3,6 +3,27 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/utils/logger'
 
+const EMPTY_RATING_STATS = {
+  total: 0,
+  positive: 0,
+  negative: 0,
+  satisfactionRate: 0,
+  recentNegative: [] as Array<{
+    ticketId: number
+    reason: string
+    createdAt: Date
+  }>,
+}
+
+function isMissingTicketRatingTableError(error: unknown): boolean {
+  return Boolean(
+    error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'P2021'
+  )
+}
+
 // GET /api/admin/stats/ratings - Get customer satisfaction statistics
 export async function GET() {
   try {
@@ -23,46 +44,36 @@ export async function GET() {
     }
 
     try {
-      // Try to get rating statistics from database
-      const ratings = await prisma.ticketRating?.findMany({
-        select: {
-          id: true,
-          ticketId: true,
-          rating: true,
-          reason: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      })
+      const [ratingsByValue, recentNegativeRatings] = await prisma.$transaction(
+        async (tx) => Promise.all([
+          tx.ticketRating.groupBy({
+            by: ['rating'],
+            _count: { _all: true },
+          }),
+          tx.ticketRating.findMany({
+            where: { rating: 'negative' },
+            select: {
+              ticketId: true,
+              reason: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+          }),
+        ]),
+        { isolationLevel: 'RepeatableRead' }
+      )
 
-      if (!ratings) {
-        // Table doesn't exist yet
-        return NextResponse.json({
-          success: true,
-          data: {
-            total: 0,
-            positive: 0,
-            negative: 0,
-            satisfactionRate: 0,
-            recentNegative: [],
-          },
-        })
-      }
-
-      const total = ratings.length
-      const positive = ratings.filter((r: any) => r.rating === 'positive').length
-      const negative = ratings.filter((r: any) => r.rating === 'negative').length
+      const positive = ratingsByValue.find((item) => item.rating === 'positive')?._count._all ?? 0
+      const negative = ratingsByValue.find((item) => item.rating === 'negative')?._count._all ?? 0
+      const total = positive + negative
       const satisfactionRate = total > 0 ? Math.round((positive / total) * 100) : 0
 
-      // Get recent negative ratings with reasons
-      const recentNegative = ratings
-        .filter((r: any) => r.rating === 'negative')
-        .slice(0, 5)
-        .map((r: any) => ({
-          ticketId: r.ticketId,
-          reason: r.reason || 'No reason provided',
-          createdAt: r.createdAt,
-        }))
+      const recentNegative = recentNegativeRatings.map((r) => ({
+        ticketId: r.ticketId,
+        reason: r.reason || 'No reason provided',
+        createdAt: r.createdAt,
+      }))
 
       return NextResponse.json({
         success: true,
@@ -75,18 +86,17 @@ export async function GET() {
         },
       })
     } catch (dbError) {
-      // Database table may not exist yet
-      logger.warning('StatsRatings', 'Could not query ratings', { data: { error: dbError instanceof Error ? dbError.message : dbError } })
-      return NextResponse.json({
-        success: true,
-        data: {
-          total: 0,
-          positive: 0,
-          negative: 0,
-          satisfactionRate: 0,
-          recentNegative: [],
-        },
-      })
+      if (isMissingTicketRatingTableError(dbError)) {
+        logger.warning('StatsRatings', 'TicketRating table does not exist; returning empty stats', {
+          data: { error: dbError instanceof Error ? dbError.message : dbError },
+        })
+        return NextResponse.json({
+          success: true,
+          data: EMPTY_RATING_STATS,
+        })
+      }
+
+      throw dbError
     }
   } catch (error) {
     logger.error('StatsRatings', 'Failed to get rating stats', { data: { error: error instanceof Error ? error.message : error } })

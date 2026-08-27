@@ -6,10 +6,14 @@
 
 import { NextResponse } from 'next/server'
 import { readAISettings } from '@/lib/utils/ai-config'
+import { requireRole } from '@/lib/utils/auth'
+import { forbiddenResponse, unauthorizedResponse } from '@/lib/utils/api-response'
 import { logger } from '@/lib/utils/logger'
 
 export async function GET() {
   try {
+    await requireRole(['admin'])
+
     const settings = readAISettings()
 
     // Check if AI is enabled
@@ -58,36 +62,37 @@ export async function GET() {
         return NextResponse.json({
           status: 'healthy',
           message: 'FastGPT is reachable and responding',
-          config: {
-            fastgptUrl: settings.fastgptUrl,
-            model: settings.model,
-          },
         })
       } else {
-        const errorText = await response.text()
         return NextResponse.json({
           status: 'error',
           message: `FastGPT returned HTTP ${response.status}`,
-          details: errorText.substring(0, 200), // Truncate error
         }, { status: 500 })
       }
-    } catch (fetchError: any) {
+    } catch (fetchError) {
       // Network or timeout error
+      logger.error('AIHealth', 'Failed to connect to FastGPT service', {
+        data: {
+          error: fetchError instanceof Error ? fetchError.message : fetchError,
+        },
+      })
       return NextResponse.json({
         status: 'unreachable',
         message: 'Failed to connect to FastGPT service',
-        details: fetchError.message,
-        config: {
-          fastgptUrl: settings.fastgptUrl,
-        },
       }, { status: 503 })
     }
-  } catch (error: any) {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return unauthorizedResponse()
+    }
+    if (error instanceof Error && error.message === 'Forbidden') {
+      return forbiddenResponse('Admin access required')
+    }
+
     logger.error('AIHealth', 'Health check failed', { data: { error: error instanceof Error ? error.message : error } })
     return NextResponse.json({
       status: 'error',
       message: 'Health check failed',
-      details: error.message,
     }, { status: 500 })
   }
 }

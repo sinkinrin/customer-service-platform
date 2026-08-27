@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%E2%9A%99%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+    <title>FastGPT Execution Lens</title>
+    <link rel="stylesheet" href="/styles.css?v=5" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span>Standalone lab</span><span>FastGPT execution lens</span></div>
+          <h1>不只看答案，直接观察 AI 如何调用工具与查阅知识。</h1>
+          <p>独立前后端演示。服务端代理 FastGPT 的 detail=true 流，前端把回答、节点、工具、检索和引用拆开显示。</p>
+        </div>
+        <div class="endpoint-card">
+          <div class="endpoint-label"><span class="signal-dot" id="connectionDot"></span>目标端点</div>
+          <code id="endpoint">正在读取…</code>
+          <div class="key-status" id="keyStatus">检查服务端配置…</div>
+        </div>
+        <div class="metrics" aria-label="运行指标">
+          <div class="metric"><span>连接状态</span><strong id="stateMetric">等待运行</strong></div>
+          <div class="metric"><span>首字延迟</span><strong id="firstTokenMetric">—</strong></div>
+          <div class="metric"><span>总耗时</span><strong id="durationMetric">—</strong></div>
+          <div class="metric"><span>引用证据</span><strong id="citationMetric">0 条</strong></div>
+        </div>
+      </header>
+
+      <section class="primary-grid">
+        <aside class="panel prompt-panel">
+          <div class="section-heading">
+            <span class="heading-icon">⌘</span>
+            <div><h2>发送测试问题</h2><p>每次运行创建独立 chatId</p></div>
+          </div>
+          <label for="prompt">Prompt</label>
+          <textarea id="prompt">请根据已配置的知识库，说明客户反馈“登录后反复跳回登录页”时，客服应如何排查和回复。请使用可用工具完成必要查询，并在回答中引用你查阅的资料。</textarea>
+          <div class="actions">
+            <button class="run-button" id="runButton" type="button"><span>▶</span>调用 FastGPT</button>
+            <button class="demo-button" id="demoButton" type="button"><span>✦</span>播放示例</button>
+            <button class="stop-button" id="stopButton" type="button" disabled aria-label="停止运行">■</button>
+          </div>
+          <div class="run-state idle" id="runState" aria-live="polite">● 等待运行</div>
+          <p class="privacy-note">API Key 只从本地 Node.js 进程读取，不会发送到浏览器，也不会写入任何业务数据库。</p>
+        </aside>
+
+        <article class="panel answer-panel">
+          <div class="panel-bar">
+            <div class="section-heading compact"><span class="heading-icon bot">✦</span><div><h2>实时回答</h2><p>仅 answer 事件进入正文</p></div></div>
+            <code id="charCount">0 chars</code>
+          </div>
+          <div class="answer-body" id="answerBody">
+            <div class="answer-empty" id="answerEmpty"><div class="orb">✦</div><h3>运行后，回答会从这里开始生长</h3><p>工具、节点和知识库事件不会混进回答正文，而会进入下方执行轨迹。</p></div>
+            <div class="answer-content hidden" id="answerContent"></div>
+            <div class="error-box hidden" id="errorBox"></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="trace-grid">
+        <article class="panel trace-panel">
+          <div class="panel-bar trace-header">
+            <div><h2>执行轨迹</h2><p>点击任意事件查看 FastGPT 原始 JSON</p></div>
+            <div class="legend" aria-label="事件类型图例">
+              <span><i class="dot node"></i>流程节点</span><span><i class="dot tool"></i>工具调用</span><span><i class="dot retrieval"></i>知识检索</span><span><i class="dot system"></i>流状态</span>
+            </div>
+          </div>
+          <div class="trace-content">
+            <div class="timeline" id="timeline"><div class="empty-state">⌁<span>尚未收到流程事件</span></div></div>
+            <aside class="raw-inspector"><div class="raw-label">{ } Raw event</div><div class="raw-empty" id="rawEmpty">选择左侧事件后查看原始数据</div><div class="raw-detail hidden" id="rawDetail"><div class="raw-title-row"><div><strong id="rawTitle"></strong><span id="rawKind"></span></div><code id="rawId"></code></div><pre id="rawJson"></pre></div></aside>
+          </div>
+        </article>
+
+        <aside class="panel evidence-panel">
+          <div class="panel-bar"><div><h2>引用与知识证据</h2><p>来自 toolResponse.cites / flowResponses / quoteList</p></div><span class="count-pill" id="evidenceCount">0</span></div>
+          <div class="evidence-list" id="evidenceList"><div class="evidence-empty"><span>⌕</span><h3>还没有解析到引用资料</h3><p>如果工作流执行了知识库搜索，命中的文档与片段会显示在这里。</p></div></div>
+        </aside>
+      </section>
+
+      <section class="panel advanced-panel">
+        <div class="advanced-header">
+          <div>
+            <div class="eyebrow">Deep observability</div>
+            <h2>更多可观测信息</h2>
+            <p>区分 FastGPT API 原生字段、HTTP 传输指标，以及 Demo 根据事件计算的数据。</p>
+          </div>
+          <nav class="detail-tabs" aria-label="详细信息视图">
+            <button class="detail-tab active" type="button" data-tab="process">工具与节点</button>
+            <button class="detail-tab" type="button" data-tab="knowledge">检索与引用映射</button>
+            <button class="detail-tab" type="button" data-tab="network">HTTP / SSE</button>
+          </nav>
+        </div>
+
+        <div class="detail-panel active" id="processDetail" data-panel="process">
+          <div class="detail-kpis" id="processOverview"></div>
+          <div class="table-shell">
+            <table class="detail-table">
+              <thead><tr><th>#</th><th>类型</th><th>节点或工具</th><th>状态</th><th>收到时间</th><th>详细信息</th></tr></thead>
+              <tbody id="processTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="detail-panel" id="knowledgeDetail" data-panel="knowledge">
+          <div class="knowledge-layout">
+            <section>
+              <div class="detail-section-title"><h3>知识库搜索批次</h3><span id="searchRunCount">0</span></div>
+              <div class="search-run-list" id="searchRunList"></div>
+            </section>
+            <section>
+              <div class="detail-section-title"><h3>回答引用映射</h3><span id="citationMapCount">0</span></div>
+              <div class="citation-map-list" id="citationMapList"></div>
+            </section>
+          </div>
+          <div class="source-summary" id="sourceSummary"></div>
+        </div>
+
+        <div class="detail-panel" id="networkDetail" data-panel="network">
+          <div class="detail-kpis" id="networkOverview"></div>
+          <div class="network-layout">
+            <section class="network-card">
+              <div class="detail-section-title"><h3>请求生命周期</h3><span>Demo 派生</span></div>
+              <ol class="lifecycle" id="networkLifecycle"></ol>
+            </section>
+            <section class="network-card">
+              <div class="detail-section-title"><h3>SSE 事件分布</h3><span id="sseEventTotal">0 events</span></div>
+              <div class="event-distribution" id="eventDistribution"></div>
+            </section>
+            <section class="network-card request-envelope">
+              <div class="detail-section-title"><h3>请求与响应摘要</h3><span>不包含 API Key</span></div>
+              <pre id="networkEnvelope"></pre>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="/app.js?v=5" type="module"></script>
+  </body>
+</html>

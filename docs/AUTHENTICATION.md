@@ -2,7 +2,7 @@
 
 > 当前认证、Session 与路由保护规则。
 
-**最后更新**：2026-04-20
+**最后更新**：2026-07-22
 **NextAuth 版本**：`5.0.0-beta.30`
 
 ---
@@ -51,6 +51,8 @@
 
 如果启用了 mock auth，则会从 `src/lib/mock-auth.ts` 中查找测试用户和密码。
 
+当前 `isMockAuthEnabled()` 的实际规则是：任何非 production runtime 都自动启用 mock auth；`NEXT_PUBLIC_ENABLE_MOCK_AUTH` 不能在 development / test 环境把它关闭。production 会始终禁用 mock auth，并在该变量被设为 `true` 时启动失败。
+
 ### Env 单用户回退
 
 若 mock auth 未启用，代码还可以读取以下变量作为单账号 fallback：
@@ -61,7 +63,7 @@
 - `AUTH_DEFAULT_USER_NAME`
 - `AUTH_DEFAULT_USER_REGION`
 
-这个路径更像应急 / 开发兜底，而不是正式生产身份模型。
+这个路径更像应急 / 开发兜底，而不是正式生产身份模型。它没有独立 enable flag；Zammad 返回认证失败或发生连接异常后都可能继续进入该路径，且角色缺失或无效时默认使用 `staff`。
 
 ---
 
@@ -81,7 +83,7 @@
 
 当前 region 注入逻辑：
 
-- **Customer**：从 Zammad `note` 中解析 `Region: <region>`
+- **Customer**：从本地 service-group assignment 的 `baseRegion` 映射
 - **Staff / Admin**：从 Zammad `group_ids` 反推，通常取有 `full` 权限的 group
 
 相关文件：
@@ -117,6 +119,7 @@
 - 会基于规范化后的邮箱构造 rate-limit key
 - 通过 `loginLimiter` 检查是否允许继续尝试
 - 超限时抛出 `RATE_LIMIT_EXCEEDED`
+- limiter 是当前进程内的固定窗口 `Map`，不是共享存储，也不是按客户端 IP 限制
 
 所以认证文档不能只写“校验用户名密码”，还要承认当前存在登录限流。
 
@@ -220,6 +223,8 @@ ZAMMAD_API_TOKEN=<admin token>
 NEXT_PUBLIC_ENABLE_MOCK_AUTH=true
 ```
 
+注意：这是当前已有变量，但它在非 production 环境并不是真正的 enable/disable gate。对外可达的 development、staging 或 demo 环境不能依靠把它设为 `false` 来关闭固定 mock 凭据。
+
 ### Env Fallback User
 
 ```env
@@ -237,7 +242,8 @@ AUTH_DEFAULT_USER_REGION=asia-pacific
 ## 运维注意点
 
 - 配了 Zammad 时，会先尝试 Zammad 登录
-- 开启 mock auth 时，失败的 Zammad 登录仍可能回退到 mock 用户
+- 当前任何非 production runtime 都会启用 mock auth，失败的 Zammad 登录仍可能回退到固定 mock 用户
+- 非 production 的标准 Credentials 登录可为固定 mock 管理员签发正常 NextAuth session；不要把公开 staging / demo 运行在这一边界下
 - 如果没有任何可用认证路径，可能出现 `AUTH_CONFIG_MISSING`
 - 反向代理部署依赖 `trustHost = true`
 - `.env.local` 变更遵循常规进程环境变量行为，必要时要重启

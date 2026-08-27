@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
+import { assertSafeE2EEnvironment } from './scripts/e2e-safety'
+
+assertSafeE2EEnvironment()
 
 /**
  * Playwright E2E 测试配置
@@ -82,7 +85,9 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3010',
-    reuseExistingServer: !process.env.CI,
+    // Never attach write-capable E2E tests to an arbitrary developer server,
+    // which may have been started with shared or production credentials.
+    reuseExistingServer: false,
     timeout: 120000,
   },
   

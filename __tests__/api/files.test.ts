@@ -176,6 +176,17 @@ describe('Files API', () => {
 
       expect(response.status).toBe(200)
       expect(payload.success).toBe(true)
+      expect(deleteFile).toHaveBeenCalledWith('file_1', 'user_1')
+    })
+
+    it('allows admins to delete files owned by another user', async () => {
+      vi.mocked(requireAuth).mockResolvedValue({ id: 'admin_1', role: 'admin' } as any)
+      vi.mocked(deleteFile).mockResolvedValue(true)
+
+      const response = await DELETE_FILE({} as any, { params: Promise.resolve({ id: 'file_1' }) })
+
+      expect(response.status).toBe(200)
+      expect(deleteFile).toHaveBeenCalledWith('file_1', undefined)
     })
   })
 

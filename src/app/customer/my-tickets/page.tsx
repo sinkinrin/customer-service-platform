@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import {
 import { Loader2, Search, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { getAuthorizationIdentityKey } from '@/lib/auth/authorization-identity'
 import { useTranslations } from 'next-intl'
 
 interface Ticket {
@@ -28,6 +29,18 @@ interface Ticket {
   created_at: string
   updated_at: string
   article_count: number
+}
+
+interface TicketListState {
+  identityKey: string
+  tickets: Ticket[]
+  page: number
+  hasMore: boolean
+}
+
+interface TicketSearchState {
+  identityKey: string
+  query: string
 }
 
 const priorityVariants: Record<number, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -46,68 +59,156 @@ const stateVariants: Record<number, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function MyTicketsPage() {
   const t = useTranslations('myTickets')
-  const router = useRouter()
   const { user } = useAuth()
+  const userEmail = user?.email || ''
+  const ticketIdentityKey = getAuthorizationIdentityKey(user) ?? ''
+  const loadErrorMessage = t('toast.loadError')
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [tickets, setTickets] = useState<Ticket[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([])
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(false)
+  const [ticketSearch, setTicketSearch] = useState<TicketSearchState>(() => ({
+    identityKey: ticketIdentityKey,
+    query: '',
+  }))
+  const [ticketList, setTicketList] = useState<TicketListState>(() => ({
+    identityKey: ticketIdentityKey,
+    tickets: [],
+    page: 1,
+    hasMore: false,
+  }))
+  const activeIdentityKeyRef = useRef(ticketIdentityKey)
+  const requestSequenceRef = useRef(0)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const loadErrorMessageRef = useRef(loadErrorMessage)
 
-  useEffect(() => {
-    if (user?.email) {
-      fetchTickets(1)
-    }
-  }, [user])
+  // Hide the previous identity's data during render, before effect cleanup.
+  activeIdentityKeyRef.current = ticketIdentityKey
+  loadErrorMessageRef.current = loadErrorMessage
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const filtered = tickets.filter(ticket =>
-        ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.number.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-      setFilteredTickets(filtered)
-    } else {
-      setFilteredTickets(tickets)
-    }
-  }, [searchQuery, tickets])
+  const ticketListIsCurrent = ticketList.identityKey === ticketIdentityKey
+  const searchQuery = ticketSearch.identityKey === ticketIdentityKey ? ticketSearch.query : ''
+  const page = ticketListIsCurrent ? ticketList.page : 1
+  const hasMore = ticketListIsCurrent ? ticketList.hasMore : false
+  const displayLoading = loading || (!!userEmail && !ticketListIsCurrent)
+  const filteredTickets = useMemo(() => {
+    const currentTickets = ticketList.identityKey === ticketIdentityKey
+      ? ticketList.tickets
+      : []
 
-  const fetchTickets = async (pageToLoad: number, append: boolean = false) => {
+    if (!searchQuery.trim()) return currentTickets
+
+    const normalizedQuery = searchQuery.toLowerCase()
+    return currentTickets.filter(ticket =>
+      ticket.title.toLowerCase().includes(normalizedQuery) ||
+      ticket.number.toLowerCase().includes(normalizedQuery)
+    )
+  }, [searchQuery, ticketIdentityKey, ticketList])
+
+  const fetchTickets = useCallback(async (
+    pageToLoad: number,
+    append: boolean = false,
+    background: boolean = false
+  ) => {
+    if (!ticketIdentityKey || !userEmail) return
+
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    const requestSequence = ++requestSequenceRef.current
+    abortControllerRef.current = controller
+    const isCurrentRequest = () =>
+      !controller.signal.aborted &&
+      requestSequenceRef.current === requestSequence &&
+      activeIdentityKeyRef.current === ticketIdentityKey
+
     if (append) {
       setLoadingMore(true)
-    } else {
+    } else if (!background) {
       setLoading(true)
     }
 
     try {
       // Search for tickets by user email
-      const response = await fetch(`/api/tickets?query=${encodeURIComponent(user?.email || '')}&limit=50&page=${pageToLoad}`)
+      const response = await fetch(
+        `/api/tickets?query=${encodeURIComponent(userEmail)}&limit=50&page=${pageToLoad}`,
+        { signal: controller.signal }
+      )
+
+      if (!isCurrentRequest()) return
 
       if (!response.ok) {
         throw new Error('Failed to fetch tickets')
       }
 
       const data = await response.json()
-      const newTickets = data.data.tickets || []
+      if (!isCurrentRequest()) return
 
-      if (append) {
-        setTickets(prev => [...prev, ...newTickets])
-      } else {
-        setTickets(newTickets)
+      const newTickets = data.data.tickets || []
+      setTicketList((previous) => ({
+        identityKey: ticketIdentityKey,
+        tickets: append && previous.identityKey === ticketIdentityKey
+          ? [...previous.tickets, ...newTickets]
+          : newTickets,
+        page: pageToLoad,
+        hasMore: data.data.hasMore || false,
+      }))
+    } catch (error) {
+      if (
+        controller.signal.aborted ||
+        !isCurrentRequest() ||
+        (error instanceof Error && error.name === 'AbortError')
+      ) {
+        return
       }
 
-      setHasMore(data.data.hasMore || false)
-      setPage(pageToLoad)
-    } catch (error) {
       console.error('Failed to fetch tickets:', error)
-      toast.error(t('toast.loadError'))
+      toast.error(loadErrorMessageRef.current)
     } finally {
-      setLoading(false)
-      setLoadingMore(false)
+      if (isCurrentRequest()) {
+        setLoading(false)
+        setLoadingMore(false)
+      }
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null
+      }
     }
-  }
+  }, [ticketIdentityKey, userEmail])
+
+  useEffect(() => {
+    requestSequenceRef.current += 1
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    setTicketSearch({ identityKey: ticketIdentityKey, query: '' })
+    setTicketList({ identityKey: ticketIdentityKey, tickets: [], page: 1, hasMore: false })
+    setLoadingMore(false)
+
+    if (!ticketIdentityKey || !userEmail) {
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    void fetchTickets(1)
+
+    return () => {
+      requestSequenceRef.current += 1
+      abortControllerRef.current?.abort()
+      abortControllerRef.current = null
+    }
+  }, [fetchTickets, ticketIdentityKey, userEmail])
+
+  useEffect(() => {
+    if (!ticketIdentityKey || !userEmail) return
+
+    const handleTicketUpdate = () => {
+      // A listener from the previous authorization identity can remain active
+      // until effect cleanup runs. Never let it start a request for that old
+      // identity after the current render has already switched users/roles.
+      if (activeIdentityKeyRef.current !== ticketIdentityKey) return
+      void fetchTickets(1, false, true)
+    }
+
+    window.addEventListener('ticket-update', handleTicketUpdate)
+    return () => window.removeEventListener('ticket-update', handleTicketUpdate)
+  }, [fetchTickets, ticketIdentityKey, userEmail])
 
   const handleLoadMore = () => {
     const nextPage = page + 1
@@ -151,7 +252,10 @@ export default function MyTicketsPage() {
                 <Input
                   placeholder={t('searchPlaceholder')}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setTicketSearch({
+                    identityKey: ticketIdentityKey,
+                    query: e.target.value,
+                  })}
                   className="pl-8"
                 />
               </div>
@@ -159,7 +263,7 @@ export default function MyTicketsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {displayLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
@@ -192,11 +296,7 @@ export default function MyTicketsPage() {
               </TableHeader>
               <TableBody>
                 {filteredTickets.map((ticket) => (
-                  <TableRow
-                    key={ticket.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => router.push(`/customer/my-tickets/${ticket.id}`)}
-                  >
+                  <TableRow key={ticket.id}>
                     <TableCell className="font-medium">#{ticket.number}</TableCell>
                     <TableCell className="max-w-md truncate">{ticket.title}</TableCell>
                     <TableCell>
@@ -217,15 +317,13 @@ export default function MyTicketsPage() {
                       {formatDate(ticket.updated_at)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/customer/my-tickets/${ticket.id}`)
-                        }}
-                      >
-                        {t('table.view')}
+                      <Button asChild variant="ghost" size="sm">
+                        <Link
+                          href={`/customer/my-tickets/${ticket.id}`}
+                          aria-label={`${t('table.view')} #${ticket.number}: ${ticket.title}`}
+                        >
+                          {t('table.view')}
+                        </Link>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -235,7 +333,7 @@ export default function MyTicketsPage() {
           )}
 
           {/* Load More Button */}
-          {!loading && hasMore && (
+          {!displayLoading && hasMore && (
             <div className="flex justify-center mt-6">
               <Button
                 onClick={handleLoadMore}

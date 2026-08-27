@@ -69,15 +69,7 @@ export async function GET(request: NextRequest) {
     return successResponse(response)
   } catch (error) {
     logger.error('FAQ', 'Failed to fetch FAQ categories', { data: { error: error instanceof Error ? error.message : error } })
-
-    // Handle database connection errors
-    if (error instanceof Error) {
-      if (error.message.includes('SQLITE_CANTOPEN') || error.message.includes('database')) {
-        return serverErrorResponse('Database connection failed. Please ensure the database is properly initialized.', error.message)
-      }
-    }
-
-    return serverErrorResponse(error instanceof Error ? error.message : 'Failed to fetch FAQ categories')
+    return serverErrorResponse('Failed to fetch FAQ categories')
   }
 }
 

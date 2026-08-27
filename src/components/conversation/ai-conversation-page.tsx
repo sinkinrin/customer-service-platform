@@ -11,6 +11,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { MessageList } from '@/components/conversation/message-list'
 import { MessageInput } from '@/components/conversation/message-input'
+import { AiEvidenceDisclosure } from '@/components/conversation/ai-evidence-disclosure'
 import { ConversationHeader } from '@/components/conversation/conversation-header'
 import { FeedbackDialog } from '@/components/ai/feedback-dialog'
 import { toast } from 'sonner'
@@ -21,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useStreamingChat } from '@/hooks/use-streaming-chat'
+import { parseAiAnswerEvidence, type AiAnswerEvidence } from '@/lib/ai/fastgpt-evidence'
 import {
   DRAFT_CONVERSATION_ID,
   HISTORY_CACHE_TTL_MS,
@@ -40,6 +42,7 @@ interface AiMsg {
   timestamp: string
   rating?: 'positive' | 'negative' | null
   feedback?: string | null
+  evidence?: AiAnswerEvidence
 }
 
 type AIChatMode = 'flash' | 'pro'
@@ -47,6 +50,7 @@ type AIChatMode = 'flash' | 'pro'
 interface AiConversationPageProps {
   basePath?: string
   humanMessageRole?: 'customer' | 'staff'
+  showAiEvidence?: boolean
 }
 
 function toMillis(value: string): number {
@@ -57,6 +61,7 @@ function toMillis(value: string): number {
 export function AiConversationPage({
   basePath = '/customer/conversations',
   humanMessageRole = 'customer',
+  showAiEvidence = false,
 }: AiConversationPageProps) {
   const t = useTranslations('customer.conversations.detail')
   const tPlaceholders = useTranslations('customer.conversations.placeholders')
@@ -106,6 +111,17 @@ export function AiConversationPage({
   const activeStreamingMessageIdRef = useRef<string | null>(null)
   const historyRequestGenRef = useRef(0)
   const skipNextHistoryLoadForConversationRef = useRef<string | null>(null)
+  const toAiMessage = useCallback((msg: any): AiMsg => ({
+    id: msg.id,
+    role: msg.metadata?.role === 'ai' ? 'assistant' : 'user',
+    content: msg.content,
+    timestamp: msg.created_at,
+    rating: msg.rating?.rating || null,
+    feedback: msg.rating?.feedback || null,
+    evidence: showAiEvidence
+      ? parseAiAnswerEvidence(msg.metadata?.aiEvidence) || undefined
+      : undefined,
+  }), [showAiEvidence])
   const effectiveConversationId = materializedConversationId || (isDraftConversation ? null : conversationId)
   const materializedDraftKey = useMemo(() => getConversationMaterializedDraftKey(user?.id), [user?.id])
   const normalizedBasePath = useMemo(() => basePath.replace(/\/$/, ''), [basePath])
@@ -143,6 +159,12 @@ export function AiConversationPage({
       if (activeStreamingMessageIdRef.current !== id) return
       setAiMessages(prev =>
         prev.map(msg => (msg.id === id ? { ...msg, content } : msg))
+      )
+    },
+    onEvidence: (id, evidence) => {
+      if (!showAiEvidence || activeStreamingMessageIdRef.current !== id) return
+      setAiMessages(prev =>
+        prev.map(msg => (msg.id === id ? { ...msg, evidence } : msg))
       )
     },
     onRemoveMessage: (id) => {
@@ -341,14 +363,7 @@ export function AiConversationPage({
             }
             const cachedMessages = cachedEntry.items
               .filter((msg: any) => msg.metadata?.aiMode)
-              .map((msg: any) => ({
-                id: msg.id,
-                role: msg.metadata?.role === 'ai' ? 'assistant' as const : 'user' as const,
-                content: msg.content,
-                timestamp: msg.created_at,
-                rating: msg.rating?.rating || null,
-                feedback: msg.rating?.feedback || null,
-              }))
+              .map(toAiMessage)
             if (!isActive()) return
             setAiMessages(cachedMessages)
           }
@@ -358,14 +373,7 @@ export function AiConversationPage({
           if (!isActive()) return
           const aiModeMessages: AiMsg[] = result.pageItems
             .filter((msg: any) => msg.metadata?.aiMode)
-            .map((msg: any) => ({
-              id: msg.id,
-              role: msg.metadata?.role === 'ai' ? 'assistant' as const : 'user' as const,
-              content: msg.content,
-              timestamp: msg.created_at,
-              rating: msg.rating?.rating || null,
-              feedback: msg.rating?.feedback || null,
-            }))
+            .map(toAiMessage)
           setAiMessages((prev) => {
             const uniqueById = new Map<string, AiMsg>()
             prev.forEach((message) => uniqueById.set(message.id, message))
@@ -387,7 +395,7 @@ export function AiConversationPage({
 
       loadMessages()
     }
-  }, [buildConversationHref, conversationId, fetchHistoryMessages, historyMessageCacheKey, isDraftConversation, materializedDraftKey, router, searchParams, user?.id, userId])
+  }, [buildConversationHref, conversationId, fetchHistoryMessages, historyMessageCacheKey, isDraftConversation, materializedDraftKey, router, searchParams, toAiMessage, user?.id, userId])
 
   const loadEarlierMessages = useCallback(async () => {
     if (isDraftConversation) return
@@ -406,14 +414,7 @@ export function AiConversationPage({
       if (!isActive()) return
       const aiModeMessages = result.pageItems
         .filter((msg: any) => msg.metadata?.aiMode)
-        .map((msg: any) => ({
-          id: msg.id,
-          role: msg.metadata?.role === 'ai' ? 'assistant' as const : 'user' as const,
-          content: msg.content,
-          timestamp: msg.created_at,
-          rating: msg.rating?.rating || null,
-          feedback: msg.rating?.feedback || null,
-        }))
+        .map(toAiMessage)
       setAiMessages((prev) => {
         const merged = [...aiModeMessages, ...prev]
         const uniqueById = new Map<string, AiMsg>()
@@ -433,7 +434,7 @@ export function AiConversationPage({
       if (!isActive()) return
       setIsLoadingEarlierMessages(false)
     }
-  }, [conversationId, fetchHistoryMessages, historyMessageOffset, isDraftConversation, isLoadingEarlierMessages, userId])
+  }, [conversationId, fetchHistoryMessages, historyMessageOffset, isDraftConversation, isLoadingEarlierMessages, toAiMessage, userId])
 
   const loadHistory = useCallback(async (offset = 0) => {
     const requestGen = historyRequestGenRef.current
@@ -716,22 +717,28 @@ export function AiConversationPage({
       return
     }
 
-    const tempAiMessageId = `temp-ai-${Date.now()}`
+    const tempAiMessageId = `temp-ai-${crypto.randomUUID()}`
     activeStreamingMessageIdRef.current = tempAiMessageId
 
     // Send streaming AI request via hook
     let aiContent = ''
+    let serverPersistedMsgId: string | null = null
+    let aiEvidence: AiAnswerEvidence | null = null
     try {
-      aiContent = await sendStreamingRequest(
+      const streamResult = await sendStreamingRequest(
         '/api/ai/chat',
         {
           conversationId: resolvedConversationId,
           message: trimmedContent,
           mode: aiChatMode,
           history: aiMessages.map(msg => ({ role: msg.role, content: msg.content })),
+          requestId: tempAiMessageId,
         },
         tempAiMessageId,
       )
+      aiContent = streamResult.text
+      serverPersistedMsgId = streamResult.persistedMessageId
+      aiEvidence = streamResult.evidence
     } catch (error) {
       console.error('Failed to stream AI response:', error)
       if (shouldSyncRouterToMaterializedConversation && resolvedConversationId && isCurrentSendContextActive(resolvedConversationId)) {
@@ -766,39 +773,69 @@ export function AiConversationPage({
       return
     }
 
-    // Persist AI response and get the real message id
+    // Persist AI response and get the real message id.
+    // Preferred path: server already persisted during streaming (persisted event).
+    // Fallback: legacy client-side POST (kept for the transition window; the
+    // server-side idempotency guard dedupes if both run).
     let aiMsgId = tempAiMessageId
     let aiResponsePersisted = false
-    try {
-      const aiPersistRes = await fetch(`/api/conversations/${resolvedConversationId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: aiContent,
-          message_type: 'text',
-          metadata: { aiMode: true, role: 'ai', aiChatMode }
-        }),
+    if (serverPersistedMsgId) {
+      aiMsgId = serverPersistedMsgId
+      aiResponsePersisted = true
+      appendHistoryMessageToCache(resolvedConversationId, {
+        id: serverPersistedMsgId,
+        conversation_id: resolvedConversationId,
+        sender_id: 'ai',
+        content: aiContent,
+        message_type: 'text',
+        metadata: {
+          aiMode: true,
+          role: 'ai',
+          aiChatMode,
+          sender_name: 'AI Assistant',
+          aiRequestId: tempAiMessageId,
+          ...(showAiEvidence && aiEvidence ? { aiEvidence } : {}),
+        },
+        created_at: new Date().toISOString(),
       })
-      const aiPersistData = await aiPersistRes.json()
-      if (!isCurrentSendContextActive(resolvedConversationId)) {
-        if (activeStreamingMessageIdRef.current === tempAiMessageId) {
-          activeStreamingMessageIdRef.current = null
+    } else {
+      try {
+        const aiPersistRes = await fetch(`/api/conversations/${resolvedConversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: aiContent,
+            message_type: 'text',
+            metadata: {
+              aiMode: true,
+              role: 'ai',
+              aiChatMode,
+              aiRequestId: tempAiMessageId,
+              ...(showAiEvidence && aiEvidence ? { aiEvidence } : {}),
+            }
+          }),
+        })
+        const aiPersistData = await aiPersistRes.json()
+        if (!isCurrentSendContextActive(resolvedConversationId)) {
+          if (activeStreamingMessageIdRef.current === tempAiMessageId) {
+            activeStreamingMessageIdRef.current = null
+          }
+          return
         }
-        return
+        if (aiPersistData.success && aiPersistData.data?.id) {
+          aiMsgId = aiPersistData.data.id
+          appendHistoryMessageToCache(resolvedConversationId, aiPersistData.data)
+          aiResponsePersisted = true
+        }
+      } catch (error) {
+        console.error('Failed to persist AI response:', error)
       }
-      if (aiPersistData.success && aiPersistData.data?.id) {
-        aiMsgId = aiPersistData.data.id
-        appendHistoryMessageToCache(resolvedConversationId, aiPersistData.data)
-        aiResponsePersisted = true
-      }
-    } catch (error) {
-      console.error('Failed to persist AI response:', error)
     }
 
     setAiMessages(prev =>
       prev.map(msg =>
         msg.id === tempAiMessageId
-          ? { ...msg, id: aiMsgId, content: aiContent }
+          ? { ...msg, id: aiMsgId, content: aiContent, ...(showAiEvidence && aiEvidence ? { evidence: aiEvidence } : {}) }
           : msg
       )
     )
@@ -834,7 +871,7 @@ export function AiConversationPage({
     sender_id: msg.role === 'user' ? 'user' : 'ai',
     content: msg.content,
     message_type: 'text' as const,
-    metadata: {},
+    metadata: showAiEvidence && msg.evidence ? { aiEvidence: msg.evidence } : {},
     created_at: msg.timestamp,
     updated_at: msg.timestamp,
     sender: {
@@ -881,7 +918,7 @@ export function AiConversationPage({
               if (!aiMsg || aiMsg.role !== 'assistant') return null
 
               return (
-                <div className="flex items-center gap-1 mt-1">
+                <div className="mt-1 flex w-full items-center gap-1">
                   <button
                     onClick={() => handleThumbsUp(message.id, aiMsg.rating)}
                     className={cn(
@@ -922,6 +959,9 @@ export function AiConversationPage({
                       <Copy className="h-3.5 w-3.5" />
                     )}
                   </button>
+                  {showAiEvidence && aiMsg.evidence && (
+                    <AiEvidenceDisclosure evidence={aiMsg.evidence} />
+                  )}
                 </div>
               )
             }}

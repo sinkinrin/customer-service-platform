@@ -6,6 +6,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { getGroupIdByRegion } from '@/lib/constants/regions'
 
+const {
+  mockRatingGroupBy,
+  mockRatingFindMany,
+  mockRatingTransaction,
+} = vi.hoisted(() => ({
+  mockRatingGroupBy: vi.fn(),
+  mockRatingFindMany: vi.fn(),
+  mockRatingTransaction: vi.fn(),
+}))
+
 vi.mock('@/lib/utils/auth', () => ({
   requireRole: vi.fn(),
 }))
@@ -25,8 +35,11 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     ticketRating: {
-      findMany: vi.fn(),
+      count: vi.fn(),
+      groupBy: mockRatingGroupBy,
+      findMany: mockRatingFindMany,
     },
+    $transaction: mockRatingTransaction,
   },
 }))
 
@@ -48,6 +61,12 @@ function createRequest(url: string): NextRequest {
 describe('Admin stats APIs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRatingTransaction.mockImplementation(async (callback: (tx: any) => unknown) => callback({
+      ticketRating: {
+        groupBy: mockRatingGroupBy,
+        findMany: mockRatingFindMany,
+      },
+    }))
   })
 
   afterEach(() => {
@@ -232,10 +251,16 @@ describe('Admin stats APIs', () => {
 
     it('computes satisfaction rate from ratings', async () => {
       vi.mocked(auth).mockResolvedValue({ user: { role: 'admin' } } as any)
+      // A separately queried count could observe another database snapshot.
+      // The route must derive total from the same grouped aggregate instead.
+      vi.mocked(prisma.ticketRating.count).mockResolvedValue(99)
+      vi.mocked(prisma.ticketRating.groupBy).mockResolvedValue([
+        { rating: 'positive', _count: { _all: 2 } },
+        { rating: 'negative', _count: { _all: 1 } },
+        { rating: 'unexpected-value', _count: { _all: 50 } },
+      ] as any)
       vi.mocked(prisma.ticketRating.findMany).mockResolvedValue([
-        { rating: 'positive', ticketId: 1, reason: null, createdAt: new Date('2024-01-01') },
-        { rating: 'positive', ticketId: 2, reason: null, createdAt: new Date('2024-01-02') },
-        { rating: 'negative', ticketId: 3, reason: 'slow', createdAt: new Date('2024-01-03') },
+        { ticketId: 3, reason: 'slow', createdAt: new Date('2024-01-03') },
       ] as any)
 
       const response = await GET_RATINGS()
@@ -248,6 +273,53 @@ describe('Admin stats APIs', () => {
       expect(payload.data.negative).toBe(1)
       expect(payload.data.satisfactionRate).toBe(67)
       expect(payload.data.recentNegative).toHaveLength(1)
+      expect(prisma.ticketRating.count).not.toHaveBeenCalled()
+      expect(prisma.$transaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { isolationLevel: 'RepeatableRead' }
+      )
+      expect(prisma.ticketRating.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { rating: 'negative' },
+        take: 5,
+      }))
+    })
+
+    it('returns empty stats only when the TicketRating table is missing', async () => {
+      vi.mocked(auth).mockResolvedValue({ user: { role: 'admin' } } as any)
+      mockRatingTransaction.mockRejectedValue(Object.assign(
+        new Error('The table TicketRating does not exist'),
+        { code: 'P2021' }
+      ))
+
+      const response = await GET_RATINGS()
+      const payload = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(payload).toEqual({
+        success: true,
+        data: {
+          total: 0,
+          positive: 0,
+          negative: 0,
+          satisfactionRate: 0,
+          recentNegative: [],
+        },
+      })
+    })
+
+    it('returns 500 for database failures other than a missing table', async () => {
+      vi.mocked(auth).mockResolvedValue({ user: { role: 'admin' } } as any)
+      mockRatingTransaction.mockRejectedValue(Object.assign(
+        new Error('Database is unavailable'),
+        { code: 'P1001' }
+      ))
+
+      const response = await GET_RATINGS()
+      const payload = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(payload.success).toBe(false)
+      expect(payload.error.code).toBe('INTERNAL_ERROR')
     })
   })
 })

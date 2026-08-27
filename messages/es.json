@@ -121,6 +121,7 @@
     "tickets": "Tickets",
     "knowledgeBase": "Base de conocimientos",
     "users": "Usuarios",
+    "serviceGroups": "Grupos de servicio",
     "settings": "Configuración",
     "systemSettings": "Configuración del sistema",
     "logout": "Cerrar sesión",
@@ -415,6 +416,8 @@
       "confirm": "S?, reabrir",
       "cancel": "Cancelar",
       "success": "Ticket reabierto con ?xito",
+      "partialSuccess": "El ticket se reabrió, pero su nota de auditoría no se pudo guardar ni confirmar.",
+      "outcomeUnconfirmed": "Es posible que la solicitud de reapertura se haya completado, pero no se pudo confirmar el resultado. Actualiza el ticket antes de volver a intentarlo.",
       "error": "Error al reabrir el ticket"
     }
   },
@@ -654,7 +657,8 @@
         "owner": "Responsable del grupo de servicio",
         "placeholder": "Seleccionar un grupo de servicio",
         "assign": "Asignar grupo de servicio",
-        "assigning": "Asignando..."
+        "assigning": "Asignando...",
+        "regionHint": "La región del cliente está determinada por el grupo de servicio asignado."
       },
       "importDialog": {
         "title": "Importación masiva de usuarios",
@@ -689,6 +693,48 @@
         "retry": "Reintentar",
         "noTickets": "No se encontraron tickets para este usuario",
         "count": "Se encontraron {count} tickets"
+      }
+    },
+    "serviceGroups": {
+      "pageTitle": "Grupos de servicio",
+      "pageDescription": "Crear y mantener segmentos detallados de clientes desde la consola de administración",
+      "title": "Lista de grupos de servicio",
+      "description": "Cada grupo de servicio pertenece a una región base y tiene un responsable.",
+      "createButton": "Nuevo grupo de servicio",
+      "refreshButton": "Actualizar",
+      "deactivateButton": "Desactivar",
+      "empty": "Todavía no hay grupos de servicio",
+      "table": {
+        "name": "Nombre",
+        "baseRegion": "Región base",
+        "owner": "Responsable",
+        "status": "Estado",
+        "updatedAt": "Actualizado el",
+        "actions": "Acciones"
+      },
+      "status": {
+        "active": "Activo",
+        "inactive": "Inactivo"
+      },
+      "form": {
+        "name": "Nombre",
+        "namePlaceholder": "Prioridad Asia-Pacífico",
+        "baseRegion": "Región base",
+        "staff": "Personal asignado",
+        "staffPlaceholder": "Seleccionar un miembro del personal",
+        "noStaff": "No hay personal disponible en este momento",
+        "transferTarget": "Transferir clientes a",
+        "transferTargetPlaceholder": "Seleccionar un grupo de servicio de destino"
+      },
+      "dialog": {
+        "createTitle": "Crear grupo de servicio",
+        "createDescription": "Crear un nuevo segmento dentro de una región base existente.",
+        "createConfirm": "Crear",
+        "editTitle": "Editar grupo de servicio",
+        "editDescription": "Actualizar el nombre, la región base o el responsable del grupo de servicio.",
+        "deactivateTitle": "Desactivar grupo de servicio",
+        "deactivateDescription": "Desactivar {name} y transferir sus clientes a otro grupo de servicio activo.",
+        "noTransferTargets": "Cree primero otro grupo de servicio activo antes de desactivar este."
       }
     },
     "faq": {
@@ -1203,6 +1249,10 @@
       },
       "toast": {
         "personalInfoUpdated": "Información personal actualizada",
+        "personalInfoPartiallyUpdated": "Los datos del perfil se guardaron, pero no se pudo actualizar el idioma.",
+        "outcomeUnconfirmed": "Es posible que la actualización se haya realizado. El formulario se actualizó con la configuración guardada actualmente.",
+        "passwordOutcomeUnconfirmed": "Es posible que la contraseña se haya cambiado. Antes de volver a intentarlo, compruébalo iniciando sesión con la nueva contraseña.",
+        "identityChanged": "Tu identidad de inicio de sesión cambió. Se actualizará la sesión antes de volver a guardar.",
         "updateFailed": "Error en la actualización, por favor intenta de nuevo",
         "notificationsUpdated": "Configuración de notificaciones actualizada",
         "passwordMismatch": "La nueva contraseña y la confirmación no coinciden",
@@ -1808,6 +1858,18 @@
         "deleteError": "Error al eliminar usuario",
         "importSuccess": "Se importaron {count} usuarios con ?xito"
       },
+      "serviceGroups": {
+        "loadError": "Error al cargar los grupos de servicio",
+        "staffLoadError": "Error al cargar la lista de personal",
+        "validationError": "El nombre y el responsable asignado son obligatorios",
+        "transferRequired": "Seleccione primero un destino de transferencia",
+        "createSuccess": "Grupo de servicio creado correctamente",
+        "createError": "Error al crear el grupo de servicio",
+        "updateSuccess": "Grupo de servicio actualizado correctamente",
+        "updateError": "Error al actualizar el grupo de servicio",
+        "deactivateSuccess": "Grupo de servicio desactivado correctamente",
+        "deactivateError": "Error al desactivar el grupo de servicio"
+      },
       "faq": {
         "createSuccess": "¡Artículo creado correctamente!",
         "createError": "Error al crear artículo",
@@ -2083,6 +2145,22 @@
         "aiAssistant": "Asistente IA",
         "aiThinking": "Pensando..."
       },
+      "aiEvidence": {
+        "button": "Fuentes {count}",
+        "buttonLabel": "Ver {count} fuentes de esta respuesta",
+        "title": "Fuentes de esta respuesta",
+        "description": "FastGPT devolvió {count} fuentes de conocimiento para esta respuesta.",
+        "searches": "Consultas de búsqueda",
+        "noSearches": "FastGPT no devolvió consultas visibles.",
+        "citations": "Documentos citados ({count})",
+        "sourceId": "ID de fuente",
+        "updatedAt": "Actualizado",
+        "emptyContent": "Esta fuente no contiene contenido visible.",
+        "noCitations": "FastGPT no devolvió contenido de fuentes visible.",
+        "copy": "Copiar evidencia",
+        "copied": "Copiado",
+        "feedbackHint": "Si una fuente es irrelevante, está desactualizada o se usó mal, copia la evidencia y envía comentarios con el botón de valoración negativa."
+      },
       "transferDialog": {
         "title": "Transferir a agente humano",
         "description": "Estás a punto de transferir del asistente de IA a un agente humano. El agente podrá ver tu historial completo de conversación para mejor asistencia.",
@@ -2191,6 +2269,12 @@
     }
   },
   "dashboardComponents": {
+    "ticketStats": {
+      "open": "Tickets abiertos",
+      "pending": "Pendientes",
+      "resolved": "Resueltos",
+      "closed": "Cerrados"
+    },
     "recentActivity": {
       "title": "Actividad reciente",
       "noActivity": "Sin actividad reciente",

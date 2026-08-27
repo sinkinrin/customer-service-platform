@@ -416,6 +416,8 @@
       "confirm": "是的，重新开启",
       "cancel": "取消",
       "success": "工单已重新开启",
+      "partialSuccess": "工单已重新开启，但审计备注未能保存或确认。",
+      "outcomeUnconfirmed": "重新开启请求可能已经成功，但当前无法确认结果。请刷新工单后再重试。",
       "error": "重新开启工单失败"
     }
   },
@@ -1247,6 +1249,10 @@
       },
       "toast": {
         "personalInfoUpdated": "个人信息已更新",
+        "personalInfoPartiallyUpdated": "个人资料已保存，但语言设置未能更新。",
+        "outcomeUnconfirmed": "更新可能已成功，表单已按当前保存的设置刷新。",
+        "passwordOutcomeUnconfirmed": "密码可能已经修改成功。再次操作前，请先尝试使用新密码登录进行确认。",
+        "identityChanged": "当前登录身份已变化，正在刷新会话，请稍后再保存。",
         "updateFailed": "更新失败，请重试",
         "notificationsUpdated": "通知设置已更新",
         "passwordMismatch": "新密码与确认密码不匹配",
@@ -2139,6 +2145,22 @@
         "aiAssistant": "AI 助手",
         "aiThinking": "思考中..."
       },
+      "aiEvidence": {
+        "button": "引用 {count}",
+        "buttonLabel": "查看本回答的 {count} 条引用",
+        "title": "本回答的引用内容",
+        "description": "FastGPT 为本次回答返回了 {count} 条知识证据。",
+        "searches": "检索词",
+        "noSearches": "FastGPT 未返回可展示的检索词。",
+        "citations": "引用文档（{count}）",
+        "sourceId": "来源 ID",
+        "updatedAt": "更新时间",
+        "emptyContent": "该引用没有返回可展示的内容。",
+        "noCitations": "FastGPT 未返回可展示的引用内容。",
+        "copy": "复制证据",
+        "copied": "已复制",
+        "feedbackHint": "发现引用不相关、内容过期或回答使用错误时，可复制证据并通过点踩提交反馈。"
+      },
       "transferDialog": {
         "title": "转接人工客服",
         "description": "您即将从 AI 助手转接至人工客服。客服人员将能够查看您之前的完整对话记录，以便更好地为您服务。",
@@ -2243,6 +2265,12 @@
     }
   },
   "dashboardComponents": {
+    "ticketStats": {
+      "open": "进行中工单",
+      "pending": "待处理",
+      "resolved": "已解决",
+      "closed": "已关闭"
+    },
     "recentActivity": {
       "title": "最近活动",
       "noActivity": "暂无最近活动",

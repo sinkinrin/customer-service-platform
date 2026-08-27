@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { readAIChatResponse } from '@/lib/ai/stream-client'
+import type { AiAnswerEvidence } from '@/lib/ai/fastgpt-evidence'
 
 export interface StreamingChatActions {
     /** Whether a streaming request is currently in-flight */
@@ -22,7 +23,7 @@ export interface StreamingChatActions {
         url: string,
         body: Record<string, unknown>,
         messageId: string,
-    ) => Promise<string>
+    ) => Promise<{ text: string; persistedMessageId: string | null; evidence: AiAnswerEvidence | null }>
     /** Abort the current in-flight request (if any) */
     abort: () => void
 }
@@ -34,6 +35,8 @@ export interface StreamingChatCallbacks {
     onUpdateMessage: (id: string, content: string) => void
     /** Called when the request fails — remove the temporary AI message */
     onRemoveMessage: (id: string) => void
+    /** Called when staff-only answer evidence arrives from the server. */
+    onEvidence?: (id: string, evidence: AiAnswerEvidence) => void
     /** Called when an error occurs (after cleanup). Use for toast notifications. */
     onError?: (error: unknown) => void
 }
@@ -74,7 +77,7 @@ export function useStreamingChat(callbacks: StreamingChatCallbacks): StreamingCh
             url: string,
             body: Record<string, unknown>,
             messageId: string,
-        ): Promise<string> => {
+        ): Promise<{ text: string; persistedMessageId: string | null; evidence: AiAnswerEvidence | null }> => {
             // Abort any previous in-flight request
             abortRef.current?.abort()
             const controller = new AbortController()
@@ -84,6 +87,8 @@ export function useStreamingChat(callbacks: StreamingChatCallbacks): StreamingCh
             setIsWaitingFirstToken(true)
 
             let aiMessageAdded = false
+            let persistedMessageId: string | null = null
+            let evidence: AiAnswerEvidence | null = null
 
             try {
                 const response = await fetch(url, {
@@ -108,20 +113,27 @@ export function useStreamingChat(callbacks: StreamingChatCallbacks): StreamingCh
                         setToolStatus(status)
                         if (status && !aiMessageAdded) setIsWaitingFirstToken(true)
                     },
+                    (msgId) => {
+                        persistedMessageId = msgId
+                    },
+                    (nextEvidence) => {
+                        evidence = nextEvidence
+                        cbRef.current.onEvidence?.(messageId, nextEvidence)
+                    },
                 )
 
                 if (!fullText.trim()) {
                     throw new Error('Failed to get AI response')
                 }
 
-                return fullText
+                return { text: fullText, persistedMessageId, evidence }
             } catch (error) {
                 // AbortError is intentional — not a real error
                 if (
                     error instanceof DOMException && error.name === 'AbortError' ||
                     (error as any)?.name === 'AbortError'
                 ) {
-                    return ''
+                    return { text: '', persistedMessageId, evidence }
                 }
 
                 // Clean up the temporary AI message
@@ -130,7 +142,7 @@ export function useStreamingChat(callbacks: StreamingChatCallbacks): StreamingCh
                 }
 
                 cbRef.current.onError?.(error)
-                return ''
+                return { text: '', persistedMessageId, evidence }
             } finally {
                 setIsLoading(false)
                 setIsWaitingFirstToken(false)

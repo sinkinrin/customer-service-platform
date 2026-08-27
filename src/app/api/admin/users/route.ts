@@ -78,7 +78,6 @@ import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { z } from 'zod'
 import { logger } from '@/lib/utils/logger'
 import {
-  getCustomerAssignmentRegion,
   listCustomerAssignmentRegions,
 } from '@/lib/service-groups/customer-assignment-service'
 import { getServiceGroup } from '@/lib/service-groups/service-group-service'

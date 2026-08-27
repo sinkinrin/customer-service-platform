@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/conversations/route'
+import { isExplicitTestDatabaseUrl } from '../../scripts/e2e-safety'
 
 // Mock auth module
 vi.mock('@/auth', () => ({
@@ -20,6 +21,19 @@ vi.mock('@/lib/sse/conversation-broadcaster', () => ({
 
 // Import mocked auth
 import { auth } from '@/auth'
+
+const databaseIntegrationRequested = process.env.RUN_DATABASE_INTEGRATION_TESTS === 'true'
+const hasSafeTestDatabase = isExplicitTestDatabaseUrl(process.env.DATABASE_URL)
+
+if (databaseIntegrationRequested && !hasSafeTestDatabase) {
+  throw new Error(
+    'Database integration tests require DATABASE_URL to use an explicit "test" or "e2e" database name segment.'
+  )
+}
+
+const describeDatabaseIntegration = databaseIntegrationRequested && hasSafeTestDatabase
+  ? describe
+  : describe.skip
 
 // Test users
 const mockCustomer = {
@@ -50,7 +64,7 @@ function createMockRequest(url: string, options?: RequestInit): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), options)
 }
 
-describe('Conversations API 真实集成测试', () => {
+describeDatabaseIntegration('Conversations API 真实集成测试', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -33,7 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useTicket, type TicketArticle } from '@/lib/hooks/use-ticket'
+import type { TicketArticle } from '@/lib/hooks/use-ticket'
 import { ArticleCard } from '@/components/ticket/article-content'
 import { TicketRating } from '@/components/ticket/ticket-rating'
 import { TicketReopenButton } from '@/components/ticket/ticket-reopen-button'
@@ -42,11 +42,43 @@ import { useUnreadStore } from '@/lib/stores/unread-store'
 import { useNotifications } from '@/lib/hooks/use-notifications'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { useAuth } from '@/lib/hooks/use-auth'
+import { getAuthorizationIdentityKey } from '@/lib/auth/authorization-identity'
 
 export default function CustomerTicketDetailPage() {
   const params = useParams()
-  const router = useRouter()
+  const { user } = useAuth()
   const ticketId = params.id as string
+  const identityKey = getAuthorizationIdentityKey(user)
+  const lifecycleKey = JSON.stringify({ identityKey, ticketId })
+
+  return (
+    <CustomerTicketDetailLifecycle
+      key={lifecycleKey}
+      ticketId={ticketId}
+      identityKey={identityKey}
+      expectedUserId={user?.id ?? null}
+    />
+  )
+}
+
+interface CustomerTicketDetailLifecycleProps {
+  ticketId: string
+  identityKey: string | null
+  expectedUserId: string | null
+}
+
+interface ActiveRequest {
+  generation: number
+  controller: AbortController
+}
+
+function CustomerTicketDetailLifecycle({
+  ticketId,
+  identityKey,
+  expectedUserId,
+}: CustomerTicketDetailLifecycleProps) {
+  const router = useRouter()
   const t = useTranslations('customer.myTickets')
   const tDetail = useTranslations('customer.myTickets.detail')
   const tCommon = useTranslations('common')
@@ -59,6 +91,33 @@ export default function CustomerTicketDetailPage() {
   const [submitting, setSubmitting] = useState(false)
   const [closing, setClosing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lifecycleKey = JSON.stringify({ identityKey, ticketId })
+  const currentLifecycleKeyRef = useRef(lifecycleKey)
+  const mountedRef = useRef(false)
+  const ticketRequestRef = useRef<ActiveRequest | null>(null)
+  const articlesRequestRef = useRef<ActiveRequest | null>(null)
+  const closeRequestRef = useRef<ActiveRequest | null>(null)
+  const replyRequestRef = useRef<ActiveRequest | null>(null)
+  const ticketGenerationRef = useRef(0)
+  const articlesGenerationRef = useRef(0)
+  const closeGenerationRef = useRef(0)
+  const replyGenerationRef = useRef(0)
+  const tToastRef = useRef(tToast)
+
+  currentLifecycleKeyRef.current = lifecycleKey
+  tToastRef.current = tToast
+
+  const isCurrentLifecycle = useCallback(() =>
+    mountedRef.current &&
+    identityKey !== null &&
+    currentLifecycleKeyRef.current === lifecycleKey,
+  [identityKey, lifecycleKey])
+
+  const handleUploadError = useCallback((message: string) => {
+    if (isCurrentLifecycle()) {
+      toast.error(message)
+    }
+  }, [isCurrentLifecycle])
 
   // Use shared file upload hook
   const {
@@ -69,7 +128,7 @@ export default function CustomerTicketDetailPage() {
     clearFiles,
     getFormId,
   } = useFileUpload({
-    onError: (msg) => toast.error(msg),
+    onError: handleUploadError,
   })
 
   const { isDragging, dragProps } = useDragDrop({
@@ -79,9 +138,28 @@ export default function CustomerTicketDetailPage() {
     disabled: submitting || isUploading,
   })
 
-  const { fetchTicketById, fetchArticles, isLoading } = useTicket()
   const { markAsRead } = useUnreadStore()
   const { markTicketNotificationsAsRead } = useNotifications()
+  const markAsReadRef = useRef(markAsRead)
+  const markTicketNotificationsAsReadRef = useRef(markTicketNotificationsAsRead)
+  markAsReadRef.current = markAsRead
+  markTicketNotificationsAsReadRef.current = markTicketNotificationsAsRead
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+      ticketRequestRef.current?.controller.abort()
+      articlesRequestRef.current?.controller.abort()
+      closeRequestRef.current?.controller.abort()
+      replyRequestRef.current?.controller.abort()
+      ticketRequestRef.current = null
+      articlesRequestRef.current = null
+      closeRequestRef.current = null
+      replyRequestRef.current = null
+    }
+  }, [])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -91,17 +169,107 @@ export default function CustomerTicketDetailPage() {
     e.target.value = ''
   }
 
+  const loadTicket = useCallback(async () => {
+    if (!identityKey) return
+
+    ticketRequestRef.current?.controller.abort()
+    const controller = new AbortController()
+    const generation = ++ticketGenerationRef.current
+    ticketRequestRef.current = { generation, controller }
+    const isCurrentRequest = () =>
+      isCurrentLifecycle() &&
+      !controller.signal.aborted &&
+      ticketRequestRef.current?.generation === generation
+
+    try {
+      const response = await fetch(`/api/tickets/${ticketId}`, {
+        headers: expectedUserId
+          ? { 'X-CSP-Expected-User-Id': expectedUserId }
+          : undefined,
+        signal: controller.signal,
+      })
+      if (!isCurrentRequest()) return
+
+      if (!response.ok) {
+        throw new Error(tToastRef.current('loadError'))
+      }
+
+      const data = await response.json()
+      if (!isCurrentRequest()) return
+
+      const nextTicket = data?.data?.ticket as ZammadTicket | undefined
+      if (nextTicket) {
+        setTicket(nextTicket)
+      }
+    } catch (error) {
+      if (!isCurrentRequest()) return
+
+      console.error('Failed to load ticket:', error)
+      toast.error(error instanceof Error ? error.message : tToastRef.current('loadError'))
+    } finally {
+      if (ticketRequestRef.current?.generation === generation) {
+        ticketRequestRef.current = null
+      }
+    }
+  }, [expectedUserId, identityKey, isCurrentLifecycle, ticketId])
+
+  const loadArticles = useCallback(async () => {
+    if (!identityKey) return
+
+    articlesRequestRef.current?.controller.abort()
+    const controller = new AbortController()
+    const generation = ++articlesGenerationRef.current
+    articlesRequestRef.current = { generation, controller }
+    const isCurrentRequest = () =>
+      isCurrentLifecycle() &&
+      !controller.signal.aborted &&
+      articlesRequestRef.current?.generation === generation
+
+    try {
+      const response = await fetch(`/api/tickets/${ticketId}/articles`, {
+        headers: expectedUserId
+          ? { 'X-CSP-Expected-User-Id': expectedUserId }
+          : undefined,
+        signal: controller.signal,
+      })
+      if (!isCurrentRequest()) return
+
+      if (!response.ok) {
+        throw new Error(tToastRef.current('loadError'))
+      }
+
+      const data = await response.json()
+      if (!isCurrentRequest()) return
+
+      setArticles((data?.data?.articles ?? []) as TicketArticle[])
+    } catch (error) {
+      if (!isCurrentRequest()) return
+
+      console.error('Failed to load ticket articles:', error)
+      toast.error(error instanceof Error ? error.message : tToastRef.current('loadError'))
+    } finally {
+      if (articlesRequestRef.current?.generation === generation) {
+        articlesRequestRef.current = null
+      }
+    }
+  }, [expectedUserId, identityKey, isCurrentLifecycle, ticketId])
+
+  const refreshTicketDetail = useCallback(() => {
+    void loadTicket()
+    void loadArticles()
+  }, [loadArticles, loadTicket])
+
   useEffect(() => {
-    loadTicket()
-    loadArticles()
+    if (!identityKey) return
+
+    refreshTicketDetail()
     // Mark ticket as read when viewing details
     const numericId = parseInt(ticketId, 10)
     if (!isNaN(numericId)) {
-      markAsRead(numericId)
-      markTicketNotificationsAsRead(numericId).catch(() => { })
+      markAsReadRef.current(numericId)
+      markTicketNotificationsAsReadRef.current(numericId).catch(() => { })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketId])
+  }, [identityKey, refreshTicketDetail, ticketId])
 
   // Auto-scroll to bottom when new articles arrive
   useEffect(() => {
@@ -125,8 +293,7 @@ export default function CustomerTicketDetailPage() {
       // Only refresh if this update is for the current ticket
       if (customEvent.detail.ticketId === numericId) {
         console.log('[TicketDetail] Received update for this ticket, refreshing...')
-        loadTicket()
-        loadArticles()
+        refreshTicketDetail()
       }
     }
 
@@ -134,47 +301,62 @@ export default function CustomerTicketDetailPage() {
     return () => {
       window.removeEventListener('ticket-update', handleTicketUpdate)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketId])
-
-  const loadTicket = async () => {
-    const data = await fetchTicketById(ticketId)
-    if (data) {
-      setTicket(data)
-    }
-  }
-
-  const loadArticles = async () => {
-    const data = await fetchArticles(ticketId)
-    setArticles(data)
-  }
+  }, [identityKey, refreshTicketDetail, ticketId])
 
   const handleCloseTicket = async () => {
+    if (!identityKey) return
+
+    closeRequestRef.current?.controller.abort()
+    const controller = new AbortController()
+    const generation = ++closeGenerationRef.current
+    closeRequestRef.current = { generation, controller }
+    const isCurrentRequest = () =>
+      isCurrentLifecycle() &&
+      !controller.signal.aborted &&
+      closeRequestRef.current?.generation === generation
+
     setClosing(true)
     try {
       const response = await fetch(`/api/tickets/${ticketId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...(expectedUserId
+            ? { 'X-CSP-Expected-User-Id': expectedUserId }
+            : {}),
         },
         body: JSON.stringify({
           state: 'closed',
         }),
+        signal: controller.signal,
       })
+
+      if (!isCurrentRequest()) return
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || tToast('closeError'))
+        if (!isCurrentRequest()) return
+        throw new Error(
+          errorData?.error?.message ||
+          (typeof errorData?.error === 'string' ? errorData.error : tToast('closeError'))
+        )
       }
 
+      if (!isCurrentRequest()) return
       toast.success(tToast('closeSuccess'))
-      await loadTicket()
-      await loadArticles()
-    } catch (error: any) {
+      refreshTicketDetail()
+    } catch (error: unknown) {
+      if (!isCurrentRequest()) return
+
       console.error('Failed to close ticket:', error)
-      toast.error(error.message || tToast('closeError'))
+      toast.error(error instanceof Error ? error.message : tToast('closeError'))
     } finally {
-      setClosing(false)
+      if (closeRequestRef.current?.generation === generation) {
+        closeRequestRef.current = null
+        if (isCurrentLifecycle()) {
+          setClosing(false)
+        }
+      }
     }
   }
 
@@ -184,41 +366,73 @@ export default function CustomerTicketDetailPage() {
       return
     }
 
+    if (!identityKey) return
+
+    replyRequestRef.current?.controller.abort()
+    const controller = new AbortController()
+    const generation = ++replyGenerationRef.current
+    replyRequestRef.current = { generation, controller }
+    const submittedReply = replyText
+    const submittedTicketTitle = ticket?.title || ''
+    const isCurrentRequest = () =>
+      isCurrentLifecycle() &&
+      !controller.signal.aborted &&
+      replyRequestRef.current?.generation === generation
+
     setSubmitting(true)
     try {
       // Get form_id from successfully uploaded files
       // Note: Only form_id is needed - Zammad retrieves attachments from UploadCache by form_id
       const formId = await getFormId()
+      if (!isCurrentRequest()) return
 
       // Call API with form_id (Zammad native API)
       const response = await fetch(`/api/tickets/${ticketId}/articles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(expectedUserId
+            ? { 'X-CSP-Expected-User-Id': expectedUserId }
+            : {}),
         },
         body: JSON.stringify({
-          subject: `Re: ${ticket?.title || ''}`,
-          body: replyText,
+          subject: `Re: ${submittedTicketTitle}`,
+          body: submittedReply,
           type: 'web',
           internal: false,
           ...(formId && { form_id: formId }),
         }),
+        signal: controller.signal,
       })
+
+      if (!isCurrentRequest()) return
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || tToast('replyError'))
+        if (!isCurrentRequest()) return
+        throw new Error(
+          errorData?.error?.message ||
+          (typeof errorData?.error === 'string' ? errorData.error : tToast('replyError'))
+        )
       }
 
+      if (!isCurrentRequest()) return
       toast.success(tToast('replySent'))
       setReplyText('')
       clearFiles()
-      await loadArticles()
-    } catch (error: any) {
+      void loadArticles()
+    } catch (error: unknown) {
+      if (!isCurrentRequest()) return
+
       console.error('Failed to send reply:', error)
-      toast.error(error.message || tToast('replyError'))
+      toast.error(error instanceof Error ? error.message : tToast('replyError'))
     } finally {
-      setSubmitting(false)
+      if (replyRequestRef.current?.generation === generation) {
+        replyRequestRef.current = null
+        if (isCurrentLifecycle()) {
+          setSubmitting(false)
+        }
+      }
     }
   }
 
@@ -246,7 +460,7 @@ export default function CustomerTicketDetailPage() {
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
-  if (isLoading || !ticket) {
+  if (!identityKey || !ticket) {
     return (
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden max-w-5xl mx-auto w-full px-4 py-6">
         <Skeleton className="h-8 w-64 mb-6" />
@@ -349,10 +563,7 @@ export default function CustomerTicketDetailPage() {
                   <div className="flex justify-center">
                     <TicketReopenButton
                       ticketId={parseInt(ticketId)}
-                      onSuccess={() => {
-                        loadTicket()
-                        loadArticles()
-                      }}
+                      onSuccess={refreshTicketDetail}
                     />
                   </div>
                 </div>

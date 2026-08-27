@@ -20,9 +20,9 @@ import { logger } from '@/lib/utils/logger'
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
-    const articleId = parseInt(params.id)
+    const articleId = /^\d+$/.test(params.id) ? Number(params.id) : Number.NaN
 
-    if (isNaN(articleId)) {
+    if (!Number.isSafeInteger(articleId) || articleId < 1) {
       return errorResponse('INVALID_ID', 'Invalid article ID', undefined, 400)
     }
 
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     })
   } catch (error) {
     logger.error('FAQ', 'Failed to fetch FAQ article by ID', { data: { error: error instanceof Error ? error.message : error } })
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+    return serverErrorResponse('Failed to fetch FAQ article')
   }
 }
 

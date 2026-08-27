@@ -73,9 +73,7 @@ import {
   reassignCustomersToServiceGroup,
 } from '@/lib/service-groups/customer-assignment-service'
 import {
-  migrateCustomerOpenTicketsToGroup,
   migrateCustomerOpenTicketsToGroupDetailed,
-  migrateServiceGroupOpenTickets,
   migrateServiceGroupOpenTicketsDetailed,
 } from '@/lib/service-groups/ticket-migration-service'
 import { zammadClient } from '@/lib/zammad/client'

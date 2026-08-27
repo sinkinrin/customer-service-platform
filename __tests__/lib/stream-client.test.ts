@@ -127,4 +127,30 @@ describe('readAIChatResponse', () => {
         const result = await readAIChatResponse(sseResponse(events), onText)
         expect(result).toBe('ok')
     })
+
+    it('delivers normalized answer evidence before the final done event', async () => {
+        const evidence = {
+            version: 1,
+            provider: 'fastgpt',
+            searches: [{ callId: 'c1', toolName: 'DatasetSearch', queries: ['login'], citationCount: 1 }],
+            citations: [{ id: 'd1', sourceName: 'Login Guide.md', content: 'Use a private window.' }],
+        }
+        const events = [
+            'event: answer\ndata: {"choices":[{"delta":{"content":"answer"}}]}\n\n',
+            `event: evidence\ndata: ${JSON.stringify(evidence)}\n\n`,
+            'event: done\ndata: [DONE]\n\n',
+        ]
+        const onEvidence = vi.fn()
+
+        const result = await readAIChatResponse(
+            sseResponse(events),
+            vi.fn(),
+            undefined,
+            undefined,
+            onEvidence
+        )
+
+        expect(result).toBe('answer')
+        expect(onEvidence).toHaveBeenCalledWith(evidence)
+    })
 })

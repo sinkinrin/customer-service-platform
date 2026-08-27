@@ -4,7 +4,7 @@
  * POST /api/admin/settings/ai/agents - Fetches available agents from a Yuxi-Know server
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { requireAuth, requireRole } from '@/lib/utils/auth'
 import {
   successResponse,

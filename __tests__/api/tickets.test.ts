@@ -74,6 +74,14 @@ vi.mock('@/lib/service-groups/customer-assignment-service', () => ({
   findCustomerServiceGroup: vi.fn().mockResolvedValue(null),
 }))
 
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    ticketRating: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+  },
+}))
+
 import { auth } from '@/auth'
 import { zammadClient } from '@/lib/zammad/client'
 import { checkZammadHealth } from '@/lib/zammad/health-check'

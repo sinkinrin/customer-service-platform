@@ -32,6 +32,11 @@ vi.mock('@/lib/utils/auth', () => ({
   requireRole: vi.fn(),
 }))
 
+vi.mock('@/lib/ai-conversation-service', () => ({
+  getConversation: vi.fn().mockResolvedValue(null),
+  addMessage: vi.fn(),
+}))
+
 import { requireAuth, requireRole } from '@/lib/utils/auth'
 import { readAISettings } from '@/lib/utils/ai-config'
 
@@ -290,6 +295,66 @@ describe('AI APIs', () => {
       expect(text).toContain('"hello"')
     })
 
+    it('emits sanitized source evidence for staff but not for customers', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        model: 'FastGPT',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'app',
+        fastgptApiKey: 'key',
+      } as any)
+
+      const createUpstream = () => {
+        const encoder = new TextEncoder()
+        return new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode('event: answer\ndata: {"choices":[{"delta":{"content":"hello"}}]}\n\n'))
+            controller.enqueue(encoder.encode('event: toolCall\ndata: {"tool":{"id":"call-1","toolName":"DatasetSearch"},"responseValueId":"call-1"}\n\n'))
+            controller.enqueue(encoder.encode(`event: toolResponse\ndata: ${JSON.stringify({
+              tool: {
+                id: 'call-1',
+                response: JSON.stringify([{ result: { cites: [{ id: 'doc-1', sourceName: 'Guide.md', content: 'source text' }] } }]),
+              },
+              responseValueId: 'call-1',
+            })}\n\n`))
+            controller.enqueue(encoder.encode('event: answer\ndata: [DONE]\n\n'))
+            controller.close()
+          },
+        })
+      }
+
+      global.fetch = vi.fn().mockImplementation(async () => ({
+        ok: true,
+        body: createUpstream(),
+      })) as any
+
+      const staffResponse = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', stream: true }),
+        })
+      )
+      const staffText = await staffResponse.text()
+
+      expect(staffText).toContain('event: evidence')
+      expect(staffText).toContain('Guide.md')
+      expect(staffText).not.toContain('event: toolResponse')
+
+      vi.mocked(requireAuth).mockResolvedValue(mockCustomerUser as any)
+      const customerResponse = await POST_CHAT(
+        createRequest('http://localhost:3000/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: 'c1', message: 'hi', stream: true }),
+        })
+      )
+      const customerText = await customerResponse.text()
+
+      expect(customerText).not.toContain('event: evidence')
+      expect(customerText).not.toContain('Guide.md')
+      expect(customerText).not.toContain('event: toolResponse')
+    })
+
     it('uses the pro FastGPT app credentials for pro stream mode', async () => {
       vi.mocked(readAISettings).mockReturnValue({
         enabled: true,
@@ -338,6 +403,25 @@ describe('AI APIs', () => {
   })
 
   describe('GET /api/ai/health', () => {
+    it('returns 401 when there is no authenticated session', async () => {
+      vi.mocked(requireRole).mockRejectedValue(new Error('Unauthorized'))
+
+      const response = await GET_AI_HEALTH()
+
+      expect(response.status).toBe(401)
+      expect(readAISettings).not.toHaveBeenCalled()
+    })
+
+    it('requires an admin role', async () => {
+      vi.mocked(requireRole).mockRejectedValue(new Error('Forbidden'))
+
+      const response = await GET_AI_HEALTH()
+
+      expect(response.status).toBe(403)
+      expect(requireRole).toHaveBeenCalledWith(['admin'])
+      expect(readAISettings).not.toHaveBeenCalled()
+    })
+
     it('reports disabled state', async () => {
       vi.mocked(readAISettings).mockReturnValue({ enabled: false } as any)
 
@@ -385,6 +469,7 @@ describe('AI APIs', () => {
 
       expect(response.status).toBe(200)
       expect(payload.status).toBe('healthy')
+      expect(payload).not.toHaveProperty('config')
     })
 
     it('reports unreachable when fetch fails', async () => {
@@ -404,6 +489,33 @@ describe('AI APIs', () => {
 
       expect(response.status).toBe(503)
       expect(payload.status).toBe('unreachable')
+      expect(payload).not.toHaveProperty('details')
+      expect(payload).not.toHaveProperty('config')
+      expect(JSON.stringify(payload)).not.toContain('Network failed')
+      expect(JSON.stringify(payload)).not.toContain('http://fastgpt')
+    })
+
+    it('does not return the upstream error body', async () => {
+      vi.mocked(readAISettings).mockReturnValue({
+        enabled: true,
+        provider: 'fastgpt',
+        fastgptUrl: 'http://fastgpt',
+        fastgptAppId: 'app',
+        fastgptApiKey: 'key',
+      } as any)
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        text: vi.fn().mockResolvedValue('internal upstream details'),
+      }) as any
+
+      const response = await GET_AI_HEALTH()
+      const payload = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(payload.message).toBe('FastGPT returned HTTP 502')
+      expect(JSON.stringify(payload)).not.toContain('internal upstream details')
     })
   })
 })

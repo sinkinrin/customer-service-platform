@@ -6,26 +6,16 @@
 
 import { ReactNode } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { getTranslations } from 'next-intl/server'
+import { Logo } from '@/components/ui/logo'
 
-export default async function AuthLayout({ children }: { children: ReactNode }) {
-  const t = await getTranslations('auth.layout')
-
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <Image
-              src="/logo.svg"
-              alt="HOWEN Logo"
-              width={32}
-              height={32}
-              priority
-            />
-            <span className="font-semibold text-lg">{t('brandName')}</span>
+          <Link href="/" aria-label="HOWEN home">
+            <Logo size="md" />
           </Link>
         </div>
       </header>

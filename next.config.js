@@ -21,6 +21,14 @@ const nextConfig = {
     optimizeCss: true,
   },
 
+  turbopack: {
+    root: __dirname,
+    resolveAlias: {
+      '@antv/infographic': './src/lib/shims/markstream-optional-peer.ts',
+      '@terrastruct/d2': './src/lib/shims/markstream-optional-peer.ts',
+    },
+  },
+
   // Compiler optimizations
   compiler: {
     // Remove console.log/debug in production, but keep info for structured logging
@@ -41,6 +49,8 @@ const nextConfig = {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       'react-remove-scroll-bar': path.resolve(__dirname, 'src/lib/shims/react-remove-scroll-bar.tsx'),
+      '@antv/infographic': path.resolve(__dirname, 'src/lib/shims/markstream-optional-peer.ts'),
+      '@terrastruct/d2': path.resolve(__dirname, 'src/lib/shims/markstream-optional-peer.ts'),
     }
 
     return config

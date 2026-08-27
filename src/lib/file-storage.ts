@@ -12,7 +12,23 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/utils/logger'
 
 // Storage configuration
-const UPLOAD_BASE_DIR = path.join(process.cwd(), 'uploads')
+const UPLOAD_BASE_DIR = path.resolve(process.cwd(), 'uploads')
+
+function resolveUploadPath(filePath: string): string {
+  const resolvedPath = path.resolve(UPLOAD_BASE_DIR, filePath)
+  const relativePath = path.relative(UPLOAD_BASE_DIR, resolvedPath)
+
+  if (
+    !relativePath ||
+    relativePath === '..' ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new Error('Invalid stored file path')
+  }
+
+  return resolvedPath
+}
 
 // Ensure upload directories exist
 async function ensureDirectories() {
@@ -59,7 +75,7 @@ export async function uploadFile(options: {
   const fileExt = file.name.split('.').pop() || 'bin'
   const fileName = `${fileId}.${fileExt}`
   const filePath = path.join(bucketName, fileName)
-  const absoluteFilePath = path.join(UPLOAD_BASE_DIR, filePath)
+  const absoluteFilePath = resolveUploadPath(filePath)
 
   // Ensure bucket directory exists
   await fs.mkdir(path.dirname(absoluteFilePath), { recursive: true })
@@ -68,20 +84,60 @@ export async function uploadFile(options: {
   const buffer = Buffer.from(await file.arrayBuffer())
   await fs.writeFile(absoluteFilePath, buffer)
 
-  // Save metadata to database
-  const fileRecord = await prisma.uploadedFile.create({
-    data: {
-      id: fileId,
-      userId,
-      bucketName,
-      filePath,
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
-      referenceType,
-      referenceId: referenceId || null,
-    },
-  })
+  // Save metadata to database. A rejected create call can still have committed
+  // before its response was lost, so confirm by the known ID before cleanup.
+  let fileRecord
+  try {
+    fileRecord = await prisma.uploadedFile.create({
+      data: {
+        id: fileId,
+        userId,
+        bucketName,
+        filePath,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        referenceType,
+        referenceId: referenceId || null,
+      },
+    })
+  } catch (createError) {
+    let confirmedRecord
+    try {
+      confirmedRecord = await prisma.uploadedFile.findUnique({
+        where: { id: fileId },
+      })
+    } catch (confirmationError) {
+      // The database outcome is unknown. Preserve the physical file because a
+      // committed record may already reference it, and surface the create error.
+      logger.error('FileStorage', 'Could not confirm metadata insert outcome; preserving file', {
+        data: {
+          fileId,
+          error: confirmationError instanceof Error ? confirmationError.message : confirmationError,
+        },
+      })
+      throw createError
+    }
+
+    if (confirmedRecord) {
+      logger.warning('FileStorage', 'Metadata insert response was lost but the record exists', {
+        data: { fileId },
+      })
+      fileRecord = confirmedRecord
+    } else {
+      try {
+        await fs.unlink(absoluteFilePath)
+      } catch (cleanupError) {
+        logger.error('FileStorage', 'Failed to remove file after metadata insert failed', {
+          data: {
+            fileId,
+            error: cleanupError instanceof Error ? cleanupError.message : cleanupError,
+          },
+        })
+      }
+      throw createError
+    }
+  }
 
   // Return file info with public URL
   return {
@@ -111,7 +167,7 @@ export async function getFilePath(fileId: string): Promise<string | null> {
   const file = await getFileMetadata(fileId)
   if (!file) return null
 
-  return path.join(UPLOAD_BASE_DIR, file.filePath)
+  return resolveUploadPath(file.filePath)
 }
 
 /**
@@ -128,7 +184,7 @@ export async function deleteFile(fileId: string, userId?: string): Promise<boole
     }
 
     // Delete physical file
-    const absoluteFilePath = path.join(UPLOAD_BASE_DIR, file.filePath)
+    const absoluteFilePath = resolveUploadPath(file.filePath)
     try {
       await fs.unlink(absoluteFilePath)
     } catch (error) {

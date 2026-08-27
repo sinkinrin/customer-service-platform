@@ -216,6 +216,9 @@ export async function getConversationMessageCount(conversationId: string) {
 /**
  * Add a message to a conversation.
  * Updates the conversation's lastMessageAt timestamp atomically.
+ *
+ * AI request IDs are protected by a database composite unique constraint.
+ * A concurrent retry that loses the insert race resolves to the winner.
  */
 export async function addMessage(
   conversationId: string,
@@ -225,26 +228,52 @@ export async function addMessage(
   metadata?: Record<string, any>,
   messageType?: 'text' | 'image' | 'file' | 'system'
 ) {
-  const [message] = await prisma.$transaction([
-    prisma.aiMessage.create({
-      data: {
-        conversationId,
-        senderRole,
-        senderId,
-        content,
-        messageType: messageType || 'text',
-        metadata: metadata ? JSON.stringify(metadata) : null,
-      },
-    }),
-    prisma.aiConversation.update({
-      where: { id: conversationId },
-      data: { lastMessageAt: new Date() },
-    }),
-  ])
+  const aiRequestId = senderRole === 'ai' && typeof metadata?.aiRequestId === 'string'
+    ? metadata.aiRequestId
+    : null
 
-  return {
-    ...message,
-    metadata: safeJsonParse(message.metadata),
+  try {
+    const [message] = await prisma.$transaction([
+      prisma.aiMessage.create({
+        data: {
+          conversationId,
+          aiRequestId,
+          senderRole,
+          senderId,
+          content,
+          messageType: messageType || 'text',
+          metadata: metadata ? JSON.stringify(metadata) : null,
+        },
+      }),
+      prisma.aiConversation.update({
+        where: { id: conversationId },
+        data: { lastMessageAt: new Date() },
+      }),
+    ])
+
+    return {
+      ...message,
+      metadata: safeJsonParse(message.metadata),
+    }
+  } catch (error) {
+    if (
+      aiRequestId &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      const existing = await prisma.aiMessage.findUnique({
+        where: {
+          conversationId_aiRequestId: { conversationId, aiRequestId },
+        },
+      })
+      if (existing) {
+        return {
+          ...existing,
+          metadata: safeJsonParse(existing.metadata),
+        }
+      }
+    }
+    throw error
   }
 }
 

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { zammadClient } from '@/lib/zammad/client'
 import { getActiveStateIds } from '@/lib/constants/zammad-states'
 import { isAgentEligible } from '@/lib/ticket/agent-helpers'
+import { logger } from '@/lib/utils/logger'
 
 const EXCLUDED_EMAILS = ['support@howentech.com', 'howensupport@howentech.com']
 const TICKET_MIGRATION_PAGE_SIZE = 500
@@ -52,6 +53,8 @@ async function listCustomerOpenTickets(customerZammadId: number) {
 }
 
 export async function rollbackTicketMigration(snapshots: MigratedTicketSnapshot[]) {
+  const failures: Array<{ ticketId: number; error: unknown }> = []
+
   for (const snapshot of [...snapshots].reverse()) {
     const rollbackPayload: { group_id?: number | null; owner_id?: number | null } = {}
 
@@ -60,8 +63,41 @@ export async function rollbackTicketMigration(snapshots: MigratedTicketSnapshot[
     }
 
     rollbackPayload.owner_id = snapshot.previousOwnerId ?? null
-    await zammadClient.updateTicket(snapshot.id, rollbackPayload)
+    try {
+      await zammadClient.updateTicket(snapshot.id, rollbackPayload)
+    } catch (error) {
+      failures.push({ ticketId: snapshot.id, error })
+      logger.error('TicketMigration', 'Failed to roll back migrated ticket', {
+        data: {
+          ticketId: snapshot.id,
+          error: error instanceof Error ? error.message : error,
+        },
+      })
+    }
   }
+
+  if (failures.length > 0) {
+    throw new AggregateError(
+      failures.map((failure) => failure.error),
+      `Failed to roll back ${failures.length} migrated ticket(s): ${failures.map((failure) => failure.ticketId).join(', ')}`
+    )
+  }
+}
+
+async function rethrowAfterRollback(
+  snapshots: MigratedTicketSnapshot[],
+  migrationError: unknown
+): Promise<never> {
+  try {
+    await rollbackTicketMigration(snapshots)
+  } catch (rollbackError) {
+    throw new AggregateError(
+      [migrationError, rollbackError],
+      'Ticket migration failed and rollback was incomplete'
+    )
+  }
+
+  throw migrationError
 }
 
 async function migrateTicketsToTarget(
@@ -85,8 +121,7 @@ async function migrateTicketsToTarget(
       })
     }
   } catch (error) {
-    await rollbackTicketMigration(snapshots)
-    throw error
+    await rethrowAfterRollback(snapshots, error)
   }
 
   return snapshots
@@ -145,8 +180,7 @@ export async function migrateServiceGroupOpenTicketsDetailed(
       migratedCount += tickets.length
     }
   } catch (error) {
-    await rollbackTicketMigration(snapshots)
-    throw error
+    await rethrowAfterRollback(snapshots, error)
   }
 
   return {

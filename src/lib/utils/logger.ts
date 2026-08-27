@@ -263,24 +263,20 @@ class Logger {
 
     switch (level) {
       case LogLevel.DEBUG:
-        devData !== undefined
-          ? console.log(output, devData)
-          : console.log(output)
+        if (devData !== undefined) console.log(output, devData)
+        else console.log(output)
         break
       case LogLevel.INFO:
-        devData !== undefined
-          ? console.info(output, devData)
-          : console.info(output)
+        if (devData !== undefined) console.info(output, devData)
+        else console.info(output)
         break
       case LogLevel.WARNING:
-        devData !== undefined
-          ? console.warn(output, devData)
-          : console.warn(output)
+        if (devData !== undefined) console.warn(output, devData)
+        else console.warn(output)
         break
       case LogLevel.ERROR:
-        devData !== undefined
-          ? console.error(output, devData)
-          : console.error(output)
+        if (devData !== undefined) console.error(output, devData)
+        else console.error(output)
         break
     }
 

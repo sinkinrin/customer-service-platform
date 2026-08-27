@@ -18,6 +18,10 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/utils/cleanup', () => ({
+  maybeRunCleanup: vi.fn(),
+}))
+
 const { mockHandleEmailTicketRouting, mockHandleEmailUserWelcome } = vi.hoisted(() => ({
   mockHandleEmailTicketRouting: vi.fn(),
   mockHandleEmailUserWelcome: vi.fn(),

@@ -13,16 +13,20 @@ let lastHealthCheck: {
   timestamp: 0,
 }
 
+type HealthCheckResult = {
+  isHealthy: boolean
+  error?: string
+}
+
+let healthCheckInFlight: Promise<HealthCheckResult> | null = null
+
 // Cache health check for 30 seconds
 const HEALTH_CHECK_CACHE_MS = 30000
 
 /**
  * Check if Zammad service is available
  */
-export async function checkZammadHealth(): Promise<{
-  isHealthy: boolean
-  error?: string
-}> {
+export async function checkZammadHealth(): Promise<HealthCheckResult> {
   // Return cached result if recent
   const now = Date.now()
   if (now - lastHealthCheck.timestamp < HEALTH_CHECK_CACHE_MS) {
@@ -31,6 +35,21 @@ export async function checkZammadHealth(): Promise<{
       error: lastHealthCheck.error,
     }
   }
+
+  if (healthCheckInFlight) {
+    return healthCheckInFlight
+  }
+
+  healthCheckInFlight = performHealthCheck(now)
+
+  try {
+    return await healthCheckInFlight
+  } finally {
+    healthCheckInFlight = null
+  }
+}
+
+async function performHealthCheck(now: number): Promise<HealthCheckResult> {
 
   const zammadUrl = process.env.ZAMMAD_URL
   const zammadToken = process.env.ZAMMAD_API_TOKEN
@@ -46,11 +65,11 @@ export async function checkZammadHealth(): Promise<{
     return { isHealthy: false, error }
   }
 
-  try {
-    // Try to connect to Zammad with a short timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
+  // Try to connect to Zammad with a short timeout
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
 
+  try {
     const response = await fetch(`${zammadUrl}/api/v1/users/me`, {
       method: 'GET',
       headers: {
@@ -59,8 +78,6 @@ export async function checkZammadHealth(): Promise<{
       },
       signal: controller.signal,
     })
-
-    clearTimeout(timeoutId)
 
     if (response.ok) {
       lastHealthCheck = {
@@ -98,6 +115,8 @@ export async function checkZammadHealth(): Promise<{
       error: errorMessage,
     }
     return { isHealthy: false, error: errorMessage }
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 

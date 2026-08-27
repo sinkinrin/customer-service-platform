@@ -7,20 +7,53 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, interactive = false, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm",
-        interactive && [
-          "transition-all duration-200 cursor-pointer",
-          "hover:shadow-md hover:border-border/80",
-        ],
-        className
-      )}
-      {...props}
-    />
-  )
+  (
+    {
+      className,
+      interactive = false,
+      onClick,
+      onKeyDown,
+      role,
+      tabIndex,
+      ...props
+    },
+    ref
+  ) => {
+    const hasClickAction = Boolean(onClick)
+    const hasInteractiveStyles = interactive || hasClickAction
+    const handleKeyDown = onClick
+      ? (event: React.KeyboardEvent<HTMLDivElement>) => {
+          onKeyDown?.(event)
+          if (
+            !event.defaultPrevented &&
+            (event.key === 'Enter' || event.key === ' ')
+          ) {
+            event.preventDefault()
+            event.currentTarget.click()
+          }
+        }
+      : onKeyDown
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "rounded-lg border bg-card text-card-foreground shadow-sm",
+          hasInteractiveStyles && [
+            "transition-all duration-200 cursor-pointer",
+            "hover:shadow-md hover:border-border/80",
+          ],
+          hasClickAction && "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          className
+        )}
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+        role={role ?? (hasClickAction ? 'button' : undefined)}
+        tabIndex={tabIndex ?? (hasClickAction ? 0 : undefined)}
+        {...props}
+      />
+    )
+  }
 )
 Card.displayName = "Card"
 

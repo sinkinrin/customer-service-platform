@@ -57,7 +57,7 @@
 
 ### 前置条件
 
-- Node.js 20+
+- Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`（与 `package.json#engines` 一致）
 - PostgreSQL
 - 可访问的 Zammad 实例
 - 可选：FastGPT 或其他 AI provider 服务

@@ -15,12 +15,6 @@ vi.mock('@/lib/zammad/client', () => ({
   },
 }))
 
-vi.mock('@/lib/ticket/customer-binding', () => ({
-  findActiveBinding: vi.fn(),
-  findOrCreateBinding: vi.fn(),
-  deactivateBindingByCustomer: vi.fn(),
-}))
-
 vi.mock('@/lib/notification', () => ({
   notifyTicketAssigned: vi.fn(),
   notifySystemAlert: vi.fn(),
@@ -28,7 +22,6 @@ vi.mock('@/lib/notification', () => ({
 }))
 
 import { zammadClient } from '@/lib/zammad/client'
-import { findActiveBinding, findOrCreateBinding, deactivateBindingByCustomer } from '@/lib/ticket/customer-binding'
 import { notifySystemAlert, resolveLocalUserIdsForZammadUserId } from '@/lib/notification'
 
 describe('autoAssignSingleTicket', () => {

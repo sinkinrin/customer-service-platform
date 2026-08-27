@@ -3,9 +3,11 @@ import { z } from 'zod'
 import { readAISettings, resolveAIChatSettings } from '@/lib/utils/ai-config'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import { aiProviders } from '@/lib/ai/providers'
-import { createStreamResponse } from '@/lib/ai/stream-helpers'
+import { createStreamResponse, prependSSEEvent, withEvidencePersistence, withStreamTimeout } from '@/lib/ai/stream-helpers'
+import type { AiAnswerEvidence } from '@/lib/ai/fastgpt-evidence'
 import { requireAuth } from '@/lib/utils/auth'
 import { aiChatLimiter } from '@/lib/utils/rate-limit'
+import { getConversation, addMessage } from '@/lib/ai-conversation-service'
 
 const ChatRequestSchema = z.object({
   conversationId: z.string(),
@@ -19,6 +21,8 @@ const ChatRequestSchema = z.object({
     )
     .optional(),
   stream: z.boolean().optional(),
+  debugTiming: z.boolean().optional(),
+  requestId: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/).optional(),
   mode: z.enum(['flash', 'pro']).optional().default('flash'),
 })
 
@@ -32,6 +36,7 @@ export async function POST(request: NextRequest) {
   try {
     // Explicit auth: direct AI chat supports authenticated customers and staff.
     const user = await requireAuth()
+    const canInspectEvidence = user.role === 'staff' || user.role === 'admin'
 
     // Rate limiting (H7+M11)
     const rateLimitKey = `ai-chat:${user.id}`
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unknown AI provider' }, { status: 500 })
     }
 
-    const { conversationId, message, history, stream, mode } = parsed.data
+    const { conversationId, message, history, stream, debugTiming, requestId, mode } = parsed.data
     const chatSettings = resolveAIChatSettings(settings, mode)
 
     if (settings.provider === 'fastgpt' && mode === 'pro' && !settings.fastgptProApiKey) {
@@ -91,6 +96,52 @@ export async function POST(request: NextRequest) {
       history,
     }
 
+    // Server-side persistence is enabled only when conversationId maps to a real
+    // AI conversation owned by the caller. Otherwise (demo pages, ad-hoc ids)
+    // the route stays a pure proxy.
+    let persistTarget: { conversationId: string } | null = null
+    try {
+      const conversation = await getConversation(conversationId)
+      if (conversation && conversation.customerId === user.id) {
+        persistTarget = { conversationId }
+      }
+    } catch {
+      // Lookup failure (e.g. malformed id) — treat as non-persistent proxy call
+    }
+
+    const persistAiReply = async (
+      fullText: string,
+      info: { completed: boolean; evidence?: AiAnswerEvidence }
+    ): Promise<{ messageId: string } | null> => {
+      if (!persistTarget || !fullText.trim()) return null
+      try {
+        const saved = await addMessage(
+          persistTarget.conversationId,
+          'ai',
+          user.id,
+          fullText,
+          {
+            aiMode: true,
+            role: 'ai',
+            aiChatMode: mode,
+            sender_name: 'AI Assistant',
+            ...(requestId ? { aiRequestId: requestId } : {}),
+            ...(info.completed ? {} : { truncated: true }),
+            ...(canInspectEvidence && info.evidence ? { aiEvidence: info.evidence } : {}),
+          },
+          'text'
+        )
+        return { messageId: saved.id }
+      } catch (error) {
+        log.error('Failed to persist AI reply', {
+          conversationId: persistTarget.conversationId,
+          completed: info.completed,
+          error: error instanceof Error ? error.message : error,
+        })
+        return null
+      }
+    }
+
     if (stream && 'chatStream' in provider && typeof provider.chatStream === 'function') {
       const streamResult = await provider.chatStream(chatRequest, chatSettings)
 
@@ -105,7 +156,24 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: streamResult.error || 'Failed to get AI response' }, { status: 500 })
       }
 
-      return createStreamResponse(streamResult.data.stream)
+      const responseStream = debugTiming
+        ? prependSSEEvent(streamResult.data.stream, 'serverTiming', {
+            serverReceivedAt: startedAt,
+            upstreamStreamReadyAt: Date.now(),
+          })
+        : streamResult.data.stream
+
+      // Timeout is applied to the provider stream first. Persistence then sees
+      // timeout as a terminal SSE error and finishes the database write before
+      // forwarding that error to the client.
+      const persistedStream = withEvidencePersistence(
+        withStreamTimeout(responseStream),
+        persistAiReply,
+        {
+          emitEvidence: settings.provider === 'fastgpt' && canInspectEvidence,
+        }
+      )
+      return createStreamResponse(persistedStream, null)
     }
 
     const result = await provider.chat(chatRequest, chatSettings)
@@ -122,9 +190,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: result.error }, { status: 500 })
     }
 
+    const persisted = result.data?.message
+      ? await persistAiReply(result.data.message, { completed: true })
+      : null
+
     return NextResponse.json({
       success: true,
-      data: result.data,
+      data: {
+        ...result.data,
+        ...(persisted?.messageId ? { persistedMessageId: persisted.messageId } : {}),
+      },
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

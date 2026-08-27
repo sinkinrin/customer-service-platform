@@ -39,8 +39,40 @@ interface HealthCheckResult {
   }
 }
 
+function responseData(
+  result: HealthCheckResult,
+  responseTimeMs: number,
+  includeOperationalDetails: boolean
+) {
+  if (includeOperationalDetails) {
+    return {
+      ...result,
+      responseTimeMs,
+    }
+  }
+
+  return {
+    status: result.status,
+    timestamp: result.timestamp,
+    services: {
+      zammad: { status: result.services.zammad.status },
+      database: { status: result.services.database.status },
+    },
+    responseTimeMs,
+  }
+}
+
 export async function GET() {
   const startTime = Date.now()
+  let includeOperationalDetails = false
+
+  try {
+    const { auth } = await import("@/auth")
+    const session = await auth()
+    includeOperationalDetails = session?.user?.role === "admin"
+  } catch {
+    // Health checks remain public, but auth failures must never expose details.
+  }
 
   // Initialize result
   const result: HealthCheckResult = {
@@ -77,10 +109,11 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        data: {
-          ...result,
-          responseTimeMs: Date.now() - startTime,
-        },
+        data: responseData(
+          result,
+          Date.now() - startTime,
+          includeOperationalDetails
+        ),
       },
       { status: 503 }
     )
@@ -146,10 +179,7 @@ export async function GET() {
   return NextResponse.json(
     {
       success: result.status !== "unhealthy",
-      data: {
-        ...result,
-        responseTimeMs: responseTime,
-      },
+      data: responseData(result, responseTime, includeOperationalDetails),
     },
     { status: httpStatus }
   )

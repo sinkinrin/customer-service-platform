@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,149 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import { useTranslations } from 'next-intl'
 import { User, Bell, Lock } from 'lucide-react'
 
+interface PersonalInfo {
+  fullName: string
+  email: string
+  phone: string
+  language: string
+}
+
+interface NotificationPreferences {
+  emailNotifications: boolean
+  desktopNotifications: boolean
+  ticketUpdates: boolean
+  conversationReplies: boolean
+  promotions: boolean
+}
+
+interface SecurityFields {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+interface ProfilePayload {
+  full_name?: string | null
+  email?: string | null
+  phone?: string | null
+  language?: string | null
+}
+
+interface SettingsMutationResponse {
+  success?: boolean
+  data?: {
+    outcome?: 'complete' | 'partial'
+    profile?: ProfilePayload
+    preferences?: NotificationPreferences
+    locale?: {
+      actual?: string | null
+    }
+  }
+  error?: {
+    code?: string
+    message?: string
+    details?: Array<{
+      path?: string[]
+    }>
+  }
+}
+
+interface SessionProfile {
+  full_name?: string | null
+  email?: string | null
+  phone?: string | null
+  language?: string | null
+}
+
+interface SettingsIdentityLifecycle {
+  key: string | null
+  userId: string | null
+  version: number
+  controllers: Set<AbortController>
+  confirmedPersonalInfo: PersonalInfo
+  confirmedNotifications: NotificationPreferences
+}
+
+interface ScopedValue<T> {
+  owner: SettingsIdentityLifecycle
+  value: T
+}
+
+interface SaveRequestToken {
+  owner: SettingsIdentityLifecycle
+}
+
+function personalInfoFromSession(user?: SessionProfile | null): PersonalInfo {
+  return {
+    fullName: user?.full_name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    language: user?.language || 'zh-CN',
+  }
+}
+
+function defaultNotifications(): NotificationPreferences {
+  return {
+    emailNotifications: true,
+    desktopNotifications: false,
+    ticketUpdates: true,
+    conversationReplies: true,
+    promotions: false,
+  }
+}
+
+function emptySecurityFields(): SecurityFields {
+  return {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  }
+}
+
+function getDirtyProfileFields(
+  submitted: PersonalInfo,
+  confirmed: PersonalInfo
+): ProfilePayload {
+  const updates: ProfilePayload = {}
+
+  if (submitted.fullName !== confirmed.fullName) {
+    updates.full_name = submitted.fullName
+  }
+  if (submitted.phone !== confirmed.phone) {
+    updates.phone = submitted.phone
+  }
+  if (submitted.language !== confirmed.language) {
+    updates.language = submitted.language
+  }
+
+  return updates
+}
+
+function getDirtyNotificationFields(
+  submitted: NotificationPreferences,
+  confirmed: NotificationPreferences
+): Partial<NotificationPreferences> {
+  const updates: Partial<NotificationPreferences> = {}
+
+  if (submitted.emailNotifications !== confirmed.emailNotifications) {
+    updates.emailNotifications = submitted.emailNotifications
+  }
+  if (submitted.desktopNotifications !== confirmed.desktopNotifications) {
+    updates.desktopNotifications = submitted.desktopNotifications
+  }
+  if (submitted.ticketUpdates !== confirmed.ticketUpdates) {
+    updates.ticketUpdates = submitted.ticketUpdates
+  }
+  if (submitted.conversationReplies !== confirmed.conversationReplies) {
+    updates.conversationReplies = submitted.conversationReplies
+  }
+  if (submitted.promotions !== confirmed.promotions) {
+    updates.promotions = submitted.promotions
+  }
+
+  return updates
+}
+
 export default function CustomerSettingsPage() {
   const { user, refreshSession } = useAuth()
   const t = useTranslations('customer.settings')
@@ -21,136 +164,482 @@ export default function CustomerSettingsPage() {
   const tSecurity = useTranslations('customer.settings.security')
   const tToast = useTranslations('customer.settings.toast')
   const tCommon = useTranslations('common.localeNames')
-  const [loadingProfile, setLoadingProfile] = useState(false)
-  const [loadingNotifications, setLoadingNotifications] = useState(false)
-  const [loadingPassword, setLoadingPassword] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(true)
+  const identityKey = user
+    ? JSON.stringify({
+        id: user.id,
+        role: user.role,
+        email: user.email,
+        zammadId: user.zammad_id ?? null,
+      })
+    : null
+  const identityLifecycleRef = useRef<SettingsIdentityLifecycle | null>(null)
 
-  // Personal Information
-  const [personalInfo, setPersonalInfo] = useState({
-    fullName: user?.full_name || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    language: user?.language || 'zh-CN',
-  })
+  if (
+    !identityLifecycleRef.current ||
+    identityLifecycleRef.current.key !== identityKey
+  ) {
+    const previousVersion = identityLifecycleRef.current?.version ?? 0
+    identityLifecycleRef.current = {
+      key: identityKey,
+      userId: user?.id ?? null,
+      version: previousVersion + 1,
+      controllers: new Set<AbortController>(),
+      confirmedPersonalInfo: personalInfoFromSession(user),
+      confirmedNotifications: defaultNotifications(),
+    }
+  }
 
-  // Notification Settings
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    desktopNotifications: false,
-    ticketUpdates: true,
-    conversationReplies: true,
-    promotions: false,
-  })
+  const identityLifecycle = identityLifecycleRef.current
+  const [personalInfoState, setPersonalInfoState] = useState<ScopedValue<PersonalInfo>>(() => ({
+    owner: identityLifecycle,
+    value: identityLifecycle.confirmedPersonalInfo,
+  }))
+  const [notificationsState, setNotificationsState] = useState<ScopedValue<NotificationPreferences>>(() => ({
+    owner: identityLifecycle,
+    value: identityLifecycle.confirmedNotifications,
+  }))
+  const [securityState, setSecurityState] = useState<ScopedValue<SecurityFields>>(() => ({
+    owner: identityLifecycle,
+    value: emptySecurityFields(),
+  }))
+  const [loadedIdentity, setLoadedIdentity] = useState<SettingsIdentityLifecycle | null>(null)
+  const [loadingProfileToken, setLoadingProfileToken] = useState<SaveRequestToken | null>(null)
+  const [loadingNotificationsToken, setLoadingNotificationsToken] = useState<SaveRequestToken | null>(null)
+  const [loadingPasswordToken, setLoadingPasswordToken] = useState<SaveRequestToken | null>(null)
+  const profileSaveTokenRef = useRef<SaveRequestToken | null>(null)
+  const notificationsSaveTokenRef = useRef<SaveRequestToken | null>(null)
+  const passwordSaveTokenRef = useRef<SaveRequestToken | null>(null)
+  const tToastRef = useRef(tToast)
+  tToastRef.current = tToast
 
-  // Security Settings
-  const [security, setSecurity] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  })
+  const personalInfo = personalInfoState.owner === identityLifecycle
+    ? personalInfoState.value
+    : identityLifecycle.confirmedPersonalInfo
+  const notifications = notificationsState.owner === identityLifecycle
+    ? notificationsState.value
+    : identityLifecycle.confirmedNotifications
+  const security = securityState.owner === identityLifecycle
+    ? securityState.value
+    : emptySecurityFields()
+  const initialLoading = loadedIdentity !== identityLifecycle
+  const loadingProfile = loadingProfileToken?.owner === identityLifecycle
+  const loadingNotifications = loadingNotificationsToken?.owner === identityLifecycle
+  const loadingPassword = loadingPasswordToken?.owner === identityLifecycle
 
-  // Load profile and preferences on mount
+  const applyProfileForIdentity = useCallback((
+    owner: SettingsIdentityLifecycle,
+    profile: ProfilePayload,
+    actualLocale?: string | null
+  ) => {
+    if (identityLifecycleRef.current !== owner) return
+
+    const nextProfile: PersonalInfo = {
+      fullName: profile.full_name ?? owner.confirmedPersonalInfo.fullName,
+      email: profile.email ?? owner.confirmedPersonalInfo.email,
+      phone: profile.phone ?? owner.confirmedPersonalInfo.phone,
+      language: actualLocale ?? profile.language ?? owner.confirmedPersonalInfo.language,
+    }
+    owner.confirmedPersonalInfo = nextProfile
+    setPersonalInfoState({ owner, value: nextProfile })
+  }, [])
+
+  const applyNotificationsForIdentity = useCallback((
+    owner: SettingsIdentityLifecycle,
+    preferences: Partial<NotificationPreferences>
+  ) => {
+    if (identityLifecycleRef.current !== owner) return
+
+    const nextPreferences = {
+      ...owner.confirmedNotifications,
+      ...preferences,
+    }
+    owner.confirmedNotifications = nextPreferences
+    setNotificationsState({ owner, value: nextPreferences })
+  }, [])
+
+  const refreshSessionBestEffort = useCallback(async () => {
+    try {
+      await refreshSession()
+    } catch (error) {
+      console.error('Failed to refresh session after settings update:', error)
+    }
+  }, [refreshSession])
+
   useEffect(() => {
+    const owner = identityLifecycle
+    const controller = new AbortController()
+    owner.controllers.add(controller)
+    const isCurrent = () =>
+      identityLifecycleRef.current === owner && !controller.signal.aborted
+
+    setPersonalInfoState({ owner, value: owner.confirmedPersonalInfo })
+    setNotificationsState({ owner, value: owner.confirmedNotifications })
+    setSecurityState({ owner, value: emptySecurityFields() })
+    setLoadedIdentity(null)
+
     const loadData = async () => {
+      if (!owner.key) {
+        setLoadedIdentity(owner)
+        return
+      }
+
+      let keepIdentityLoading = false
+
       try {
-        // Fetch profile and preferences in parallel
         const [profileRes, prefsRes] = await Promise.all([
-          fetch('/api/user/profile'),
-          fetch('/api/user/preferences'),
+          fetch('/api/user/profile', {
+            headers: { 'X-CSP-Expected-User-Id': owner.userId! },
+            signal: controller.signal,
+          }),
+          fetch('/api/user/preferences', {
+            headers: { 'X-CSP-Expected-User-Id': owner.userId! },
+            signal: controller.signal,
+          }),
         ])
 
-        if (profileRes.ok) {
-          const profileData = await profileRes.json()
-          if (profileData.success && profileData.data?.profile) {
-            const profile = profileData.data.profile
-            setPersonalInfo({
-              fullName: profile.full_name || '',
-              email: profile.email || '',
-              phone: profile.phone || '',
-              language: profile.language || 'zh-CN',
-            })
-          }
+        if (!isCurrent()) return
+
+        const [profileData, prefsData] = await Promise.all([
+          profileRes.json().catch(() => null),
+          prefsRes.json().catch(() => null),
+        ])
+
+        if (!isCurrent()) return
+
+        const identityChanged = [
+          { response: profileRes, data: profileData },
+          { response: prefsRes, data: prefsData },
+        ].some(({ response, data }) =>
+          response.status === 409 &&
+          (!data || data.error?.code === 'IDENTITY_CHANGED')
+        )
+
+        if (identityChanged) {
+          keepIdentityLoading = true
+          toast.warning(tToastRef.current('identityChanged'))
+          await refreshSessionBestEffort()
+          return
         }
 
-        if (prefsRes.ok) {
-          const prefsData = await prefsRes.json()
-          if (prefsData.success && prefsData.data?.preferences) {
-            setNotifications(prefsData.data.preferences)
-          }
+        const loadedProfile = profileRes.ok && profileData?.success
+          ? profileData.data?.profile
+          : null
+        const loadedPreferences = prefsRes.ok && prefsData?.success
+          ? prefsData.data?.preferences
+          : null
+
+        if (!loadedProfile || !loadedPreferences) {
+          keepIdentityLoading = true
+          toast.error(tToastRef.current('updateFailed'))
+          return
         }
+
+        applyProfileForIdentity(owner, loadedProfile)
+        applyNotificationsForIdentity(owner, loadedPreferences)
       } catch (error) {
-        console.error('Failed to load settings:', error)
+        if (isCurrent()) {
+          keepIdentityLoading = true
+          console.error('Failed to load settings:', error)
+          toast.error(tToastRef.current('updateFailed'))
+          controller.abort()
+        }
       } finally {
-        setInitialLoading(false)
+        owner.controllers.delete(controller)
+        if (isCurrent() && !keepIdentityLoading) {
+          setLoadedIdentity(owner)
+        }
       }
     }
 
-    loadData()
-  }, [])
+    void loadData()
 
-  // Also update from user session when it changes
-  useEffect(() => {
-    if (user && initialLoading) {
-      setPersonalInfo({
-        fullName: user.full_name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        language: user.language || 'zh-CN',
-      })
+    return () => {
+      for (const activeController of owner.controllers) {
+        activeController.abort()
+      }
+      owner.controllers.clear()
     }
-  }, [user, initialLoading])
+  }, [
+    applyNotificationsForIdentity,
+    applyProfileForIdentity,
+    identityLifecycle,
+    refreshSessionBestEffort,
+  ])
 
   const handleSavePersonalInfo = async () => {
-    setLoadingProfile(true)
-    try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: personalInfo.fullName,
-          phone: personalInfo.phone,
-          language: personalInfo.language,
-        }),
-      })
+    if (initialLoading || !identityLifecycle.userId) return
 
-      const data = await response.json()
-      if (data.success) {
-        await refreshSession()
-        toast.success(tToast('personalInfoUpdated'))
+    const owner = identityLifecycle
+    const token: SaveRequestToken = { owner }
+    const controller = new AbortController()
+    const submittedPersonalInfo = { ...personalInfo }
+    const submittedProfileFields = getDirtyProfileFields(
+      submittedPersonalInfo,
+      owner.confirmedPersonalInfo
+    )
+    owner.controllers.add(controller)
+    profileSaveTokenRef.current = token
+    setLoadingProfileToken(token)
+
+    const isCurrentRequest = () =>
+      identityLifecycleRef.current === owner &&
+      profileSaveTokenRef.current === token &&
+      !controller.signal.aborted
+
+    const reconcileUnconfirmedProfile = async () => {
+      if (!isCurrentRequest()) return
+
+      setPersonalInfoState({ owner, value: owner.confirmedPersonalInfo })
+      toast.warning(tToast('outcomeUnconfirmed'))
+
+      try {
+        const profileRes = await fetch('/api/user/profile', {
+          headers: { 'X-CSP-Expected-User-Id': owner.userId! },
+          signal: controller.signal,
+        })
+        if (isCurrentRequest() && profileRes.ok) {
+          const profileData = await profileRes.json()
+          if (
+            isCurrentRequest() &&
+            profileData?.success &&
+            profileData.data?.profile
+          ) {
+            applyProfileForIdentity(owner, profileData.data.profile)
+          }
+        }
+      } catch (error) {
+        if (isCurrentRequest()) {
+          console.error('Failed to reconcile profile after an unconfirmed update:', error)
+        }
+      }
+
+      if (isCurrentRequest()) {
+        await refreshSessionBestEffort()
+      }
+    }
+
+    try {
+      let response: Response
+      try {
+        response = await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSP-Expected-User-Id': owner.userId!,
+          },
+          body: JSON.stringify(submittedProfileFields),
+          signal: controller.signal,
+        })
+      } catch (error) {
+        if (isCurrentRequest()) {
+          console.error('Profile update outcome could not be confirmed:', error)
+          await reconcileUnconfirmedProfile()
+        }
+        return
+      }
+
+      if (!isCurrentRequest()) return
+
+      let data: SettingsMutationResponse
+      try {
+        const parsed = await response.json() as unknown
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('Profile update response body was empty')
+        }
+        data = parsed as SettingsMutationResponse
+      } catch (error) {
+        if (!isCurrentRequest()) return
+
+        console.error('Failed to parse profile update response:', error)
+        if (response.status === 409) {
+          toast.warning(tToast('identityChanged'))
+          await refreshSessionBestEffort()
+        } else if (response.status >= 500 || response.ok) {
+          await reconcileUnconfirmedProfile()
+        } else {
+          toast.error(tToast('updateFailed'))
+        }
+        return
+      }
+
+      const explicitlyRejected =
+        data.error?.code === 'PROFILE_REJECTED' ||
+        data.error?.code === 'LOCALE_REJECTED'
+
+      if (explicitlyRejected) {
+        toast.error(data.error?.message || tToast('updateFailed'))
+      } else if (response.status === 409 || data.error?.code === 'IDENTITY_CHANGED') {
+        toast.warning(tToast('identityChanged'))
+        await refreshSessionBestEffort()
+      } else if (response.status >= 500) {
+        await reconcileUnconfirmedProfile()
+      } else if (!response.ok) {
+        toast.error(data.error?.message || tToast('updateFailed'))
+      } else if (data.success) {
+        if (data.data?.profile) {
+          applyProfileForIdentity(
+            owner,
+            data.data.profile,
+            data.data.locale?.actual
+          )
+        } else {
+          owner.confirmedPersonalInfo = submittedPersonalInfo
+          setPersonalInfoState({ owner, value: submittedPersonalInfo })
+        }
+
+        if (data.data?.outcome === 'partial') {
+          toast.warning(tToast('personalInfoPartiallyUpdated'))
+        } else {
+          toast.success(tToast('personalInfoUpdated'))
+        }
+
+        await refreshSessionBestEffort()
+      } else if (data.error?.code === 'OUTCOME_UNCONFIRMED') {
+        await reconcileUnconfirmedProfile()
       } else {
         toast.error(data.error?.message || tToast('updateFailed'))
       }
     } catch {
-      toast.error(tToast('updateFailed'))
+      if (isCurrentRequest()) {
+        toast.error(tToast('updateFailed'))
+      }
     } finally {
-      setLoadingProfile(false)
+      owner.controllers.delete(controller)
+      if (profileSaveTokenRef.current === token) {
+        profileSaveTokenRef.current = null
+        setLoadingProfileToken((current) => current === token ? null : current)
+      }
     }
   }
 
   const handleSaveNotifications = async () => {
-    setLoadingNotifications(true)
-    try {
-      const response = await fetch('/api/user/preferences', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(notifications),
-      })
+    if (initialLoading || !identityLifecycle.userId) return
 
-      const data = await response.json()
-      if (data.success) {
+    const owner = identityLifecycle
+    const token: SaveRequestToken = { owner }
+    const controller = new AbortController()
+    const submittedNotifications = { ...notifications }
+    const submittedNotificationFields = getDirtyNotificationFields(
+      submittedNotifications,
+      owner.confirmedNotifications
+    )
+    owner.controllers.add(controller)
+    notificationsSaveTokenRef.current = token
+    setLoadingNotificationsToken(token)
+
+    const isCurrentRequest = () =>
+      identityLifecycleRef.current === owner &&
+      notificationsSaveTokenRef.current === token &&
+      !controller.signal.aborted
+
+    const reconcileUnconfirmedNotifications = async () => {
+      if (!isCurrentRequest()) return
+
+      setNotificationsState({ owner, value: owner.confirmedNotifications })
+      toast.warning(tToast('outcomeUnconfirmed'))
+
+      try {
+        const prefsRes = await fetch('/api/user/preferences', {
+          headers: { 'X-CSP-Expected-User-Id': owner.userId! },
+          signal: controller.signal,
+        })
+        if (isCurrentRequest() && prefsRes.ok) {
+          const prefsData = await prefsRes.json()
+          if (
+            isCurrentRequest() &&
+            prefsData?.success &&
+            prefsData.data?.preferences
+          ) {
+            applyNotificationsForIdentity(owner, prefsData.data.preferences)
+          }
+        }
+      } catch (error) {
+        if (isCurrentRequest()) {
+          console.error('Failed to reconcile preferences after an unconfirmed update:', error)
+        }
+      }
+    }
+
+    try {
+      let response: Response
+      try {
+        response = await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSP-Expected-User-Id': owner.userId!,
+          },
+          body: JSON.stringify(submittedNotificationFields),
+          signal: controller.signal,
+        })
+      } catch (error) {
+        if (isCurrentRequest()) {
+          console.error('Preferences update outcome could not be confirmed:', error)
+          await reconcileUnconfirmedNotifications()
+        }
+        return
+      }
+
+      if (!isCurrentRequest()) return
+
+      let data: SettingsMutationResponse
+      try {
+        const parsed = await response.json() as unknown
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('Preferences update response body was empty')
+        }
+        data = parsed as SettingsMutationResponse
+      } catch (error) {
+        if (!isCurrentRequest()) return
+
+        console.error('Failed to parse preferences update response:', error)
+        if (response.status === 409) {
+          toast.warning(tToast('identityChanged'))
+          await refreshSessionBestEffort()
+        } else if (response.status >= 500 || response.ok) {
+          await reconcileUnconfirmedNotifications()
+        } else {
+          toast.error(tToast('updateFailed'))
+        }
+        return
+      }
+
+      if (data.error?.code === 'PREFERENCES_REJECTED') {
+        toast.error(data.error?.message || tToast('updateFailed'))
+      } else if (response.status === 409 || data.error?.code === 'IDENTITY_CHANGED') {
+        toast.warning(tToast('identityChanged'))
+        await refreshSessionBestEffort()
+      } else if (response.status >= 500) {
+        await reconcileUnconfirmedNotifications()
+      } else if (!response.ok) {
+        toast.error(data.error?.message || tToast('updateFailed'))
+      } else if (data.success) {
+        applyNotificationsForIdentity(
+          owner,
+          data.data?.preferences ?? submittedNotificationFields
+        )
         toast.success(tToast('notificationsUpdated'))
+      } else if (data.error?.code === 'OUTCOME_UNCONFIRMED') {
+        await reconcileUnconfirmedNotifications()
       } else {
         toast.error(data.error?.message || tToast('updateFailed'))
       }
     } catch {
-      toast.error(tToast('updateFailed'))
+      if (isCurrentRequest()) {
+        toast.error(tToast('updateFailed'))
+      }
     } finally {
-      setLoadingNotifications(false)
+      owner.controllers.delete(controller)
+      if (notificationsSaveTokenRef.current === token) {
+        notificationsSaveTokenRef.current = null
+        setLoadingNotificationsToken((current) => current === token ? null : current)
+      }
     }
   }
 
   const handleChangePassword = async () => {
+    if (initialLoading || !identityLifecycle.userId) return
+
     if (security.newPassword !== security.confirmPassword) {
       toast.error(tToast('passwordMismatch'))
       return
@@ -161,38 +650,114 @@ export default function CustomerSettingsPage() {
       return
     }
 
-    setLoadingPassword(true)
-    try {
-      const response = await fetch('/api/user/password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: security.currentPassword,
-          newPassword: security.newPassword,
-          confirmPassword: security.confirmPassword,
-        }),
-      })
+    const owner = identityLifecycle
+    const token: SaveRequestToken = { owner }
+    const controller = new AbortController()
+    const submittedSecurity = { ...security }
+    owner.controllers.add(controller)
+    passwordSaveTokenRef.current = token
+    setLoadingPasswordToken(token)
 
-      const data = await response.json()
-      if (data.success) {
-        toast.success(tToast('passwordUpdated'))
-        setSecurity({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
+    const isCurrentRequest = () =>
+      identityLifecycleRef.current === owner &&
+      passwordSaveTokenRef.current === token &&
+      !controller.signal.aborted
+
+    const handleUnconfirmedPassword = () => {
+      if (!isCurrentRequest()) return
+
+      setSecurityState({ owner, value: emptySecurityFields() })
+      toast.warning(tToast('passwordOutcomeUnconfirmed'))
+    }
+
+    try {
+      let response: Response
+      try {
+        response = await fetch('/api/user/password', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSP-Expected-User-Id': owner.userId!,
+          },
+          body: JSON.stringify({
+            currentPassword: submittedSecurity.currentPassword,
+            newPassword: submittedSecurity.newPassword,
+            confirmPassword: submittedSecurity.confirmPassword,
+          }),
+          signal: controller.signal,
         })
-      } else {
-        // Handle validation errors
+      } catch (error) {
+        if (isCurrentRequest()) {
+          console.error('Password update outcome could not be confirmed:', error)
+          handleUnconfirmedPassword()
+        }
+        return
+      }
+
+      if (!isCurrentRequest()) return
+
+      let data: SettingsMutationResponse
+      try {
+        const parsed = await response.json() as unknown
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('Password update response body was empty')
+        }
+        data = parsed as SettingsMutationResponse
+      } catch (error) {
+        if (!isCurrentRequest()) return
+
+        console.error('Failed to parse password update response:', error)
+        if (response.status === 409) {
+          toast.warning(tToast('identityChanged'))
+          await refreshSessionBestEffort()
+        } else if (response.status >= 500 || response.ok) {
+          handleUnconfirmedPassword()
+        } else {
+          toast.error(tToast('passwordUpdateFailed'))
+        }
+        return
+      }
+
+      const explicitlyRejected =
+        data.error?.code === 'PASSWORD_REJECTED' ||
+        data.error?.code === 'ACCOUNT_IDENTITY_MISMATCH' ||
+        data.error?.code === 'CURRENT_PASSWORD_VERIFICATION_UNAVAILABLE' ||
+        data.error?.code === 'PASSWORD_UPDATE_AUTHORIZATION_FAILED' ||
+        data.error?.code === 'PASSWORD_UPDATE_REJECTED'
+
+      if (explicitlyRejected) {
+        toast.error(data.error?.message || tToast('passwordUpdateFailed'))
+      } else if (response.status === 409 || data.error?.code === 'IDENTITY_CHANGED') {
+        toast.warning(tToast('identityChanged'))
+        await refreshSessionBestEffort()
+      } else if (response.status >= 500) {
+        handleUnconfirmedPassword()
+      } else if (!response.ok) {
         if (data.error?.details?.[0]?.path?.includes('currentPassword')) {
           toast.error(tToast('incorrectPassword') || 'Current password is incorrect')
         } else {
           toast.error(data.error?.message || tToast('passwordUpdateFailed'))
         }
+      } else if (data.success) {
+        toast.success(tToast('passwordUpdated'))
+        setSecurityState({ owner, value: emptySecurityFields() })
+      } else if (data.error?.code === 'OUTCOME_UNCONFIRMED') {
+        handleUnconfirmedPassword()
+      } else if (data.error?.details?.[0]?.path?.includes('currentPassword')) {
+        toast.error(tToast('incorrectPassword') || 'Current password is incorrect')
+      } else {
+        toast.error(data.error?.message || tToast('passwordUpdateFailed'))
       }
     } catch {
-      toast.error(tToast('passwordUpdateFailed'))
+      if (isCurrentRequest()) {
+        toast.error(tToast('passwordUpdateFailed'))
+      }
     } finally {
-      setLoadingPassword(false)
+      owner.controllers.delete(controller)
+      if (passwordSaveTokenRef.current === token) {
+        passwordSaveTokenRef.current = null
+        setLoadingPasswordToken((current) => current === token ? null : current)
+      }
     }
   }
 
@@ -220,7 +785,11 @@ export default function CustomerSettingsPage() {
                 <Input
                   id="fullName"
                   value={personalInfo.fullName}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, fullName: e.target.value })}
+                  disabled={initialLoading || loadingProfile}
+                  onChange={(e) => setPersonalInfoState({
+                    owner: identityLifecycle,
+                    value: { ...personalInfo, fullName: e.target.value },
+                  })}
                   placeholder={tPersonal('fullNamePlaceholder')}
                 />
               </div>
@@ -242,7 +811,11 @@ export default function CustomerSettingsPage() {
                 <Input
                   id="phone"
                   value={personalInfo.phone}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
+                  disabled={initialLoading || loadingProfile}
+                  onChange={(e) => setPersonalInfoState({
+                    owner: identityLifecycle,
+                    value: { ...personalInfo, phone: e.target.value },
+                  })}
                   placeholder={tPersonal('phonePlaceholder')}
                 />
               </div>
@@ -250,7 +823,11 @@ export default function CustomerSettingsPage() {
                 <Label htmlFor="language">{tPersonal('languageLabel')}</Label>
                 <Select
                   value={personalInfo.language}
-                  onValueChange={(value) => setPersonalInfo({ ...personalInfo, language: value })}
+                  disabled={initialLoading || loadingProfile}
+                  onValueChange={(value) => setPersonalInfoState({
+                    owner: identityLifecycle,
+                    value: { ...personalInfo, language: value },
+                  })}
                 >
                   <SelectTrigger id="language">
                     <SelectValue />
@@ -267,7 +844,7 @@ export default function CustomerSettingsPage() {
               </div>
             </div>
 
-            <Button onClick={handleSavePersonalInfo} disabled={loadingProfile}>
+            <Button onClick={handleSavePersonalInfo} disabled={initialLoading || loadingProfile}>
               {loadingProfile ? tPersonal('saving') : tPersonal('saveChanges')}
             </Button>
           </CardContent>
@@ -291,8 +868,12 @@ export default function CustomerSettingsPage() {
               <Switch
                 id="emailNotifications"
                 checked={notifications.emailNotifications}
+                disabled={initialLoading || loadingNotifications}
                 onCheckedChange={(checked) =>
-                  setNotifications({ ...notifications, emailNotifications: checked })
+                  setNotificationsState({
+                    owner: identityLifecycle,
+                    value: { ...notifications, emailNotifications: checked },
+                  })
                 }
               />
             </div>
@@ -307,8 +888,12 @@ export default function CustomerSettingsPage() {
               <Switch
                 id="desktopNotifications"
                 checked={notifications.desktopNotifications}
+                disabled={initialLoading || loadingNotifications}
                 onCheckedChange={(checked) =>
-                  setNotifications({ ...notifications, desktopNotifications: checked })
+                  setNotificationsState({
+                    owner: identityLifecycle,
+                    value: { ...notifications, desktopNotifications: checked },
+                  })
                 }
               />
             </div>
@@ -323,8 +908,12 @@ export default function CustomerSettingsPage() {
               <Switch
                 id="ticketUpdates"
                 checked={notifications.ticketUpdates}
+                disabled={initialLoading || loadingNotifications}
                 onCheckedChange={(checked) =>
-                  setNotifications({ ...notifications, ticketUpdates: checked })
+                  setNotificationsState({
+                    owner: identityLifecycle,
+                    value: { ...notifications, ticketUpdates: checked },
+                  })
                 }
               />
             </div>
@@ -339,8 +928,12 @@ export default function CustomerSettingsPage() {
               <Switch
                 id="conversationReplies"
                 checked={notifications.conversationReplies}
+                disabled={initialLoading || loadingNotifications}
                 onCheckedChange={(checked) =>
-                  setNotifications({ ...notifications, conversationReplies: checked })
+                  setNotificationsState({
+                    owner: identityLifecycle,
+                    value: { ...notifications, conversationReplies: checked },
+                  })
                 }
               />
             </div>
@@ -355,13 +948,17 @@ export default function CustomerSettingsPage() {
               <Switch
                 id="promotions"
                 checked={notifications.promotions}
+                disabled={initialLoading || loadingNotifications}
                 onCheckedChange={(checked) =>
-                  setNotifications({ ...notifications, promotions: checked })
+                  setNotificationsState({
+                    owner: identityLifecycle,
+                    value: { ...notifications, promotions: checked },
+                  })
                 }
               />
             </div>
 
-            <Button onClick={handleSaveNotifications} disabled={loadingNotifications}>
+            <Button onClick={handleSaveNotifications} disabled={initialLoading || loadingNotifications}>
               {loadingNotifications ? tNotifications('saving') : tNotifications('saveChanges')}
             </Button>
           </CardContent>
@@ -383,7 +980,11 @@ export default function CustomerSettingsPage() {
                 id="currentPassword"
                 type="password"
                 value={security.currentPassword}
-                onChange={(e) => setSecurity({ ...security, currentPassword: e.target.value })}
+                disabled={initialLoading || loadingPassword}
+                onChange={(e) => setSecurityState({
+                  owner: identityLifecycle,
+                  value: { ...security, currentPassword: e.target.value },
+                })}
                 placeholder={tSecurity('currentPasswordPlaceholder')}
               />
             </div>
@@ -394,7 +995,11 @@ export default function CustomerSettingsPage() {
                 id="newPassword"
                 type="password"
                 value={security.newPassword}
-                onChange={(e) => setSecurity({ ...security, newPassword: e.target.value })}
+                disabled={initialLoading || loadingPassword}
+                onChange={(e) => setSecurityState({
+                  owner: identityLifecycle,
+                  value: { ...security, newPassword: e.target.value },
+                })}
                 placeholder={tSecurity('newPasswordPlaceholder')}
               />
             </div>
@@ -405,12 +1010,16 @@ export default function CustomerSettingsPage() {
                 id="confirmPassword"
                 type="password"
                 value={security.confirmPassword}
-                onChange={(e) => setSecurity({ ...security, confirmPassword: e.target.value })}
+                disabled={initialLoading || loadingPassword}
+                onChange={(e) => setSecurityState({
+                  owner: identityLifecycle,
+                  value: { ...security, confirmPassword: e.target.value },
+                })}
                 placeholder={tSecurity('confirmPasswordPlaceholder')}
               />
             </div>
 
-            <Button onClick={handleChangePassword} disabled={loadingPassword}>
+            <Button onClick={handleChangePassword} disabled={initialLoading || loadingPassword}>
               {loadingPassword ? tSecurity('updating') : tSecurity('updatePassword')}
             </Button>
           </CardContent>

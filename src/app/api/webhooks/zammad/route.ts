@@ -32,6 +32,50 @@ import { maybeRunCleanup } from '@/lib/utils/cleanup'
 // Event types for TicketUpdate
 type TicketUpdateEvent = 'article_created' | 'status_changed' | 'assigned' | 'created'
 
+const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024
+
+class WebhookBodyTooLargeError extends Error {}
+
+async function readWebhookBody(request: NextRequest): Promise<string> {
+  const contentLength = request.headers.get('content-length')
+  if (contentLength) {
+    const declaredBytes = Number(contentLength)
+    if (Number.isFinite(declaredBytes) && declaredBytes > MAX_WEBHOOK_BODY_BYTES) {
+      throw new WebhookBodyTooLargeError()
+    }
+  }
+
+  if (!request.body) {
+    const rawBody = await request.text()
+    if (Buffer.byteLength(rawBody, 'utf8') > MAX_WEBHOOK_BODY_BYTES) {
+      throw new WebhookBodyTooLargeError()
+    }
+    return rawBody
+  }
+
+  const reader = request.body.getReader()
+  const chunks: Buffer[] = []
+  let totalBytes = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      totalBytes += value.byteLength
+      if (totalBytes > MAX_WEBHOOK_BODY_BYTES) {
+        await reader.cancel()
+        throw new WebhookBodyTooLargeError()
+      }
+      chunks.push(Buffer.from(value))
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  return Buffer.concat(chunks).toString('utf8')
+}
+
 // ============================================================================
 // Webhook Signature Verification
 // ============================================================================
@@ -90,9 +134,16 @@ export async function POST(request: NextRequest) {
       return errorResponse('RATE_LIMITED', 'Too many requests', undefined, 429)
     }
 
-    // Get raw body for signature verification
-    rawBody = await request.text()
-    webhookPayload = JSON.parse(rawBody)
+    // Read a bounded raw body so signature verification uses the exact payload.
+    try {
+      rawBody = await readWebhookBody(request)
+    } catch (error) {
+      if (error instanceof WebhookBodyTooLargeError) {
+        log.warning('Webhook payload too large')
+        return errorResponse('PAYLOAD_TOO_LARGE', 'Webhook payload is too large', undefined, 413)
+      }
+      throw error
+    }
 
     // Verify webhook signature
     // When ZAMMAD_WEBHOOK_SECRET is configured, signature is mandatory
@@ -111,9 +162,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    try {
+      webhookPayload = JSON.parse(rawBody) as ZammadWebhookPayload
+    } catch {
+      log.warning('Invalid webhook JSON')
+      return errorResponse('INVALID_JSON', 'Invalid webhook payload', undefined, 400)
+    }
+
     // Validate payload - Zammad sends ticket/article data without explicit event field
     if (!webhookPayload || !webhookPayload.ticket) {
-      log.error('Invalid webhook payload - no ticket data', { payload: webhookPayload })
+      log.warning('Invalid webhook payload - no ticket data')
       return errorResponse('INVALID_PAYLOAD', 'Invalid webhook payload', undefined, 400)
     }
 
@@ -310,7 +368,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     log.error('POST /api/webhooks/zammad error', { error: error instanceof Error ? error.message : error })
-    return serverErrorResponse(error instanceof Error ? error.message : 'Unknown error')
+    return serverErrorResponse('Failed to process webhook')
   }
 }
 

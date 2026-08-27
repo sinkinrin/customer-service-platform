@@ -112,7 +112,7 @@ import { getGroupIdByRegion, isValidRegion, STAGING_GROUP_ID, type RegionValue }
 import { z } from 'zod'
 import { checkZammadHealth, getZammadUnavailableMessage, isZammadUnavailableError } from '@/lib/zammad/health-check'
 import { notifyTicketCreated } from '@/lib/notification'
-import { autoAssignSingleTicket, EXCLUDED_EMAILS, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
+import { EXCLUDED_EMAILS, handleAssignmentNotification } from '@/lib/ticket/auto-assign'
 import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
 import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
 import { getAgentDisplayName, isAgentEligible } from '@/lib/ticket/agent-helpers'

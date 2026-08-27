@@ -121,6 +121,7 @@
     "tickets": "Tickets",
     "knowledgeBase": "Base de conhecimento",
     "users": "Usuários",
+    "serviceGroups": "Grupos de serviço",
     "settings": "Configurações",
     "systemSettings": "Configurações do sistema",
     "logout": "Sair",
@@ -415,6 +416,8 @@
       "confirm": "Sim, reabrir",
       "cancel": "Cancelar",
       "success": "Ticket reaberto com sucesso",
+      "partialSuccess": "O ticket foi reaberto, mas a nota de auditoria não pôde ser salva ou confirmada.",
+      "outcomeUnconfirmed": "A solicitação de reabertura pode ter sido concluída, mas não foi possível confirmar o resultado. Atualize o ticket antes de tentar novamente.",
       "error": "Falha ao reabrir ticket"
     }
   },
@@ -654,7 +657,8 @@
         "owner": "Responsável pelo grupo de serviço",
         "placeholder": "Selecione um grupo de serviço",
         "assign": "Atribuir grupo de serviço",
-        "assigning": "Atribuindo..."
+        "assigning": "Atribuindo...",
+        "regionHint": "A região do cliente é determinada pelo grupo de serviço atribuído."
       },
       "importDialog": {
         "title": "Importação em massa de usuários",
@@ -689,6 +693,48 @@
         "retry": "Tentar novamente",
         "noTickets": "Nenhum ticket encontrado para este usuário",
         "count": "Encontrados {count} tickets"
+      }
+    },
+    "serviceGroups": {
+      "pageTitle": "Grupos de serviço",
+      "pageDescription": "Criar e manter segmentos detalhados de clientes no console administrativo",
+      "title": "Lista de grupos de serviço",
+      "description": "Cada grupo de serviço pertence a uma região base e possui um responsável.",
+      "createButton": "Novo grupo de serviço",
+      "refreshButton": "Atualizar",
+      "deactivateButton": "Desativar",
+      "empty": "Ainda não há grupos de serviço",
+      "table": {
+        "name": "Nome",
+        "baseRegion": "Região base",
+        "owner": "Responsável",
+        "status": "Status",
+        "updatedAt": "Atualizado em",
+        "actions": "Ações"
+      },
+      "status": {
+        "active": "Ativo",
+        "inactive": "Inativo"
+      },
+      "form": {
+        "name": "Nome",
+        "namePlaceholder": "Prioridade Ásia-Pacífico",
+        "baseRegion": "Região base",
+        "staff": "Responsável atribuído",
+        "staffPlaceholder": "Selecionar um membro da equipe",
+        "noStaff": "Não há membros da equipe disponíveis no momento",
+        "transferTarget": "Transferir clientes para",
+        "transferTargetPlaceholder": "Selecionar um grupo de serviço de destino"
+      },
+      "dialog": {
+        "createTitle": "Criar grupo de serviço",
+        "createDescription": "Criar um novo segmento em uma região base existente.",
+        "createConfirm": "Criar",
+        "editTitle": "Editar grupo de serviço",
+        "editDescription": "Atualizar o nome, a região base ou o responsável pelo grupo de serviço.",
+        "deactivateTitle": "Desativar grupo de serviço",
+        "deactivateDescription": "Desativar {name} e transferir seus clientes para outro grupo de serviço ativo.",
+        "noTransferTargets": "Crie primeiro outro grupo de serviço ativo antes de desativar este."
       }
     },
     "faq": {
@@ -1203,6 +1249,10 @@
       },
       "toast": {
         "personalInfoUpdated": "Informações pessoais atualizadas",
+        "personalInfoPartiallyUpdated": "Os dados do perfil foram salvos, mas não foi possível atualizar o idioma.",
+        "outcomeUnconfirmed": "A atualização pode ter sido concluída. O formulário foi atualizado com as configurações salvas atualmente.",
+        "passwordOutcomeUnconfirmed": "A alteração da senha pode ter sido aplicada. Antes de tentar novamente, confirme entrando com a nova senha.",
+        "identityChanged": "Sua identidade de login mudou. A sessão será atualizada antes de salvar novamente.",
         "updateFailed": "Falha na atualização, tente novamente",
         "notificationsUpdated": "Configurações de notificação atualizadas",
         "passwordMismatch": "Nova senha e confirmação não coincidem",
@@ -1808,6 +1858,18 @@
         "deleteError": "Falha ao excluir usuário",
         "importSuccess": "Importação bem-sucedida de {count} usuários"
       },
+      "serviceGroups": {
+        "loadError": "Falha ao carregar os grupos de serviço",
+        "staffLoadError": "Falha ao carregar a lista de funcionários",
+        "validationError": "O nome e o responsável atribuído são obrigatórios",
+        "transferRequired": "Selecione primeiro um destino para a transferência",
+        "createSuccess": "Grupo de serviço criado com sucesso",
+        "createError": "Falha ao criar o grupo de serviço",
+        "updateSuccess": "Grupo de serviço atualizado com sucesso",
+        "updateError": "Falha ao atualizar o grupo de serviço",
+        "deactivateSuccess": "Grupo de serviço desativado com sucesso",
+        "deactivateError": "Falha ao desativar o grupo de serviço"
+      },
       "faq": {
         "createSuccess": "Artigo criado com sucesso!",
         "createError": "Falha ao criar artigo",
@@ -2083,6 +2145,22 @@
         "aiAssistant": "Assistente IA",
         "aiThinking": "Pensando..."
       },
+      "aiEvidence": {
+        "button": "Fontes {count}",
+        "buttonLabel": "Ver {count} fontes desta resposta",
+        "title": "Fontes desta resposta",
+        "description": "O FastGPT retornou {count} fontes de conhecimento para esta resposta.",
+        "searches": "Consultas de pesquisa",
+        "noSearches": "O FastGPT não retornou consultas exibíveis.",
+        "citations": "Documentos citados ({count})",
+        "sourceId": "ID da fonte",
+        "updatedAt": "Atualizado",
+        "emptyContent": "Esta fonte não contém conteúdo exibível.",
+        "noCitations": "O FastGPT não retornou conteúdo de fonte exibível.",
+        "copy": "Copiar evidências",
+        "copied": "Copiado",
+        "feedbackHint": "Se uma fonte for irrelevante, desatualizada ou usada incorretamente, copie as evidências e envie feedback pela ação de avaliação negativa."
+      },
       "transferDialog": {
         "title": "Transferir para agente humano",
         "description": "Você está prestes a transferir do assistente de IA para um agente humano. O agente poderá visualizar seu histórico completo de conversa para melhor assistência.",
@@ -2191,6 +2269,12 @@
     }
   },
   "dashboardComponents": {
+    "ticketStats": {
+      "open": "Tickets abertos",
+      "pending": "Pendentes",
+      "resolved": "Resolvidos",
+      "closed": "Fechados"
+    },
     "recentActivity": {
       "title": "Atividade recente",
       "noActivity": "Nenhuma atividade recente",

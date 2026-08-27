@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { notificationService } from '@/lib/notification/service'
 import { logger } from '@/lib/utils/logger'
 
 // Run cleanup at most once per hour
@@ -37,16 +38,14 @@ async function runCleanup(): Promise<void> {
       where: { createdAt: { lt: cutoff } },
     })
 
-    // L11: Clean up expired Notifications
-    const notificationResult = await prisma.notification.deleteMany({
-      where: { expiresAt: { lt: new Date() } },
-    })
+    // L11: Clean up expired and retention-stale Notifications
+    const notificationsRemoved = await notificationService.cleanupExpired()
 
-    if (ticketUpdateResult.count > 0 || notificationResult.count > 0) {
+    if (ticketUpdateResult.count > 0 || notificationsRemoved > 0) {
       logger.info('Cleanup', 'Database cleanup completed', {
         data: {
           ticketUpdatesRemoved: ticketUpdateResult.count,
-          notificationsRemoved: notificationResult.count,
+          notificationsRemoved,
         },
       })
     }

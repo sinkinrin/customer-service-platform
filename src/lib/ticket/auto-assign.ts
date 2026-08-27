@@ -15,7 +15,6 @@ import {
   resolveLocalUserIdsForZammadUserId,
 } from '@/lib/notification'
 import { checkIsOnVacation, getAgentDisplayName, isAgentEligible } from '@/lib/ticket/agent-helpers'
-import { isServiceGroupAssignmentCutoverActive } from '@/lib/service-groups/cutover'
 import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
 
 // Excluded system accounts that shouldn't receive ticket assignments

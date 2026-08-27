@@ -15,7 +15,7 @@ const mockAppendHistoryMessageToCache = vi.fn()
 const mockSendStreamingRequest = vi.fn()
 const mockAbortStreamingRequest = vi.fn()
 let streamingMode: 'success' | 'empty' | 'throw' | 'pending' = 'success'
-let pendingStreamingPromise: Promise<string> | null = null
+let pendingStreamingPromise: Promise<{ text: string; persistedMessageId: string | null }> | null = null
 let resolvePendingStreaming: ((value: string) => void) | null = null
 const mockHistoryReplaceState = vi.spyOn(window.history, 'replaceState')
 const mockTouchHistoryListCache = vi.fn()
@@ -85,7 +85,7 @@ vi.mock('@/hooks/use-streaming-chat', () => ({
         throw new Error('stream failed')
       }
       if (streamingMode === 'empty') {
-        return ''
+        return { text: '', persistedMessageId: null }
       }
       if (streamingMode === 'pending') {
         if (!pendingStreamingPromise) {
@@ -93,7 +93,7 @@ vi.mock('@/hooks/use-streaming-chat', () => ({
             resolvePendingStreaming = (value) => {
               const tempId = args[2] as string
               options?.onAddMessage?.(tempId, value)
-              resolve(value)
+              resolve({ text: value, persistedMessageId: null })
             }
           })
         }
@@ -101,7 +101,7 @@ vi.mock('@/hooks/use-streaming-chat', () => ({
       }
       const tempId = args[2] as string
       options?.onAddMessage?.(tempId, 'AI response')
-      return 'AI response'
+      return { text: 'AI response', persistedMessageId: null }
     },
   }),
 }))

@@ -32,9 +32,16 @@ describe('GET /api/health/zammad', () => {
   })
 
   it('returns 503 when Zammad is unavailable', async () => {
-    vi.mocked(checkZammadHealth).mockResolvedValue({ isHealthy: false, error: 'down' })
+    vi.mocked(checkZammadHealth).mockResolvedValue({
+      isHealthy: false,
+      error: 'connect ECONNREFUSED 10.0.0.12:3000',
+    })
 
     const response = await GET({} as any)
+    const payload = await response.json()
+
     expect(response.status).toBe(503)
+    expect(payload.error.message).toBe('Zammad service is not available')
+    expect(JSON.stringify(payload)).not.toContain('10.0.0.12')
   })
 })

@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Note: older changelog content in this repository had encoding corruption. This file has been normalized into a readable summary entrypoint. Historical 2025 releases remain archived under `changelogs/`.
 
+## [0.5.0] - 2026-08-27
+
+### ✨ 新增
+
+#### 员工 AI 回答引用证据
+- **提交**: `dcd1176`
+- **变更**:
+  - 员工 AI 对话中的每条回答新增默认折叠的引用按钮
+  - 展示 FastGPT 检索词、引用文档、来源 ID、更新时间与命中内容
+  - 支持复制证据，并引导市场及客服人员通过点踩反馈引用问题
+  - 回答证据随消息 metadata 持久化，历史对话可恢复查看
+  - 客户流不返回内部证据或原始工具事件
+- **影响**: 市场和客服人员可以核查 AI 使用了哪些知识内容，并更准确地反馈不相关、过期或错误引用
+
+#### FastGPT 执行轨迹演示工具
+- **提交**: `88060df`
+- **变更**:
+  - 新增可独立运行的 FastGPT 流式执行轨迹 Demo
+  - 展示工作流、工具调用、检索词、引用证据与 HTTP/SSE 指标
+- **影响**: 可在不依赖主平台的情况下验证 FastGPT 详细事件格式与展示方案
+
 ## [0.4.0] - 2026-05-07
 
 ### ✨ 新增

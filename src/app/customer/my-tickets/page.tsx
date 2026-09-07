@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -59,6 +60,7 @@ const stateVariants: Record<number, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function MyTicketsPage() {
   const t = useTranslations('myTickets')
+  const router = useRouter()
   const { user } = useAuth()
   const userEmail = user?.email || ''
   const ticketIdentityKey = getAuthorizationIdentityKey(user) ?? ''
@@ -296,9 +298,26 @@ export default function MyTicketsPage() {
               </TableHeader>
               <TableBody>
                 {filteredTickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
+                  <TableRow
+                    key={ticket.id}
+                    className="cursor-pointer focus-within:bg-muted/50"
+                    onClick={(event) => {
+                      // Preserve native links, modified clicks and text selection.
+                      if (
+                        event.defaultPrevented || event.button !== 0 ||
+                        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ||
+                        (event.target as HTMLElement).closest('a, button, input, select, textarea') ||
+                        window.getSelection()?.toString()
+                      ) return
+                      router.push(`/customer/my-tickets/${ticket.id}`)
+                    }}
+                  >
                     <TableCell className="font-medium">#{ticket.number}</TableCell>
-                    <TableCell className="max-w-md truncate">{ticket.title}</TableCell>
+                    <TableCell className="max-w-md truncate">
+                      <Link href={`/customer/my-tickets/${ticket.id}`} className="hover:underline focus-visible:underline">
+                        {ticket.title}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={stateVariants[ticket.state_id] || 'default'}>
                         {t((['1','2','3','4'].includes(String(ticket.state_id)) ? `status.${ticket.state_id}` : 'status.unknown') as any)}

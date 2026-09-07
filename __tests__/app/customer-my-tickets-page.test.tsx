@@ -11,6 +11,9 @@ const authState = vi.hoisted(() => ({
   },
 }))
 
+const push = vi.hoisted(() => vi.fn())
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -75,6 +78,24 @@ describe('customer my tickets page', () => {
     })
     expect(within(ticketRow!).queryByRole('button')).not.toBeInTheDocument()
     expect(viewLink).toHaveAttribute('href', '/customer/my-tickets/42')
+  })
+
+  it('opens the detail from a non-link cell without intercepting native links or selection', async () => {
+    render(<MyTicketsPage />)
+    const title = await screen.findByText('Accessible ticket row')
+    const row = title.closest('tr')!
+    fireEvent.click(within(row).getByText('#202607280001'))
+    expect(push).toHaveBeenCalledExactlyOnceWith('/customer/my-tickets/42')
+
+    push.mockClear()
+    fireEvent.click(title, { ctrlKey: true })
+    fireEvent.click(row, { ctrlKey: true })
+    expect(push).not.toHaveBeenCalled()
+
+    const selection = vi.spyOn(window, 'getSelection').mockReturnValue({ toString: () => 'selected text' } as Selection)
+    fireEvent.click(row)
+    expect(push).not.toHaveBeenCalled()
+    selection.mockRestore()
   })
 
   it('refreshes page one when the realtime provider dispatches a ticket update', async () => {

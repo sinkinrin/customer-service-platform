@@ -132,9 +132,10 @@ export function TicketHistoryDialog({
           ) : (
             <div className="space-y-3">
               {tickets.map((ticket) => (
-                <div
+                <Link
                   key={ticket.id}
-                  className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  href={`${ticketBasePath}/${ticket.id}`}
+                  className="block p-4 border rounded-lg hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -155,13 +156,9 @@ export function TicketHistoryDialog({
                         </span>
                       </div>
                     </div>
-                    <Link href={`${ticketBasePath}/${ticket.id}`}>
-                      <Button variant="ghost" size="sm">
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <ExternalLink className="h-4 w-4 shrink-0 mt-1" aria-hidden="true" />
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

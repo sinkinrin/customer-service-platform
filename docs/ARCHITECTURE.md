@@ -211,6 +211,7 @@ AI 不是单一 FastGPT 绑定实现，当前代码存在多 provider：
 
 - `/api/ai/chat` 支持同步和 SSE 流式返回
 - FastGPT 流式路径通过 `withEvidencePersistence()` 在服务端累积文本、提取有界引用证据并持久化 AI 回复；上游完成标记后保留短证据等待窗口，再发送本地最终 `done`
+- AI SSE 链路使用独立的上游 idle watchdog（默认 180 秒）和下游注释心跳（默认 15 秒）；心跳不计入回答、证据或持久化，也不会重置上游 watchdog。可分别通过 `AI_STREAM_IDLE_TIMEOUT_MS` 和 `AI_STREAM_HEARTBEAT_INTERVAL_MS` 调整，反向代理读取超时必须大于应用 idle timeout
 - 服务端不再向浏览器直接透传 FastGPT 原始工具和知识库事件；staff/admin 可收到规范化 `evidence` 事件，customer 不会收到
 - 客户端 `useStreamingChat()` 通过 `evidence` 和 `persisted` SSE 事件分别接收回答证据与真实消息 ID
 - `/staff/conversations/{id}` 在每条带证据的 AI 消息操作区右侧提供默认折叠的引用按钮，历史消息从 `AiMessage.metadata.aiEvidence` 恢复

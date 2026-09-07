@@ -128,6 +128,23 @@ describe('readAIChatResponse', () => {
         expect(result).toBe('ok')
     })
 
+    it('ignores SSE heartbeat comments without changing answer text or status', async () => {
+        const events = [
+            ': heartbeat\n\n',
+            'event: answer\ndata: {"choices":[{"delta":{"content":"still connected"}}]}\n\n',
+            ': heartbeat\n\n',
+            'event: done\ndata: [DONE]\n\n',
+        ]
+        const onText = vi.fn()
+        const onStatus = vi.fn()
+
+        const result = await readAIChatResponse(sseResponse(events), onText, onStatus)
+
+        expect(result).toBe('still connected')
+        expect(onStatus).toHaveBeenCalledTimes(1)
+        expect(onStatus).toHaveBeenCalledWith('')
+    })
+
     it('delivers normalized answer evidence before the final done event', async () => {
         const evidence = {
             version: 1,

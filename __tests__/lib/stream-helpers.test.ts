@@ -5,10 +5,11 @@
  * - createStreamResponse: correct SSE headers
  * - withStreamTimeout: normal data pass-through
  * - withStreamTimeout: idle timeout emits error event + closes stream
+ * - withSSEHeartbeat: downstream keepalive without masking upstream timeout
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { createStreamResponse, withStreamTimeout } from '@/lib/ai/stream-helpers'
+import { createStreamResponse, withSSEHeartbeat, withStreamTimeout } from '@/lib/ai/stream-helpers'
 
 // ── helpers ──────────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ function makeStream(chunks: Uint8Array[], delayMs = 0): ReadableStream<Uint8Arra
 }
 
 afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
 })
 
@@ -98,5 +100,75 @@ describe('withStreamTimeout', () => {
         // Next read should indicate stream is closed
         const next = await reader.read()
         expect(next.done).toBe(true)
+    })
+})
+
+describe('withSSEHeartbeat', () => {
+    it('emits an SSE comment while idle and then forwards upstream data unchanged', async () => {
+        const encoder = new TextEncoder()
+        const decoder = new TextDecoder()
+        let upstreamController!: ReadableStreamDefaultController<Uint8Array>
+        const upstream = new ReadableStream<Uint8Array>({
+            start(controller) {
+                upstreamController = controller
+            },
+        })
+
+        const reader = withSSEHeartbeat(upstream, 10).getReader()
+        const keepalive = await reader.read()
+
+        expect(keepalive.done).toBe(false)
+        expect(decoder.decode(keepalive.value)).toBe(': heartbeat\n\n')
+
+        upstreamController.enqueue(encoder.encode('data: answer\n\n'))
+        upstreamController.close()
+
+        const answer = await reader.read()
+        expect(decoder.decode(answer.value)).toBe('data: answer\n\n')
+        expect((await reader.read()).done).toBe(true)
+    })
+
+    it('does not inject heartbeats inside a split SSE frame', async () => {
+        vi.useFakeTimers()
+        const encoder = new TextEncoder()
+        let upstreamController!: ReadableStreamDefaultController<Uint8Array>
+        const upstream = new ReadableStream<Uint8Array>({
+            start(controller) { upstreamController = controller },
+        })
+        const reader = withSSEHeartbeat(upstream, 10).getReader()
+        upstreamController.enqueue(encoder.encode('data: {"text":"hel'))
+        await reader.read()
+        const next = reader.read()
+        const received = vi.fn()
+        void next.then(received)
+        await vi.advanceTimersByTimeAsync(35)
+        expect(received).not.toHaveBeenCalled()
+        upstreamController.enqueue(encoder.encode('lo"}\n\n'))
+        expect(new TextDecoder().decode((await next).value)).toBe('lo"}\n\n')
+        upstreamController.close()
+        expect((await reader.read()).done).toBe(true)
+    })
+
+    it('cancels the upstream when the browser disconnects', async () => {
+        const cancel = vi.fn()
+        const reader = withSSEHeartbeat(new ReadableStream({ cancel }), 10).getReader()
+        await reader.read()
+        await reader.cancel('disconnected')
+        expect(cancel).toHaveBeenCalledWith('disconnected')
+    })
+
+    it('does not let heartbeats reset the upstream idle timeout', async () => {
+        const neverStream = new ReadableStream<Uint8Array>({
+            start() {
+                // intentionally never enqueue or close
+            },
+        })
+
+        const response = createStreamResponse(neverStream, 50, 10)
+        const text = await response.text()
+
+        expect(text).toContain(': heartbeat\n\n')
+        expect(text).toContain('event: error')
+        expect(text).toContain('Stream timeout')
     })
 })

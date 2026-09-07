@@ -3,13 +3,43 @@
  *
  * - createStreamResponse: build a standard SSE Response from a ReadableStream
  * - withStreamTimeout:   wrap an upstream stream with a safety timeout
+ * - withSSEHeartbeat:    keep downstream proxies alive without affecting the upstream timeout
  * - withPersistence:     capture accumulated answer text for server-side persistence
  */
 
 import { parseSSEEvent, getDeltaText } from './sse-parse'
 import { createFastGPTEvidenceAccumulator, type AiAnswerEvidence } from './fastgpt-evidence'
 
-const STREAM_TIMEOUT_MS = 60_000 // 60 seconds
+const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 180_000
+const DEFAULT_STREAM_HEARTBEAT_INTERVAL_MS = 15_000
+
+function readDurationMs(
+    value: string | undefined,
+    fallback: number,
+    range: { min: number; max: number }
+): number {
+    const parsed = Number.parseInt(value ?? '', 10)
+    if (!Number.isFinite(parsed) || parsed < range.min || parsed > range.max) {
+        return fallback
+    }
+    return parsed
+}
+
+function getStreamIdleTimeoutMs(): number {
+    return readDurationMs(
+        process.env.AI_STREAM_IDLE_TIMEOUT_MS,
+        DEFAULT_STREAM_IDLE_TIMEOUT_MS,
+        { min: 60_000, max: 600_000 }
+    )
+}
+
+function getStreamHeartbeatIntervalMs(): number {
+    return readDurationMs(
+        process.env.AI_STREAM_HEARTBEAT_INTERVAL_MS,
+        DEFAULT_STREAM_HEARTBEAT_INTERVAL_MS,
+        { min: 5_000, max: 30_000 }
+    )
+}
 
 /**
  * Wrap an upstream ReadableStream with an idle-timeout.
@@ -18,7 +48,7 @@ const STREAM_TIMEOUT_MS = 60_000 // 60 seconds
  */
 export function withStreamTimeout(
     upstream: ReadableStream<Uint8Array>,
-    timeoutMs = STREAM_TIMEOUT_MS
+    timeoutMs = getStreamIdleTimeoutMs()
 ): ReadableStream<Uint8Array> {
     let timer: ReturnType<typeof setTimeout> | null = null
     let timedOut = false
@@ -76,14 +106,93 @@ export function withStreamTimeout(
 }
 
 /**
+ * Emit SSE comment frames while an upstream stream is quiet. The heartbeat is
+ * deliberately composed outside withStreamTimeout so transport keepalives do
+ * not reset the provider idle watchdog or enter persistence/evidence parsing.
+ */
+export function withSSEHeartbeat(
+    upstream: ReadableStream<Uint8Array>,
+    heartbeatMs = getStreamHeartbeatIntervalMs()
+): ReadableStream<Uint8Array> {
+    const reader = upstream.getReader()
+    const heartbeat = new TextEncoder().encode(': heartbeat\n\n')
+    let pendingRead: Promise<ReadableStreamReadResult<Uint8Array>> | null = null
+    let finished = false
+    let frameTail = ''
+    let atEventBoundary = true
+
+    const getPendingRead = () => {
+        pendingRead ??= reader.read()
+        return pendingRead
+    }
+
+    return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+            let heartbeatTimer: ReturnType<typeof setTimeout> | null = null
+
+            try {
+                const upstreamRead = getPendingRead().then(result => ({ type: 'upstream' as const, result }))
+                const outcome = await Promise.race([
+                    upstreamRead,
+                    ...(atEventBoundary ? [new Promise<{ type: 'heartbeat' }>(resolve => {
+                        heartbeatTimer = setTimeout(
+                            () => resolve({ type: 'heartbeat' }),
+                            heartbeatMs
+                        )
+                    })] : []),
+                ])
+
+                if (heartbeatTimer) clearTimeout(heartbeatTimer)
+                if (finished) return
+
+                if (outcome.type === 'heartbeat') {
+                    controller.enqueue(heartbeat)
+                    return
+                }
+
+                pendingRead = null
+                if (outcome.result.done) {
+                    finished = true
+                    controller.close()
+                    return
+                }
+
+                // Inspect only ASCII delimiters; never decode/re-encode payload bytes.
+                for (const byte of outcome.result.value.subarray(-4)) {
+                    frameTail = (frameTail + String.fromCharCode(byte)).slice(-4)
+                }
+                atEventBoundary = frameTail.endsWith('\n\n') || frameTail.endsWith('\r\n\r\n')
+                controller.enqueue(outcome.result.value)
+            } catch (error) {
+                if (heartbeatTimer) clearTimeout(heartbeatTimer)
+                if (finished) return
+                finished = true
+                controller.error(error)
+            }
+        },
+
+        async cancel(reason) {
+            finished = true
+            await reader.cancel(reason).catch(() => {})
+        },
+    })
+}
+
+/**
  * Build a standard SSE Response object from a ReadableStream.
- * Automatically applies idle-timeout protection.
+ * Applies an upstream idle timeout and an independent downstream heartbeat.
  */
 export function createStreamResponse(
     stream: ReadableStream<Uint8Array>,
-    timeoutMs: number | null = STREAM_TIMEOUT_MS
+    timeoutMs: number | null = getStreamIdleTimeoutMs(),
+    heartbeatMs: number | null = getStreamHeartbeatIntervalMs()
 ): Response {
-    const safeStream = timeoutMs === null ? stream : withStreamTimeout(stream, timeoutMs)
+    const timeoutProtectedStream = timeoutMs === null
+        ? stream
+        : withStreamTimeout(stream, timeoutMs)
+    const safeStream = heartbeatMs === null
+        ? timeoutProtectedStream
+        : withSSEHeartbeat(timeoutProtectedStream, heartbeatMs)
 
     return new Response(safeStream, {
         headers: {

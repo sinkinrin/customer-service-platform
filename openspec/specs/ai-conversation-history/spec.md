@@ -101,3 +101,11 @@
 - **WHEN** 上游流式请求因错误、超时或取消而提前结束
 - **THEN** 系统 SHALL 保留已收到的部分文本用于持久化尝试
 - **AND** 客户端 SHALL 按当前错误处理逻辑收尾
+
+#### Scenario: 上游处理期间暂时没有回答数据
+- **GIVEN** AI provider 仍在有界的 idle 等待窗口内处理请求
+- **WHEN** 上游暂时没有发送回答或节点状态数据
+- **THEN** 服务端 SHALL 以短于 idle timeout 的间隔发送 SSE 注释心跳，避免反向代理提前关闭连接
+- **AND** 心跳 SHALL NOT 被视为回答文本、证据或持久化数据
+- **AND** 心跳 SHALL NOT 重置 provider idle watchdog
+- **AND** 反向代理读取超时 SHALL 大于应用 idle timeout，使应用能够先发送受控的 SSE 错误并完成部分持久化

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Note: older changelog content in this repository had encoding corruption. This file has been normalized into a readable summary entrypoint. Historical 2025 releases remain archived under `changelogs/`.
 
+## [0.5.1] - 2026-09-07
+
+### 修复与体验改进
+
+- 客户“我的工单”支持点击整行进入详情，并为标题保留原生链接；文字选择和链接的组合键操作不触发重复跳转。
+- 管理员和客服的历史工单弹窗支持点击整张工单卡片，保留键盘导航与新标签页打开能力。
+- AI 流式响应增加默认 15 秒的 SSE 心跳和默认 180 秒的上游空闲超时，可通过环境变量调整；心跳不会进入回答、证据或持久化，也不会重置上游超时。
+- SSE 心跳仅在完整事件边界发送，避免破坏跨网络分块的回答数据。
+- 本版本不包含数据库结构变更。
+
 ## [0.5.0] - 2026-08-27
 
 ### ✨ 新增

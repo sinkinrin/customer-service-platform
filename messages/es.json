@@ -324,6 +324,7 @@
       "urgent": "Urgente"
     },
     "details": {
+      "ccLabel": "CC",
       "title": "Detalles del ticket",
       "customer": "Cliente",
       "group": "Grupo",

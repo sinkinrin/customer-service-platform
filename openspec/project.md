@@ -62,7 +62,7 @@
 - **Admin**：管理用户、FAQ、配置项，以及 customer-staff binding 等管理能力
 - **工单真相来源**：Zammad
 - **本地支撑数据**：FAQ、UploadedFile、TicketRating、ReplyTemplate、TicketUpdate、Notification、AiConversation、AiMessage、AiMessageRating、AiQaReview
-- **当前分配模型**：以 customer-staff binding 与 binding-aware auto-assign 为核心，而不是早期文档中的简单区域分配模型
+- **当前分配模型**：以客户服务分组为长期归属；新邮件工单可由首封来信 CC 中唯一符合条件的坐席优先承接，其他情况使用服务分组负责人
 
 ## 重要约束
 

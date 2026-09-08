@@ -184,4 +184,16 @@ describe('Ticket Auto-Assign API', () => {
     expect(zammadClient.updateTicket).not.toHaveBeenCalled()
     expect(data.data.results[0].error).toContain('staging')
   })
+  it('does not override a ticket already assigned through email CC', async () => {
+    process.env.CRON_SECRET = 'secret'
+    vi.mocked(zammadClient.getAllTickets).mockResolvedValue([
+      { id: 100, group_id: 4, customer_id: 50, owner_id: 30, state_id: 2 },
+    ] as any)
+    vi.mocked(findCustomerServiceGroup).mockResolvedValue({ serviceGroup: { staffZammadId: 20 } } as any)
+    const response = await POST(createRequestWithSecret('secret'))
+    expect(response.status).toBe(200)
+    expect(zammadClient.updateTicket).not.toHaveBeenCalled()
+    expect(findCustomerServiceGroup).not.toHaveBeenCalled()
+  })
+
 })

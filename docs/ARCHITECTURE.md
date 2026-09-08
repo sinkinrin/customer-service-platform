@@ -2,8 +2,8 @@
 
 > 客户服务平台当前实现架构说明。
 
-**最后更新**：2026-07-03
-**当前版本**：`0.4.0`
+**最后更新**：2026-09-08
+**当前版本**：`0.6.0`
 
 ## 总览
 
@@ -125,18 +125,16 @@ Zammad 是以下数据的真相来源：
 
 ### 当前分配模型
 
-当前不是旧文档里的“纯 region 分配”，而是 **binding-aware auto assign**：
+客户的长期服务归属由 `CustomerGroupAssignment → ServiceGroup` 决定，网页建单和批量未分配工单处理使用服务分组固定负责人。
 
-1. 先查 customer-staff binding
-2. 绑定坐席不可用时处理替补或失效绑定
-3. 否则在目标 group 内按负载做选择
-4. 首次成功分配后可自动创建 binding
+启用 `EMAIL_CC_AUTO_ASSIGN_ENABLED=true` 后，新邮件工单在待分配区首次路由时优先使用首封客户来信 CC 中唯一具备目标区域完整权限的可用坐席，否则回退服务分组负责人。该开关默认关闭，关闭时保留 CC 展示并使用原服务分组负责人。CC 不改变长期服务归属，后续回复不触发改派；管理员明确改派及服务分组迁移继续生效。完整规则和并发边界见 [Zammad 集成](./ZAMMAD-INTEGRATION.md#当前分配模型)。
 
 关键文件：
 
-- `src/lib/ticket/auto-assign.ts`
-- `src/lib/ticket/customer-binding.ts`
-- `src/app/api/admin/customer-bindings/route.ts`
+- `src/lib/ticket/email-ticket-routing.ts`
+- `src/lib/service-groups/customer-assignment-service.ts`
+- `src/lib/service-groups/ticket-migration-service.ts`
+- `src/app/api/tickets/auto-assign/route.ts`
 
 ## 实时更新链路
 

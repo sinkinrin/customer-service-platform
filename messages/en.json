@@ -324,6 +324,7 @@
       "urgent": "Urgent"
     },
     "details": {
+      "ccLabel": "Cc",
       "title": "Ticket Details",
       "customer": "Customer",
       "group": "Group",

@@ -2,7 +2,7 @@
 
 > 一个基于 Next.js、Prisma 和 Zammad 的三端客户服务平台。
 
-**当前包版本**：`0.4.0`
+**当前包版本**：`0.6.0`
 **项目总览入口**：本文件
 **技术文档入口**：[`docs/README.md`](./docs/README.md)
 
@@ -12,13 +12,13 @@
 
 - **Customer**：浏览 FAQ、发起 AI 对话、创建并跟踪工单、带附件回复
 - **Staff**：处理工单、回复客户、使用 AI 助手与 AI QA 工具
-- **Admin**：管理用户、FAQ、AI 设置、customer-staff binding 与运营配置
+- **Admin**：管理用户、FAQ、AI 设置、服务分组与运营配置
 
 ## 当前能力
 
 - **认证与 RBAC**：NextAuth.js v5 + Credentials，Zammad 优先认证，mock / env 回退
 - **工单流程**：基于 Zammad REST API，按场景使用 `X-On-Behalf-Of`
-- **分配逻辑**：binding-aware auto assign，而不是早期纯 region 分配
+- **分配逻辑**：以客户服务分组为长期归属，新邮件可按唯一合格 CC 坐席优先初始分配
 - **实时更新**：webhook → `TicketUpdate` → SSE / polling fallback
 - **站内通知**：Prisma 持久化通知 + 前端轮询刷新
 - **AI 能力**：客户 AI 对话、staff AI 助手、AI QA review，多 provider 配置

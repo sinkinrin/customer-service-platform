@@ -121,4 +121,56 @@ describe('Zammad webhook routing orchestration', () => {
     const response = await responsePromise
     expect(response.status).toBe(200)
   })
+
+  it('still tries email routing when the first article falls outside the five-second heuristic', async () => {
+    const payload = {
+      ticket: {
+        id: 10,
+        title: 'Delayed email ticket',
+        number: 'T-10',
+        customer_id: 33,
+        group_id: 9,
+        state_id: 1,
+        created_at: '2024-01-10T00:00:00Z',
+      },
+      article: {
+        id: 100,
+        type: 'email',
+        subject: 'Help',
+        created_at: '2024-01-10T00:00:10Z',
+      },
+    }
+
+    const response = await POST(createRequest(payload))
+
+    expect(response.status).toBe(200)
+    expect(mockHandleEmailTicketRouting).toHaveBeenCalledWith(payload, undefined)
+    expect(mockHandleEmailUserWelcome).not.toHaveBeenCalled()
+  })
+
+  it('does not try email routing for non-email articles', async () => {
+    const payload = {
+      ticket: {
+        id: 10,
+        title: 'Web ticket',
+        number: 'T-10',
+        customer_id: 33,
+        group_id: 9,
+        state_id: 1,
+        created_at: '2024-01-10T00:00:00Z',
+      },
+      article: {
+        id: 100,
+        type: 'web',
+        subject: 'Help',
+        created_at: '2024-01-10T00:00:10Z',
+      },
+    }
+
+    const response = await POST(createRequest(payload))
+
+    expect(response.status).toBe(200)
+    expect(mockHandleEmailTicketRouting).not.toHaveBeenCalled()
+    expect(mockHandleEmailUserWelcome).not.toHaveBeenCalled()
+  })
 })

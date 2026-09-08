@@ -1,4 +1,4 @@
-import type { ZammadWebhookPayload } from '@/lib/zammad/types'
+import type { ZammadUser, ZammadTicket, ZammadWebhookPayload } from '@/lib/zammad/types'
 import { STAGING_GROUP_ID, getGroupIdByRegion, isValidRegion, type RegionValue } from '@/lib/constants/regions'
 import { ZAMMAD_ROLES } from '@/lib/constants/zammad'
 import { zammadClient } from '@/lib/zammad/client'
@@ -8,6 +8,45 @@ import { createApiLogger } from '@/lib/utils/api-logger'
 import { findCustomerServiceGroup } from '@/lib/service-groups/customer-assignment-service'
 import { mapServiceBaseRegionToRegionValue } from '@/lib/service-groups/service-group-service'
 import { getAgentDisplayName, isAgentEligible } from '@/lib/ticket/agent-helpers'
+import { parseCcAddresses } from '@/lib/ticket/email-cc'
+import { isServiceGroupAssignmentCutoverActive } from '@/lib/service-groups/cutover'
+
+export const EMAIL_CC_AUTO_ASSIGN_ENABLED_ENV = 'EMAIL_CC_AUTO_ASSIGN_ENABLED'
+
+function isEmailCcAutoAssignEnabled(): boolean {
+  return process.env[EMAIL_CC_AUTO_ASSIGN_ENABLED_ENV] === 'true'
+}
+
+function isUnassignedStagingTicket(ticket: ZammadTicket): boolean {
+  return ticket.group_id === STAGING_GROUP_ID &&
+    (!ticket.owner_id || ticket.owner_id === 1) &&
+    [1, 2].includes(ticket.state_id)
+}
+
+async function findCcOwner(cc: string | null, groupId: number): Promise<ZammadUser | undefined> {
+  const matches = new Map<number, ZammadUser>()
+  for (const email of parseCcAddresses(cc)) {
+    let page = 1
+    while (true) {
+      const users = await zammadClient.searchUsersPaginated(email, 100, page)
+      for (const user of users) {
+        const isAgent = user.role_ids?.includes(ZAMMAD_ROLES.AGENT) || user.roles?.includes('Agent')
+        if (user.email?.trim().toLowerCase() === email && isAgent &&
+            isAgentEligible(user, groupId, EXCLUDED_EMAILS)) {
+          matches.set(user.id, user)
+        }
+      }
+      if (users.length < 100) break
+      page++
+    }
+  }
+  // Multiple eligible recipients are ambiguous; preserve service-group fallback.
+  return matches.size === 1 ? [...matches.values()][0] : undefined
+}
+
+// Coalesce concurrent callbacks in this process; re-read Zammad for delayed retries.
+type RoutingResult = { retryable: true } | void
+const routingInFlight = new Map<number, Promise<RoutingResult>>()
 
 export function parseRegionFromNote(note?: string | null): { raw?: string; region?: RegionValue } {
   if (!note) return {}
@@ -72,36 +111,37 @@ async function notifyAdminsAboutUnroutedTicket(params: {
   }
 }
 
-export async function handleEmailTicketRoutingFromWebhookPayload(
+async function routeEmailTicket(
   payload: ZammadWebhookPayload,
   requestId?: string
-): Promise<void> {
+): Promise<RoutingResult> {
   const log = createApiLogger('EmailTicketRouting', requestId)
 
   try {
-    const ticket = payload.ticket
-
-    if (ticket.group_id !== STAGING_GROUP_ID) return
+    if (isServiceGroupAssignmentCutoverActive()) return
+    if (payload.ticket.group_id !== STAGING_GROUP_ID) return
     if (payload.article?.type !== 'email') return
+
+    // Webhook snapshots can predate a manual assignment or a previous callback.
+    const ticket = await zammadClient.getTicket(payload.ticket.id)
+    if (!isUnassignedStagingTicket(ticket)) return
+
+    // CC may be absent in a custom webhook. Read the actual first article from Zammad.
+    // This also rejects follow-ups and system auto-replies misclassified by the 5s heuristic.
+    const articles = await zammadClient.getArticlesByTicket(ticket.id)
+    const firstArticle = [...articles].sort((a, b) => a.id - b.id)[0]
+    if (!firstArticle) throw new Error('Original email article is not yet available')
+    if (firstArticle.id !== payload.article.id ||
+        firstArticle.ticket_id !== ticket.id || firstArticle.type !== 'email' ||
+        firstArticle.sender !== 'Customer' || firstArticle.internal) return
     if (typeof ticket.customer_id !== 'number') {
       log.warning('Skipping email ticket routing: missing customer_id', { ticketId: ticket.id })
       return
     }
 
     const customerId = ticket.customer_id
-    let customerEmail: string | undefined
-
-    try {
-      const customer = await zammadClient.getUser(customerId)
-      customerEmail = customer.email
-    } catch (error) {
-      log.error('Failed to fetch customer from Zammad; skipping routing', {
-        ticketId: ticket.id,
-        customerId,
-        error: error instanceof Error ? error.message : error,
-      })
-      return
-    }
+    const customer = await zammadClient.getUser(customerId)
+    const customerEmail = customer.email
 
     const assignment = await findCustomerServiceGroup(customerId)
     if (!assignment) {
@@ -119,16 +159,27 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
     const region = mapServiceBaseRegionToRegionValue(assignment.serviceGroup.baseRegion)
     const targetGroupId = getGroupIdByRegion(region)
 
-    let assignedOwner
-    try {
-      assignedOwner = await zammadClient.getUser(assignment.serviceGroup.staffZammadId)
-    } catch (error) {
-      log.error('Failed to fetch assigned owner from Zammad; keeping ticket in staging', {
-        ticketId: ticket.id,
-        ownerId: assignment.serviceGroup.staffZammadId,
-        error: error instanceof Error ? error.message : error,
-      })
+    let assignedOwner: ZammadUser | undefined
+    let assignmentSource = 'service_group'
+    if (isEmailCcAutoAssignEnabled()) {
+      try {
+        assignedOwner = await findCcOwner(firstArticle.cc, targetGroupId)
+        if (assignedOwner) assignmentSource = 'email_cc'
+      } catch (error) {
+        log.warning('CC lookup failed; using service-group owner', {
+          ticketId: ticket.id,
+          error: error instanceof Error ? error.message : error,
+        })
+      }
     }
+
+    // Re-read the switch after CC lookup so disabling it during recipient resolution
+    // restores the established service-group assignment.
+    if (!isEmailCcAutoAssignEnabled()) {
+      assignedOwner = undefined
+      assignmentSource = 'service_group'
+    }
+    assignedOwner ??= await zammadClient.getUser(assignment.serviceGroup.staffZammadId)
 
     if (!assignedOwner || !isAgentEligible(assignedOwner, targetGroupId, EXCLUDED_EMAILS)) {
       await notifyAdminsAboutUnroutedTicket({
@@ -142,49 +193,35 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
       return
     }
 
-    try {
-      await zammadClient.updateTicket(ticket.id, { group_id: targetGroupId })
-      log.info('Routed email ticket to regional group', {
-        ticketId: ticket.id,
-        ticketNumber: ticket.number,
-        region,
-        fromGroupId: ticket.group_id,
-        toGroupId: targetGroupId,
-      })
-    } catch (error) {
-      log.error('Failed to update ticket group in Zammad; skipping auto-assign', {
-        ticketId: ticket.id,
-        ticketNumber: ticket.number,
-        region,
-        toGroupId: targetGroupId,
-        error: error instanceof Error ? error.message : error,
-      })
-      return
-    }
+    // Recheck after the lookups so a manual change during resolution takes precedence.
+    const currentTicket = await zammadClient.getTicket(ticket.id)
+    if (isServiceGroupAssignmentCutoverActive() ||
+        (assignmentSource === 'email_cc' && !isEmailCcAutoAssignEnabled()) ||
+        !isUnassignedStagingTicket(currentTicket) ||
+        currentTicket.customer_id !== ticket.customer_id ||
+        currentTicket.last_owner_update_at !== ticket.last_owner_update_at) return
 
     try {
+      // One Zammad update avoids a regional-but-unassigned window for batch auto-assign.
       await zammadClient.updateTicket(ticket.id, {
+        group_id: targetGroupId,
         owner_id: assignedOwner.id,
         state: 'open',
       })
-    } catch (error) {
-      log.error('Failed to assign owner after regional group move; attempting to revert to staging', {
+      log.info('Routed and assigned email ticket', {
         ticketId: ticket.id,
-        ticketNumber: ticket.number,
+        articleId: firstArticle.id,
+        ownerId: assignedOwner.id,
+        targetGroupId,
+        assignmentSource,
+      })
+    } catch (error) {
+      log.error('Failed to route and assign email ticket', {
+        ticketId: ticket.id,
         ownerId: assignedOwner.id,
         error: error instanceof Error ? error.message : error,
       })
-
-      try {
-        await zammadClient.updateTicket(ticket.id, { group_id: STAGING_GROUP_ID })
-      } catch (revertError) {
-        log.error('Failed to revert ticket back to staging after owner assignment failure', {
-          ticketId: ticket.id,
-          ticketNumber: ticket.number,
-          error: revertError instanceof Error ? revertError.message : revertError,
-        })
-      }
-
+      // Do not blindly roll back: a timed-out request may have succeeded remotely.
       await notifyAdminsAboutUnroutedTicket({
         ticketId: ticket.id,
         ticketNumber: ticket.number,
@@ -193,7 +230,7 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
         reason: '负责人分配失败，需管理员处理',
         requestId,
       })
-      return
+      return { retryable: true }
     }
 
     try {
@@ -220,6 +257,35 @@ export async function handleEmailTicketRoutingFromWebhookPayload(
       })
     }
   } catch (error) {
-    log.error('Email ticket routing failed (non-blocking)', { error: error instanceof Error ? error.message : error })
+    log.error('Email ticket routing failed; webhook must be retried', { error: error instanceof Error ? error.message : error })
+    await notifyAdminsAboutUnroutedTicket({
+      ticketId: payload.ticket.id,
+      ticketNumber: payload.ticket.number,
+      ticketTitle: payload.ticket.title,
+      reason: '邮件路由依赖读取失败，等待 Webhook 重试；若持续失败请人工处理',
+      requestId,
+    })
+    return { retryable: true }
+  }
+}
+
+export async function handleEmailTicketRoutingFromWebhookPayload(
+  payload: ZammadWebhookPayload,
+  requestId?: string
+): Promise<RoutingResult> {
+  const ticketId = payload.ticket.id
+  const pending = routingInFlight.get(ticketId)
+  if (pending) {
+    await pending
+    // The concurrent callback may have been for a system reply; retry this event
+    // against current state instead of dropping the actual first customer article.
+    return handleEmailTicketRoutingFromWebhookPayload(payload, requestId)
+  }
+  const work = routeEmailTicket(payload, requestId)
+  routingInFlight.set(ticketId, work)
+  try {
+    return await work
+  } finally {
+    routingInFlight.delete(ticketId)
   }
 }

@@ -12,6 +12,7 @@ import {
   successResponse,
   errorResponse,
   serverErrorResponse,
+  serviceUnavailableResponse,
 } from '@/lib/utils/api-response'
 import { getApiLogger } from '@/lib/utils/api-logger'
 import type { ZammadWebhookPayload } from '@/lib/zammad/types'
@@ -245,6 +246,19 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Route before persisting or broadcasting this event: a retryable failure must
+      // not create another TicketUpdate/SSE event on each delivery attempt.
+      // Try routing every email article callback. The routing service re-reads Zammad
+      // and only accepts the first public customer email on an unassigned staging ticket.
+      // This avoids missing a first article whose timestamp differs from ticket creation
+      // by more than the event-classification heuristic above.
+      if (webhookPayload.article?.type === 'email') {
+        const routingResult = await handleEmailTicketRoutingFromWebhookPayload(webhookPayload!, log.requestId)
+        if (routingResult?.retryable) {
+          return serviceUnavailableResponse('Email ticket routing temporarily failed; retry this webhook')
+        }
+      }
+
       // Store the update in database
       if (updateEvent) {
         try {
@@ -350,9 +364,7 @@ export async function POST(request: NextRequest) {
         log.error('Failed to create in-app notifications', { error: notifyError instanceof Error ? notifyError.message : notifyError })
       }
 
-      // Non-blocking: route newly created email tickets from staging group to regional group
       if (updateEvent === 'created') {
-        await handleEmailTicketRoutingFromWebhookPayload(webhookPayload!, log.requestId)
         await handleEmailUserWelcomeFromWebhookPayload(webhookPayload!, log.requestId)
       }
     }

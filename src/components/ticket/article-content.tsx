@@ -307,6 +307,11 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
   const isCustomerSender = article.sender === 'Customer'
   const isSystem = article.sender === 'System'
   const isAgentSender = article.sender === 'Agent'
+  const ccMeta = showMeta && viewerRole !== 'customer' && article.type === 'email' && article.cc?.trim() ? (
+    <p className="text-muted-foreground break-words whitespace-pre-wrap max-w-full text-xs">
+      <span className="font-medium">{t('ccLabel')}: </span>{article.cc}
+    </p>
+  ) : null
 
   // Determine if this message should be on the right ("my message")
   // - For customer viewer: customer messages are on the right
@@ -326,6 +331,7 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
               {new Date(article.created_at).toLocaleString(locale)}
             </time>
           </div>
+          {ccMeta}
           <ArticleContent
             article={article}
             showAttachments={false}
@@ -366,6 +372,7 @@ export function ArticleCard({ article, showMeta = true, viewerRole = 'staff' }: 
                 {new Date(article.created_at).toLocaleString(locale)}
               </time>
             </div>
+            {ccMeta}
             {/* Show full email on second line if available */}
             {article.from?.includes('<') && (
               <span className="text-muted-foreground/70 text-[10px]">

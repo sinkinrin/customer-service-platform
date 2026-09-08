@@ -324,6 +324,7 @@
       "urgent": "紧急"
     },
     "details": {
+      "ccLabel": "抄送",
       "title": "工单详情",
       "customer": "客户",
       "group": "组",

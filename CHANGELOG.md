@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Note: older changelog content in this repository had encoding corruption. This file has been normalized into a readable summary entrypoint. Historical 2025 releases remain archived under `changelogs/`.
 
+## [0.6.0] - 2026-09-08
+
+### ✨ 新增
+
+- 管理员和技术支持可在每封邮件消息中查看原始 CC，空值隐藏，多人地址支持换行展示，并补齐六种语言文案。
+- 新邮件工单支持在 `EMAIL_CC_AUTO_ASSIGN_ENABLED=true` 时，优先分配给首封公开客户邮件 CC 中唯一符合区域权限、账号状态和休假条件的坐席；无唯一匹配时回退服务分组负责人。
+- 邮件路由增加首篇文章复核、重复回调协调、人工改派保护和可重试的依赖失败处理；失败 webhook 返回 HTTP 503，避免重复持久化和通知副作用。
+
+### 🔧 配置与兼容性
+
+- CC 自动分配默认关闭；关闭时保留 CC 展示并继续使用服务分组负责人。
+- 本版本不包含数据库结构变更。
+
 ## [0.5.1] - 2026-09-07
 
 ### 修复与体验改进
